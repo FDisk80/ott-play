@@ -534,6 +534,144 @@ for (const [profile, code] of profiles) {
             }
         });
     }
+    for (const mode of [0, 1, 2, 3]) {
+        for (const [key, direction] of [
+            ["LEFT", -1],
+            ["RIGHT", 1],
+        ]) {
+            check(
+                `Classic channel ${key} preserves arrow mode ${mode}`,
+                (f) => {
+                    const actions = [];
+                    const host = f.host;
+                    host.sArrowFun = mode;
+                    host.listPageSize = 25;
+                    host.sVolumeStep = 5;
+                    host.bucketsList = (category) =>
+                        actions.push(["categories", category]);
+                    host.epgList = (...args) => actions.push(["epg", ...args]);
+                    host.changeSelect = (delta) =>
+                        actions.push(["page", delta]);
+                    host.changeVolume = (delta) =>
+                        actions.push(["volume", delta]);
+                    host.listKeyHandler = host.channelsKeyHandler;
+                    host.showPage();
+                    f.key(key);
+                    assert.deepEqual(actions, [
+                        mode === 2
+                            ? direction < 0
+                                ? ["categories", host.listCatIndex]
+                                : [
+                                      "epg",
+                                      host.listCatIndex,
+                                      host.selIndex,
+                                      true,
+                                  ]
+                            : [
+                                  mode === 1 ? "volume" : "page",
+                                  direction * (mode === 1 ? 5 : 25),
+                              ],
+                    ]);
+                    assert.equal(f.take("play").length, 0);
+                }
+            );
+        }
+    }
+    for (const [key, setting] of [
+        ["RW", "sRewFun"],
+        ["FF", "sRewFun"],
+        ["PREV", "sPNFun"],
+        ["NEXT", "sPNFun"],
+    ]) {
+        for (const mode of [0, 1, 2, 3]) {
+            check(
+                `Classic channel ${key} preserves configured mode ${mode}`,
+                (f) => {
+                    const actions = [];
+                    const host = f.host;
+                    const backward = key === "RW" || key === "PREV";
+                    host[setting] = mode;
+                    host.listPageSize = 25;
+                    host.bucketsList = (category) =>
+                        actions.push(["categories", category]);
+                    host.epgList = (...args) => actions.push(["epg", ...args]);
+                    host.channelsList = (...args) =>
+                        actions.push(["channels", ...args]);
+                    host.changeSelect = (delta) =>
+                        actions.push(["page", delta]);
+                    host.listKeyHandler = host.channelsKeyHandler;
+                    host.showPage();
+                    f.key(key);
+                    let expected;
+                    if (mode === 1)
+                        expected = backward
+                            ? ["categories", host.listCatIndex]
+                            : ["epg", host.listCatIndex, host.selIndex, true];
+                    else if (mode === 2) {
+                        const category = backward
+                            ? host.listCatIndex > 0
+                                ? host.listCatIndex - 1
+                                : host.catsArray.length - 1
+                            : host.listCatIndex < host.catsArray.length - 1
+                              ? host.listCatIndex + 1
+                              : 0;
+                        expected = [
+                            "channels",
+                            category,
+                            host.catIndex !== category ? 0 : host.primaryIndex,
+                        ];
+                    } else
+                        expected = [
+                            "page",
+                            mode === 3 && setting === "sPNFun"
+                                ? backward
+                                    ? -host.selIndex
+                                    : host.listArray.length - host.selIndex - 1
+                                : backward
+                                  ? -25
+                                  : 25,
+                        ];
+                    assert.deepEqual(actions, [expected]);
+                }
+            );
+        }
+    }
+    check(
+        "Dune channel Right uses the media description route rather than an empty guide",
+        (f) => {
+            const host = f.host;
+            host.sArrowFun = 2;
+            host.channels[host.listArray[host.selIndex]].__ottMediaItem = true;
+            let detail = 0;
+            host.detailListAction = () => detail++;
+            host.epgList = () => assert.fail("Media row must not open EPG");
+            host.listKeyHandler = host.channelsKeyHandler;
+            host.showPage();
+            f.key("RIGHT");
+            assert.equal(detail, 1);
+            assert.deepEqual(f.take("programme"), [["programme", "News One"]]);
+        }
+    );
+    check(
+        "A foreground dialog retains ownership of Dune channel arrows",
+        (f) => {
+            const host = f.host;
+            host.sArrowFun = 2;
+            host.bucketsList = host.epgList = () =>
+                assert.fail("Background channel route");
+            host.listKeyHandler = host.channelsKeyHandler;
+            host.showPage();
+            const commands = [];
+            f.port.screens.open({
+                handle: (command) => commands.push(command.id),
+                kind: "dialog",
+                priority: 10,
+            });
+            f.key("LEFT");
+            f.key("RIGHT");
+            assert.deepEqual(commands, ["left", "right"]);
+        }
+    );
     check(
         "Media playlist repeat belongs to Actions and keeps the channel selection",
         (f) => {

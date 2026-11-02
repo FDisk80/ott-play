@@ -3637,10 +3637,10 @@ export function saveChannelPreference(
  * showActionsDialog, showProgramInfo, moveSelectedChannelOrCategory, removeSelectedChannelFromCategory, etc.
  */
 export function channelsKeyHandler(keyCode: number): boolean {
-    var keys = window.keys;
-    if (!keys) return false;
     var host = window as any;
-    var selectedChannel = window.channels[window.listArray[window.selIndex]];
+    var keys = host.keys;
+    if (!keys) return false;
+    var selectedChannel = host.channels[host.listArray[host.selIndex]];
     if (
         keyCode === keys.PLAY &&
         $("#listPopUp").is(":visible") &&
@@ -3745,20 +3745,26 @@ export function channelsKeyHandler(keyCode: number): boolean {
                 );
             return true;
 
+        case keys.RIGHT:
+            if (host.sArrowFun !== 2) return false;
+        // fallthrough
         case keys.RED:
-        case window.keys ? window.keys.EPG : undefined:
+        case keys.EPG:
             if (selectedChannel?.__ottMediaItem)
                 return channelsKeyHandler(keys.N2);
-            if (typeof window.epgList === "function") {
-                window.epgList(window.listCatIndex, window.selIndex, true);
+            if (typeof host.epgList === "function") {
+                host.epgList(host.listCatIndex, host.selIndex, true);
             }
             return true;
 
+        case keys.LEFT:
+            if (host.sArrowFun !== 2) return false;
+        // fallthrough
         case keys.BLUE:
         case keys.PLAY:
         case keys.PAUSE:
-            if (typeof window.bucketsList === "function") {
-                window.bucketsList(window.listCatIndex);
+            if (typeof host.bucketsList === "function") {
+                host.bucketsList(host.listCatIndex);
             }
             return true;
 
