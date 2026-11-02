@@ -156,3 +156,30 @@ this requires the same separately tested MPRIS migration as the older
 The current application audit therefore retains six unmaintained warnings,
 the fixed-source GLib warning, and the three optional-lockfile ZIP records.
 These findings remain visible; no additional warning is suppressed.
+
+## Review of the selected graph (2026-11-02)
+
+A fresh application `cargo audit --json` reports `ringbuf` 0.4.8 under
+`librqbit-utp` 0.7.0 and the existing six unmaintained-package warnings plus
+backported GLib warning. The new application finding is
+[RUSTSEC-2026-0293](https://rustsec.org/advisories/RUSTSEC-2026-0293.html):
+`Consumer::skip`/`clear` can double-drop an element if that element's destructor
+panics. The upstream fix is ringbuf 0.5.2, while the current uTP crate requires
+ringbuf 0.4; a lockfile-only update cannot cross that requirement.
+
+The selected uTP implementation's ring buffer is `SharedRb<Heap<u8>>` in
+`stream_tx.rs`. Byte elements have no user-defined destructor, so the advisory's
+panic-in-element-destructor precondition is absent from this current use.
+This is a reachability assessment, not a claim that the dependency itself has
+been patched. Keep the finding visible and recheck it when changing uTP or
+introducing a different ring-buffer element type. Upgrade through a reviewed
+compatible uTP release or source patch once available; do not falsify the crate
+version or suppress the entire vulnerability scan.
+
+The npm build graph was separately updated to patched glob 14.0.2,
+minimatch 11.0.1 and Zod. Its remaining finding is the low-severity
+[deepmerge prototype-poisoning advisory](https://github.com/advisories/GHSA-gcqx-w48m-w2h4),
+selected by development-only Rollup/Ultracite tooling. Upstream currently lists
+no patched release. Keep the advisory visible and avoid merging untrusted
+configuration objects; a major downgrade of the surrounding build tools is
+not a compatible security update.
