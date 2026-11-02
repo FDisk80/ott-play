@@ -21,6 +21,15 @@ pub struct CacheOwner {
     _lock: File,
 }
 
+impl Drop for CacheOwner {
+    fn drop(&mut self) {
+        // The last Arc marks the end of every owning storage worker. Closing
+        // this descriptor alone can leave its lock alive in a child between
+        // fork and exec, so release it explicitly before closing the file.
+        let _ = self._lock.unlock();
+    }
+}
+
 pub async fn prepare_root(root: &Path) -> anyhow::Result<Arc<CacheOwner>> {
     let root = root.to_owned();
     tokio::task::spawn_blocking(move || prepare_root_sync(&root)).await?
@@ -388,6 +397,34 @@ mod tests {
         let next = prepare_root(&dir).await.unwrap();
         assert!(!stale.exists(), "exclusive restart reclaims the old cache");
         assert!(dir.join(OWNER_FILE).exists());
+        drop(next);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn last_owner_releases_lock_despite_an_inherited_descriptor() {
+        let dir = std::env::temp_dir().join(format!(
+            "ott-cache-inherited-{}",
+            uuid::Uuid::new_v4().simple()
+        ));
+        let owner = prepare_root_sync(&dir).unwrap();
+        // A child between fork and exec holds the same open file description,
+        // even though Rust opens the descriptor with close-on-exec enabled.
+        let inherited = owner._lock.try_clone().unwrap();
+        let worker = owner.clone();
+        drop(owner);
+        assert!(
+            prepare_root_sync(&dir).is_err(),
+            "a worker still owns the cache"
+        );
+        drop(worker);
+        let next = prepare_root_sync(&dir).unwrap();
+        drop(inherited);
+        assert!(
+            prepare_root_sync(&dir).is_err(),
+            "closing the old descriptor must not unlock the new owner"
+        );
         drop(next);
         std::fs::remove_dir_all(dir).unwrap();
     }

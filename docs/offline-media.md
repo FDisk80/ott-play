@@ -145,6 +145,15 @@ inside Chrome; refreshing the catalog is therefore not allowed to discard the
 outstanding-call budget and silently create more blocked reads. The explicit
 folder reconnection and one-time page reload renew the browser reference instead.
 
+Restored-handle permission checks have a separate 10-second deadline. If Chrome
+never answers, the source becomes unavailable with a permission-stage timeout
+and the normal reconnect action remains available; OTT never infers a grant or
+opens a permission prompt automatically. At most two native permission queries
+may remain unresolved. Refresh reuses those outstanding calls instead of adding
+more. A late answer cannot revive the finished or cancelled scan; after it settles,
+a new scan can check the permission again. This deadline does not shorten the
+native folder picker or the large-directory enumeration allowance.
+
 Closing the page, pressing **Q** on a PC, or exiting the native app saves the
 current video position before stopping playback. On the next start, the exact
 selected file resumes from that position, including when a saved Local videos

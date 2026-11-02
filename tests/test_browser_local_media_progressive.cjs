@@ -32,6 +32,7 @@ function fixture(count, extension = "mp4", brokenIndex = -1, mime, waits = {}) {
         revoked = 0,
         nextUrl = 0,
         permissionRequests = 0,
+        permissionQueries = 0,
         writes = 0;
     const files = Array.from({ length: count }, (_, index) => ({
         getFile: async () => {
@@ -70,6 +71,7 @@ function fixture(count, extension = "mp4", brokenIndex = -1, mime, waits = {}) {
         kind: "directory",
         name: "Movies",
         queryPermission: async () => {
+            permissionQueries++;
             await waits.permission;
             return "granted";
         },
@@ -191,6 +193,7 @@ function fixture(count, extension = "mp4", brokenIndex = -1, mime, waits = {}) {
             ),
         iteratorCreations: () => iteratorCreations,
         iteratorReads: () => iteratorReads,
+        permissionQueries: () => permissionQueries,
         permissionRequests: () => permissionRequests,
         reads: () => reads,
         reinstall: () => {
@@ -348,6 +351,35 @@ async function flushScans() {
         2,
         "ordinary retry does not hide native reads"
     );
+    let releaseOtherPermission;
+    let otherPermissionQueries = 0;
+    deadFiles.saved().push({
+        created: 3,
+        handle: {
+            kind: "directory",
+            queryPermission: () => {
+                otherPermissionQueries++;
+                return new Promise((resolve) => {
+                    releaseOtherPermission = resolve;
+                });
+            },
+            values: () => assert.fail("timed-out permission cannot enumerate"),
+        },
+        id: "source-other-permission",
+        name: "Other source",
+    });
+    const mixedReadScan = deadFiles.api.list();
+    await flushScans();
+    assert.equal(
+        otherPermissionQueries,
+        1,
+        "two pending file reads do not consume the permission-call budget"
+    );
+    Array.from(fileDeadlines).at(-1).fn();
+    await settle(mixedReadScan);
+    releaseOtherPermission("granted");
+    await flushScans();
+    deadFiles.saved().pop();
     const remounted = {
         kind: "directory",
         name: "Remounted movies",
@@ -902,6 +934,123 @@ async function flushScans() {
         assert.equal((await pending).cancelled, true);
         assert.equal(delayed.revoked(), 0);
     }
+    // Drive the real 10-second policy with a deterministic clock. The native
+    // permission promise itself stays pending until explicitly released below.
+    function permissionClock(target) {
+        const timers = [];
+        target.w.setTimeout = (callback, delay) => {
+            if (delay !== 10000) return setTimeout(callback, delay);
+            const timer = { active: true, callback };
+            timers.push(timer);
+            return timer;
+        };
+        target.w.clearTimeout = (timer) => {
+            if (timer && typeof timer.active === "boolean")
+                timer.active = false;
+            else clearTimeout(timer);
+        };
+        return () => {
+            const timer = timers.find((item) => item.active);
+            assert.ok(timer, "a real permission deadline was scheduled");
+            timer.active = false;
+            timer.callback();
+        };
+    }
+    let grantLate;
+    const unresolvedPermission = new Promise((resolve) => {
+        grantLate = resolve;
+    });
+    const stalledPermission = fixture(1, "mp4", -1, undefined, {
+        permission: unresolvedPermission,
+    });
+    const expirePermission = permissionClock(stalledPermission);
+    const beforePermissionTimeout = [];
+    const permissionScan = stalledPermission.api.list((snapshot) =>
+        beforePermissionTimeout.push(snapshot)
+    );
+    await new Promise(setImmediate);
+    assert.equal(stalledPermission.permissionQueries(), 1);
+    expirePermission();
+    const permissionFailure = await settle(permissionScan);
+    assert.equal(permissionFailure.scanning, false);
+    assert.equal(permissionFailure.readErrorName, "TimeoutError");
+    assert.equal(permissionFailure.readErrorPhase, "permission");
+    assert.equal(permissionFailure.reconnectRequired, true);
+    assert.equal(permissionFailure.sources[0].available, false);
+    assert.equal(permissionFailure.items[0].url, "");
+    assert.equal(stalledPermission.iteratorCreations(), 0);
+    assert.equal(
+        stalledPermission.permissionRequests(),
+        0,
+        "timeout never grants permission or opens a prompt"
+    );
+    const retriedPermission = await settle(stalledPermission.api.list());
+    assert.equal(retriedPermission.reconnectRequired, true);
+    assert.equal(
+        stalledPermission.permissionQueries(),
+        1,
+        "retry reuses the unresolved native query"
+    );
+    const progressCount = beforePermissionTimeout.length;
+    grantLate();
+    await new Promise(setImmediate);
+    assert.equal(
+        beforePermissionTimeout.length,
+        progressCount,
+        "late grant cannot publish into the finished scan"
+    );
+    assert.equal(stalledPermission.iteratorCreations(), 0);
+    const recoveredPermission = await settle(stalledPermission.api.list());
+    assert.equal(recoveredPermission.items[0].available, true);
+    assert.equal(
+        stalledPermission.permissionQueries(),
+        2,
+        "a settled native call permits a fresh query"
+    );
+
+    const boundedPermissions = fixture(1, "mp4", -1, undefined, {
+        permission: new Promise(() => {}),
+    });
+    boundedPermissions.addSource("source-second");
+    boundedPermissions.addSource("source-third");
+    const expireBounded = permissionClock(boundedPermissions);
+    const boundedScan = boundedPermissions.api.list();
+    await new Promise(setImmediate);
+    expireBounded();
+    await new Promise(setImmediate);
+    expireBounded();
+    const boundedFailure = await settle(boundedScan);
+    assert.equal(
+        boundedPermissions.permissionQueries(),
+        2,
+        "at most two native permission calls remain unresolved"
+    );
+    assert.equal(boundedFailure.sources.length, 3);
+    assert.ok(
+        boundedFailure.sources.every(
+            (item) => !item.available && item.reconnectRequired
+        )
+    );
+    await settle(boundedPermissions.api.list());
+    assert.equal(
+        boundedPermissions.permissionQueries(),
+        2,
+        "further scans cannot grow unresolved calls"
+    );
+
+    let finishCancelledPermission;
+    const cancelledPermission = fixture(1, "mp4", -1, undefined, {
+        permission: new Promise((resolve) => {
+            finishCancelledPermission = resolve;
+        }),
+    });
+    const cancelledScan = cancelledPermission.api.list();
+    await new Promise(setImmediate);
+    await cancelledPermission.api.list(() => false);
+    finishCancelledPermission();
+    const cancelledPermissionResult = await settle(cancelledScan);
+    assert.equal(cancelledPermissionResult.cancelled, true);
+    assert.equal(cancelledPermission.iteratorCreations(), 0);
     await require("./helpers/browser-import-regression.cjs")();
     console.log(
         "PASS progressive local media: 10,000 entries, early playback, bounded immutable batches, yielding, direct saved-file lookup, stable URLs, cancellation, and nonmedia heartbeats"
