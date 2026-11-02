@@ -59,6 +59,15 @@ The selected Rust version is read from the pinned upstream `rust-toolchain.toml`
 GNU/Linux target and matching `rust-src` are installed through rustup. Android
 ARM libraries are not interchangeable with webOS.
 
+FFmpeg source downloads try the canonical `ffmpeg.org` release first, then
+[MacPorts' distribution mirror](https://distfiles.macports.org/ffmpeg/) if the
+origin remains unavailable after its bounded retries. Both locations must
+supply the same pinned archive bytes. A checksum mismatch stops the build
+immediately; it never falls through to another source. The fallback changes
+only transport, not the recorded upstream origin, version, license or source
+provenance. The integration patch is included in the corresponding source
+archive for every native package.
+
 The stages can also be run individually, using the same `--work-dir` and
 `--sdk` arguments each time:
 
