@@ -680,3 +680,183 @@ test("remote Plex loads lazily, ends its exact queue and restores a current favo
         window.__ottCommandServer.configure({ enabled: false })
     );
 });
+
+test("authenticated archive offsets rebuild broadcast URLs and preserve pause", async ({
+    page,
+    context,
+    baseURL,
+}) => {
+    test.setTimeout(90000);
+    const local = new URL(baseURL).origin;
+    const archiveOrigin = "https://archive-seek.fixture.invalid";
+    const pending = [],
+        results = new Map(),
+        urls = [],
+        errors = [];
+    let sequence = 0;
+    const playlist =
+        '#EXTM3U catchup-days="3" catchup="append" catchup-source="?utc=${start}"\n' +
+        '#EXTINF:-1 group-title="Test",Archive channel\n' +
+        archiveOrigin +
+        "/index.m3u8\n";
+    // An open-ended HLS archive has no finite duration; native VOD seeking is
+    // not the mechanism being exercised here.
+    const stream =
+        "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:2\n#EXT-X-PLAYLIST-TYPE:EVENT\n" +
+        Array.from(
+            { length: 24 },
+            (_, i) =>
+                (i ? "#EXT-X-DISCONTINUITY\n" : "") +
+                "#EXTINF:2.000000,\nsegment00.ts?n=" +
+                i +
+                "\n"
+        ).join("");
+    page.on("pageerror", (error) => errors.push(error.message));
+    await context.route("**/*", async (route) => {
+        const request = route.request(),
+            url = new URL(request.url());
+        if (
+            url.origin === local &&
+            url.pathname.startsWith("/archive-controller/")
+        ) {
+            expect(request.headers().authorization).toBe(
+                "Bearer " + DEVICE_TOKEN
+            );
+            if (url.pathname.endsWith("/api/responses")) {
+                const result = request.postDataJSON();
+                results.set(result.id, result);
+                return route.fulfill({ json: { status: "ok" } });
+            }
+            if (url.pathname.endsWith("/api/webhook/commands")) {
+                const now = Date.now() / 1000,
+                    next = pending.shift();
+                return route.fulfill({
+                    json: {
+                        commands: [],
+                        requests: next
+                            ? [{ ...next, expires_at: now + 40 }]
+                            : [],
+                        server_time: now,
+                    },
+                });
+            }
+            return route.fulfill({ json: {}, status: 404 });
+        }
+        if (request.url() === PLAYLIST)
+            return route.fulfill({
+                body: playlist,
+                contentType: "text/plain",
+                headers: { "Access-Control-Allow-Origin": "*" },
+            });
+        if (url.origin === archiveOrigin) {
+            const headers = { "Access-Control-Allow-Origin": "*" };
+            if (url.pathname.endsWith(".m3u8")) {
+                if (url.searchParams.has("utc"))
+                    urls.push(Number(url.searchParams.get("utc")));
+                return route.fulfill({
+                    body: stream,
+                    contentType: "application/vnd.apple.mpegurl",
+                    headers,
+                });
+            }
+            return route.fulfill({
+                body: fs.readFileSync(path.join(mediaRoot, "segment00.ts")),
+                contentType: "video/mp2t",
+                headers,
+            });
+        }
+        return url.origin === local
+            ? route.continue()
+            : route.abort("blockedbyclient");
+    });
+    await context.routeWebSocket("**/*", (socket) => socket.close());
+    await context.addInitScript((tv) => {
+        const play = HTMLMediaElement.prototype.play;
+        HTMLMediaElement.prototype.play = function () {
+            this.muted = true;
+            return play.call(this);
+        };
+        localStorage.setItem("ottplaylang", "_eng");
+        localStorage.setItem("ottplayprov", "m3u");
+        localStorage.setItem(
+            "m3um3uArr",
+            JSON.stringify({ active: 0, M3Us: [{ www: tv }] })
+        );
+    }, PLAYLIST);
+    await page.goto("/f/pc/");
+    await page.waitForFunction(() => window.commandChannelsReady === true);
+    await page.keyboard.press("Shift");
+    await page.evaluate((token) => {
+        window.stbStop();
+        window.setPlayerMode(1);
+        const start = Math.floor(Date.now() / 1000) - 10800;
+        window.epgArray = [
+            { name: "First programme", time: start, time_to: start + 120 },
+            { name: "Next programme", time: start + 120, time_to: start + 240 },
+        ];
+        if (!window.__ottClassicArchive.open(start))
+            throw Error("Archive fixture did not open");
+        window.__ottCommandServer.configure({
+            address: location.origin + "/archive-controller",
+            enabled: true,
+            token,
+        });
+    }, DEVICE_TOKEN);
+    async function rpc(action, params = {}) {
+        const id = String(++sequence).padStart(32, "0");
+        pending.push({ action, id, params });
+        await expect.poll(() => results.has(id)).toBe(true);
+        const result = results.get(id);
+        expect(result.status).toBe("ok");
+        return result.data;
+    }
+    try {
+        await page.waitForFunction(
+            () =>
+                window.__ottClassicPlayback.snapshot().phase === "playing" &&
+                document.getElementById("video").currentTime > 0
+        );
+        await rpc("playback", { operation: "pause" });
+        await page.waitForFunction(
+            () =>
+                document.getElementById("video").paused &&
+                window.__ottClassicPlayback.snapshot().phase === "paused"
+        );
+        const caps = await rpc("capabilities");
+        expect(caps.playback_seek_relative).toBeUndefined();
+        expect(caps.playback_seek_archive_relative).toEqual({ version: 1 });
+        for (const offset of [
+            60, -10, 180, 0.5, -9007199254740991, 9007199254740991,
+        ]) {
+            const result = await rpc("playback", {
+                offset,
+                operation: "seek_relative",
+                timeline: "archive",
+            });
+            expect(result.timeline).toBe("archive");
+            const rounded = Math.floor(result.from + offset);
+            expect(result.position).toBe(
+                Math.max(result.earliest, Math.min(result.latest, rounded))
+            );
+            expect(result.clamped).toBe(result.position !== rounded);
+            await expect.poll(() => urls.includes(result.position)).toBe(true);
+            await page.waitForFunction((epoch) => {
+                const state = window.__ottClassicPlayback.snapshot(),
+                    video = document.getElementById("video");
+                return (
+                    state.target.kind === "archive" &&
+                    state.target.archiveStart === epoch &&
+                    state.phase === "paused" &&
+                    video.paused &&
+                    video.readyState >= 2
+                );
+            }, result.position);
+        }
+        expect(errors).toEqual([]);
+    } finally {
+        await page.evaluate(() => {
+            window.__ottCommandServer.configure({ enabled: false });
+            window.stbStop();
+        });
+    }
+});

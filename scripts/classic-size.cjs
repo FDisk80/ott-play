@@ -449,6 +449,14 @@ const SHAKA_RETIREMENT_ENTRY_ALLOWANCE = Object.freeze({
 // each complete total; preserve prior release headroom and all provider/
 // optional caps. See docs/evidence/relative-seek-size-20261029.json and
 // docs/evidence/relative-seek-rollback-size-20261029.json.
+// Explicit archive timeline, guarded source replacement and paused startup.
+// Paired Node26.8.2 builds add 2374 raw / at most710 gzip; retain earlier
+// headroom and count this cost once in each complete payload. Provider and
+// optional assets are unchanged. Evidence: archive-relative-seek-size-20261102.json.
+const ARCHIVE_RELATIVE_SEEK_ALLOWANCE = Object.freeze({
+    bytes: 2374,
+    gzipBytes: 710,
+});
 const RELATIVE_SEEK_ENTRY_ALLOWANCE = Object.freeze({
     bytes: 2737,
     gzipBytes: 803,
@@ -721,6 +729,7 @@ const BUDGET = Object.freeze({
         FAVORITES_RECOVERY_ENTRY_ALLOWANCE.bytes +
         SHAKA_RETIREMENT_ENTRY_ALLOWANCE.bytes +
         SHAKA_TRACKS_ENTRY_ALLOWANCE.bytes +
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE.bytes +
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
@@ -748,6 +757,7 @@ const BUDGET = Object.freeze({
         DESKTOP_FAVORITES_KEY_ALLOWANCE.gzipBytes +
         FAVORITES_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
         SHAKA_TRACKS_ENTRY_ALLOWANCE.gzipBytes +
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE.gzipBytes +
         RELATIVE_SEEK_ENTRY_ALLOWANCE.gzipBytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.gzipBytes,
 });
@@ -968,6 +978,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         FAVORITES_RECOVERY_ENTRY_ALLOWANCE.bytes +
         SHAKA_RETIREMENT_ENTRY_ALLOWANCE.bytes +
         SHAKA_TRACKS_ENTRY_ALLOWANCE.bytes +
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE.bytes +
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
@@ -1007,6 +1018,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         DESKTOP_FAVORITES_KEY_ALLOWANCE.gzipBytes +
         FAVORITES_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
         SHAKA_TRACKS_ENTRY_ALLOWANCE.gzipBytes +
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE.gzipBytes +
         RELATIVE_SEEK_ENTRY_ALLOWANCE.gzipBytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.gzipBytes,
 });
@@ -1208,6 +1220,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         SHAKA_RETIREMENT_ENTRY_ALLOWANCE.bytes +
         OPTIONAL_BUDGETS["shaka-tracks"].bytes +
         SHAKA_TRACKS_ENTRY_ALLOWANCE.bytes +
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE.bytes +
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLEX_QUEUE_STEP_TOTAL_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
@@ -1279,6 +1292,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         FAVORITES_RECOVERY_OPTIONAL_ALLOWANCE.gzipBytes +
         OPTIONAL_BUDGETS["shaka-tracks"].gzipBytes +
         SHAKA_TRACKS_ENTRY_ALLOWANCE.gzipBytes +
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE.gzipBytes +
         RELATIVE_SEEK_ENTRY_ALLOWANCE.gzipBytes +
         PLEX_QUEUE_STEP_TOTAL_ALLOWANCE.gzipBytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.gzipBytes +
@@ -1441,6 +1455,7 @@ function writeBundleReport(
 function saveBundleReport(root, optimizer, modules, measured, sets) {
     const { CLASSIC_PRIVATE_MODULES } = require("./classic-bundle.cjs");
     const report = {
+        archiveRelativeSeekAllowance: ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
         artifacts: measured,
         baseTotalBudget: BASE_TOTAL_BUDGET,
         budget: BUDGET,
@@ -1772,6 +1787,7 @@ function writeBuildBundleReport(
     );
     if (violations.length || inputErrors.length) {
         const diagnostic = {
+            archiveRelativeSeekAllowance: ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
             artifacts: measured,
             attempt: label(context.attempt || process.env.GITHUB_RUN_ATTEMPT),
             budget: BUDGET,
@@ -1890,6 +1906,7 @@ if (require.main === module) {
     }
 }
 module.exports = {
+    ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
     ARTIFACTS,
     BASE_TOTAL_BUDGET,
     BUDGET,

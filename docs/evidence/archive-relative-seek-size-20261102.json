@@ -1,0 +1,53 @@
+{
+  "sourceBase": "84a6f03c2c342b5f3a8d50ce9a6b010ecad17b51",
+  "method": "Paired tracked-source export, same package version and toolchain; baseline source vs archive-relative patch; no Git source claim embedded in either test bundle.",
+  "version": "1.1.62",
+  "toolchain": {
+    "node": "26.8.2",
+    "zlib": "1.2.12"
+  },
+  "allowance": {
+    "bytes": 2374,
+    "gzipBytes": 710
+  },
+  "baseline": [
+    {
+      "bytes": 1181809,
+      "gzipBytes": 359723,
+      "path": "dist/player.js",
+      "sha256": "e36b08f464eb0298887b60007371d8a91e3f871c364f030079d69da7a6684387"
+    },
+    {
+      "bytes": 1181767,
+      "gzipBytes": 359774,
+      "path": "src-tauri/frontend/dist/player.js",
+      "sha256": "0bc0bbef995147042f4914634a519a5ea6f34b42729591a98370eca6c808d741"
+    },
+    {
+      "bytes": 1181767,
+      "gzipBytes": 359774,
+      "path": "dist-mobile/dist/player.js",
+      "sha256": "0bc0bbef995147042f4914634a519a5ea6f34b42729591a98370eca6c808d741"
+    }
+  ],
+  "candidate": [
+    {
+      "bytes": 1184183,
+      "gzipBytes": 360431,
+      "path": "dist/player.js",
+      "sha256": "0238e54f9d852fa7645f85df0c70e0a502a1db31b5db629da4a42fca0dc227e1"
+    },
+    {
+      "bytes": 1184141,
+      "gzipBytes": 360484,
+      "path": "src-tauri/frontend/dist/player.js",
+      "sha256": "160a95db30330f57bfa3ef38f8d8d571662e51d63e265d94bcac709313a1bc80"
+    },
+    {
+      "bytes": 1184141,
+      "gzipBytes": 360484,
+      "path": "dist-mobile/dist/player.js",
+      "sha256": "160a95db30330f57bfa3ef38f8d8d571662e51d63e265d94bcac709313a1bc80"
+    }
+  ]
+}

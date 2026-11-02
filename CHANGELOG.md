@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fix a use-after-free in the Linux desktop media-controls executor during
+  shutdown by updating async-executor to 1.14.1. Preserve the existing Tauri
+  and D-Bus integration and all other locked dependency versions.
+
 - Add an on-demand native media companion for ordinary BitTorrent file playback
   and packaged QuickJS source resolvers. Desktop players start their own private
   service; other clients can use an explicitly configured OTT server endpoint.

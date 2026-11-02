@@ -50,17 +50,17 @@ writing systems, additional characters and case-mapping behavior.
 
 ## Native runtime: Tauri and Capacitor
 
-Native builds use the exact npm-locked releases **jQuery 4.0.0**, **hls.js 1.7.3**
-and **Shaka Player 5.3.2**. This applies to Tauri, iOS, Android Full and Android
+Native builds use the exact npm-locked releases **jQuery 4.0.0**, **hls.js 1.7.4**
+and **Shaka Player 5.3.3**. This applies to Tauri, iOS, Android Full and Android
 Play. Their package license files are copied into `licenses/native/` in the native
 frontend by the asset preparer; `native-runtime.json` records the versions and
 file hashes. Verify those outputs against the release artifact, not the older web
 vendor filenames.
 
 - **jQuery 4.0.0:** MIT; [official release license](https://github.com/jquery/jquery/blob/4.0.0/LICENSE.txt).
-- **hls.js 1.7.3:** Apache 2.0; [official release license](https://github.com/video-dev/hls.js/blob/v1.7.3/LICENSE).
-- **Shaka Player 5.3.2:** Apache 2.0 with the additional notices retained in its
-  [official release license](https://github.com/shaka-project/shaka-player/blob/v5.3.2/LICENSE).
+- **hls.js 1.7.4:** Apache 2.0; [official release license](https://github.com/video-dev/hls.js/blob/v1.7.4/LICENSE).
+- **Shaka Player 5.3.3:** Apache 2.0 with the additional notices retained in its
+  [official release license](https://github.com/shaka-project/shaka-player/blob/v5.3.3/LICENSE).
   Its additional MIT notices and `third_party/SUMMARY.txt` are retained in
   `licenses/native/shaka-player-LICENSE.txt` and
   `licenses/native/shaka-third-party/SUMMARY.txt`; other upstream license/notice
@@ -134,7 +134,7 @@ its final plugin hash after the normal relative-search-path transformation.
 
 ## Shared ES5 media runtime
 
-Every profile ships the same npm-locked **hls.js 1.7.3** UMD distribution.
+Every profile ships the same npm-locked **hls.js 1.7.4** UMD distribution.
 `js/runtime-polyfills.js` contains **core-js 3.50.0** (MIT) and the project's web
 API shims (MIT). It executes before third-party libraries in each page and is
 imported synchronously by the ES5 loader in `js/hls.worker.js`. The worker is a
@@ -151,7 +151,7 @@ generated file; the upstream worker bytes following that loader are unchanged.
 - **jQuery 1.11.1** (`js/jquery-1.11.1.min.js`): MIT.
   [Complete license](licenses/android/jquery-1.11.1-LICENSE.txt), copied from
   [upstream 1.11.1](https://github.com/jquery/jquery/blob/1.11.1/MIT-LICENSE.txt).
-- **hls.js 1.7.3** (`js/hls.min.js`): Apache 2.0, unchanged upstream UMD bytes.
+- **hls.js 1.7.4** (`js/hls.min.js`): Apache 2.0, unchanged upstream UMD bytes.
   The shared media-runtime notices above apply to browser and native packages.
 - **Shaka Player 3.3.19** (`js/shaka-player.compiled.js`): Apache 2.0, with an
   additional MIT notice for language-mapping-list by Ali Al Dallal.

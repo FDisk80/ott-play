@@ -202,7 +202,7 @@ for (const fixture of fixtures.concat(routeFixtures)) {
                 ).toEqual({
                     ready: true,
                     runtimeVersion,
-                    version: "1.7.3",
+                    version: "1.7.4",
                     worker:
                         localOrigin + "/js/hls.worker.js?v=" + runtimeVersion,
                 });

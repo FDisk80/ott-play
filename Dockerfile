@@ -26,7 +26,7 @@ RUN npm run typecheck && npm run build:server
 
 # Resolve the server workspace before the target compilation cache boundary.
 # Desktop release version changes must not invalidate unchanged server inputs.
-FROM --platform=$BUILDPLATFORM rust:1.99-alpine@sha256:b1d5dd5a22a09404d3e798c0cf051b689077360374eb505fa5bb93c479693d87 AS server-inputs
+FROM --platform=$BUILDPLATFORM rust:1.99-alpine@sha256:7e9e2d068a107a2adafd19930011178d14a78326053cd4c3a9f7ad3fd049557d AS server-inputs
 RUN apk add --no-cache python3
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
@@ -39,7 +39,7 @@ RUN python3 scripts/prepare-container-workspace.py --workspace /app --output /pr
 # Build Rust server against musl so the published image does not need
 # GLIBC_2.38+ (Hub :latest built on a newer glibc toolchain failed on
 # Synology DSM Docker / x86_64). Alpine = musl host target by default.
-FROM rust:1.99-alpine@sha256:b1d5dd5a22a09404d3e798c0cf051b689077360374eb505fa5bb93c479693d87 AS rust-build
+FROM rust:1.99-alpine@sha256:7e9e2d068a107a2adafd19930011178d14a78326053cd4c3a9f7ad3fd049557d AS rust-build
 RUN apk add --no-cache musl-dev build-base
 WORKDIR /app
 COPY --from=server-inputs /prepared/Cargo.toml /prepared/Cargo.lock ./

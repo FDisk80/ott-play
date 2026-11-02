@@ -31,7 +31,7 @@ replaced by system `sans-serif` text and Unicode symbols such as `▸`, `■`, `
 their appearance can vary across devices. The web/legacy distribution retains
 its existing font files.
 
-Native builds use npm-locked jQuery 4.0.0, hls.js 1.7.3 and Shaka Player 5.2.10.
+Native builds use npm-locked jQuery 4.0.0, hls.js 1.7.4 and Shaka Player 5.3.3.
 Their license files and a generated version/hash manifest accompany the native
 assets. The older vendor JavaScript files remain for the web/legacy profile.
 

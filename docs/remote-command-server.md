@@ -390,6 +390,30 @@ with a status read or key presses and do not retry an uncertain mutation. Repeat
 delivery of the same request ID within the current player process replays the
 saved receipt without applying the offset again.
 
+For a playing or paused TV archive, an updated player instead advertises
+`playback_seek_archive_relative: {version:1}`. Updated CLI commands such as
+`ott l +1m`, `ott l -10s`, and `ott l seek +3m` use the same `seek_relative`
+operation with the explicit additional field `timeline:"archive"`. This is a
+separate contract; VOD requests and receipts keep their original format.
+
+An archive receipt adds `timeline:"archive"`, `earliest`, and `latest` to the six
+fields above. `from` and `position` are Unix timestamps in seconds, and the bounds
+are inclusive integer timestamps for the currently retained archive. The player
+rounds `from + offset` down to a whole second, then clamps to those bounds;
+`clamped` describes that boundary clamp, not rounding. `latest` stays at least one
+second behind the live edge. The CLI prints local dates and times. A large forward
+seek therefore stays in archive mode; it never silently switches to live TV.
+
+The archive controller resolves the provider URL at the new broadcast time, so a
+finite decoder duration or native `seekable` range is not required. It can cross
+programme boundaries and guide gaps while keeping the same channel. File-based
+archives reopen the correct programme file and use its programme-relative offset.
+Pause intent is supplied to the new decoder before asynchronous startup. Source
+changes, expiry, standby, kiosk and PIN restrictions reject the request. A refused
+synchronous request retires pending authorization/resolution callbacks; it cannot
+start later. Install the updated relay, player and CLI together before using this
+archive extension; an old relay rejects the extra timeline field without playing.
+
 Updated clients additionally support `resolve_archive` and `play_archive_catalog`
 for the CLI's channel → current programme → available archive search. Archive
 resolution is a separate authenticated operation that returns a private media

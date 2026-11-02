@@ -140,7 +140,7 @@ test("capability probe follows the candidate HLS instance backend, including fal
     const {
         readBrowserMediaCapabilities,
     } = require("../scripts/browser-media-capabilities.cjs");
-    assert.equal(Hls.version, "1.7.3");
+    assert.equal(Hls.version, "1.7.4");
     assert.equal(Hls.DefaultConfig.preferManagedMediaSource, false);
     const player = fs.readFileSync(
         path.join(__dirname, "../src/core/index.ts"),

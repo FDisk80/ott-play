@@ -1,15 +1,15 @@
 {
   "schema": 2,
   "builderSha256": "71631d5951f81fa60d4b90531800b8b1357201764882659dbed3067f60bffbd3",
-  "lockInputsSha256": "8459e325aee1c09fe0cbb9bc467e73980f7c67fb42c23320aaee2190218c6053",
+  "lockInputsSha256": "f89589c60e78a75856880b4bb5d2f96bdbe63829800530879b7269b799daa52f",
   "packages": {
     "core-js": {
       "integrity": "sha512-7bDKx/5jm5MxzsXxc93g6Z2+4ZsuT/MddrfRmTDJNAkWsYWHU8EVNEsBiIEWnMAMCHMmRfUEjkuo3jeNBOIHRw==",
       "version": "3.51.0"
     },
     "hls.js": {
-      "integrity": "sha512-MsPlx6yVW4Qv4C7mEVou4/gk/5cN2dVxOTnrNjPSmyH2f0Ln+/UkG10Ax1PE6OvrmTVPKgQYozTtBaPOuCzq7A==",
-      "version": "1.7.3"
+      "integrity": "sha512-3GlxGdPvT2YHvQYOt+yOzT/DEior/qJVNIylHA77kgeoBTdQQqi70GwefNEUmHQeNGyjC8U62+bruqW/Tpm+tg==",
+      "version": "1.7.4"
     },
     "video.js": {
       "integrity": "sha512-T2s3WFAht7Zjr2OSJamND9x9Dn2O+Z5WuHGdh8jI5SYh5mkMdVTQ7vSRmA5PYpjXJ2ycch6jpMjkJEIEU2xxqw==",
@@ -24,8 +24,8 @@
       "version": "5.9.3"
     },
     "rollup": {
-      "integrity": "sha512-HzD4IdphaPMvuAacnL/vtoq5B8FwqewKvxTtqYibWvP6VDyZ+UsTtlw5F8HIOIIpLQAkN2NOP/0sM3puo9xN/A==",
-      "version": "4.65.1"
+      "integrity": "sha512-Onq6/qO4ARhxIs+jYiHE0pYehadLyMECAiGEqQ+0/aWND3+2PmifJIIqBLYtuBODqHTlOUEQFtIVPyCy0Lck7A==",
+      "version": "4.66.0"
     },
     "terser": {
       "integrity": "sha512-bWnjSNscmuI+GJze6ZupnHP8G/cTcsJF+bXCeQknk2SHQsgbNJnLrqiH9jZ2W4STPVXH2mDKKRX3iwPhc9Cn/Q==",
@@ -42,10 +42,10 @@
   },
   "webPolyfillsSha256": "5e14970ea932f18c571a94e03758a08a6d3f559d04cf6033fd3970af895b9aab",
   "assets": {
-    "hls.min.js": "a12e7ee1cd64a69dcdb314157e45dafcba705bfb0b1440b7935cb265d374423e",
-    "hls.worker.js": "182fc94e24bebdf69f61cba55f3c0fa3f6b1adbacc6c214a75198c5dd49f7e7b",
-    "runtime-polyfills.js": "46332c5e69f9502368bdea03a38d7c4e1a5984153bb4ae97fd1779c5f0a10378",
+    "hls.min.js": "cfc70cc9e9fc63d071919e087670abc760c8fd1bc889b88588026e4d22193bbe",
+    "hls.worker.js": "40756a105be2d222290fac2d82b4b3b7b8bb941e60447e7ab7b7c4d96b45ca66",
+    "runtime-polyfills.js": "3a0121ab297d56b22bc0f3622fd6aff93ade4af30f51f4b61ed7163f83137bad",
     "video.min.js": "820388ecff9bbd8108047f3a7f3913835613773940b8dd42527d580cc8629ac0"
   },
-  "runtimeVersion": "8b97a8f68ff40130"
+  "runtimeVersion": "ad5d1a0525f1de48"
 }

@@ -22,6 +22,7 @@ interface ArchiveView {
     context: ArchiveContext;
     current: ArchiveProgramme | null;
     next: ArchiveProgramme | null;
+    paused?: boolean;
     position: number;
     rewind?: number;
     rows: ArchiveProgramme[];
@@ -129,11 +130,14 @@ function createArchiveController(core: any, ports: ArchivePorts) {
     function permit(
         ticket: number,
         context: ArchiveContext,
-        action: () => void
+        action: () => void,
+        admitted?: () => boolean
     ): void {
+        if (admitted && !admitted()) return;
         var once = false;
         function allowed(): void {
-            if (once || !valid(ticket, context)) return;
+            if (once || !valid(ticket, context) || (admitted && !admitted()))
+                return;
             once = true;
             action();
         }
@@ -173,22 +177,27 @@ function createArchiveController(core: any, ports: ArchivePorts) {
         epoch: number,
         select: boolean,
         rewind?: number,
-        resolvedUrl?: string
+        resolvedUrl?: string,
+        admitted?: () => boolean,
+        paused?: boolean
     ): boolean {
         if (
             !isFinite(epoch) ||
             epoch <= 0 ||
             !valid(ticket, context) ||
-            !available(context, epoch)
+            !available(context, epoch) ||
+            (admitted && !admitted())
         )
             return false;
         var opened = false;
         var model = view(context, Math.floor(epoch));
         model.rewind = rewind;
+        model.paused = paused;
         var key = model.current
             ? model.current.key
             : JSON.stringify(model.window);
         var reusable =
+            paused === undefined &&
             context.file &&
             active &&
             active.context.isCurrent() &&
@@ -199,51 +208,70 @@ function createArchiveController(core: any, ports: ArchivePorts) {
             model.position >= active.start &&
             model.position < active.end;
         function finish(url?: string): void {
-            permit(ticket, context, function () {
-                if (!available(context, model.position)) return;
-                var next = reusable
-                    ? ports.seek(
-                          context,
-                          model,
-                          model.position - model.window.start
-                      )
-                    : typeof url === "string" && url.length
-                      ? ports.open(
-                            context,
-                            model,
-                            url,
-                            context.file
-                                ? model.position - model.window.start
-                                : 0,
-                            select
-                        )
-                      : null;
-                if (!next || generation !== ticket || !next.isCurrent()) return;
-                opened = true;
-                owner = next;
-                active = {
-                    context: next,
-                    end: model.window.end,
-                    key: key,
-                    start: model.window.start,
-                };
-                model.context = next;
-                publish(model);
-            });
+            permit(
+                ticket,
+                context,
+                function () {
+                    if (
+                        !available(context, model.position) ||
+                        (admitted && !admitted())
+                    )
+                        return;
+                    var next = reusable
+                        ? ports.seek(
+                              context,
+                              model,
+                              model.position - model.window.start
+                          )
+                        : typeof url === "string" && url.length
+                          ? ports.open(
+                                context,
+                                model,
+                                url,
+                                context.file
+                                    ? model.position - model.window.start
+                                    : 0,
+                                select
+                            )
+                          : null;
+                    if (!next || generation !== ticket || !next.isCurrent())
+                        return;
+                    opened = true;
+                    owner = next;
+                    active = {
+                        context: next,
+                        end: model.window.end,
+                        key: key,
+                        start: model.window.start,
+                    };
+                    model.context = next;
+                    publish(model);
+                },
+                admitted
+            );
         }
-        permit(ticket, context, function () {
-            if (!available(context, model.position)) return;
-            if (reusable) finish();
-            else if (resolvedUrl !== undefined) finish(resolvedUrl);
-            else {
-                var resolved = false;
-                ports.resolve(context, model, function (url) {
-                    if (resolved || !valid(ticket, context)) return;
-                    resolved = true;
-                    finish(url);
-                });
-            }
-        });
+        permit(
+            ticket,
+            context,
+            function () {
+                if (
+                    !available(context, model.position) ||
+                    (admitted && !admitted())
+                )
+                    return;
+                if (reusable) finish();
+                else if (resolvedUrl !== undefined) finish(resolvedUrl);
+                else {
+                    var resolved = false;
+                    ports.resolve(context, model, function (url) {
+                        if (resolved || !valid(ticket, context)) return;
+                        resolved = true;
+                        finish(url);
+                    });
+                }
+            },
+            admitted
+        );
         return opened;
     }
     function begin(
@@ -300,10 +328,40 @@ function createArchiveController(core: any, ports: ArchivePorts) {
             });
         });
     }
+    function relativePosition() {
+        var context = ports.capture();
+        var from = ports.epoch();
+        var now = ports.now();
+        if (
+            !context ||
+            !context.isCurrent() ||
+            typeof from !== "number" ||
+            !isFinite(from) ||
+            !isFinite(now) ||
+            !isFinite(context.retention) ||
+            !(context.retention > 0)
+        )
+            return null;
+        // Provider archive URLs have one-second precision. Keep the entire
+        // requested instant inside retention and strictly behind live TV.
+        var earliest = Math.max(1, Math.ceil(now - context.retention));
+        var latest = Math.floor(now) - 1;
+        return earliest <= from && from <= latest && latest >= earliest
+            ? {
+                  context: context,
+                  earliest: earliest,
+                  from: from,
+                  latest: latest,
+              }
+            : null;
+    }
     return {
         cancel: function (): void {
             generation++;
             refill++;
+        },
+        canSeekRelative: function (): boolean {
+            return !!relativePosition();
         },
         // Remote commands already resolved this exact URL. They may only
         // acknowledge a synchronous dispatch, never a pending PIN callback.
@@ -325,6 +383,60 @@ function createArchiveController(core: any, ports: ArchivePorts) {
         rewind: function (offset: number): void {
             if (typeof offset === "number" && isFinite(offset) && offset >= 0)
                 fromLive(offset);
+        },
+        seekRelative: function (
+            offset: number,
+            admitted: () => boolean,
+            paused: boolean
+        ) {
+            if (
+                typeof offset !== "number" ||
+                !isFinite(offset) ||
+                offset === 0 ||
+                Math.abs(offset) > 9007199254740991 ||
+                !admitted()
+            )
+                return null;
+            var sample = relativePosition();
+            if (!sample || !admitted()) return null;
+            var requested = Math.floor(sample.from + offset);
+            var position = Math.max(
+                sample.earliest,
+                Math.min(sample.latest, requested)
+            );
+            var ticket = ++generation;
+            refill++;
+            prepare(sample.context, true);
+            var opened = false;
+            try {
+                opened = launch(
+                    ticket,
+                    sample.context,
+                    position,
+                    false,
+                    undefined,
+                    undefined,
+                    admitted,
+                    paused
+                );
+            } finally {
+                // A rejected synchronous RPC must never resume later through
+                // a provider resolution or PIN callback.
+                if (!opened && generation === ticket) {
+                    generation++;
+                    refill++;
+                }
+            }
+            return opened
+                ? {
+                      clamped: position !== requested,
+                      earliest: sample.earliest,
+                      from: sample.from,
+                      latest: sample.latest,
+                      position: position,
+                      timeline: "archive",
+                  }
+                : null;
         },
         update: function (epoch: number): void {
             if (!isFinite(epoch) || epoch <= 0) return;

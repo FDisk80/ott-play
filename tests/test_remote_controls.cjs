@@ -1964,3 +1964,97 @@ for (const mode of ["lock", "kiosk"]) {
         version: 1,
     });
 }
+
+// Archive time has its own explicit capability and wire discriminator.
+{
+    const f = fixture();
+    f.kind("archive");
+    let generation = 1;
+    let position = 1793581200.75;
+    let enabled = true;
+    f.w.__ottClassicPlayback.snapshot = () => ({
+        generation,
+        target: { kind: "archive" },
+    });
+    const backend = f.w.__ottCoreBackendPeek();
+    backend.open = () => {};
+    f.handle.sample = () => {};
+    const archive = (f.w.__ottClassicArchive = {
+        canSeekRelative: () => enabled,
+        seekRelative(offset, admitted, paused) {
+            assert.equal(admitted(), true);
+            f.effects.push(["archive-seek", offset, paused]);
+            return {
+                clamped: false,
+                earliest: 1793500000,
+                from: position,
+                latest: 1793590000,
+                position: Math.floor(position + offset),
+                timeline: "archive",
+            };
+        },
+    });
+    assert.equal(
+        f.run("capabilities").result.data.playback_seek_relative,
+        undefined
+    );
+    assert.deepEqual(
+        f.run("capabilities").result.data.playback_seek_archive_relative,
+        { version: 1 }
+    );
+    assert.equal(
+        f.run("playback", { offset: 60, operation: "seek_relative" }).result
+            .status,
+        "unsupported"
+    );
+    const params = {
+        offset: 60,
+        operation: "seek_relative",
+        timeline: "archive",
+    };
+    for (const paused of [false, true]) {
+        f.phase(paused ? "paused" : "playing");
+        const result = f.run("playback", params).result;
+        assert.equal(result.status, "ok");
+        assert.equal(result.data.timeline, "archive");
+        assert.equal(result.data.from, position);
+        assert.equal(result.data.position, 1793581260);
+        assert.deepEqual(f.effects.at(-1), ["archive-seek", 60, paused]);
+    }
+    f.effects.length = 0;
+    for (const guard of [
+        f.kiosk,
+        f.lock,
+        f.protect,
+        (value) => {
+            enabled = !value;
+        },
+        (value) => {
+            f.w.stbIsStandby = () => value;
+        },
+    ]) {
+        guard(true);
+        assert.equal(
+            f.run("capabilities").result.data.playback_seek_archive_relative,
+            undefined
+        );
+        assert.equal(f.run("playback", params).result.status, "unsupported");
+        guard(false);
+    }
+    assert.equal(
+        f.run("playback", params, true, Date.now() / 1000 - 1).result.status,
+        "rejected"
+    );
+    for (const invalid of [null, "vod", "live", true])
+        assert.equal(
+            f.run("playback", { ...params, timeline: invalid }).result.status,
+            "rejected"
+        );
+    f.handle.sample = () => generation++;
+    assert.equal(f.run("playback", params).result.status, "rejected");
+    f.handle.sample = () => {
+        f.w.__ottClassicArchive = { ...archive };
+    };
+    assert.equal(f.run("playback", params).result.status, "rejected");
+    assert.deepEqual(f.effects, []);
+}

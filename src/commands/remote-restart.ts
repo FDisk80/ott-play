@@ -448,6 +448,7 @@ function remotePlaybackProbe(w: any, readonly = false): any {
     return {
         owned: {
             backend: backend,
+            generation: state.generation,
             handle: handle,
             kind: state.target.kind,
             phase: snapshot && snapshot.phase,
@@ -723,7 +724,7 @@ export function executeRemoteControl(
             : action === "input"
               ? ["key"]
               : action === "playback"
-                ? [localMessage0, "position", "offset"]
+                ? [localMessage0, "position", "offset", "timeline"]
                 : action === "aspect"
                   ? [localMessage0, "runtime", "mode"]
                   : action === localMessage2
@@ -860,6 +861,25 @@ export function executeRemoteControl(
             owned.handle.active()
         );
     }
+    var archive = w.__ottClassicArchive;
+    function archiveSeekAllowed(): boolean {
+        return !!(
+            owned &&
+            owned.kind === "archive" &&
+            !remoteKiosk(w) &&
+            !remoteSettingsLocked(w) &&
+            !remoteProtectedInput(w) &&
+            !(typeof w.stbIsStandby === "function" && w.stbIsStandby()) &&
+            archive &&
+            archive === w.__ottClassicArchive &&
+            typeof owned.backend.open === "function" &&
+            typeof owned.handle.sample === "function" &&
+            typeof archive.canSeekRelative === "function" &&
+            typeof archive.seekRelative === "function" &&
+            archive.canSeekRelative() &&
+            owned.handle.active()
+        );
+    }
     if (action === localMessage2) {
         var localMedia = w.__ottLocalMedia?.remoteCapabilities
             ? w.__ottLocalMedia.remoteCapabilities()
@@ -919,6 +939,9 @@ export function executeRemoteControl(
                 ? { version: 3 }
                 : undefined,
             playback: playback,
+            playback_seek_archive_relative: archiveSeekAllowed()
+                ? { version: 1 }
+                : undefined,
             playback_seek_relative: relativeSeekAllowed()
                 ? { version: 1 }
                 : undefined,
@@ -968,9 +991,18 @@ export function executeRemoteControl(
     }
     if (action === "playback") {
         var operation = params.operation;
+        if (
+            operation !== "seek_relative" &&
+            Object.prototype.hasOwnProperty.call(params, "timeline")
+        ) {
+            fail("rejected", "Only relative archive seeks accept a timeline.");
+            return;
+        }
         if (operation === "seek_relative") {
+            var archiveTimeline = params.timeline === "archive";
             if (
-                Object.keys(params).length !== 2 ||
+                Object.keys(params).length !== (archiveTimeline ? 3 : 2) ||
+                (!archiveTimeline && params.timeline !== undefined) ||
                 typeof params.offset !== "number" ||
                 !isFinite(params.offset) ||
                 params.offset === 0 ||
@@ -982,10 +1014,14 @@ export function executeRemoteControl(
                 );
                 return;
             }
-            if (!relativeSeekAllowed()) {
+            if (
+                !(archiveTimeline
+                    ? archiveSeekAllowed()
+                    : relativeSeekAllowed())
+            ) {
                 fail(
                     "unsupported",
-                    "Relative seek requires a compatible owned VOD stream."
+                    "Relative seek requires a compatible owned playback timeline."
                 );
                 return;
             }
@@ -993,7 +1029,9 @@ export function executeRemoteControl(
                 handle = owned.handle;
             var current = function (): boolean {
                 if (
-                    !relativeSeekAllowed() ||
+                    !(archiveTimeline
+                        ? archiveSeekAllowed()
+                        : relativeSeekAllowed()) ||
                     (expiresAt !== undefined &&
                         (!isFinite(expiresAt) ||
                             Date.now() / 1000 >= expiresAt))
@@ -1004,13 +1042,27 @@ export function executeRemoteControl(
                     now &&
                     now.backend === backend &&
                     now.handle === handle &&
-                    now.kind === "vod"
+                    (!archiveTimeline || now.generation === owned.generation) &&
+                    now.kind === (archiveTimeline ? "archive" : "vod")
                 );
             };
             var moved;
             try {
+                if (
+                    archiveTimeline &&
+                    current() &&
+                    typeof handle.sample === "function"
+                )
+                    handle.sample();
                 moved =
-                    current() && handle.seekRelative(params.offset, current);
+                    current() &&
+                    (archiveTimeline
+                        ? archive.seekRelative(
+                              params.offset,
+                              current,
+                              handle.snapshot().phase === "paused"
+                          )
+                        : handle.seekRelative(params.offset, current));
             } catch (_) {
                 moved = null;
             }
@@ -1028,6 +1080,13 @@ export function executeRemoteControl(
                 offset: params.offset,
                 operation: operation,
                 position: moved.position,
+                ...(archiveTimeline
+                    ? {
+                          earliest: moved.earliest,
+                          latest: moved.latest,
+                          timeline: "archive",
+                      }
+                    : {}),
             });
             return;
         }

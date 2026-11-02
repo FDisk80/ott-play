@@ -686,7 +686,7 @@ for (const options of [
         assert.equal(ready, !options.noObjectURL || !!options.webkitURL)
     );
     assert.equal(typeof result.context.Hls, "function");
-    assert.equal(result.context.Hls.version, "1.7.3");
+    assert.equal(result.context.Hls.version, "1.7.4");
     assert.equal(
         result.context.Hls.DefaultConfig.workerPath,
         mediaURL("hls.worker.js")

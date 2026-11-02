@@ -34,6 +34,7 @@ let {
     DESKTOP_FAVORITES_KEY_ALLOWANCE,
     SHAKA_RETIREMENT_ENTRY_ALLOWANCE,
     SHAKA_TRACKS_ENTRY_ALLOWANCE,
+    ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
@@ -74,7 +75,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "ottplay-size-test-"));
 const androidOutput = fs.mkdtempSync(
     path.join(os.tmpdir(), "ottplay-size-android-output-")
 );
-const modernInfoInteractionCaps = {
+const archiveRelativeSeekCaps = {
     BASE_TOTAL_BUDGET,
     BUDGET,
     LEGACY_TOTAL_BUDGET,
@@ -104,6 +105,15 @@ const subtract = (budget, delta) =>
             ])
         )
     );
+// Replay historical receipts without charging this newer archive feature twice.
+const modernInfoInteractionCaps = Object.fromEntries(
+    Object.entries(archiveRelativeSeekCaps).map(([name, budget]) => [
+        name,
+        name === "OPTIONAL_BUDGETS"
+            ? budget
+            : subtract(budget, ARCHIVE_RELATIVE_SEEK_ALLOWANCE),
+    ])
+);
 const modernInfoOptionalKinds = {
     "favorites-transfer": "favorites",
     "modern-interface": "renderer",
@@ -385,6 +395,38 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const archiveEvidence = require("../docs/evidence/archive-relative-seek-size-20261102.json");
+    assert.deepEqual(
+        ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
+        archiveEvidence.allowance
+    );
+    assert(Object.isFrozen(ARCHIVE_RELATIVE_SEEK_ALLOWANCE));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert.equal(
+            ARCHIVE_RELATIVE_SEEK_ALLOWANCE[metric],
+            Math.max(
+                ...archiveEvidence.candidate.map(
+                    (after, index) =>
+                        after[metric] - archiveEvidence.baseline[index][metric]
+                )
+            )
+        );
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                archiveRelativeSeekCaps[name][metric] -
+                    modernInfoInteractionCaps[name][metric],
+                ARCHIVE_RELATIVE_SEEK_ALLOWANCE[metric]
+            );
+    }
+    assert.deepEqual(
+        archiveRelativeSeekCaps.OPTIONAL_BUDGETS,
+        modernInfoInteractionCaps.OPTIONAL_BUDGETS
+    );
     const infoEvidence = require("../docs/evidence/modern-info-interaction-size-20261101.json");
     assert.deepEqual(infoEvidence.allowance, MODERN_INFO_INTERACTION_ALLOWANCE);
     assert.deepEqual(infoEvidence.beforeCaps, companionDiagnosticsCaps);
@@ -3655,7 +3697,7 @@ try {
         LEGACY_TOTAL_BUDGET,
         OPTIONAL_BUDGETS,
         TOTAL_BUDGET,
-    } = modernInfoInteractionCaps);
+    } = archiveRelativeSeekCaps);
     assert(Object.isFrozen(BASE_TOTAL_BUDGET));
     assert(Object.isFrozen(LOCAL_COMPATIBILITY_ALLOWANCE));
     assert(Object.isFrozen(TOTAL_BUDGET));

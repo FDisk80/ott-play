@@ -1724,13 +1724,14 @@ console.log(
     "PASS actual lifecycle/input/aspect transport: lost ACK, byte-identical retry, single dispatch, duplicate replay, disable, expiry and local policy changes"
 );
 
-{
+for (const archive of [false, true]) {
     let seeks = 0,
-        position = 100;
+        position = archive ? 1000 : 100;
     const play = () => {};
     const handle = {
         active: () => true,
         canSeekRelative: () => true,
+        sample() {},
         seekRelative(offset, admitted) {
             if (!admitted()) return null;
             const from = position;
@@ -1740,9 +1741,27 @@ console.log(
         },
         snapshot: () => ({ phase: "playing" }),
     };
-    const backend = { current: () => handle };
+    const backend = { current: () => handle, open() {} };
     const w = {
-        __ottClassicPlayback: { snapshot: () => ({ target: { kind: "vod" } }) },
+        __ottClassicArchive: archive
+            ? {
+                  canSeekRelative: () => true,
+                  seekRelative(offset, admitted) {
+                      const moved = handle.seekRelative(offset, admitted);
+                      return (
+                          moved && {
+                              ...moved,
+                              earliest: 1,
+                              latest: 5000,
+                              timeline: "archive",
+                          }
+                      );
+                  },
+              }
+            : undefined,
+        __ottClassicPlayback: {
+            snapshot: () => ({ target: { kind: archive ? "archive" : "vod" } }),
+        },
         __ottCoreBackend: () => backend,
         __ottCoreBackendPeek: () => backend,
         __ottCoreTransport: { play },
@@ -1765,7 +1784,11 @@ console.log(
                 action: "playback",
                 expires_at: 5030,
                 id: "e".repeat(32),
-                params: { offset: 15, operation: "seek_relative" },
+                params: {
+                    offset: 15,
+                    operation: "seek_relative",
+                    ...(archive ? { timeline: "archive" } : {}),
+                },
             },
         ],
         server_time: 5000,
@@ -1774,7 +1797,7 @@ console.log(
     rpc.respond(envelope);
     rpc.next();
     const body = rpc.requests.at(-1).request.body;
-    assert.equal(JSON.parse(body).data.position, 115);
+    assert.equal(JSON.parse(body).data.position, archive ? 1015 : 115);
     assert.equal(seeks, 1);
     rpc.respond({}, 0); // Lost ACK: retry the receipt, never the relative operation.
     rpc.next();
@@ -1785,7 +1808,7 @@ console.log(
     rpc.next();
     assert.equal(rpc.requests.at(-1).request.body, body);
     assert.equal(seeks, 1);
-    assert.equal(position, 115);
+    assert.equal(position, archive ? 1015 : 115);
     rpc.respond({ status: "ok" });
     rpc.next();
     envelope.requests[0].id = "d".repeat(32);

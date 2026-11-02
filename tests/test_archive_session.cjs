@@ -970,3 +970,325 @@ for (const change of [
 console.log(
     "PASS archive coordinator: real entrypoints, file identity, scoped guide/PIN/refill, synthetic windows and independent rendering"
 );
+
+// Remote archive offsets use broadcast time, never decoder seconds.
+for (const file of [false, true]) {
+    for (const paused of [false, true]) {
+        for (const [offset, from, destination, clamped] of [
+            [60, 999020.75, 999080, false],
+            [-10, 999020.75, 999010, false],
+            [180, 999020.75, 999200, false], // crosses programme into a guide gap
+            [0.5, 999020.75, 999021, false],
+            [-0.5, 999020.75, 999020, false],
+            [-9007199254740991, 999020.75, 913600, true],
+            [9007199254740991, 999020.75, 999999, true],
+        ]) {
+            const c = fixture();
+            c.fileArchive = file;
+            c.parentalArray = [];
+            assert.equal(c.__ottClassicArchive.open(999020), true);
+            c.__ottClassicPlayback.command({
+                position: from - 999020,
+                type: "position",
+            });
+            if (paused) c.__ottClassicPlayback.command({ type: "pause" });
+            const requests = [];
+            c.__ottCoreBackendPeek = () => ({
+                open(request) {
+                    requests.push(request);
+                    c.__ottClassicPlayback.command({
+                        type: request.paused ? "pause" : "playing",
+                    });
+                    return { active: () => true };
+                },
+            });
+            assert.equal(c.__ottClassicArchive.canSeekRelative(), true);
+            const captured = c.__ottClassicPlayback.context();
+            const result = c.__ottClassicArchive.seekRelative(
+                offset,
+                captured.isCurrent,
+                paused
+            );
+            assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+                clamped,
+                earliest: 913600,
+                from,
+                latest: 999999,
+                position: destination,
+                timeline: "archive",
+            });
+            assert.equal(requests.length, 1);
+            assert.equal(
+                requests[0].paused,
+                paused,
+                "pause is bound to the new lease before startup"
+            );
+            const state = c.__ottClassicPlayback.snapshot();
+            assert.equal(state.target.kind, "archive");
+            assert.equal(state.target.archiveStart, destination);
+            assert.equal(state.phase, paused ? "paused" : "playing");
+            assert.equal(
+                requests[0].position,
+                file
+                    ? destination -
+                          (destination < 999100 && destination >= 999000
+                              ? 999000
+                              : destination < 999200 && destination >= 999100
+                                ? 999100
+                                : destination - 3600)
+                    : 0
+            );
+        }
+    }
+}
+
+// A rejected synchronous offset cannot revive from async provider/PIN callbacks.
+for (const deferred of [
+    "resolve",
+    "authorize",
+    "expired",
+    "changed",
+    "retention",
+]) {
+    const c = fixture();
+    let now = 1000000.25,
+        epoch = 999020.75,
+        current = true,
+        callback,
+        permitted = true;
+    const effects = [];
+    const capture = () => ({
+        channelId: "1",
+        file: false,
+        isCurrent: () => current,
+        retention: 86400,
+        schedule: [],
+        sourceId: "a",
+    });
+    const ports = {
+        authorize(_context, done) {
+            if (deferred === "authorize") {
+                callback = done;
+                return true;
+            }
+            return false;
+        },
+        capture,
+        epoch: () => epoch,
+        guide() {},
+        now: () => now,
+        open(_context, model) {
+            effects.push(model.position);
+            epoch = model.position;
+            return capture();
+        },
+        pause() {},
+        publish() {},
+        resolve(_context, _model, done) {
+            if (deferred === "resolve") {
+                callback = () => done("archive");
+                return;
+            }
+            if (deferred === "expired") permitted = false;
+            if (deferred === "changed") current = false;
+            if (deferred === "retention") now += 2;
+            done("archive");
+        },
+        seek() {
+            assert.fail("remote offset must reopen with bound pause intent");
+        },
+    };
+    const controller = c.__ottArchiveSession.create(c.OttPlayCore, ports);
+    const offset = deferred === "retention" ? -9007199254740991 : 60;
+    assert.equal(
+        controller.seekRelative(offset, () => permitted && current, false),
+        null,
+        deferred
+    );
+    if (callback) callback();
+    assert.deepEqual(
+        effects,
+        [],
+        deferred + " must have no later playback effect"
+    );
+}
+
+// Integer retention lower edge is rounded inward; invalid inputs do not resolve.
+{
+    const c = fixture();
+    let resolves = 0;
+    const context = {
+        channelId: "1",
+        file: false,
+        isCurrent: () => true,
+        retention: 86400,
+        schedule: [],
+        sourceId: "a",
+    };
+    const controller = c.__ottArchiveSession.create(c.OttPlayCore, {
+        authorize: () => false,
+        capture: () => context,
+        epoch: () => 999020.75,
+        guide() {},
+        now: () => 1000000.25,
+        open: () => context,
+        pause() {},
+        publish() {},
+        resolve(_context, _model, done) {
+            resolves++;
+            done("archive");
+        },
+        seek() {},
+    });
+    for (const value of [0, NaN, Infinity, "1", true, 9007199254740992])
+        assert.equal(
+            controller.seekRelative(value, () => true, false),
+            null
+        );
+    assert.equal(resolves, 0);
+    const result = controller.seekRelative(
+        -9007199254740991,
+        () => true,
+        false
+    );
+    assert.equal(result.earliest, 913601);
+    assert.equal(result.position, 913601);
+}
+
+// The real archive controller and media backend agree across a delayed decoder
+// attachment, including paused starts and retirement by a replacement source.
+for (const file of [false, true])
+    for (const paused of [false, true])
+        for (const stop of [false, true])
+            for (const stale of [false, true]) {
+                const c = fixture(),
+                    leases = [],
+                    pending = [];
+                let deferred = false;
+                const playback = c.__ottClassicPlayback;
+                const backend = c.__ottMediaBackend.create({
+                    admitted: () => true,
+                    clearInterval() {},
+                    context() {
+                        const state = playback.snapshot(),
+                            owner = playback.context();
+                        return state.target
+                            ? {
+                                  active: owner.isCurrentBackend,
+                                  generation: state.generation,
+                                  kind: state.target.kind,
+                                  position: state.position,
+                                  sourceActive: owner.isCurrentSource,
+                              }
+                            : null;
+                    },
+                    emit(context, type, position, duration) {
+                        playback.command({
+                            duration,
+                            generation: context.generation,
+                            position,
+                            type,
+                        });
+                    },
+                    open(request, event) {
+                        const sample = {
+                            duration: NaN,
+                            paused: request.paused === true,
+                            position: request.position || 0,
+                            ready: 4,
+                        };
+                        leases.push({ event, request, sample });
+                        if (!sample.paused) event("playing");
+                        return {
+                            dispose() {},
+                            pause() {
+                                sample.paused = true;
+                                event("pause");
+                            },
+                            resume() {
+                                sample.paused = false;
+                                event("playing");
+                            },
+                            sample: () => sample,
+                            seek(value) {
+                                sample.position = value;
+                            },
+                            supportsPausedStart: true,
+                        };
+                    },
+                    resolve(url, done) {
+                        if (deferred) pending.push(() => done(url));
+                        else done(url);
+                        return () => {};
+                    },
+                    setInterval() {
+                        return 1;
+                    },
+                });
+                try {
+                    c.stbPlay = (url, position) =>
+                        backend.open({ position, url });
+                    c.__ottCoreTransport = { play: c.stbPlay };
+                    c.stbStop = () => {
+                        playback.cancel();
+                        backend.stop();
+                    };
+                    c.__ottCoreBackendPeek = () => backend;
+                    c.fileArchive = file;
+                    c.sStopPlay = stop;
+                    c.parentalArray = [];
+                    assert.equal(c.__ottClassicArchive.open(999020), true);
+                    const old = backend.current();
+                    leases[0].sample.position += 0.75;
+                    old.sample();
+                    if (paused) old.pause();
+                    const before = playback.snapshot(),
+                        captured = playback.context();
+                    deferred = true;
+                    const result = c.__ottClassicArchive.seekRelative(
+                        60,
+                        () =>
+                            old.active() &&
+                            captured.isCurrent() &&
+                            playback.snapshot().generation ===
+                                before.generation,
+                        paused
+                    );
+                    assert.ok(
+                        result,
+                        JSON.stringify({ file, paused, stale, stop })
+                    );
+                    assert.equal(result.position, 999080);
+                    assert.equal(pending.length, 1);
+                    assert.equal(leases.length, 1);
+                    if (stale) {
+                        playback.command({ channelId: "202", type: "live" });
+                        pending[0]();
+                        assert.equal(leases.length, 1);
+                    } else {
+                        pending[0]();
+                        assert.equal(leases.length, 2);
+                        assert.equal(leases[1].request.paused, paused);
+                        assert.equal(
+                            backend.current().snapshot().phase,
+                            paused ? "paused" : "playing"
+                        );
+                        assert.equal(leases[1].request.position, file ? 80 : 0);
+                        assert.equal(
+                            playback.snapshot().target.archiveStart +
+                                playback.snapshot().position,
+                            999080
+                        );
+                        if (paused) backend.current().resume();
+                        leases[1].sample.position += 1;
+                        backend.current().sample();
+                        assert.equal(
+                            playback.snapshot().target.archiveStart +
+                                playback.snapshot().position,
+                            999081
+                        );
+                    }
+                } finally {
+                    backend.dispose();
+                }
+            }

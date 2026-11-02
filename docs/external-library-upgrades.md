@@ -7,7 +7,7 @@ version at runtime.
 
 ## Current runtime and ownership
 
-- Every profile uses the exact npm-locked hls.js **1.7.3** UMD distribution.
+- Every profile uses the exact npm-locked hls.js **1.7.4** UMD distribution.
   `js/hls.min.js` is upstream's unchanged `dist/hls.min.js`. Its standalone
   worker is upstream's `dist/hls.worker.js` with a small ES5 loader prepended.
   The loader synchronously imports the sibling compatibility runtime and
@@ -21,7 +21,7 @@ version at runtime.
   Conforming native APIs are preserved. Proposals are not included merely
   because a new core-js release offers them.
 - The legacy web profile retains jQuery **1.11.1** and Shaka Player **3.3.19**.
-  Native shells use npm-locked jQuery **4.0.0** and Shaka Player **5.3.2**.
+  Native shells use npm-locked jQuery **4.0.0** and Shaka Player **5.3.3**.
   These are explicit packaging profiles. Neither uses a user-agent-triggered
   CDN substitution. Updating HLS does not establish that the other libraries'
   current native versions can run on the old web profile.

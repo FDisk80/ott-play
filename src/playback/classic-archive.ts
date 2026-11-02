@@ -149,6 +149,7 @@ function classicArchiveRuntime(): any {
                     return null;
                 playback.command({ type: "loading" });
             }
+            var openCurrent = playback.context().isCurrent;
             var rewind = model.rewind;
             if (rewind !== undefined && typeof w.showShift === "function")
                 w.showShift(
@@ -161,7 +162,21 @@ function classicArchiveRuntime(): any {
                           : "Archive - begin"
                 );
             info(1);
-            w.stbPlay(url, offset);
+            if (!openCurrent()) return null;
+            if (model.paused !== undefined) {
+                // A remote archive seek replaces the source URL. Pass pause
+                // intent into the new lease before asynchronous preparation.
+                var backend =
+                    w.__ottCoreBackendPeek && w.__ottCoreBackendPeek();
+                var handle =
+                    backend &&
+                    backend.open({
+                        paused: model.paused,
+                        position: offset,
+                        url: url,
+                    });
+                if (!handle || !handle.active()) return null;
+            } else w.stbPlay(url, offset);
             return classicArchiveCapture();
         },
         pause: function (
@@ -246,6 +261,20 @@ function classicArchiveRuntime(): any {
         if (!classicArchiveReplacing && classicArchiveController)
             classicArchiveController.cancel();
     },
+    canSeekRelative: function (): boolean {
+        var id = (w.curList || [])[w.primaryIndex];
+        return (
+            Array.isArray(w.parentalArray) &&
+            !w.parentalArray.some(function (protectedId: any) {
+                return (
+                    String(protectedId) === String(id) &&
+                    (!w.__ottParental || w.__ottParental.needs("channels"))
+                );
+            }) &&
+            !!classicArchiveController &&
+            classicArchiveController.canSeekRelative()
+        );
+    },
     open: function (epoch: number, url?: string): boolean {
         return classicArchiveRuntime().open(epoch, url);
     },
@@ -254,6 +283,13 @@ function classicArchiveRuntime(): any {
     },
     rewind: function (offset: number): void {
         classicArchiveRuntime().rewind(offset);
+    },
+    seekRelative: function (
+        offset: number,
+        admitted: () => boolean,
+        paused: boolean
+    ) {
+        return classicArchiveRuntime().seekRelative(offset, admitted, paused);
     },
     update: function (epoch: number): void {
         classicArchiveRuntime().update(epoch);
