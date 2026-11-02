@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { test, expect } = require("../helpers/browser-test.cjs");
 const installShakaLifecycleDiagnostics = require("./shaka-lifecycle-diagnostics.cjs");
+const observeAspectReadiness = require("../helpers/aspect-readiness-diagnostics.cjs");
 
 // Serialized by Playwright: keep this predicate self-contained.
 function aspectMediaReady({ engine, previous, target }) {
@@ -1464,131 +1465,42 @@ for (const { engine, strict } of [
             await openPlexChannels(page);
             await selectPlexChannel(page, films[0].title);
             let previousReadySource = null;
-            async function ready(id) {
+            async function ready(id, phase) {
                 const target =
                     "request:" +
                     JSON.stringify({ path: "/library/metadata/" + id });
-                try {
-                    await page.waitForFunction(
-                        aspectMediaReady,
-                        { engine, previous: previousReadySource, target },
-                        { timeout: 15000 }
-                    );
-                    previousReadySource = await page.evaluate(
-                        (target) => ({
-                            currentSrc: window.video.currentSrc,
-                            target,
-                        }),
-                        target
-                    );
-                    expect(
-                        await page.evaluate(() => ({
-                            aspect: !!window.captureAspectTarget?.(),
-                            target: window.__ottMedia?.current()?.ref.itemId,
-                        }))
-                    ).toEqual({
-                        aspect: true,
-                        target,
-                    });
-                    await page.evaluate(() => {
-                        window.stbPause();
-                        window.stbToFullScreen();
-                    });
-                } catch (error) {
-                    try {
-                        const state = await page.evaluate(() => {
-                            const media = window.video;
-                            const ranges = (value) =>
-                                Array.from({ length: value.length }, (_, i) => [
-                                    value.start(i),
-                                    value.end(i),
-                                ]);
-                            const checkpoint =
-                                window.stbGetPersistedItem("__ottKioskV1");
-                            const hls = window.hlsInstance;
-                            const playback =
-                                window.__ottClassicPlayback?.snapshot();
-                            return {
-                                currentRef:
-                                    window.__ottMedia?.current()?.ref || null,
-                                hls: hls
-                                    ? {
-                                          attachedToVideo: hls.media === media,
-                                          autoLevelEnabled:
-                                              hls.autoLevelEnabled,
-                                          currentLevel: hls.currentLevel,
-                                          loadLevel: hls.loadLevel,
-                                          nextLoadLevel: hls.nextLoadLevel,
-                                      }
-                                    : null,
-                                kioskCheckpoint: checkpoint,
-                                media: media
-                                    ? {
-                                          buffered: ranges(media.buffered),
-                                          currentSrc: media.currentSrc.split(
-                                              /[?#]/,
-                                              1
-                                          )[0],
-                                          currentTime: media.currentTime,
-                                          duration: Number.isFinite(
-                                              media.duration
-                                          )
-                                              ? media.duration
-                                              : String(media.duration),
-                                          ended: media.ended,
-                                          error: media.error
-                                              ? {
-                                                    code: media.error.code,
-                                                    message:
-                                                        media.error.message,
-                                                }
-                                              : null,
-                                          networkState: media.networkState,
-                                          paused: media.paused,
-                                          readyState: media.readyState,
-                                          seekable: ranges(media.seekable),
-                                          seeking: media.seeking,
-                                          videoHeight: media.videoHeight,
-                                          videoWidth: media.videoWidth,
-                                      }
-                                    : null,
-                                playback: playback
-                                    ? {
-                                          duration: playback.duration,
-                                          generation: playback.generation,
-                                          phase: playback.phase,
-                                          position: playback.position,
-                                          target: playback.target
-                                              ? {
-                                                    channelId:
-                                                        playback.target
-                                                            .channelId,
-                                                    kind: playback.target.kind,
-                                                    sourceId:
-                                                        playback.target
-                                                            .sourceId,
-                                                }
-                                              : null,
-                                      }
-                                    : null,
-                                shakaLifecycle:
-                                    window.__aspectShakaLifecycle?.snapshot() ||
-                                    null,
-                            };
-                        });
-                        await test.info().attach("aspect-readiness-failure", {
-                            body: JSON.stringify({ target, ...state }, null, 2),
-                            contentType: "application/json",
-                        });
-                    } catch (diagnosticError) {
-                        // Diagnostics must never replace the original failure.
-                        console.error(
-                            "Unable to capture aspect readiness state:",
-                            diagnosticError
+                return observeAspectReadiness(
+                    page,
+                    { engine, phase },
+                    async () => {
+                        await page.waitForFunction(
+                            aspectMediaReady,
+                            { engine, previous: previousReadySource, target },
+                            { timeout: 15000 }
                         );
+                        previousReadySource = await page.evaluate(
+                            (target) => ({
+                                currentSrc: window.video.currentSrc,
+                                target,
+                            }),
+                            target
+                        );
+                        expect(
+                            await page.evaluate(() => ({
+                                aspect: !!window.captureAspectTarget?.(),
+                                target: window.__ottMedia?.current()?.ref
+                                    .itemId,
+                            }))
+                        ).toEqual({
+                            aspect: true,
+                            target,
+                        });
+                        await page.evaluate(() => {
+                            window.stbPause();
+                            window.stbToFullScreen();
+                        });
                     }
-                    throw error;
-                }
+                );
             }
             async function aspect() {
                 return page.evaluate(() => {
@@ -1642,7 +1554,7 @@ for (const { engine, strict } of [
                             property + " uses centered " + mode
                         ).toBeLessThanOrEqual(1);
             }
-            await ready("42");
+            await ready("42", "initial");
             expect(await page.evaluate(() => window.playerMode)).toBe(
                 engine === "shaka" ? 2 : engine === "html5" ? 0 : 1
             );
@@ -1773,7 +1685,7 @@ for (const { engine, strict } of [
                             "playing" &&
                         window.video.currentTime < window.video.duration - 1
                 );
-                await ready("42");
+                await ready("42", "replay");
                 const ended = await page.evaluate(() => window.__aspectEnded);
                 expect(ended).toMatchObject({
                     aspect: { mode: "fill", savedMode: "fill" },
@@ -1802,7 +1714,7 @@ for (const { engine, strict } of [
             } else {
                 await page.evaluate(() => window.__ottMedia.open(null));
                 await selectPlexChannel(page, films[1].title);
-                await ready("43");
+                await ready("43", "next");
             }
             expect(await page.evaluate(() => window.__ottKiosk.strict())).toBe(
                 strict
@@ -1816,7 +1728,7 @@ for (const { engine, strict } of [
                 await page.waitForFunction(
                     () => window.curList?.[window.primaryIndex] === "plex-43"
                 );
-            await ready(strict ? "42" : "43");
+            await ready(strict ? "42" : "43", "reload");
             expect(await page.evaluate(() => window.__ottKiosk.strict())).toBe(
                 strict
             );
