@@ -203,6 +203,12 @@ supported CLI version `3.2.6`. Add `--ares-compat` only when using the existing
 repository compatibility wrapper; it requires that explicit `--ares-root`.
 These options reuse the alias and credentials already configured on the
 computer. They do not enable Developer Mode, start Key Server or acquire keys.
+Private state transfer also verifies the supported CLI source before installing
+an update that needs a state backup. It supplies the saved bytes through a
+dedicated private file descriptor after the remote stream is ready. This avoids
+the CLI's early standard-input listener and control messages; file contents are
+not embedded in command arguments or logs. If that transport cannot be
+validated, the update stops before installation.
 
 When the intended television is available, explicitly request read-only checks:
 
@@ -238,6 +244,10 @@ same-ID installation, reads back the installed identity/version and payload
 hashes, preserves the captured state and verifies launch. A close or launch
 acknowledgement alone does not complete those checks. Missing access, ambiguous identity, a newer
 installed version or an unsafe state operation stops the update.
+Payload verification reads the device's SHA-256 output directly and requires
+every expected file exactly once. Missing, duplicate or malformed rows cannot
+turn a failed verification into success; this check does not depend on sending
+a checksum manifest through standard input.
 
 The snapshot covers the known application-directory files described above,
 including the entire `ott-state` directory. It is **not a complete DB8/keymanager

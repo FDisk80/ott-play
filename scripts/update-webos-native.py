@@ -45,6 +45,44 @@ RELEASE_BINDINGS = (
     "release_id",
     "source_set_sha256",
 )
+PRIVATE_INPUT_BOOTSTRAP = r"""
+"use strict";
+const fs = require("node:fs");
+try {
+    const [wrapperPath, root, tool, compatibility, ...args] = process.argv.slice(1);
+    if (tool !== "ares-novacom") throw new Error("unsupported private transfer");
+    const wrapper = require(wrapperPath);
+    const {entry, novacom} = wrapper.validateCli(root, tool);
+    if (args.length === 1 && args[0] === "--verify-private-input") process.exit(0);
+    const fdText = args.pop();
+    if (!/^[0-9]+$/.test(fdText)) throw new Error("invalid private input");
+    const fd = Number(fdText), stat = fs.fstatSync(fd);
+    if (!stat.isFile() || stat.uid !== process.getuid() || (stat.mode & 0o077)) {
+        throw new Error("unsafe private input");
+    }
+    const prototype = require(novacom).Session.prototype;
+    const original = prototype.run;
+    if (typeof original !== "function") throw new Error("unsupported private transfer");
+    let used = false;
+    prototype.run = function(cmd, stdin, stdout, stderr, next) {
+        if (used) return next(new Error("private input already consumed"));
+        used = true;
+        const input = fs.createReadStream(null, {fd, start: 0, autoClose: false});
+        return original.call(this, cmd, input, stdout, stderr, function(...result) {
+            input.destroy();
+            next(...result);
+        });
+    };
+    if (compatibility === "1") wrapper.run([root, tool, ...args]);
+    else {
+        process.argv = [process.execPath, entry, ...args];
+        require(entry);
+    }
+} catch (_) {
+    process.stderr.write("private input transport unavailable\n");
+    process.exitCode = 1;
+}
+"""
 
 
 class UpdateError(ValueError):
@@ -410,7 +448,7 @@ def command_error(raw):
     return "ares_command_failed"
 
 
-def run_command(command, *, operation, timeout=30, data=None):
+def run_command(command, *, operation, timeout=30, data=None, private_input=False):
     environment = {**os.environ, "DEBUG": "", "NODE_DEBUG": ""}
     with (
         tempfile.TemporaryFile() as output,
@@ -421,15 +459,30 @@ def run_command(command, *, operation, timeout=30, data=None):
         if data is not None:
             source.write(data)
             source.seek(0)
+        check(
+            not private_input or (os.name == "posix" and data is not None),
+            "private_input_unavailable",
+        )
+        command = list(command)
+        input_options = {}
+        if private_input:
+            # Ares attaches a global flowing stdin listener before SSH setup.
+            # Pass a separate private descriptor; the bootstrap creates its
+            # paused ReadStream only when Session.run is invoked.
+            command.append(str(source.fileno()))
+            input_options["pass_fds"] = (source.fileno(),)
         process = None
         try:
             process = subprocess.Popen(
                 command,
-                stdin=source if data is not None else subprocess.DEVNULL,
+                stdin=source
+                if data is not None and not private_input
+                else subprocess.DEVNULL,
                 stdout=output,
                 stderr=errors,
                 env=environment,
                 start_new_session=True,
+                **input_options,
             )
             deadline = time.monotonic() + timeout
             while process.poll() is None:
@@ -552,6 +605,15 @@ class Ares:
             )
 
     def command(self, tool, *arguments, operation="preflight", timeout=30, data=None):
+        if data is not None:
+            check(tool == "ares-novacom", "unsupported_private_transfer")
+            return self.runner(
+                [*self.private_input_command(), *arguments],
+                operation=operation,
+                timeout=timeout,
+                data=data,
+                private_input=True,
+            )
         if self.cli_root:
             command = ["node", str(self.cli_root / "bin" / (tool + ".js"))]
             if self.compatibility and tool != "ares-setup-device":
@@ -565,6 +627,24 @@ class Ares:
         return self.runner(
             [*command, *arguments], operation=operation, timeout=timeout, data=data
         )
+
+    def private_input_command(self):
+        root = self.cli_root
+        if root is None:
+            executable = shutil.which("ares-novacom")
+            check(executable is not None, "ares_not_installed")
+            root = Path(executable).resolve().parents[1]
+        wrapper = ROOT / "native/webos/ares-compat.cjs"
+        check(wrapper.is_file(), "ares_compatibility_wrapper_missing")
+        return [
+            "node",
+            "-e",
+            PRIVATE_INPUT_BOOTSTRAP,
+            str(wrapper),
+            str(root),
+            "ares-novacom",
+            "1" if self.compatibility else "0",
+        ]
 
     def device(self, tool, *arguments, **kwargs):
         return self.command(tool, "--device", self.alias, *arguments, **kwargs)
@@ -677,7 +757,7 @@ class Ares:
             isinstance(payload, dict) and 0 < len(payload) <= 4096,
             "missing_native_payload",
         )
-        targets, manifest = [], []
+        targets, expected_files = [], {}
         for name, expected in payload.items():
             kind, separator, relative = name.partition("/")
             check(
@@ -701,21 +781,31 @@ class Ares:
                 else "/media/developer/apps/usr/palm/services/" + APP_ID + ".storage"
             )
             target = root + "/" + relative
+            check(target not in expected_files, "invalid_native_payload")
             targets.append(shlex.quote(target))
-            manifest.append(expected + "  " + target + "\n")
+            expected_files[target] = expected
         command = "command -v sha256sum >/dev/null || exit 79; for f in " + " ".join(
             targets
         )
         command += '; do if [ ! -f "$f" ] || [ -L "$f" ]; then printf "OTT_PAYLOAD_MISMATCH\\n"; exit 0; fi; done; '
-        command += 'if sha256sum -c - >/dev/null 2>&1; then printf "OTT_PAYLOAD_MATCH\\n"; else printf "OTT_PAYLOAD_MISMATCH\\n"; fi'
+        command += "sha256sum " + " ".join(targets)
         check(len(command.encode()) <= 128 * 1024, "native_payload_manifest_limit")
-        output = self.remote(command, data="".join(manifest).encode())
+        output = self.remote(command)
         lines = list(cli_lines(output.decode("utf-8")))
-        check(
-            lines in (["OTT_PAYLOAD_MATCH"], ["OTT_PAYLOAD_MISMATCH"]),
-            "invalid_payload_readback",
-        )
-        return lines == ["OTT_PAYLOAD_MATCH"]
+        if lines == ["OTT_PAYLOAD_MISMATCH"]:
+            return False
+        observed = {}
+        for line in lines:
+            match = re.fullmatch(r"([0-9a-f]{64})  (.+)", line)
+            check(match is not None, "invalid_payload_readback")
+            checksum, path = match.groups()
+            check(
+                path in expected_files and path not in observed,
+                "invalid_payload_readback",
+            )
+            observed[path] = checksum
+        check(observed.keys() == expected_files.keys(), "invalid_payload_readback")
+        return observed == expected_files
 
     def close(self):
         self.device("ares-launch", "--close", APP_ID, operation="close")
@@ -776,6 +866,12 @@ class Ares:
             check(
                 all(row["uid"] == uid and row["gid"] == gid for row in before.values()),
                 "private_owner_not_restorable",
+            )
+            # Verify the exact CLI transport before any installation can start.
+            self.runner(
+                [*self.private_input_command(), "--verify-private-input"],
+                operation="private_input_preflight",
+                timeout=10,
             )
         write_private(directory / "state.tar", archive)
         snapshot = {

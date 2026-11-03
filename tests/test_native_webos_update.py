@@ -406,7 +406,9 @@ class LocalRestoreAndPayloadTests(unittest.TestCase):
         )
         if result.returncode:
             raise update.UpdateError("private_state_failed")
-        return result.stdout
+        return result.stdout.replace(str(self.application).encode(), APP_DIR.encode()).replace(
+            str(self.service).encode(), service_dir.encode()
+        )
 
     def test_complete_transfer_publishes_exact_bytes_with_private_mode(self):
         self.ares.restore(self.snapshot)
@@ -497,6 +499,155 @@ class LocalRestoreAndPayloadTests(unittest.TestCase):
                     self.assertRaises(update.UpdateError) as caught:
                 self.ares.payload_matches(payload)
             self.assertEqual(caught.exception.code, "invalid_payload_readback")
+
+    def test_direct_hash_readback_requires_each_exact_path_once(self):
+        payload = self.payload_fixture()
+        roots = {"app": APP_DIR, "service": "/media/developer/apps/usr/palm/services/" + APP_ID + ".storage"}
+        lines = []
+        for name, checksum in payload.items():
+            kind, relative = name.split("/", 1)
+            lines.append(checksum + "  " + roots[kind] + "/" + relative + "\n")
+        with patch.object(self.ares, "remote", return_value=(BANNER + "".join(reversed(lines))).encode()) as remote:
+            self.assertTrue(self.ares.payload_matches(payload))
+            self.assertEqual(remote.call_args.kwargs, {})
+        for reply in (
+            "".join(lines + [lines[0]]), "".join(lines[:-1]),
+            "".join(lines).replace("/plxnative\n", "/unexpected\n", 1),
+            "".join(lines).replace("  ", " ", 1),
+            "\\" + "".join(lines),
+        ):
+            with self.subTest(reply=reply), patch.object(self.ares, "remote", return_value=reply.encode()), \
+                    self.assertRaises(update.UpdateError) as caught:
+                self.ares.payload_matches(payload)
+            self.assertEqual(caught.exception.code, "invalid_payload_readback")
+
+
+@unittest.skipUnless(os.name == "posix" and shutil.which("node") and shutil.which("sha256sum"),
+                     "Delayed CLI fixture requires POSIX, Node and sha256sum")
+class DelayedCliStdinTests(unittest.TestCase):
+    """Model the eager CLI stdin listener before its delayed SSH stream attach."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        cli = self.root / "cli"
+        (cli / "bin").mkdir(parents=True)
+        (cli / "lib/base").mkdir(parents=True)
+        (cli / "package.json").write_text('{"name":"@webos-tools/cli","version":"3.2.6"}')
+        (cli / "lib/base/novacom.js").write_text('''"use strict";
+const {spawn} = require("node:child_process");
+class Session {
+  run(command, input, output, errors, next) {
+    const child = spawn("sh", ["-c", command], {
+      env: {...process.env, COPYFILE_DISABLE: "1"}
+    });
+    child.stdin.on("error", () => {});
+    if (input.readableEnded) child.stdin.end();
+    else input.pipe(child.stdin);
+    child.stdout.pipe(output);
+    child.stderr.pipe(errors);
+    child.on("exit", code => next(code === 0 ? null : new Error("fixture command failed")));
+  }
+}
+module.exports = {Session};
+''')
+        self.entry = cli / "bin/ares-novacom.js"
+        self.entry.write_text('''"use strict";
+const {Session} = require("../lib/base/novacom.js");
+const index = process.argv.indexOf("--run");
+if (index < 0 || index !== process.argv.length - 2) process.exit(91);
+process.stdin.on("data", chunk => {
+  if (chunk.toString().trim() === "@ARES-CLOSE@") process.exit(0);
+});
+setTimeout(() => {
+  new Session().run(process.argv[index + 1], process.stdin, process.stdout,
+    process.stderr, error => process.exit(error ? 92 : 0));
+}, 100);
+''')
+        wrapper = self.root / "native/webos/ares-compat.cjs"
+        wrapper.parent.mkdir(parents=True)
+        # Only exact-package validation is replaced; the production input
+        # bootstrap and Python subprocess transport run unchanged.
+        wrapper.write_text('''"use strict";
+const path = require("node:path");
+function validateCli(root, tool) {
+  if (tool !== "ares-novacom") throw new Error("fixture tool mismatch");
+  return {entry: path.join(root, "bin/ares-novacom.js"),
+          novacom: path.join(root, "lib/base/novacom.js")};
+}
+function run(args) {
+  const {entry} = validateCli(args[0], args[1]);
+  process.argv = [process.execPath, entry, ...args.slice(2)];
+  require(entry);
+}
+module.exports = {validateCli, run};
+''')
+        self.application = self.root / "application"
+        self.service = self.root / "service"
+        self.application.mkdir()
+        self.service.mkdir()
+        self.calls = []
+        self.ares = update.Ares("fixture-tv", cli, runner=self.runner)
+        original_command = self.ares.command
+
+        def fixture_command(*args, **kwargs):
+            with patch.object(update, "ROOT", self.root):
+                return original_command(*args, **kwargs)
+
+        self.ares.command = fixture_command
+
+    def runner(self, command, **kwargs):
+        if command[1] == "-e":
+            self.assertEqual(command[2], update.PRIVATE_INPUT_BOOTSTRAP)
+            self.assertTrue(kwargs.get("private_input"))
+        else:
+            self.assertEqual(Path(command[1]), self.entry)
+        run_index = command.index("--run")
+        self.assertEqual(command[run_index - 2:run_index], ["--device", "fixture-tv"])
+        self.calls.append((command[-1], kwargs.get("data")))
+        service_dir = "/media/developer/apps/usr/palm/services/" + APP_ID + ".storage"
+        translated = command[-1].replace(APP_DIR, str(self.application)).replace(service_dir, str(self.service))
+        self.assertNotIn("/media/developer/", translated)
+        kwargs["timeout"] = min(kwargs.get("timeout", 3), 3)
+        result = update.run_command([*command[:-1], translated], **kwargs)
+        return result.replace(str(self.application).encode(), APP_DIR.encode()).replace(
+            str(self.service).encode(), service_dir.encode()
+        )
+
+    def test_fixture_reproduces_loss_of_prefed_stdin_before_stream_attach(self):
+        result = update.run_command(
+            [shutil.which("node"), str(self.entry), "--run", "cat"],
+            operation="fixture", timeout=3, data=b"bytes-sent-before-remote-is-ready",
+        )
+        self.assertEqual(result, b"")
+
+    def test_remote_uses_private_stream_and_transfers_binary_without_cli_control_exit(self):
+        for payload in (b"@ARES-CLOSE@", bytes(range(256)) * 512):
+            with self.subTest(size=len(payload)):
+                self.assertEqual(self.ares.remote("cat", data=payload), payload)
+        self.ares.compatibility = True
+        self.assertEqual(self.ares.remote("cat", data=b"@ARES-CLOSE@"), b"@ARES-CLOSE@")
+
+    def test_payload_verification_does_not_depend_on_cli_stdin(self):
+        executable = self.application / "plxnative"
+        executable.write_bytes(b"native-payload")
+        payload = {"app/plxnative": hashlib.sha256(executable.read_bytes()).hexdigest()}
+        self.assertTrue(self.ares.payload_matches(payload))
+        self.assertTrue(all(data is None for _, data in self.calls))
+        executable.write_bytes(b"modified-payload")
+        self.assertFalse(self.ares.payload_matches(payload))
+
+    def test_nonempty_private_restore_survives_delayed_cli_stream_attach(self):
+        contents = b"@ARES-CLOSE@\x00private-config\xff\n"
+        archive = private_tar({"ottplay-profile.json": contents}, uid=os.getuid(), gid=os.getgid())
+        path = self.root / "state.tar"
+        path.write_bytes(archive)
+        rows, _ = update.state_archive(archive)
+        snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+        self.ares.restore(snapshot)
+        self.assertEqual((self.application / "ottplay-profile.json").read_bytes(), contents)
+        self.assertEqual((self.application / "ottplay-profile.json").stat().st_mode & 0o777, 0o600)
 
 
 class JournalRecoveryTests(unittest.TestCase):
