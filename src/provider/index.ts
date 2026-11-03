@@ -2224,7 +2224,11 @@ function _channelsList(catIdx: number, channelIdx: number, view?: any): void {
     }
     selIndex = channelIdx;
     (window as any).selIndex = selIndex;
-    if (!view || view.id === "system:global-favorites")
+    if (
+        !view ||
+        (view.id === "system:global-favorites" &&
+            view.rememberCategory !== false)
+    )
         (window as any).__ottChannels?.rememberCategory?.(
             view ? "system:favorites" : catIdx
         );

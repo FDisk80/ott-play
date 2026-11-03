@@ -572,17 +572,66 @@ function createChannelLibrary(
                     state!.unlocks
                 );
         },
-        browse: function (groupId: string): boolean {
+        browse: function (groupId: string, durable = false): boolean {
             if (
                 !ports.current() ||
                 (groupId !== "system:favorites" &&
                     !groupById(groups(), groupId))
             )
                 return false;
-            if (state!.browsedGroup === groupId) return true;
-            return commit(function (draft) {
+            if (state!.browsedGroup === groupId && !durable) return true;
+            function change(draft: LibraryDocument): void {
                 draft.browsedGroup = groupId;
-            });
+            }
+            if (!durable) return commit(change);
+            var before = state;
+            var prior: string | null = null;
+            var written: string | null = null;
+            function metadata(text: string | null): string | null {
+                if (text === null) return null;
+                var value = JSON.parse(text);
+                if (!value || typeof value !== "object" || Array.isArray(value))
+                    return null;
+                // Local preview shadows only its playback cursor. Category
+                // and all other library metadata must survive a fresh page.
+                delete value.selected;
+                return JSON.stringify(value);
+            }
+            try {
+                prior = ports.get(key);
+                var persisted = ports.getPersisted?.(key);
+                if (
+                    prior === null ||
+                    persisted === undefined ||
+                    metadata(prior) === null ||
+                    metadata(prior) !== metadata(persisted) ||
+                    !ports.current()
+                )
+                    return false;
+                var draft = clone(state!);
+                change(draft);
+                written = JSON.stringify(draft);
+                if (!commit(change)) throw new Error("Category was not saved");
+                if (
+                    metadata(ports.getPersisted!(key)) === metadata(written) &&
+                    ports.current()
+                )
+                    return true;
+            } catch (_) {}
+            // Restore both the live model and a session-memory fallback;
+            // never overwrite a replacement source or a concurrent edit.
+            if (ports.current()) {
+                state = before;
+                try {
+                    if (
+                        prior !== null &&
+                        written !== null &&
+                        ports.get(key) === written
+                    )
+                        ports.set(key, prior);
+                } catch (_) {}
+            }
+            return false;
         },
         browsedGroup: function (): string | null {
             return ports.current() ? state!.browsedGroup || null : null;

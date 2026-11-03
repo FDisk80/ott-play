@@ -702,8 +702,18 @@ const MODERN_INFO_INTERACTION_ALLOWANCE = Object.freeze({
     plex: Object.freeze({ bytes: 291, gzipBytes: 111 }),
     renderer: Object.freeze({ bytes: 769, gzipBytes: 206 }),
 });
+// Installation-wide Favorites category persistence: paired clean 1.1.62
+// builds add 2823 raw / at most 809 gzip entry bytes and 283 / 49 to
+// the optional Favorites family, including rejected-save and unmounted-view
+// guards. Preserve prior source/release headroom and count each part once.
+// Evidence: favorites-category-persistence-size-20261102.json.
+const FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE = Object.freeze({
+    entry: Object.freeze({ bytes: 2848, gzipBytes: 832 }),
+    favorites: Object.freeze({ bytes: 288, gzipBytes: 64 }),
+});
 const BUDGET = Object.freeze({
     bytes:
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.bytes +
         COMPANION_DIAGNOSTICS_ALLOWANCE.entry.bytes +
         MODERN_EXPERIENCE_ALLOWANCE.entry.bytes +
@@ -733,6 +743,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.gzipBytes +
         COMPANION_DIAGNOSTICS_ALLOWANCE.entry.gzipBytes +
         MODERN_EXPERIENCE_ALLOWANCE.entry.gzipBytes +
@@ -941,6 +952,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.plex.bytes +
@@ -982,6 +994,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.plex.gzipBytes +
@@ -1032,6 +1045,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
     }),
     "favorites-transfer": Object.freeze({
         bytes:
+            FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.bytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.favorites.bytes +
             TORZNAB_DISCOVERY_ALLOWANCE.favorites.bytes +
             TORRENT_PROVIDER_ALLOWANCE.favorites.bytes +
@@ -1043,6 +1057,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
             FAVORITES_RECOVERY_OPTIONAL_ALLOWANCE.bytes +
             MIXED_GLOBAL_FAVORITES_OPTIONAL_ALLOWANCE.bytes,
         gzipBytes:
+            FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.gzipBytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.favorites.gzipBytes +
             TORZNAB_DISCOVERY_ALLOWANCE.favorites.gzipBytes +
             TORRENT_PROVIDER_ALLOWANCE.favorites.gzipBytes +
@@ -1153,6 +1168,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.bytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
             (sum, cap) => sum + cap.bytes,
             0
@@ -1226,6 +1243,8 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.gzipBytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
             (sum, cap) => sum + cap.gzipBytes,
             0
@@ -1468,6 +1487,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
             CATEGORY_SELECTION_FAVORITES_ALLOWANCE,
         companionDiagnosticsAllowance: COMPANION_DIAGNOSTICS_ALLOWANCE,
         desktopFavoritesKeyAllowance: DESKTOP_FAVORITES_KEY_ALLOWANCE,
+        favoritesCategoryPersistenceAllowance:
+            FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
         favoritesRecoveryEntryAllowance: FAVORITES_RECOVERY_ENTRY_ALLOWANCE,
         favoritesRecoveryOptionalAllowance:
             FAVORITES_RECOVERY_OPTIONAL_ALLOWANCE,
@@ -1804,6 +1825,8 @@ function writeBuildBundleReport(
             complete: !inputErrors.length,
             desktopFavoritesKeyAllowance: DESKTOP_FAVORITES_KEY_ALLOWANCE,
             diagnostic: true,
+            favoritesCategoryPersistenceAllowance:
+                FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
             favoritesRecoveryEntryAllowance: FAVORITES_RECOVERY_ENTRY_ALLOWANCE,
             favoritesRecoveryOptionalAllowance:
                 FAVORITES_RECOVERY_OPTIONAL_ALLOWANCE,
@@ -1919,6 +1942,7 @@ module.exports = {
     clearBuildSizeReports,
     collectBundleMeasurement,
     DESKTOP_FAVORITES_KEY_ALLOWANCE,
+    FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
     FAVORITES_RECOVERY_ENTRY_ALLOWANCE,
     FAVORITES_RECOVERY_OPTIONAL_ALLOWANCE,
     FAVORITES_TRANSFER_ENTRY_ALLOWANCE,

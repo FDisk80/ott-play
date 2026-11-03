@@ -10,6 +10,21 @@ Temporary playback commands such as `ott t1 local shuffle ~/Videos/` do not
 replace or filter the collection: opening Favorites still shows its entries
 from every configured provider and profile.
 
+Selecting **Category → Favorites** also remembers that view for this player.
+It remains selected when switching providers or profiles, during temporary
+Local playback and after restarting. Explicitly choosing another category ends
+that preference; each source keeps its own ordinary category selection. Returning
+to a source with an older saved Favorites view then opens All rather than
+re-enabling Favorites. An installation without an explicit global choice keeps
+its legacy per-source category behavior.
+
+Opening or refreshing a list temporarily does not change the remembered choice.
+An earlier asynchronous open cannot replace a newer category selection. Both the
+player-wide preference and the source category must persist before a save is
+accepted; a memory-only fallback does not count as a successful save. This
+preference belongs to the receiving player and is not part of a transferred
+Favorites collection.
+
 In the mixed list, **Category** (Blue, or **V** on PC/PC2) and **Play/Pause**
 open the current provider's category picker, even when Favorites is empty.
 Configured category shortcuts retain their usual navigation. **Enter/OK** plays

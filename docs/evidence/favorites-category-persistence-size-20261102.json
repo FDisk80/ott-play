@@ -1,0 +1,238 @@
+{
+  "schema": 1,
+  "feature": "Installation-wide Favorites category persistence",
+  "base": "e7f18d5786f5853e7e32f66644090ab0a82f8713",
+  "candidate": "a727149b1c24360e34da640a1c7c04c568d9f0f9",
+  "candidateTree": "fa641cedd72757d2a120b5251679a1437ea59a0f",
+  "version": "1.1.62",
+  "toolchain": {
+    "node": "26.8.2",
+    "zlib": "1.2.12"
+  },
+  "method": "Paired clean source archives, same dependencies and build command. The candidateTree adds the reviewed storage failure, unmounted catalogue and explicit-selection fixes to candidate. Neither archive embeds a Git revision. Budget-only edits do not alter emitted JavaScript. Existing source identity and release reserves remain.",
+  "allowance": {
+    "entry": {
+      "bytes": 2848,
+      "gzipBytes": 832
+    },
+    "favorites": {
+      "bytes": 288,
+      "gzipBytes": 64
+    }
+  },
+  "previousCaps": {
+    "entry": {
+      "bytes": 1184448,
+      "gzipBytes": 361805
+    },
+    "favorites": {
+      "bytes": 249493,
+      "gzipBytes": 64330
+    },
+    "legacy": {
+      "bytes": 1429319,
+      "gzipBytes": 445983
+    },
+    "total": {
+      "bytes": 1844081,
+      "gzipBytes": 569026
+    }
+  },
+  "measurements": [
+    {
+      "variant": "dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1184177,
+          "gzipBytes": 360456,
+          "path": "dist/player.js",
+          "sha256": "003103200b94c95dd534a6ebfdbff821c7e0d65e8aefb0aba25ac4b381a92e99"
+        },
+        "favorites": {
+          "bytes": 249221,
+          "gzipBytes": 64002,
+          "path": "dist/favorites-transfer.js",
+          "sha256": "8d788cf307e2a14a741809d1a87a52c7627a8a8c40c19445b7c4d58227f9daab"
+        },
+        "legacy": {
+          "bytes": 1428865,
+          "gzipBytes": 444616
+        },
+        "total": {
+          "bytes": 1844004,
+          "gzipBytes": 567211
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1187000,
+          "gzipBytes": 361265,
+          "path": "dist/player.js",
+          "sha256": "2263465493119da05e38ace3f7beed4bc06b059a11a849e2302ae3067a97fddb"
+        },
+        "favorites": {
+          "bytes": 249504,
+          "gzipBytes": 64051,
+          "path": "dist/favorites-transfer.js",
+          "sha256": "ae31d35414962c3094a07942ee634086f6e0961c5398f3c894ec404ae3d9bdc8"
+        },
+        "legacy": {
+          "bytes": 1431688,
+          "gzipBytes": 445425
+        },
+        "total": {
+          "bytes": 1847110,
+          "gzipBytes": 568069
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 2823,
+          "gzipBytes": 809
+        },
+        "favorites": {
+          "bytes": 283,
+          "gzipBytes": 49
+        },
+        "legacy": {
+          "bytes": 2823,
+          "gzipBytes": 809
+        },
+        "total": {
+          "bytes": 3106,
+          "gzipBytes": 858
+        }
+      }
+    },
+    {
+      "variant": "src-tauri/frontend/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1184135,
+          "gzipBytes": 360509,
+          "path": "src-tauri/frontend/dist/player.js",
+          "sha256": "5a056ba65caa9726921631fe650c1a6eb4ef5f0e4a963b2e9d14ce177040e319"
+        },
+        "favorites": {
+          "bytes": 249221,
+          "gzipBytes": 64002,
+          "path": "src-tauri/frontend/dist/favorites-transfer.js",
+          "sha256": "8d788cf307e2a14a741809d1a87a52c7627a8a8c40c19445b7c4d58227f9daab"
+        },
+        "legacy": {
+          "bytes": 1428823,
+          "gzipBytes": 444669
+        },
+        "total": {
+          "bytes": 1843962,
+          "gzipBytes": 567264
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1186958,
+          "gzipBytes": 361315,
+          "path": "src-tauri/frontend/dist/player.js",
+          "sha256": "9e4587cdc301863a703376c4ef09490554d5da055fbebd2c57db1594670fd685"
+        },
+        "favorites": {
+          "bytes": 249504,
+          "gzipBytes": 64051,
+          "path": "src-tauri/frontend/dist/favorites-transfer.js",
+          "sha256": "ae31d35414962c3094a07942ee634086f6e0961c5398f3c894ec404ae3d9bdc8"
+        },
+        "legacy": {
+          "bytes": 1431646,
+          "gzipBytes": 445475
+        },
+        "total": {
+          "bytes": 1847068,
+          "gzipBytes": 568119
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 2823,
+          "gzipBytes": 806
+        },
+        "favorites": {
+          "bytes": 283,
+          "gzipBytes": 49
+        },
+        "legacy": {
+          "bytes": 2823,
+          "gzipBytes": 806
+        },
+        "total": {
+          "bytes": 3106,
+          "gzipBytes": 855
+        }
+      }
+    },
+    {
+      "variant": "dist-mobile/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1184135,
+          "gzipBytes": 360509,
+          "path": "dist-mobile/dist/player.js",
+          "sha256": "5a056ba65caa9726921631fe650c1a6eb4ef5f0e4a963b2e9d14ce177040e319"
+        },
+        "favorites": {
+          "bytes": 249221,
+          "gzipBytes": 64002,
+          "path": "dist-mobile/dist/favorites-transfer.js",
+          "sha256": "8d788cf307e2a14a741809d1a87a52c7627a8a8c40c19445b7c4d58227f9daab"
+        },
+        "legacy": {
+          "bytes": 1428823,
+          "gzipBytes": 444669
+        },
+        "total": {
+          "bytes": 1843962,
+          "gzipBytes": 567264
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1186958,
+          "gzipBytes": 361315,
+          "path": "dist-mobile/dist/player.js",
+          "sha256": "9e4587cdc301863a703376c4ef09490554d5da055fbebd2c57db1594670fd685"
+        },
+        "favorites": {
+          "bytes": 249504,
+          "gzipBytes": 64051,
+          "path": "dist-mobile/dist/favorites-transfer.js",
+          "sha256": "ae31d35414962c3094a07942ee634086f6e0961c5398f3c894ec404ae3d9bdc8"
+        },
+        "legacy": {
+          "bytes": 1431646,
+          "gzipBytes": 445475
+        },
+        "total": {
+          "bytes": 1847068,
+          "gzipBytes": 568119
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 2823,
+          "gzipBytes": 806
+        },
+        "favorites": {
+          "bytes": 283,
+          "gzipBytes": 49
+        },
+        "legacy": {
+          "bytes": 2823,
+          "gzipBytes": 806
+        },
+        "total": {
+          "bytes": 3106,
+          "gzipBytes": 855
+        }
+      }
+    }
+  ]
+}

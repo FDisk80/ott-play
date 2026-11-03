@@ -255,6 +255,10 @@ function globalFavoriteAction(
     if (!captureFavoritesPhysicalStorage()) return false;
     var w = window as any,
         intent = ++globalFavoriteIntent;
+    if (action === "open")
+        payload = {
+            rememberCategory: w.__ottChannels?.captureCategorySelection?.(),
+        };
     var driver = w.__ottActiveProviderDriver,
         load = w.__ottCommandChannelLoad;
     var generation = w.__ottClassicPlayback?.snapshot().generation,

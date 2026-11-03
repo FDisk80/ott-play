@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 let {
+    FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
     COMPANION_DIAGNOSTICS_ALLOWANCE,
     TORRENT_DISCOVERY_ALLOWANCE,
     TORRENT_STREAMS_ALLOWANCE,
@@ -75,6 +76,58 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "ottplay-size-test-"));
 const androidOutput = fs.mkdtempSync(
     path.join(os.tmpdir(), "ottplay-size-android-output-")
 );
+// Preserve the real caps for live over-limit checks. Historical projections
+// exclude only the explicitly named newer features, never unrelated allowances.
+const latestCaps = Object.freeze({
+    BASE_TOTAL_BUDGET,
+    BUDGET,
+    LEGACY_TOTAL_BUDGET,
+    OPTIONAL_BUDGETS,
+    TOTAL_BUDGET,
+});
+function capsWithoutAllowances(names) {
+    assert.equal(new Set(names).size, names.length);
+    const filename = require.resolve("../scripts/classic-size.cjs");
+    let source = fs.readFileSync(filename, "utf8");
+    const parsed = ts.createSourceFile(
+        filename,
+        source,
+        ts.ScriptTarget.Latest,
+        true
+    );
+    const declarations = parsed.statements
+        .filter(ts.isVariableStatement)
+        .flatMap((statement) => [...statement.declarationList.declarations]);
+    const initializers = names.map((name) => {
+        const matches = declarations.filter(
+            (declaration) => declaration.name.getText(parsed) === name
+        );
+        assert.equal(matches.length, 1, name + " has one budget declaration");
+        assert(matches[0].initializer);
+        return matches[0].initializer;
+    });
+    for (const initializer of initializers.sort((a, b) => b.pos - a.pos))
+        source =
+            source.slice(0, initializer.getStart(parsed)) +
+            "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})" +
+            source.slice(initializer.end);
+    const Module = require("node:module");
+    const baseline = new Module(filename, module);
+    baseline.filename = filename;
+    baseline.paths = module.paths;
+    baseline._compile(source, filename);
+    return baseline.exports;
+}
+const favoritesCategoryPersistenceBaseline = capsWithoutAllowances([
+    "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
+]);
+({
+    BASE_TOTAL_BUDGET,
+    BUDGET,
+    LEGACY_TOTAL_BUDGET,
+    OPTIONAL_BUDGETS,
+    TOTAL_BUDGET,
+} = favoritesCategoryPersistenceBaseline);
 const archiveRelativeSeekCaps = {
     BASE_TOTAL_BUDGET,
     BUDGET,
@@ -395,6 +448,108 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const categoryPersistenceEvidence = require("../docs/evidence/favorites-category-persistence-size-20261102.json");
+    assert.deepEqual(
+        FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
+        categoryPersistenceEvidence.allowance
+    );
+    assert(Object.isFrozen(FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE));
+    for (const cap of Object.values(FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE))
+        assert(Object.isFrozen(cap));
+    assert.equal(categoryPersistenceEvidence.measurements.length, 3);
+    assert.equal(
+        new Set(
+            categoryPersistenceEvidence.measurements.map((row) => row.variant)
+        ).size,
+        3
+    );
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const entry = FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry[metric];
+        const favorites =
+            FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites[metric];
+        assert(Number.isInteger(entry) && entry >= 0);
+        assert(Number.isInteger(favorites) && favorites >= 0);
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                latestCaps[name][metric] -
+                    favoritesCategoryPersistenceBaseline[name][metric],
+                entry +
+                    (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
+                        ? favorites
+                        : 0),
+                name + " counts each category persistence component once"
+            );
+        assert.equal(
+            latestCaps.OPTIONAL_BUDGETS["favorites-transfer"][metric] -
+                favoritesCategoryPersistenceBaseline.OPTIONAL_BUDGETS[
+                    "favorites-transfer"
+                ][metric],
+            favorites
+        );
+        for (const name of Object.keys(latestCaps.OPTIONAL_BUDGETS))
+            if (name !== "favorites-transfer")
+                assert.equal(
+                    latestCaps.OPTIONAL_BUDGETS[name][metric],
+                    favoritesCategoryPersistenceBaseline.OPTIONAL_BUDGETS[name][
+                        metric
+                    ]
+                );
+        for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+            assert.equal(
+                require("../scripts/classic-size.cjs")[name][metric],
+                favoritesCategoryPersistenceBaseline[name][metric]
+            );
+        for (const row of categoryPersistenceEvidence.measurements) {
+            const deltas = {};
+            for (const name of ["entry", "favorites", "legacy", "total"]) {
+                assert(
+                    Number.isInteger(row.baseline[name][metric]) &&
+                        row.baseline[name][metric] >= 0
+                );
+                assert(
+                    Number.isInteger(row.candidate[name][metric]) &&
+                        row.candidate[name][metric] >= 0
+                );
+                const delta =
+                    row.candidate[name][metric] - row.baseline[name][metric];
+                deltas[name] = delta;
+                assert.equal(row.delta[name][metric], delta);
+                const allocated =
+                    name === "favorites"
+                        ? favorites
+                        : entry + (name === "total" ? favorites : 0);
+                assert(
+                    delta <= allocated,
+                    row.variant +
+                        " " +
+                        name +
+                        " measured growth fits its allowance"
+                );
+                const previousHeadroom =
+                    categoryPersistenceEvidence.previousCaps[name][metric] -
+                    row.baseline[name][metric];
+                const nextHeadroom =
+                    categoryPersistenceEvidence.previousCaps[name][metric] +
+                    allocated -
+                    row.candidate[name][metric];
+                assert(
+                    previousHeadroom >= 0,
+                    row.variant + " baseline fits its original cap"
+                );
+                assert(
+                    nextHeadroom >= previousHeadroom,
+                    row.variant + " " + name + " preserves previous headroom"
+                );
+            }
+            assert.equal(deltas.legacy, deltas.entry);
+            assert.equal(deltas.total, deltas.entry + deltas.favorites);
+        }
+    }
     const archiveEvidence = require("../docs/evidence/archive-relative-seek-size-20261102.json");
     assert.deepEqual(
         ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
@@ -3697,7 +3852,7 @@ try {
         LEGACY_TOTAL_BUDGET,
         OPTIONAL_BUDGETS,
         TOTAL_BUDGET,
-    } = archiveRelativeSeekCaps);
+    } = latestCaps);
     assert(Object.isFrozen(BASE_TOTAL_BUDGET));
     assert(Object.isFrozen(LOCAL_COMPATIBILITY_ALLOWANCE));
     assert(Object.isFrozen(TOTAL_BUDGET));
@@ -4078,6 +4233,8 @@ try {
     );
     const failed = diagnose();
     for (const [key, allowance] of Object.entries({
+        favoritesCategoryPersistenceAllowance:
+            FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
         mediaCompanionEntryAllowance: MEDIA_COMPANION_ENTRY_ALLOWANCE,
         mediaCompanionOptionalAllowance: MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
         mediaCompanionPreparationAllowance:

@@ -354,9 +354,12 @@ function assertRawUnchanged(f, before) {
 async function main() {
     {
         const target = await seededPlayableFixture();
-        assert.deepEqual(target.categorySaves, [
-            { group: "system:favorites", provider: "m3u" },
-        ]);
+        assert.deepEqual(
+            target.categorySaves,
+            [],
+            "playing a Favorite is not an explicit category selection"
+        );
+        assert(target.host.navigation.active());
         target.categorySaves.length = 0;
         const driver = target.w.__ottActiveProviderDriver;
         target.w.__ottActiveProviderDriver = { id: "plex" };
@@ -376,9 +379,11 @@ async function main() {
         assert.equal((await pending.result).status, "ok");
         assert.deepEqual(
             target.categorySaves,
-            [{ group: "system:favorites", provider: "m3u" }],
-            "completed cross-provider route remembers Favorites only in the target source"
+            [],
+            "completed cross-provider playback preserves the remembered category"
         );
+        assert(target.host.navigation.active());
+        assert.equal(target.host.navigation.currentId(), target.id);
         target.host.dispose();
     }
     for (const outcome of ["failed", "stale"]) {

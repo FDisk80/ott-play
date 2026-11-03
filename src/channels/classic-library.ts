@@ -3,6 +3,8 @@ var channelLibraryInstance: any = null;
 var channelLibraryView: any[] = [];
 var channelLibraryGeneration = 0;
 var channelLibraryBrowseTransient = false;
+var channelLibraryBrowseIntent = 0;
+var channelLibraryFavoritesSelectionKey = "globalFavoritesSelection";
 var channelRemoteCatalog: any = null;
 var channelPreferenceKinds: any = {
     aAspects: "aspect",
@@ -18,11 +20,150 @@ function channelLibraryIndex(id: string): number {
 }
 
 function channelLibraryBrowsingIndex(host: any): number {
+    var preference = channelLibraryFavoritesSelection(host);
     var id = channelLibraryInstance?.browsedGroup?.();
+    if (preference === "1") id = "system:favorites";
+    else if (preference === "0" && id === "system:favorites") id = "system:all";
     var index = id ? channelLibraryIndex(id) : host.catIndex;
     return typeof index === "number" && index >= 0 && channelLibraryView[index]
         ? index
         : channelLibraryIndex("system:all");
+}
+
+function channelLibraryFavoritesSelection(host: any): string | null {
+    try {
+        var get = host.stbGetPersistedItem || host.stbGetItem;
+        return typeof get === "function"
+            ? get.call(host, channelLibraryFavoritesSelectionKey)
+            : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function captureChannelLibraryCategoryOwner(host: any): () => boolean {
+    var library = channelLibraryInstance;
+    var generation = channelLibraryGeneration;
+    var sourcePort = host.__ottSourceIdentity;
+    var sourceCurrent = sourcePort?.current;
+    var source: any;
+    var valid = true;
+    try {
+        if (typeof sourceCurrent === "function")
+            source = sourceCurrent.call(sourcePort, host);
+    } catch (_) {
+        valid = false;
+    }
+    return function (): boolean {
+        try {
+            return !!(
+                valid &&
+                generation === channelLibraryGeneration &&
+                library === channelLibraryInstance &&
+                (!library || library.active()) &&
+                sourcePort === host.__ottSourceIdentity &&
+                sourceCurrent === host.__ottSourceIdentity?.current &&
+                (typeof sourceCurrent !== "function" ||
+                    source === sourceCurrent.call(sourcePort, host))
+            );
+        } catch (_) {
+            return false;
+        }
+    };
+}
+
+function rememberChannelLibraryCategory(host: any, groupId: string): boolean {
+    var intent = ++channelLibraryBrowseIntent;
+    var library = channelLibraryInstance;
+    var owner = captureChannelLibraryCategoryOwner(host);
+    if (
+        !owner() ||
+        (!library && groupId !== "system:favorites" && groupId !== "system:all")
+    )
+        return false;
+    var get = host.stbGetItem;
+    var set = host.stbSetItem;
+    var persisted = host.stbGetPersistedItem;
+    var remove = host.stbDelItem;
+    // Legacy hosts without global storage retain their per-source category.
+    if (typeof get !== "function" || typeof set !== "function")
+        return !!library && library.browse(groupId);
+    var key = channelLibraryFavoritesSelectionKey;
+    var value = groupId === "system:favorites" ? "1" : "0";
+    var prior: string | null;
+    var changed = false;
+    function current(): boolean {
+        return (
+            intent === channelLibraryBrowseIntent &&
+            owner() &&
+            get === host.stbGetItem &&
+            set === host.stbSetItem &&
+            persisted === host.stbGetPersistedItem &&
+            remove === host.stbDelItem
+        );
+    }
+    function rollback(): void {
+        try {
+            if (!changed || !current()) return;
+            if (get.call(host, key) === value) {
+                if (prior === null) remove?.call(host, key);
+                else set.call(host, key, prior);
+            }
+        } catch (_) {}
+        // A failed or memory-only rollback must not look like a restored
+        // category. Re-read both views even if the rollback writer threw.
+        try {
+            if (!current()) return;
+            var live = get.call(host, key);
+            var durable =
+                typeof persisted === "function"
+                    ? persisted.call(host, key)
+                    : live;
+            if (live === prior && durable === prior) return;
+        } catch (_) {}
+        try {
+            if (current())
+                host.showShift?.(
+                    host._("Favorites") + ": " + host._("Unavailable")
+                );
+        } catch (_) {}
+    }
+    try {
+        prior = get.call(host, key);
+        if (
+            !current() ||
+            (typeof persisted === "function" &&
+                persisted.call(host, key) !== prior) ||
+            !current() ||
+            (prior === null && typeof remove !== "function")
+        )
+            return false;
+        if (prior !== value) {
+            changed = true;
+            // This installation-wide key is never provider-prefixed or part
+            // of a temporary Local playback overlay.
+            set.call(host, key, value);
+        }
+        if (
+            !current() ||
+            get.call(host, key) !== value ||
+            (typeof persisted === "function" &&
+                persisted.call(host, key) !== value) ||
+            !current() ||
+            (library &&
+                !library.browse(
+                    groupId,
+                    typeof host.providerGetPersistedItem === "function"
+                ))
+        ) {
+            rollback();
+            return false;
+        }
+        return true;
+    } catch (_) {
+        rollback();
+        return false;
+    }
 }
 
 function showChannelLibraryGroup(
@@ -416,6 +557,32 @@ function channelLibraryChange(action: string, value?: any, extra?: any): any {
             },
         };
     },
+    captureCategoryCurrent: function () {
+        var owner = captureChannelLibraryCategoryOwner(window);
+        var intent = channelLibraryBrowseIntent;
+        return function (): boolean {
+            return owner() && intent === channelLibraryBrowseIntent;
+        };
+    },
+    captureCategorySelection: function () {
+        var owner = captureChannelLibraryCategoryOwner(window);
+        var remember = !channelLibraryBrowseTransient;
+        var intent = remember
+            ? ++channelLibraryBrowseIntent
+            : channelLibraryBrowseIntent;
+        var consumed = false;
+        var selection: any = function (groupId: string): boolean {
+            if (consumed || !selection.current()) return false;
+            consumed = true;
+            if (!remember) return true;
+            intent++;
+            return rememberChannelLibraryCategory(window, groupId);
+        };
+        selection.current = function (): boolean {
+            return owner() && intent === channelLibraryBrowseIntent;
+        };
+        return selection;
+    },
     capturePreference: function (name: string, channelId: number | null) {
         var host = window as any;
         var library = channelLibraryInstance;
@@ -474,16 +641,17 @@ function channelLibraryChange(action: string, value?: any, extra?: any): any {
     },
     rememberCategory: function (category: number | string): boolean {
         if (channelLibraryBrowseTransient) return false;
+        if (
+            !channelLibraryInstance &&
+            (category === "system:favorites" || category === "system:all")
+        )
+            return rememberChannelLibraryCategory(window, category);
         var index =
             typeof category === "string"
                 ? channelLibraryIndex(category)
                 : category;
         var group = channelLibraryView[index];
-        return !!(
-            group &&
-            channelLibraryInstance &&
-            channelLibraryInstance.browse(group.id)
-        );
+        return !!(group && rememberChannelLibraryCategory(window, group.id));
     },
     remoteCatalog: function () {
         return channelRemoteCatalog && channelRemoteCatalog.active()
@@ -501,7 +669,8 @@ function channelLibraryChange(action: string, value?: any, extra?: any): any {
         var library = channelLibraryInstance;
         if (
             !library?.active() ||
-            !library.browsedGroup() ||
+            (!library.browsedGroup() &&
+                channelLibraryFavoritesSelection(host) !== "1") ||
             host.__ottStandby?.blocked() ||
             host.__ottKiosk?.enabled() ||
             typeof host.channelsList !== "function"
