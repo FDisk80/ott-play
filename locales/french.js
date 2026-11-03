@@ -583,6 +583,7 @@ var keyStrings = {
     "Hide providers?": "Masquer les fournisseurs ?",
     "History in Media Library": "Historique dans la médiathèque",
     "History of watched movies": "Historique de visionnage",
+    Home: "Accueil",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "La télécommande HTTP n’est pas disponible sur cet appareil.",

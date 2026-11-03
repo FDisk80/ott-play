@@ -572,6 +572,7 @@ var keyStrings = {
     "Hide providers?": "Folaigh soláthraithe?",
     "History in Media Library": "Stair sa leabharlann meán",
     "History of watched movies": "Stair féachana",
+    Home: "Baile",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Níl cianrialú HTTP ar fáil ar an ngléas seo.",

@@ -565,6 +565,7 @@ var keyStrings = {
     "Hide providers?": "فراہم کنندگان کو چھپائیں؟",
     "History in Media Library": "میڈیا لائبریری میں تاریخ",
     "History of watched movies": "دیکھنے کی سرگزشت",
+    Home: "مرکزی صفحہ",
     "HTTP port": "HTTP پورٹ",
     "HTTP remote control is unavailable on this device.":
         "HTTP ریموٹ کنٹرول اس ڈیوائس پر دستیاب نہیں ہے۔",

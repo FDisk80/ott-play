@@ -561,6 +561,7 @@ var keyStrings = {
     "Hide providers?": "プロバイダーを非表示にしますか？",
     "History in Media Library": "メディアライブラリの履歴",
     "History of watched movies": "視聴履歴",
+    Home: "ホーム",
     "HTTP port": "HTTPポート",
     "HTTP remote control is unavailable on this device.":
         "本機ではHTTPリモコンは使用できません。",

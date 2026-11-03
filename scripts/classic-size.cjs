@@ -624,6 +624,20 @@ const MODERN_PLAYER_OPTIONAL_ALLOWANCE = Object.freeze({
     bytes: 17600,
     gzipBytes: 5100,
 });
+// Native-style Home/Library shell, artwork and guarded selected-item actions,
+// including final focus ownership and finite playback-time presentation fixes.
+// Paired e7f18/current optional builds retain the existing raw/gzip headroom.
+// Entry, provider and legacy-total limits are unchanged; count this once below.
+// Evidence: docs/evidence/modern-native-shell-size-20261102.json.
+const MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE = Object.freeze({
+    bytes: 6607,
+    gzipBytes: 1897,
+});
+// Authenticated poster/backdrop getters stay in the lazy Plex provider.
+// Count its measured delta only in legacy/complete totals, preserving the
+// existing entry, generic per-provider and optional limits.
+// Evidence: docs/evidence/plex-artwork-size-20261102.json.
+const PLEX_ARTWORK_ALLOWANCE = Object.freeze({ bytes: 185, gzipBytes: 77 });
 const MODERN_INTERFACE_RELATED_ALLOWANCES = Object.freeze({
     "favorites-transfer": Object.freeze({ bytes: 64, gzipBytes: 32 }),
     "remote-settings-lifecycle": Object.freeze({ bytes: 700, gzipBytes: 256 }),
@@ -941,6 +955,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        PLEX_ARTWORK_ALLOWANCE.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.plex.bytes +
@@ -982,6 +997,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        PLEX_ARTWORK_ALLOWANCE.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.plex.gzipBytes +
@@ -1078,11 +1094,13 @@ const OPTIONAL_BUDGETS = Object.freeze({
     }),
     "modern-interface": Object.freeze({
         bytes:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.bytes +
             MODERN_INTERFACE_OPTIONAL_ALLOWANCE.bytes +
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.bytes +
             MODERN_EXPERIENCE_ALLOWANCE.renderer.bytes,
         gzipBytes:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.gzipBytes +
             MODERN_INTERFACE_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.gzipBytes +
@@ -1153,6 +1171,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        PLEX_ARTWORK_ALLOWANCE.bytes +
+        MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
             (sum, cap) => sum + cap.bytes,
             0
@@ -1226,6 +1246,8 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        PLEX_ARTWORK_ALLOWANCE.gzipBytes +
+        MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
             (sum, cap) => sum + cap.gzipBytes,
             0
@@ -1494,6 +1516,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
             MIXED_GLOBAL_FAVORITES_PROVIDER_ALLOWANCE,
         modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+        modernNativeShellOptionalAllowance:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
         modernPlayerOptionalAllowance: MODERN_PLAYER_OPTIONAL_ALLOWANCE,
         modules,
         optimizer,
@@ -1501,6 +1525,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         optionalBudgets: OPTIONAL_BUDGETS,
         playerPresenceEntryAllowance: PLAYER_PRESENCE_ENTRY_ALLOWANCE,
         playerPresenceTransportAllowance: PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
+        plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
         plexQueueStepTotalAllowance: PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
         privateModules: Object.fromEntries(
             Object.entries(CLASSIC_PRIVATE_MODULES).filter(([file]) =>
@@ -1829,6 +1854,8 @@ function writeBuildBundleReport(
             mode: label(context.mode || "standard"),
             modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
             modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+            modernNativeShellOptionalAllowance:
+                MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
             optimizerBinding: {
                 outputSha256: optimizer.outputSha256,
                 stagedExpectedSha256: expectedSha256,
@@ -1837,6 +1864,7 @@ function writeBuildBundleReport(
             playerPresenceEntryAllowance: PLAYER_PRESENCE_ENTRY_ALLOWANCE,
             playerPresenceTransportAllowance:
                 PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
+            plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
             plexQueueStepTotalAllowance: PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
             providerBudget: PROVIDER_BUDGET,
             providerBundles: sets,
@@ -1944,12 +1972,14 @@ module.exports = {
     MODERN_INTERFACE_ENTRY_ALLOWANCE,
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
+    MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     measureBundle,
     OPTIONAL_BUDGET,
     OPTIONAL_BUDGETS,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
     PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
+    PLEX_ARTWORK_ALLOWANCE,
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PROVIDER_BUDGET,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,

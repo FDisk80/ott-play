@@ -564,6 +564,7 @@ var keyStrings = {
     "Hide providers?": "Slėpti teikėjus?",
     "History in Media Library": "Istorija medijos bibliotekoje",
     "History of watched movies": "Peržiūrų istorija",
+    Home: "Pradžia",
     "HTTP port": "HTTP prievadas",
     "HTTP remote control is unavailable on this device.":
         "HTTP valdymas šiame įrenginyje nepasiekiamas.",

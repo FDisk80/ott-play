@@ -242,7 +242,13 @@ deadline.unref();
         // Keep real OPFS handles, IndexedDB, and page closure. Only model the
         // external-folder permission policy, as in the built-UI fixture.
         await profileContext.addInitScript(() => {
-            const permission = { queries: 0, requests: 0, state: "granted" };
+            const permission = {
+                queries: 0,
+                queriesRejected: 0,
+                queriesResolved: 0,
+                requests: 0,
+                state: "granted",
+            };
             const nativeQueryPermission =
                 FileSystemHandle.prototype.queryPermission;
             window.__directMediaProfilePermission = permission;
@@ -253,9 +259,16 @@ deadline.unref();
                 const state = permission.state;
                 // Keep the browser's check on restored handles. The fixture
                 // may restrict access, but must not grant it over native denial.
-                return nativeQueryPermission
-                    .call(this, options)
-                    .then((access) => (access === "granted" ? state : access));
+                return nativeQueryPermission.call(this, options).then(
+                    (access) => {
+                        permission.queriesResolved++;
+                        return access === "granted" ? state : access;
+                    },
+                    (error) => {
+                        permission.queriesRejected++;
+                        throw error;
+                    }
+                );
             };
             FileSystemHandle.prototype.requestPermission = function (options) {
                 if (!options || options.mode !== "read")
@@ -379,6 +392,15 @@ deadline.unref();
                                 ),
                                 event,
                                 eventLoopMs,
+                                queries:
+                                    window.__directMediaProfilePermission
+                                        .queries,
+                                queriesRejected:
+                                    window.__directMediaProfilePermission
+                                        .queriesRejected,
+                                queriesResolved:
+                                    window.__directMediaProfilePermission
+                                        .queriesResolved,
                             })
                     );
                 } catch (_) {
@@ -494,10 +516,53 @@ deadline.unref();
             console.log("[direct-media-profile] list-resolved");
             if (rawCatalog.scanning !== false || rawCatalog.cancelled !== false)
                 throw new Error("Profile catalog did not complete");
+            if (rawCatalog.readErrorName || rawCatalog.reconnectRequired) {
+                const permission = window.__directMediaProfilePermission;
+                const phase =
+                    rawCatalog.readErrorPhase === "permission"
+                        ? "permission"
+                        : "source read";
+                const reason =
+                    rawCatalog.readErrorName === "TimeoutError"
+                        ? "timed out"
+                        : "failed";
+                throw new Error(
+                    "Profile catalog " +
+                        phase +
+                        " " +
+                        reason +
+                        "; native permission queries=" +
+                        permission.queries +
+                        ", resolved=" +
+                        permission.queriesResolved +
+                        ", rejected=" +
+                        permission.queriesRejected
+                );
+            }
+            if (
+                !Array.isArray(rawCatalog.sources) ||
+                !rawCatalog.sources.length ||
+                rawCatalog.sources.some(
+                    (source) => source.access !== "granted" || !source.available
+                )
+            )
+                throw new Error(
+                    "Profile catalog did not restore readable sources"
+                );
             const catalog = profiles.filter(rawCatalog);
             const item = catalog.items.find(
                 (item) => "local-" + item.id === profiles.selection()
             );
+            if (!item)
+                throw new Error(
+                    "Profile catalog completed without the selected file"
+                );
+            if (
+                item.available === false ||
+                typeof item.url !== "string" ||
+                !item.url
+            )
+                throw new Error("Profile selected file has no readable URL");
             console.log("[direct-media-profile] blob fetch");
             const response = await fetch(item.url);
             console.log("[direct-media-profile] blob body");
@@ -521,6 +586,11 @@ deadline.unref();
         assert(
             restoredProfile.permission.queries > 0,
             "reopened profile reads permission through the modeled policy"
+        );
+        assert.equal(restoredProfile.permission.queriesRejected, 0);
+        assert.equal(
+            restoredProfile.permission.queriesResolved,
+            restoredProfile.permission.queries
         );
         assert.equal(restoredProfile.permission.requests, 0);
         assert.equal(restoredProfile.permission.state, "granted");

@@ -571,6 +571,7 @@ var keyStrings = {
     "Hide providers?": "Hornitzaileak ezkutatu?",
     "History in Media Library": "Multimedia-liburutegiko historia",
     "History of watched movies": "Ikuste-historia",
+    Home: "Hasiera",
     "HTTP port": "HTTP ataka",
     "HTTP remote control is unavailable on this device.":
         "HTTP urruneko kontrola ez dago erabilgarri gailu honetan.",

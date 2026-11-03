@@ -556,6 +556,7 @@ var keyStrings = {
     "Hide providers?": "Ẩn nhà cung cấp?",
     "History in Media Library": "Lịch sử trong thư viện đa phương tiện",
     "History of watched movies": "Lịch sử xem",
+    Home: "Trang chủ",
     "HTTP port": "Cổng HTTP",
     "HTTP remote control is unavailable on this device.":
         "Điều khiển từ xa HTTP không khả dụng trên thiết bị này.",

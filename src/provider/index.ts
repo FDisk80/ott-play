@@ -97,11 +97,11 @@ export var providerIds = [
     "xtream",
     "plex",
     "vportal",
-    "",
     "demo",
     "offline",
     "torrent",
     // OTTPLAY_FULL_ONLY_BEGIN
+    "",
     "ottclub",
     "edem",
     "shura",
@@ -1610,7 +1610,6 @@ export function showProviderSelection(): void {
             "xtream",
             "plex",
             "vportal",
-            "",
             "demo",
             "offline",
             "torrent",
@@ -1628,11 +1627,11 @@ export function showProviderSelection(): void {
             (sNoColorKeys ? "" : '<div class="btn blue">&nbsp;</div>&nbsp;') +
                 "Plex",
             "VPortal",
-            "",
             _("Demo — moving test pattern"),
             _("Local videos"),
             "Torrent",
             // OTTPLAY_FULL_ONLY_BEGIN
+            "",
             "OTTCLUB",
             "Эдем / iLookTV",
             "Шура ТВ",
@@ -1758,7 +1757,7 @@ export function showProviderSelection(): void {
         )
             return;
         stbSetItem("ottplayprov", id);
-        if (providerIds.indexOf(id) > recentCount) {
+        if (providerIds.indexOf(id) >= recentStart) {
             var recent = recentProviders.slice();
             var idx = recent.indexOf(id);
             if (idx !== -1) recent.splice(idx, 1);
@@ -1772,14 +1771,14 @@ export function showProviderSelection(): void {
         );
     }
 
-    var recentCount = providerIds.indexOf("");
+    // Recent services begin after the separator; a protocol-only list has none.
+    var recentStart = providerIds.indexOf("") + 1 || providerIds.length + 1;
     var savedProvId = stbGetItem("ottplayprov") || "no";
     var recentProviders: string[] = [];
     try {
         recentProviders = JSON.parse(stbGetItem("ottplayprovs") || "[]");
     } catch (e) {
         console.error(e);
-        recentProviders = [];
     }
     if (isPlayDistribution()) {
         if (!Array.isArray(recentProviders)) recentProviders = [];
@@ -1794,12 +1793,12 @@ export function showProviderSelection(): void {
         if (!cbkey && prov === "cbilling") return;
         // OTTPLAY_FULL_ONLY_END
         var idx = providerIds.indexOf(prov);
-        if (idx <= recentCount) return;
+        if (idx < recentStart) return;
         providerIds.splice(idx, 1);
-        providerIds.splice(recentCount + 1, 0, prov);
+        providerIds.splice(recentStart, 0, prov);
         var name = providerLabels![idx];
         providerLabels!.splice(idx, 1);
-        providerLabels!.splice(recentCount + 1, 0, name);
+        providerLabels!.splice(recentStart, 0, name);
     });
 
     selIndex = providerIds.indexOf(savedProvId);
@@ -1809,9 +1808,11 @@ export function showProviderSelection(): void {
     getListItemFn = function (item: string, idx: number) {
         return (
             "&nbsp;&nbsp;" +
-            (sNoNumbersKeys || idx < recentCount + 1 || idx > 9 + recentCount
+            (sNoNumbersKeys || idx < recentStart || idx - recentStart > 8
                 ? ""
-                : '<div class="btn">' + (idx - recentCount) + "</div>&nbsp;") +
+                : '<div class="btn">' +
+                  (idx - recentStart + 1) +
+                  "</div>&nbsp;") +
             item
         );
     };
@@ -1873,7 +1874,7 @@ export function showProviderSelection(): void {
             case keys.N7:
             case keys.N8:
             case keys.N9:
-                selectProv(providerIds[key - 49 + recentCount + 1]);
+                selectProv(providerIds[key - 49 + recentStart]);
                 return true;
             case keys.RED:
                 selectProv("m3u");

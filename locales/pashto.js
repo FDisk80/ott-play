@@ -559,6 +559,7 @@ var keyStrings = {
     "Hide providers?": "برابرونکي پټ کړئ؟",
     "History in Media Library": "د رسنیو په کتابتون کې تاریخ",
     "History of watched movies": "د کتلو تاریخ",
+    Home: "کورپاڼه",
     "HTTP port": "HTTP پورټ",
     "HTTP remote control is unavailable on this device.":
         "HTTP ریموټ کنټرول په دې وسیله شتون نلري.",

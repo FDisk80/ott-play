@@ -547,6 +547,7 @@ var keyStrings = {
     "Hide providers?": "លាក់អ្នកផ្តល់សេវា?",
     "History in Media Library": "ប្រវត្តិនៅក្នុងបណ្ណាល័យប្រព័ន្ធផ្សព្វផ្សាយ",
     "History of watched movies": "ប្រវត្តិមើល\nច្រក",
+    Home: "ទំព័រដើម",
     "HTTP port": "HTTP",
     "HTTP remote control is unavailable on this device.":
         "ការបញ្ជាពីចម្ងាយ HTTP មិនមាននៅលើឧបករណ៍នេះទេ។",

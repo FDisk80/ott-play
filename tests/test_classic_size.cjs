@@ -15,6 +15,7 @@ let {
     MODERN_INTERFACE_ENTRY_ALLOWANCE,
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
+    MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     MEDIA_COMPANION_ENTRY_ALLOWANCE,
     MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
@@ -36,6 +37,7 @@ let {
     SHAKA_TRACKS_ENTRY_ALLOWANCE,
     ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,
+    PLEX_ARTWORK_ALLOWANCE,
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
     PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
@@ -75,7 +77,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "ottplay-size-test-"));
 const androidOutput = fs.mkdtempSync(
     path.join(os.tmpdir(), "ottplay-size-android-output-")
 );
-const archiveRelativeSeekCaps = {
+const plexArtworkCaps = {
     BASE_TOTAL_BUDGET,
     BUDGET,
     LEGACY_TOTAL_BUDGET,
@@ -105,6 +107,34 @@ const subtract = (budget, delta) =>
             ])
         )
     );
+const modernNativeShellCaps = Object.fromEntries(
+    Object.entries(plexArtworkCaps).map(([name, budget]) => [
+        name,
+        ["LEGACY_TOTAL_BUDGET", "BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(
+            name
+        )
+            ? subtract(budget, PLEX_ARTWORK_ALLOWANCE)
+            : budget,
+    ])
+);
+// The newer optional shell changes only its asset and the complete payload.
+// Remove that measured increment before replaying immutable older receipts.
+const archiveRelativeSeekCaps = Object.fromEntries(
+    Object.entries(modernNativeShellCaps).map(([name, budget]) => [
+        name,
+        name === "OPTIONAL_BUDGETS"
+            ? Object.freeze({
+                  ...budget,
+                  "modern-interface": subtract(
+                      budget["modern-interface"],
+                      MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE
+                  ),
+              })
+            : name === "BASE_TOTAL_BUDGET" || name === "TOTAL_BUDGET"
+              ? subtract(budget, MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE)
+              : budget,
+    ])
+);
 // Replay historical receipts without charging this newer archive feature twice.
 const modernInfoInteractionCaps = Object.fromEntries(
     Object.entries(archiveRelativeSeekCaps).map(([name, budget]) => [
@@ -395,6 +425,114 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const shellEvidence = require("../docs/evidence/modern-native-shell-size-20261102.json");
+    const artworkEvidence = require("../docs/evidence/plex-artwork-size-20261102.json");
+    assert.deepEqual(PLEX_ARTWORK_ALLOWANCE, artworkEvidence.allowance);
+    assert(Object.isFrozen(PLEX_ARTWORK_ALLOWANCE));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert.equal(
+            PLEX_ARTWORK_ALLOWANCE[metric],
+            artworkEvidence.candidate.output[metric] -
+                artworkEvidence.baseline.output[metric]
+        );
+        for (const name of [
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                plexArtworkCaps[name][metric] -
+                    modernNativeShellCaps[name][metric],
+                PLEX_ARTWORK_ALLOWANCE[metric]
+            );
+    }
+    for (const [stage, caps] of Object.entries({
+        after: plexArtworkCaps,
+        before: modernNativeShellCaps,
+    }))
+        assert.deepEqual(artworkEvidence.budgets[stage], {
+            // Replay the immutable Plex receipt before later Modern fixes.
+            baseTotal: subtract(
+                caps.BASE_TOTAL_BUDGET,
+                shellEvidence.finalization.delta
+            ),
+            legacy: caps.LEGACY_TOTAL_BUDGET,
+            total: subtract(
+                caps.TOTAL_BUDGET,
+                shellEvidence.finalization.delta
+            ),
+        });
+    assert.deepEqual(artworkEvidence.protectedCaps, {
+        entry: BUDGET,
+        provider: PROVIDER_BUDGET,
+    });
+    assert.strictEqual(plexArtworkCaps.BUDGET, modernNativeShellCaps.BUDGET);
+    assert.strictEqual(
+        plexArtworkCaps.OPTIONAL_BUDGETS,
+        modernNativeShellCaps.OPTIONAL_BUDGETS
+    );
+    assert.deepEqual(
+        MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+        shellEvidence.allowance
+    );
+    assert(Object.isFrozen(MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert.equal(
+            shellEvidence.finalization.delta[metric],
+            shellEvidence.candidate.output[metric] -
+                shellEvidence.previousCandidate.output[metric]
+        );
+        assert.equal(
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE[metric],
+            shellEvidence.previousCandidate.allowance[metric] +
+                shellEvidence.finalization.delta[metric],
+            "finalization adds only the measured optional cost"
+        );
+        assert.equal(
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE[metric],
+            shellEvidence.candidate.output[metric] -
+                shellEvidence.baseline.output[metric]
+        );
+        for (const name of ["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"])
+            assert.equal(
+                modernNativeShellCaps[name][metric] -
+                    archiveRelativeSeekCaps[name][metric],
+                MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE[metric]
+            );
+        assert.equal(
+            modernNativeShellCaps.OPTIONAL_BUDGETS["modern-interface"][metric] -
+                shellEvidence.candidate.output[metric],
+            archiveRelativeSeekCaps.OPTIONAL_BUDGETS["modern-interface"][
+                metric
+            ] - shellEvidence.baseline.output[metric],
+            "the optional feature preserves its previous measured headroom"
+        );
+    }
+    for (const [stage, caps] of Object.entries({
+        after: modernNativeShellCaps,
+        before: archiveRelativeSeekCaps,
+    }))
+        assert.deepEqual(shellEvidence.budgets[stage], {
+            baseTotal: caps.BASE_TOTAL_BUDGET,
+            modern: caps.OPTIONAL_BUDGETS["modern-interface"],
+            total: caps.TOTAL_BUDGET,
+        });
+    assert.deepEqual(shellEvidence.protectedCaps, {
+        entry: modernNativeShellCaps.BUDGET,
+        legacy: modernNativeShellCaps.LEGACY_TOTAL_BUDGET,
+        provider: PROVIDER_BUDGET,
+    });
+    for (const name of ["BUDGET", "LEGACY_TOTAL_BUDGET"])
+        assert.strictEqual(
+            modernNativeShellCaps[name],
+            archiveRelativeSeekCaps[name]
+        );
+    for (const name of Object.keys(OPTIONAL_BUDGETS))
+        if (name !== "modern-interface")
+            assert.strictEqual(
+                modernNativeShellCaps.OPTIONAL_BUDGETS[name],
+                archiveRelativeSeekCaps.OPTIONAL_BUDGETS[name]
+            );
     const archiveEvidence = require("../docs/evidence/archive-relative-seek-size-20261102.json");
     assert.deepEqual(
         ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
@@ -3697,7 +3835,7 @@ try {
         LEGACY_TOTAL_BUDGET,
         OPTIONAL_BUDGETS,
         TOTAL_BUDGET,
-    } = archiveRelativeSeekCaps);
+    } = plexArtworkCaps);
     assert(Object.isFrozen(BASE_TOTAL_BUDGET));
     assert(Object.isFrozen(LOCAL_COMPATIBILITY_ALLOWANCE));
     assert(Object.isFrozen(TOTAL_BUDGET));
@@ -4085,6 +4223,9 @@ try {
         mediaCompanionSettingsAllowance: MEDIA_COMPANION_SETTINGS_ALLOWANCE,
         mediaCompanionTransportAllowance: MEDIA_COMPANION_TRANSPORT_ALLOWANCE,
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+        modernNativeShellOptionalAllowance:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+        plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
     })) {
         assert.deepEqual(strictReport[key], allowance);
         assert.deepEqual(failed[key], strictReport[key]);

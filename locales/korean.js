@@ -555,6 +555,7 @@ var keyStrings = {
     "Hide providers?": "공급자를 숨기시겠습니까?",
     "History in Media Library": "미디어 라이브러리 내역",
     "History of watched movies": "시청 기록",
+    Home: "홈",
     "HTTP port": "HTTP 포트",
     "HTTP remote control is unavailable on this device.":
         "이 장치에서는 HTTP 원격 제어를 사용할 수 없습니다.",

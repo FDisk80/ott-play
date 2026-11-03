@@ -545,6 +545,7 @@ var keyStrings = {
     "Hide providers?": "إخفاء المزودين؟",
     "History in Media Library": "التاريخ في مكتبة الوسائط",
     "History of watched movies": "مشاهدة التاريخ",
+    Home: "الرئيسية",
     "HTTP port": "منفذ HTTP",
     "HTTP remote control is unavailable on this device.":
         "جهاز التحكم عن بعد HTTP غير متوفر على هذا الجهاز.",

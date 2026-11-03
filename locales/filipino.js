@@ -575,6 +575,7 @@ var keyStrings = {
     "Hide providers?": "Itago ang mga provider?",
     "History in Media Library": "Kasaysayan sa library ng media",
     "History of watched movies": "Kasaysayan ng panonood",
+    Home: "Simula",
     "HTTP port": "HTTP port",
     "HTTP remote control is unavailable on this device.":
         "HTTP remote control ay hindi magagamit sa device na ito.",

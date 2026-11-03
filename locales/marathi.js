@@ -548,6 +548,7 @@ var keyStrings = {
     "Hide providers?": "प्रदाते लपवायचे?",
     "History in Media Library": "मीडिया लायब्ररीमधील इतिहास",
     "History of watched movies": "पाहण्याचा इतिहास",
+    Home: "मुख्यपृष्ठ",
     "HTTP port": "HTTP पोर्ट",
     "HTTP remote control is unavailable on this device.":
         "HTTP रिमोट कंट्रोल या डिव्हाइसवर अनुपलब्ध आहे.",

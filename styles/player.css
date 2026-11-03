@@ -1417,16 +1417,16 @@ body {
 /* Modern owns presentation geometry; the shared screen port still owns every
    selection, action, source and decoder. All overrides leave Classic intact. */
 body.interface-modern {
-    --modern-rail-width: 15vw;
-    --modern-gutter: 2.5vw;
-    --modern-header-height: 11vh;
-    --modern-footer-height: 10vh;
-    --modern-hero-height: 28vh;
-    --modern-surface: #111318;
-    --modern-panel: #1c1f26;
-    --modern-text: #f5f5f7;
-    --modern-muted: #b5b8c3;
-    --modern-accent: #e9ad36;
+    --modern-rail-width: 0px;
+    --modern-gutter: 5vw;
+    --modern-header-height: 21vh;
+    --modern-footer-height: 7vh;
+    --modern-hero-height: 27vh;
+    --modern-surface: #22282a;
+    --modern-panel: #303638;
+    --modern-text: #f5f6f6;
+    --modern-muted: #b9bec1;
+    --modern-accent: #eab52d;
 }
 body.interface-modern #list {
     inset: 0 !important;
@@ -1437,39 +1437,39 @@ body.interface-modern #list {
     background: var(--modern-surface) !important;
 }
 body.interface-modern #listCaption {
-    top: 0 !important;
-    right: 12vw !important;
-    left: calc(var(--modern-rail-width) + var(--modern-gutter)) !important;
+    top: 14vh !important;
+    right: var(--modern-gutter) !important;
+    left: var(--modern-gutter) !important;
     display: block;
-    height: var(--modern-header-height) !important;
+    height: 6vh !important;
     padding: 0 !important;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 1.15em !important;
-    font-weight: 600;
-    line-height: var(--modern-header-height) !important;
+    font-size: 0.85em !important;
+    font-weight: 500;
+    line-height: 6vh !important;
     color: var(--modern-text) !important;
-    letter-spacing: -0.015em;
     white-space: nowrap;
     text-shadow: none;
     background: transparent !important;
     border: 0 !important;
-    border-radius: 0;
 }
 body.interface-modern #listTime {
-    top: 0 !important;
+    top: 4vh !important;
     right: var(--modern-gutter) !important;
     z-index: 8;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     width: 10vw !important;
-    height: var(--modern-header-height) !important;
+    height: 7vh !important;
     padding: 0 !important;
-    font-size: 0.85em !important;
+    font-size: 0.72em !important;
     font-weight: 400;
     color: var(--modern-muted) !important;
     text-shadow: none;
+    background: transparent !important;
+    box-shadow: none;
 }
 body.interface-modern #listPodval {
     right: var(--modern-gutter) !important;
@@ -1479,18 +1479,19 @@ body.interface-modern #listPodval {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3em 1em;
-    align-content: flex-start;
+    align-content: center;
     align-items: center;
+    justify-content: center;
     height: var(--modern-footer-height) !important;
     padding: 0.4em 0 !important;
     overflow: auto;
-    font-size: 0.78em !important;
+    font-size: 0.72em !important;
     line-height: 1.5 !important;
     color: var(--modern-muted) !important;
     text-shadow: none;
-    background: var(--modern-surface) !important;
+    background: transparent !important;
     border: 0 !important;
-    border-top: 1px solid #30333d !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 0;
 }
 body.interface-modern #listPodval > span {
@@ -1508,54 +1509,61 @@ body.interface-modern #modernShell {
 }
 body.interface-modern #modernRail {
     position: absolute;
-    inset: 0 auto 0 0;
+    top: 4vh;
+    left: 50%;
+    z-index: 8;
     box-sizing: border-box;
-    width: var(--modern-rail-width);
-    padding: 2.5vh 0.85vw;
-    overflow: auto;
+    max-width: 66vw;
+    min-height: 48px;
+    padding: 0.22em;
+    overflow: auto hidden;
     pointer-events: auto;
-    background: #191b21;
-    border-right: 1px solid #2c2f38;
-}
-body.interface-modern .modern-brand {
-    display: flex;
-    align-items: center;
-    min-height: 7vh;
-    padding: 0 0.7em;
-    margin-bottom: 2vh;
-    font-size: 0.95em;
-    font-weight: 700;
-    color: var(--modern-text);
-    letter-spacing: -0.025em;
+    background: rgba(22, 27, 29, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.13),
+        0 5px 20px rgba(0, 0, 0, 0.18);
+    transform: translateX(-50%);
 }
 body.interface-modern .modern-rail-actions {
     display: flex;
-    flex-direction: column;
-    gap: 0.5vh;
+    flex-direction: row;
+    gap: 0.15em;
+    align-items: center;
 }
 body.interface-modern .modern-rail-action {
     box-sizing: border-box;
-    display: flex;
-    gap: 0.65em;
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 0.45em;
     align-items: center;
-    width: 100%;
-    min-height: 6.2vh;
-    padding: 0.75em 0.7em;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.6em 0.9em;
     overflow: hidden;
     font: inherit;
-    font-size: 0.72em;
-    line-height: 1.3;
+    font-size: 0.8em;
+    line-height: 1.2;
     color: var(--modern-muted);
-    text-align: left;
+    text-align: center;
+    white-space: nowrap;
     cursor: pointer;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 9px;
+    border-radius: 999px;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease;
 }
 body.interface-modern .modern-rail-icon {
+    display: inline-flex;
     flex: 0 0 1.1em;
-    font-size: 1.5em;
-    text-align: center;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
 }
 body.interface-modern .modern-rail-label {
     overflow: hidden;
@@ -1581,7 +1589,7 @@ body.interface-modern #modernHero {
     position: absolute;
     top: var(--modern-header-height);
     right: var(--modern-gutter);
-    left: calc(var(--modern-rail-width) + var(--modern-gutter));
+    left: var(--modern-gutter);
     box-sizing: border-box;
     display: flex;
     gap: 2vw;
@@ -1594,11 +1602,14 @@ body.interface-modern #modernHero[hidden] {
 }
 body.interface-modern .modern-hero-art {
     flex: 0 0 auto;
-    width: 15vh;
-    height: 100%;
+    align-self: center;
+    width: 38vh;
+    max-width: 42vw;
+    height: 21.375vh;
     overflow: hidden;
-    background: linear-gradient(145deg, #3b414e, #1c222c);
+    background: linear-gradient(145deg, #3b4448, #232a2d);
     border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
 }
 body.interface-modern .modern-hero-art img {
     display: block;
@@ -1663,16 +1674,17 @@ body.interface-modern .modern-hero-summary {
 }
 body.interface-modern #modernLibraryHeading {
     position: absolute;
-    top: calc(var(--modern-header-height) + var(--modern-hero-height));
+    top: 14vh;
     right: var(--modern-gutter);
-    left: calc(var(--modern-rail-width) + var(--modern-gutter));
+    left: var(--modern-gutter);
+    z-index: 3;
     display: flex;
     gap: 1em;
     align-items: center;
     justify-content: space-between;
-    height: 5vh;
+    height: 6vh;
     overflow: hidden;
-    font-size: 0.65em;
+    font-size: 0.78em;
     color: var(--modern-muted);
 }
 body.interface-modern .modern-library-title {
@@ -1688,25 +1700,21 @@ body.interface-modern #listIn {
     top: var(--modern-header-height) !important;
     right: var(--modern-gutter) !important;
     bottom: calc(var(--modern-footer-height) + 1vh) !important;
-    left: calc(var(--modern-rail-width) + var(--modern-gutter)) !important;
+    left: var(--modern-gutter) !important;
     box-sizing: border-box;
     width: auto !important;
     height: auto !important;
     padding: 0 !important;
 }
 body.interface-modern .modern-screen-catalog #listIn {
-    top: calc(
-        var(--modern-header-height) +
-        var(--modern-hero-height) +
-        5vh
-    ) !important;
+    top: var(--modern-header-height) !important;
 }
 body.interface-modern .modern-screen-menu #modernHero,
 body.interface-modern .modern-screen-menu #modernLibraryHeading {
     display: none;
 }
 body.interface-modern .modern-screen-menu #listIn {
-    right: 29vw !important;
+    right: 34vw !important;
 }
 body.interface-modern #listDetail {
     top: var(--modern-header-height) !important;
@@ -1797,6 +1805,63 @@ body.interface-modern .modern-art img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center center;
+}
+body.interface-modern .modern-card .modern-art {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+body.interface-modern .modern-view-library .modern-card .modern-art {
+    flex: 0 0 auto;
+    height: 0;
+    padding-top: 150%;
+}
+body.interface-modern .modern-card .modern-art img {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+body.interface-modern .modern-card .modern-art::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    height: 48%;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(
+        180deg,
+        rgba(8, 10, 14, 0) 0%,
+        rgba(8, 10, 14, 0.42) 100%
+    );
+}
+body.interface-modern
+    #listIn
+    .modern-card.ott-selected:not(.ott-playing)
+    .modern-art::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5em;
+    height: 2.5em;
+    font-size: 0.82em;
+    color: #15171d;
+    pointer-events: none;
+    content: "\25B6";
+    background: #f5f5f7;
+    border-radius: 50%;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+    transform: translate(-50%, -50%);
 }
 body.interface-modern .modern-art-fallback {
     position: absolute;
@@ -1816,28 +1881,28 @@ body.interface-modern .modern-copy {
     display: block;
     flex: 0 0 auto;
     min-width: 0;
-    padding: 0.45em 0.6em 0.55em;
+    padding: 0.4em 0.5em;
     overflow: hidden;
 }
 body.interface-modern .modern-title {
     display: block;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    max-height: 2.5em;
+    max-height: 1.35em;
     overflow: hidden;
     text-overflow: ellipsis;
-    -webkit-line-clamp: 2;
-    font-size: 1em;
-    font-weight: bold;
-    line-height: 1.25;
+    -webkit-line-clamp: 1;
+    font-size: 0.95em;
+    font-weight: 600;
+    line-height: 1.3;
     white-space: normal;
 }
 body.interface-modern .modern-meta {
     display: block;
-    margin-top: 0.2em;
+    margin-top: 0.16em;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.8em;
+    font-size: 0.74em;
     line-height: 1.3;
     color: #abbab3;
     white-space: nowrap;
@@ -1863,6 +1928,7 @@ body.interface-modern .modern-card .modern-number {
     top: 0.55em;
     left: 0.55em;
     z-index: 2;
+    display: none;
     padding: 0.2em 0.45em;
     color: #f0f3f1;
     background: rgba(9, 15, 18, 0.88);
@@ -1870,9 +1936,12 @@ body.interface-modern .modern-card .modern-number {
     border-radius: 7px;
 }
 body.interface-modern #listIn .modern-card.ott-selected {
-    background-color: #25372f !important;
-    border-color: #e7f1eb;
-    box-shadow: inset 0 0 0 2px #e7f1eb;
+    z-index: 2;
+    background-color: #303739 !important;
+    border-color: #f5f6f6;
+    box-shadow:
+        0 0 0 2px rgba(245, 246, 246, 0.9),
+        0 12px 24px rgba(0, 0, 0, 0.35);
 }
 body.interface-modern #listIn .modern-card.ott-selected,
 body.interface-modern #listIn .modern-card.ott-selected * {
@@ -1944,17 +2013,23 @@ body.interface-modern .ott-selected .modern-progress > span {
 }
 body.interface-modern #listIn .modern-card.ott-playing::after {
     position: absolute;
-    top: auto;
+    top: 0.55em;
     right: 0.55em;
-    bottom: 0.55em;
+    bottom: auto;
     left: auto;
-    z-index: 2;
-    width: 0.42em;
-    height: 0.42em;
-    content: "";
-    background: #8bddb8;
-    border: 2px solid #14271e;
-    border-radius: 50%;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8em;
+    height: 1.8em;
+    font-size: 0.64em;
+    color: #15171d;
+    content: "\25B6";
+    background: var(--modern-accent);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 body.interface-modern #listIn .modern-channel.ott-playing::after {
     position: absolute;
@@ -2185,91 +2260,246 @@ body.interface-modern #numprog [aria-pressed="true"] {
     color: var(--modern-surface) !important;
     background: var(--modern-text) !important;
 }
-@media (max-width: 800px) {
+/* Native-style catalogue shell, shared by every provider. */
+body.interface-modern .modern-screen-catalog #listCaption {
+    display: none;
+}
+body.interface-modern .modern-account-actions {
+    position: absolute;
+    top: 4vh;
+    left: var(--modern-gutter);
+    z-index: 9;
+    display: flex;
+    gap: 0.35em;
+    pointer-events: auto;
+}
+body.interface-modern .modern-account-actions .modern-rail-action {
+    width: 2.8em;
+    height: 2.8em;
+    padding: 0.55em;
+    background: rgba(25, 30, 32, 0.9);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.12);
+}
+body.interface-modern .modern-account-actions .modern-rail-label {
+    display: none;
+}
+body.interface-modern .modern-rail-icon svg {
+    width: 1.3em;
+    height: 1.3em;
+}
+body.interface-modern .modern-library-actions,
+body.interface-modern .modern-hero-actions {
+    display: flex;
+    gap: 0.5em;
+    align-items: center;
+    pointer-events: auto;
+}
+body.interface-modern .modern-library-actions .modern-rail-action {
+    padding: 0.4em 0.8em;
+    font-size: 1em;
+}
+body.interface-modern .modern-rail-action.modern-rail-selected,
+body.interface-modern .modern-rail-action:focus,
+body.interface-modern .modern-hero-action:focus {
+    color: #192022;
+    outline: 0;
+    background: #f5f6f6;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+body.interface-modern .modern-hero-action {
+    box-sizing: border-box;
+    display: inline-flex;
+    gap: 0.5em;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.65em 1.15em;
+    font: inherit;
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--modern-text);
+    white-space: nowrap;
+    cursor: pointer;
+    background: rgba(30, 35, 38, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+}
+body.interface-modern .modern-hero-action > svg {
+    display: block;
+    flex-shrink: 0;
+    width: 1.2em;
+    height: 1.2em;
+}
+body.interface-modern .modern-hero-action:first-child {
+    color: #111719;
+    background: #f5f6f6;
+}
+body.interface-modern .modern-view-home #modernHero {
+    inset: 0 0 30vh;
+    height: auto;
+    padding: 0;
+}
+body.interface-modern .modern-view-home .modern-hero-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+}
+body.interface-modern .modern-view-home #modernHero::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    content: "";
+    background:
+        linear-gradient(
+            90deg,
+            rgba(15, 20, 22, 0.94),
+            rgba(15, 20, 22, 0.24) 80%
+        ),
+        linear-gradient(0deg, var(--modern-surface), rgba(34, 40, 42, 0) 60%);
+}
+body.interface-modern .modern-view-home .modern-hero-copy {
+    position: absolute;
+    bottom: 8vh;
+    left: var(--modern-gutter);
+    z-index: 2;
+    width: 52%;
+    height: auto;
+    max-height: 44vh;
+}
+body.interface-modern .modern-view-home .modern-hero-title {
+    font-size: 2em;
+    font-weight: 600;
+    line-height: 1.1;
+}
+body.interface-modern .modern-view-home .modern-hero-summary {
+    flex: 0 1 auto;
+    margin-bottom: 0.85em;
+    font-size: 0.8em;
+}
+body.interface-modern .modern-view-home #listIn {
+    top: 69vh !important;
+}
+body.interface-modern .modern-view-home #modernLibraryHeading {
+    top: 63vh;
+}
+body.interface-modern .modern-view-library.modern-screen-grid #modernHero {
+    display: none;
+}
+body.interface-modern .modern-screen-live #listIn {
+    top: 49vh !important;
+}
+body.interface-modern .modern-screen-live #modernHero {
+    top: 21vh;
+}
+body.interface-modern .modern-screen-menu #listDetail {
+    width: 27vw !important;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+body.interface-modern .modern-hero-actions:empty,
+body.interface-modern .modern-library-actions:empty {
+    display: none;
+}
+@media (max-width: 1100px) {
     body.interface-modern {
-        --modern-rail-width: 70px;
-        --modern-gutter: 18px;
+        --modern-gutter: 3vw;
     }
-    body.interface-modern .modern-brand,
-    body.interface-modern .modern-rail-label {
+    body.interface-modern #listTime {
         display: none;
     }
+    body.interface-modern #modernRail {
+        right: var(--modern-gutter);
+        left: auto;
+        max-width: 72vw;
+        transform: none;
+    }
     body.interface-modern .modern-rail-action {
-        justify-content: center;
-        min-height: 48px;
+        padding: 0.55em 0.65em;
     }
-    body.interface-modern .modern-rail-icon {
-        font-size: 22px;
-    }
+}
+@media (max-width: 800px) {
     body.interface-modern .modern-screen-menu #listIn {
         right: var(--modern-gutter) !important;
         bottom: calc(var(--modern-footer-height) + 24vh) !important;
     }
     body.interface-modern .modern-screen-menu #listDetail {
         top: auto !important;
-        right: var(--modern-gutter) !important;
         bottom: var(--modern-footer-height) !important;
-        left: calc(var(--modern-rail-width) + var(--modern-gutter)) !important;
+        left: var(--modern-gutter) !important;
         visibility: visible;
         width: auto !important;
         height: 22vh !important;
         pointer-events: auto;
     }
-}
-@media (max-width: 600px), (orientation: portrait) {
-    body.interface-modern {
-        --modern-rail-width: 0px;
-        --modern-gutter: 16px;
-        --modern-header-height: 15vh;
-        --modern-footer-height: 13vh;
-        --modern-hero-height: 24vh;
-    }
-    body.interface-modern #modernRail {
-        right: 0;
-        bottom: auto;
-        z-index: 9;
-        width: 100%;
-        height: 7vh;
-        min-height: 44px;
-        padding: 0 8px;
-        overflow: auto hidden;
-        border-right: 0;
-        border-bottom: 1px solid #30343f;
-    }
-    body.interface-modern .modern-rail-actions {
-        flex-direction: row;
-        gap: 3px;
-        justify-content: space-between;
-        height: 100%;
-    }
-    body.interface-modern .modern-rail-action {
-        flex: 0 0 auto;
-        width: 44px;
-        min-height: 40px;
-        padding: 4px;
-    }
-    body.interface-modern .modern-brand,
     body.interface-modern .modern-rail-label {
         display: none;
     }
-    body.interface-modern #listCaption {
-        top: 7vh !important;
-        right: var(--modern-gutter) !important;
-        height: 8vh !important;
-        font-size: 1em !important;
-        line-height: 8vh !important;
+    body.interface-modern .modern-rail-action {
+        min-width: 44px;
+        padding: 0.5em;
     }
-    body.interface-modern #listTime {
-        display: none;
+    body.interface-modern .modern-view-home .modern-hero-copy {
+        width: 74%;
     }
-    body.interface-modern .modern-hero-title {
-        font-size: 1.25em;
+}
+@media (max-width: 600px), (orientation: portrait) {
+    body.interface-modern {
+        --modern-gutter: 16px;
+        --modern-header-height: 23vh;
+        --modern-footer-height: 12vh;
     }
-    body.interface-modern .modern-hero-art {
-        width: 10vh;
+    body.interface-modern #modernRail {
+        top: 3vh;
+        right: 12px;
+        max-width: calc(100vw - 128px);
+    }
+    body.interface-modern .modern-account-actions {
+        top: 3vh;
+        left: 12px;
+        gap: 2px;
+    }
+    body.interface-modern .modern-account-actions .modern-rail-action {
+        width: 44px;
+        height: 44px;
+    }
+    body.interface-modern .modern-rail-action {
+        font-size: 18px;
+    }
+    body.interface-modern #listCaption,
+    body.interface-modern #modernLibraryHeading {
+        top: 14vh !important;
+    }
+    body.interface-modern .modern-view-home #modernLibraryHeading {
+        top: 54vh !important;
+    }
+    body.interface-modern .modern-view-home #listIn {
+        top: 61vh !important;
+    }
+    body.interface-modern .modern-view-home #modernHero {
+        bottom: 40vh;
+    }
+    body.interface-modern .modern-view-home .modern-hero-copy {
+        bottom: 7vh;
+        width: calc(100% - 32px);
+        max-height: 36vh;
+    }
+    body.interface-modern .modern-view-home .modern-hero-title {
+        font-size: 1.4em;
     }
     body.interface-modern .modern-hero-summary {
         -webkit-line-clamp: 2;
+    }
+    body.interface-modern .modern-hero-art {
+        width: 32vw;
+        height: 18vw;
     }
     body.interface-modern #listEdit,
     body.interface-modern #listAbout {
@@ -2297,7 +2527,8 @@ body.interface-modern #numprog [aria-pressed="true"] {
 }
 @media (prefers-reduced-motion: reduce) {
     body.interface-modern #listIn .modern-card,
-    body.interface-modern #listIn .modern-channel {
+    body.interface-modern #listIn .modern-channel,
+    body.interface-modern .modern-rail-action {
         transition: none;
     }
 }

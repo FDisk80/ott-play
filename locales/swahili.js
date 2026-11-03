@@ -572,6 +572,7 @@ var keyStrings = {
     "Hide providers?": "Ungependa kuficha watoa huduma?",
     "History in Media Library": "Historia katika maktaba ya media",
     "History of watched movies": "Historia ya kutazama",
+    Home: "Mwanzo",
     "HTTP port": "HTTP mlango",
     "HTTP remote control is unavailable on this device.":
         "HTTP kidhibiti cha mbali hakipatikani kwenye kifaa hiki.",

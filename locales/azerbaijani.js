@@ -563,6 +563,7 @@ var keyStrings = {
     "Hide providers?": "Provayderlər gizlədilsin?",
     "History in Media Library": "Media kitabxanasında tarixçə",
     "History of watched movies": "Baxış tarixçəsi",
+    Home: "Ana səhifə",
     "HTTP port": "HTTP portu",
     "HTTP remote control is unavailable on this device.":
         "Bu cihazda HTTP uzaqdan idarəetmə əlçatan deyil.",
