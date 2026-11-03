@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import warnings
 import zipfile
 
@@ -151,6 +151,165 @@ class ReleaseNotesTests(unittest.TestCase):
                 with self.assertRaises(publish.PromotionError):
                     publish.release_body(dict(inputs(), **change))
                 execute.assert_not_called()
+
+
+class GitHubDiagnosticsTests(unittest.TestCase):
+    SECRET = "secret-token-do-not-print"
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+        self.calls = 0
+
+    def request(self, *, stderr=b"", status=1, arguments=None, allow_not_found=False,
+                stdout=b"", limit=1024, timeout=None, start_error=None):
+        self.calls += 1
+        self.process = MagicMock()
+        self.process.stdout.fileno.return_value = 99
+        self.process.poll.return_value = None if timeout else status
+        self.process.wait.return_value = status
+        if timeout == "wait":
+            self.process.wait.side_effect = [
+                subprocess.TimeoutExpired([self.SECRET], 1, output=self.SECRET, stderr=self.SECRET), status,
+            ]
+        selector = MagicMock()
+        selector.__enter__.return_value = selector
+        selector.select.return_value = [(None, None)]
+
+        def spawn(command, **kwargs):
+            if start_error:
+                raise start_error
+            kwargs["stderr"].write(stderr)
+            return self.process
+
+        clock = [0, publish.TRANSFER_SECONDS + 1] if timeout == "read" else None
+        arguments = arguments or ["api", "--hostname", "github.com", "--method", "GET",
+                                  f"/repos/{publish.REPOSITORY}/actions/runs/17"]
+        with patch.object(publish.subprocess, "Popen", side_effect=spawn) as execute, \
+                patch.object(publish.selectors, "DefaultSelector", return_value=selector), \
+                patch.object(publish.os, "read", side_effect=[stdout, b""]), \
+                patch.object(publish.time, "monotonic", side_effect=clock, return_value=0):
+            self.execute = execute
+            return publish.gh_to_file(arguments, self.directory / (self.SECRET + str(self.calls)), limit,
+                                      allow_not_found=allow_not_found)
+
+    def failure(self, **kwargs):
+        with self.assertRaises(publish.PromotionError) as caught:
+            self.request(**kwargs)
+        self.execute.assert_called_once()
+        self.assertNotIn(self.SECRET, str(caught.exception))
+        self.assertNotIn(str(self.directory), str(caught.exception))
+        return str(caught.exception)
+
+    def test_operation_labels_come_from_exact_known_request_paths(self):
+        prefix = f"/repos/{publish.REPOSITORY}"
+        requests = (
+            ("GET", "/git/ref/heads/main", "main-ref"),
+            ("GET", "/actions/workflows/webos-native.yml", "candidate-workflow"),
+            ("GET", "/actions/runs/17", "candidate-run"),
+            ("GET", "/actions/runs/17/artifacts?per_page=100", "artifact-inventory"),
+            ("GET", "/actions/artifacts/31/zip", "artifact-download"),
+            ("GET", "/releases/assets/42", "release-asset-download"),
+            ("GET", "/releases/23/assets?per_page=100", "release-asset-inventory"),
+            ("GET", "/releases/tags/" + TAG, "release-by-tag"),
+            ("GET", "/git/ref/tags/" + TAG, "tag-ref"),
+            ("POST", "/git/refs", "tag-create"),
+            ("POST", "/releases", "release-create"),
+            ("GET", "/releases/23", "release-read"),
+            ("PATCH", "/releases/23", "release-publish"),
+        )
+        for method, path, label in requests:
+            with self.subTest(label=label):
+                message = self.failure(stderr=b"gh: denied (HTTP 403)\n", arguments=[
+                    "api", "--hostname", "github.com", "--method", method, prefix + path,
+                ])
+                self.assertEqual(message, f"GitHub request failed [{label}; HTTP 403]; no publication precondition inferred")
+        for path, label in ((prefix + "/actions/artifacts/31/zip", "artifact-download"),
+                            (prefix + "/releases/assets/42", "release-asset-download")):
+            message = self.failure(stderr=b"gh: denied (HTTP 403)", arguments=[
+                "api", "--hostname", "github.com", path, "-H", "Accept: application/octet-stream",
+            ])
+            self.assertIn("[" + label + "; HTTP 403]", message)
+        message = self.failure(stderr=b"gh: denied (HTTP 403)", arguments=[
+            "api", "--hostname", "github.com", "--method", "POST",
+            f"https://uploads.github.com/repos/{publish.REPOSITORY}/releases/23/assets?name=ottplay-native-webos-0.1.0.ipk",
+            "--input", "/private/" + self.SECRET,
+        ])
+        self.assertIn("[release-asset-upload; HTTP 403]", message)
+
+    def test_unknown_paths_and_hosts_never_become_diagnostic_text(self):
+        for host, path in (("evil.invalid", f"/repos/{publish.REPOSITORY}/actions/runs/17"),
+                           ("github.com", "/repos/private/" + self.SECRET),
+                           ("github.com", f"/repos/{publish.REPOSITORY}/actions/runs/17?token=" + self.SECRET)):
+            with self.subTest(host=host):
+                message = self.failure(stderr=b"unknown", arguments=["api", "--hostname", host, path])
+                self.assertEqual(message, "GitHub request failed [api-request; class=command-failed]; no publication precondition inferred")
+
+    def test_http_diagnostics_never_echo_secrets_urls_or_response_bodies(self):
+        for code in (401, 403, 404, 429, 500, 503):
+            for template in ("gh: {secret} https://signed.invalid/file?token={secret} (HTTP {code})\n",
+                             "HTTP {code}: {secret} (https://signed.invalid/file?token={secret})\n"):
+                with self.subTest(code=code, template=template):
+                    message = self.failure(stderr=template.format(secret=self.SECRET, code=code).encode())
+                    self.assertEqual(message, f"GitHub request failed [candidate-run; HTTP {code}]; no publication precondition inferred")
+                    self.assertNotIn("signed.invalid", message)
+
+    def test_only_complete_unambiguous_404_is_not_found(self):
+        self.assertFalse(self.request(stderr=b"gh: Not Found (HTTP 404)\n", allow_not_found=True))
+        for stderr in (b"gh: denied (HTTP 403)", b'{"body":"(HTTP 404)"}',
+                       b"gh: Not Found (HTTP 404)\nHTTP 503: unavailable", b"(HTTP 404)",
+                       b"HTTP 404: Not Found (https://api.github.com/private)",
+                       b"gh: Not Found (HTTP 404)" + b" " * 8192):
+            with self.subTest(stderr=stderr[:40]):
+                self.failure(stderr=stderr, allow_not_found=True)
+
+    def test_known_transport_failures_are_static_classes(self):
+        cases = (
+            ("dial tcp: lookup private.invalid: no such host", "dns"),
+            ("tls: failed to verify certificate: x509: unknown authority", "tls"),
+            ("dial tcp 10.0.0.1:443: connect: connection refused", "connection"),
+            ("context deadline exceeded", "timeout"),
+        )
+        for detail, expected in cases:
+            with self.subTest(expected=expected):
+                stderr = f'Get "https://signed.invalid/?token={self.SECRET}": {detail}\n'.encode()
+                message = self.failure(stderr=stderr)
+                self.assertIn("class=" + expected, message)
+                self.assertNotIn("signed.invalid", message)
+                self.assertNotIn("private.invalid", message)
+        message = self.failure(stderr=b'error body: timeout DNS secret\xff\x1b[31m')
+        self.assertIn("class=command-failed", message)
+
+    def test_stream_and_wait_timeouts_are_redacted_and_terminate_child(self):
+        for timeout in ("read", "wait"):
+            with self.subTest(timeout=timeout):
+                message = self.failure(timeout=timeout)
+                self.assertIn("[candidate-run; class=timeout]", message)
+                self.process.kill.assert_called_once()
+                self.process.stdout.close.assert_called_once()
+
+    def test_start_error_response_limit_and_truncated_stderr_are_safe(self):
+        message = self.failure(start_error=OSError(self.SECRET))
+        self.assertIn("class=process-start", message)
+        message = self.failure(stdout=b"12345", limit=4)
+        self.assertIn("class=response-limit", message)
+        message = self.failure(stderr=b"gh: secret (HTTP 404)" + b"x" * 8192, allow_not_found=True)
+        self.assertIn("class=stderr-limit", message)
+
+    def test_success_remains_success_even_with_error_like_stderr(self):
+        self.assertTrue(self.request(status=0, stderr=b"gh: Not Found (HTTP 404)", stdout=b"{}"))
+        self.execute.assert_called_once()
+
+    def test_cli_prints_only_safe_diagnostic_even_when_timeout_has_secret_arguments(self):
+        error_output = io.StringIO()
+        arguments = ["publisher", "prepare", "--run-id", "17", "--source-sha", SHA,
+                     "--version", VERSION, "--tag", TAG, "--output", self.SECRET]
+        with patch.object(publish.sys, "argv", arguments), patch.object(publish.sys, "stderr", error_output), \
+                patch.object(publish, "prepare", side_effect=lambda args: self.request(timeout="wait")):
+            self.assertEqual(publish.main(), 1)
+        self.assertEqual(error_output.getvalue(),
+                         "FAIL: GitHub request failed [candidate-run; class=timeout]; no publication precondition inferred\n")
 
 
 class ProvenanceTests(unittest.TestCase):
@@ -417,7 +576,7 @@ class FakeGitHub:
             return copy.deepcopy(self.release)
         raise AssertionError((method, path, payload, allow_not_found))
 
-    def download(self, path, destination, limit):
+    def download(self, path, destination, limit, *, accept="application/octet-stream"):
         self.events.append(("DOWNLOAD", path, None))
         if path.endswith("/actions/artifacts/31/zip"):
             data = self.archive
@@ -464,6 +623,7 @@ class PromotionPipelineTests(unittest.TestCase):
         self.args = SimpleNamespace(**{key: value for key, value in inputs().items() if key != "repository"}, output=self.directory)
         self.environment = self.start(patch.object(publish, "check_environment"))
         self.notes = self.start(patch.object(publish, "release_body", return_value=publish.DEFAULT_RELEASE_BODY))
+        self.real_download_api = publish.download_api
         self.start(patch.object(publish, "api_json", side_effect=self.gh.api))
         self.start(patch.object(publish, "download_api", side_effect=self.gh.download))
         self.start(patch.object(publish, "upload_asset", side_effect=self.gh.upload))
@@ -478,6 +638,31 @@ class PromotionPipelineTests(unittest.TestCase):
         value = patcher.start()
         self.addCleanup(patcher.stop)
         return value
+
+    def test_actions_and_release_asset_downloads_use_their_required_accept_types(self):
+        requests = []
+
+        def transfer(arguments, destination, limit):
+            self.assertEqual(arguments[:3], ["api", "--hostname", "github.com"])
+            path = arguments[3]
+            header = arguments[arguments.index("-H") + 1]
+            if "/actions/artifacts/" in path:
+                self.assertEqual(header, "Accept: application/vnd.github+json",
+                                 "Actions archive API rejects octet-stream with HTTP 415")
+            else:
+                self.assertIn("/releases/assets/", path)
+                self.assertEqual(header, "Accept: application/octet-stream",
+                                 "Release assets require binary content, not JSON metadata")
+            requests.append((path, header))
+            self.gh.download(path, destination, limit)
+            return True
+
+        with patch.object(publish, "download_api", side_effect=self.real_download_api), \
+                patch.object(publish, "gh_to_file", side_effect=transfer):
+            self.prepare()
+            self.do_publish()
+        self.assertEqual(sum("/actions/artifacts/" in path for path, _header in requests), 2)
+        self.assertEqual(sum("/releases/assets/" in path for path, _header in requests), 10)
 
     def prepare(self):
         return publish.prepare(self.args)
@@ -601,8 +786,8 @@ class PromotionPipelineTests(unittest.TestCase):
         self.gh.artifact["id"] = 32
         # The changed identity is enough; keep fake download bytes constant.
         download = self.gh.download
-        def current_download(path, destination, limit):
-            download(path.replace("/artifacts/32/", "/artifacts/31/"), destination, limit)
+        def current_download(path, destination, limit, **kwargs):
+            download(path.replace("/artifacts/32/", "/artifacts/31/"), destination, limit, **kwargs)
         with patch.object(publish, "download_api", side_effect=current_download), \
                 self.assertRaisesRegex(publish.PromotionError, "artifact changed"):
             self.do_publish()

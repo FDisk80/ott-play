@@ -160,34 +160,110 @@ def check_environment(inputs, *, require_current_main=True):
                 "Main advanced; prepare a candidate from current main")
 
 
+def gh_operation(arguments):
+    """Return only static labels for this publisher's exact request routes."""
+    if len(arguments) < 4 or arguments[:3] != ["api", "--hostname", "github.com"]:
+        return "api-request"
+    method, path = "GET", arguments[3]
+    if path == "--method":
+        if len(arguments) < 6:
+            return "api-request"
+        method, path = arguments[4:6]
+    prefix = re.escape("/repos/" + REPOSITORY)
+    tag = r"native-webos-v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:beta|rc)\.[1-9][0-9]*)?"
+    routes = (
+        ("GET", r"/git/ref/heads/main", "main-ref"),
+        ("GET", r"/actions/workflows/" + re.escape(WORKFLOW), "candidate-workflow"),
+        ("GET", r"/actions/runs/[1-9][0-9]*", "candidate-run"),
+        ("GET", r"/actions/runs/[1-9][0-9]*/artifacts\?per_page=100", "artifact-inventory"),
+        ("GET", r"/actions/artifacts/[1-9][0-9]*/zip", "artifact-download"),
+        ("GET", r"/releases/assets/[1-9][0-9]*", "release-asset-download"),
+        ("GET", r"/releases/[1-9][0-9]*/assets\?per_page=100", "release-asset-inventory"),
+        ("GET", r"/releases/tags/" + tag, "release-by-tag"),
+        ("GET", r"/git/ref/tags/" + tag, "tag-ref"),
+        ("POST", r"/git/refs", "tag-create"),
+        ("POST", r"/releases", "release-create"),
+        ("GET", r"/releases/[1-9][0-9]*", "release-read"),
+        ("PATCH", r"/releases/[1-9][0-9]*", "release-publish"),
+    )
+    for expected_method, route, label in routes:
+        if method == expected_method and re.fullmatch(prefix + route, path):
+            return label
+    upload = (r"https://uploads\.github\.com" + prefix
+              + r"/releases/[1-9][0-9]*/assets\?name=ottplay-native-webos-[A-Za-z0-9._-]+")
+    if method == "POST" and re.fullmatch(upload, path):
+        return "release-asset-upload"
+    return "api-request"
+
+
+def gh_failure_reason(error):
+    """Read bounded gh diagnostics; return no text copied from stderr."""
+    if len(error) > 8192:
+        return "class=stderr-limit", None
+    line = error.strip()
+    status = (re.fullmatch(rb"gh: [^\r\n]* \(HTTP ([1-5][0-9]{2})\)", line)
+              or re.fullmatch(rb"HTTP ([1-5][0-9]{2}): [^\r\n]+", line))
+    if status:
+        code = int(status[1])
+        return "HTTP " + str(code), code
+    transport = re.fullmatch(rb'(?:Get|Head|Post|Put|Patch|Delete) "[^"\r\n]*": ([^\r\n]+)', line)
+    if transport:
+        detail = transport[1]
+        if any(marker in detail for marker in (b"context deadline exceeded", b"i/o timeout", b"TLS handshake timeout")):
+            return "class=timeout", None
+        if detail.startswith((b"tls:", b"x509:")):
+            return "class=tls", None
+        if detail.startswith(b"dial tcp: lookup "):
+            return "class=dns", None
+        if detail.endswith((b"connection refused", b"connection reset by peer", b"network is unreachable", b"no route to host")):
+            return "class=connection", None
+    return "class=command-failed", None
+
+
+def gh_failure(operation, reason):
+    return PromotionError(f"GitHub request failed [{operation}; {reason}]; no publication precondition inferred")
+
+
 def gh_to_file(arguments, destination, limit, *, allow_not_found=False):
     """Bound stdout and elapsed time; never echo authentication or stderr."""
+    operation = gh_operation(arguments)
     environment = {**os.environ, "GH_PROMPT_DISABLED": "1", "GH_PAGER": "cat", "GH_DEBUG": ""}
     with tempfile.TemporaryFile() as errors, destination.open("xb") as output:
-        process = subprocess.Popen(["gh", *arguments], cwd=ROOT, env=environment, stdout=subprocess.PIPE, stderr=errors)
+        try:
+            process = subprocess.Popen(["gh", *arguments], cwd=ROOT, env=environment, stdout=subprocess.PIPE, stderr=errors)
+        except OSError:
+            raise gh_failure(operation, "class=process-start") from None
         deadline, count = time.monotonic() + TRANSFER_SECONDS, 0
         try:
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)
                 while True:
                     remaining = deadline - time.monotonic()
-                    require(remaining > 0, "GitHub request timed out")
+                    if remaining <= 0:
+                        raise gh_failure(operation, "class=timeout")
                     if not selector.select(min(remaining, 1)):
                         continue
                     chunk = os.read(process.stdout.fileno(), 1024 * 1024)
                     if not chunk:
                         break
                     count += len(chunk)
-                    require(count <= limit, "GitHub response exceeds limit")
+                    if count > limit:
+                        raise gh_failure(operation, "class=response-limit")
                     output.write(chunk)
             status = process.wait(timeout=max(0.1, deadline - time.monotonic()))
             if status != 0:
                 errors.seek(0)
-                error = errors.read(8192)
-                if allow_not_found and re.search(rb"\(HTTP 404\)\s*$", error):
+                error = errors.read(8193)
+                reason, code = gh_failure_reason(error)
+                # Diagnostics must not broaden the existing absence gate.
+                if allow_not_found and code == 404 and re.search(rb"\(HTTP 404\)\s*$", error):
                     return False
-                raise PromotionError("GitHub request failed; no publication precondition inferred")
+                raise gh_failure(operation, reason)
             return True
+        except subprocess.TimeoutExpired:
+            raise gh_failure(operation, "class=timeout") from None
+        except OSError:
+            raise gh_failure(operation, "class=io-error") from None
         finally:
             if process.poll() is None:
                 process.kill()
@@ -211,8 +287,8 @@ def api_json(path, *, method="GET", payload=None, allow_not_found=False):
         return decode(output.read_bytes())
 
 
-def download_api(path, destination, limit):
-    gh_to_file(["api", "--hostname", "github.com", path, "-H", "Accept: application/octet-stream"], destination, limit)
+def download_api(path, destination, limit, *, accept="application/octet-stream"):
+    gh_to_file(["api", "--hostname", "github.com", path, "-H", "Accept: " + accept], destination, limit)
 
 
 def upload_asset(release_id, name, path):
@@ -300,7 +376,8 @@ def fetch_candidate(inputs, directory):
     artifact = select_artifact(api_json(prefix + f"/actions/runs/{inputs['run_id']}/artifacts?per_page=100"), inputs)
     with tempfile.TemporaryDirectory(prefix="native-candidate-") as tmp:
         archive = Path(tmp) / "candidate.zip"
-        download_api(prefix + f"/actions/artifacts/{artifact['id']}/zip", archive, ZIP_LIMIT)
+        download_api(prefix + f"/actions/artifacts/{artifact['id']}/zip", archive, ZIP_LIMIT,
+                     accept="application/vnd.github+json")
         with archive.open("rb") as stream:
             digest = "sha256:" + hashlib.file_digest(stream, "sha256").hexdigest()
         require(digest == artifact["digest"], "Downloaded artifact digest mismatch")
