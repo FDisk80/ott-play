@@ -10,6 +10,9 @@ permissions:
   contents: read
 
 jobs:
+  native-cli-acceptance:
+    uses: ./.github/workflows/native-cli-acceptance.yml
+
   native-webos:
     uses: ./.github/workflows/webos-native.yml
 
