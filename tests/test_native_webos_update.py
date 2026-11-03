@@ -14,6 +14,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -941,7 +942,7 @@ class DeviceIdentityTests(unittest.TestCase):
             result = ares.identity()
             command.assert_called_once_with("ares-setup-device", "--listfull")
             device.assert_called_once_with("ares-device", "--system-info")
-            remote.assert_called_once_with(update.DEVICE_ID_COMMAND)
+            remote.assert_called_once_with(update.DEVICE_ID_COMMAND, keep_stdin_open=True)
         return result
 
     def test_identifier_is_hashed_and_not_retained_in_returned_identity(self):
@@ -1896,6 +1897,111 @@ class UpdateSequenceTests(unittest.TestCase):
         capture.assert_not_called()
         self.assertNotIn("launch", ares.calls)
         self.assertEqual(ares.calls.count("install"), 1)
+
+
+@unittest.skipUnless(os.name == "posix", "Held input needs POSIX process transport")
+class StdinLifecycleTests(unittest.TestCase):
+    def test_closed_input_reproduces_empty_success_held_input_allows_response(self):
+        # Model the documented luna-send -n HUP behavior with real POSIX input.
+        child = 'import select,sys; readable=select.select([sys.stdin],[],[],0.15)[0]; sys.stdout.write("" if readable else \'{"returnValue":true,"running":[]}\')'
+        command = [sys.executable, '-c', child]
+        self.assertEqual(update.run_command(command, operation='fixture'), b'')
+        self.assertEqual(json.loads(update.run_command(command, operation='fixture', keep_stdin_open=True)), {'returnValue': True, 'running': []})
+
+    def test_held_pipe_closed_after_success_and_nonzero_exit(self):
+        original = subprocess.Popen
+        for status in (0, 3):
+            seen = []
+            def start(*args, **kwargs):
+                process = original(*args, **kwargs)
+                seen.append(process)
+                return process
+            with self.subTest(status=status), patch.object(update.subprocess, 'Popen', side_effect=start):
+                if status:
+                    with self.assertRaises(update.UpdateError):
+                        update.run_command([sys.executable, '-c', f'raise SystemExit({status})'], operation='fixture', keep_stdin_open=True)
+                else:
+                    update.run_command([sys.executable, '-c', 'pass'], operation='fixture', keep_stdin_open=True)
+            self.assertEqual(len(seen), 1)
+            self.assertIsNotNone(seen[0].poll())
+            self.assertTrue(seen[0].stdin.closed)
+
+    def test_held_pipe_closed_and_process_reaped_after_timeout(self):
+        original = subprocess.Popen
+        seen = []
+        def start(*args, **kwargs):
+            process = original(*args, **kwargs)
+            seen.append(process)
+            return process
+        with patch.object(update.subprocess, 'Popen', side_effect=start), self.assertRaises(update.UpdateError) as error:
+            update.run_command([sys.executable, '-c', 'import sys; sys.stdin.read()'], operation='fixture', timeout=0.15, keep_stdin_open=True)
+        self.assertEqual(error.exception.code, 'fixture_timeout')
+        self.assertIsNotNone(seen[0].poll())
+        self.assertTrue(seen[0].stdin.closed)
+
+    def test_private_input_cannot_be_mixed_with_held_input(self):
+        with patch.object(update.subprocess, 'Popen') as start, self.assertRaises(update.UpdateError) as error:
+            update.run_command(['unused'], operation='fixture', data=b'private', keep_stdin_open=True)
+        self.assertEqual(error.exception.code, 'invalid_held_input')
+        start.assert_not_called()
+
+    def test_running_requests_hold_for_both_typed_calls(self):
+        ares = update.Ares.__new__(update.Ares)
+        with patch.object(ares, 'remote', side_effect=[b'{"returnValue":false}', b'{"returnValue":true,"running":[]}']) as remote:
+            self.assertEqual(ares.running(), set())
+        self.assertEqual(len(remote.call_args_list), 2)
+        self.assertTrue(all(call.kwargs.get('keep_stdin_open') is True for call in remote.call_args_list))
+
+
+
+@unittest.skipUnless(os.name == "posix", "Held input needs POSIX process transport")
+class StdinCleanupEdge(unittest.TestCase):
+    def process(self):
+        stream = io.BytesIO()
+        self.addCleanup(stream.close)
+        return SimpleNamespace(pid=123, stdin=stream, poll=lambda: None, wait=lambda: None)
+
+    def test_pipe_closed_when_killpg_raises(self):
+        process = self.process()
+        expected = PermissionError('injected cleanup failure')
+        with patch.object(update.subprocess, 'Popen', return_value=process), \
+                patch.object(update.os, 'killpg', side_effect=expected), \
+                self.assertRaises(PermissionError) as caught:
+            update.run_command(['never-executed'], operation='fixture', timeout=0, keep_stdin_open=True)
+        self.assertIs(caught.exception, expected)
+        self.assertTrue(process.stdin.closed, 'Held parent stdin leaked after failed killpg')
+
+    def test_pipe_closed_when_wait_is_interrupted(self):
+        process = self.process()
+        expected = KeyboardInterrupt('injected cleanup interruption')
+        process.wait = lambda: (_ for _ in ()).throw(expected)
+        with patch.object(update.subprocess, 'Popen', return_value=process), \
+                patch.object(update.os, 'killpg'), self.assertRaises(KeyboardInterrupt) as caught:
+            update.run_command(['never-executed'], operation='fixture', timeout=0, keep_stdin_open=True)
+        self.assertIs(caught.exception, expected)
+        self.assertTrue(process.stdin.closed, 'Held parent stdin leaked after interrupted wait')
+
+    def test_held_mode_reaches_runner_and_default_remains_absent(self):
+        calls = []
+        token = '1' * 32
+        raw = ('OTT_NATIVE_STREAM_' + token + '_BEGIN\n\nOTT_NATIVE_STREAM_' + token + '_END:0\n').encode()
+        def runner(command, **kwargs):
+            calls.append(kwargs)
+            return raw
+        ares = update.Ares('offline', runner=runner)
+        with patch.object(update.shutil, 'which', return_value='/never-executed'), \
+                patch.object(update.uuid, 'uuid4', return_value=SimpleNamespace(hex=token)):
+            self.assertEqual(ares.remote('true', keep_stdin_open=True), b'')
+            self.assertEqual(ares.remote('true'), b'')
+        self.assertIs(calls[0]['keep_stdin_open'], True)
+        self.assertNotIn('keep_stdin_open', calls[1])
+
+    def test_non_novacom_tool_rejects_held_input_before_execution(self):
+        ares = update.Ares('offline', runner=lambda *a, **kw: self.fail('Execution forbidden'))
+        with self.assertRaises(update.UpdateError) as caught:
+            ares.command('ares-install', keep_stdin_open=True)
+        self.assertEqual(caught.exception.code, 'invalid_held_input')
+
 
 
 if __name__ == "__main__":

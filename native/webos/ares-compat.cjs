@@ -6,6 +6,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { Stream } = require("node:stream");
 
 const CLI_VERSION = "3.2.6";
 const NOVACOM_SHA256 =
@@ -81,6 +82,151 @@ function completeOnce(original) {
     };
 }
 
+// Scope: one guarded run_ssh invocation, without changing the shared SSH client.
+function drainRun(original) {
+    return function (cmd, opt, stdin, stdout, stderr, next) {
+        if (typeof next !== "function") return original.apply(this, arguments);
+        const client = this.ssh;
+        const outputs = [
+            ...new Set(
+                [stdout, stderr].filter((value) => value instanceof Stream)
+            ),
+        ];
+        const listeners = [];
+        const ended = [false, false],
+            closed = [false, false];
+        let bound = false,
+            received = false,
+            finishing = false,
+            delivered = false;
+        let sdkError, streamError;
+        const failure = (code) => Object.assign(new Error(code), { code });
+        function remember(error) {
+            if (!streamError && !delivered) streamError = error;
+        }
+        function listen(emitter, event, callback) {
+            emitter.on(event, callback);
+            listeners.push([emitter, event, callback]);
+        }
+        function cleanup() {
+            for (const [emitter, event, callback] of listeners)
+                emitter.removeListener(event, callback);
+            listeners.length = 0;
+        }
+        function flush(done) {
+            let pending = outputs.length,
+                firstError;
+            if (!pending) return done();
+            for (const output of outputs) {
+                let settled = false;
+                function finish(error) {
+                    if (settled) return;
+                    settled = true;
+                    if (!firstError && error) firstError = error;
+                    output.removeListener("error", finish);
+                    output.removeListener("close", premature);
+                    if (!--pending) done(firstError);
+                }
+                function premature() {
+                    finish(
+                        output.writableFinished
+                            ? null
+                            : failure("ARES_OUTPUT_CLOSED")
+                    );
+                }
+                output.on("error", finish);
+                output.on("close", premature);
+                try {
+                    if (output.destroyed && !output.writableFinished)
+                        premature();
+                    else if (
+                        output === process.stdout ||
+                        output === process.stderr
+                    )
+                        output.write("", finish);
+                    else if (output.writableFinished) finish();
+                    else output.end(finish);
+                } catch (error) {
+                    finish(error);
+                }
+            }
+        }
+        function advance() {
+            if (finishing || !received || (bound && !(closed[0] && closed[1])))
+                return;
+            if (bound && !(ended[0] && ended[1]))
+                remember(failure("ARES_PREMATURE_STREAM_CLOSE"));
+            finishing = true;
+            flush((error) =>
+                setImmediate(() => {
+                    delivered = true;
+                    cleanup();
+                    next(sdkError || streamError || error || null);
+                })
+            );
+        }
+        function result(error) {
+            if (received || finishing) return;
+            received = true;
+            sdkError = error;
+            advance();
+        }
+        // Proxy Writable destinations as functions, so the old SDK cannot end
+        // stderr at stdout EOF. End/flush both only after their own channel drain.
+        const destination = (output) =>
+            outputs.includes(output) ? (data) => output.write(data) : output;
+        const session = Object.create(this);
+        session.ssh = Object.create(client);
+        session.ssh.exec = function (command, options, opened) {
+            return client.exec(command, options, (error, channel) => {
+                if (error) return opened(error, channel);
+                if (
+                    !channel ||
+                    !channel.stderr ||
+                    typeof channel.on !== "function" ||
+                    typeof channel.stderr.on !== "function"
+                ) {
+                    return result(failure("ARES_UNSUPPORTED_CHANNEL"));
+                }
+                bound = true;
+                [channel, channel.stderr].forEach((readable, index) => {
+                    listen(readable, "end", () => {
+                        ended[index] = true;
+                        advance();
+                    });
+                    listen(readable, "close", () => {
+                        closed[index] = true;
+                        advance();
+                    });
+                    listen(readable, "error", remember);
+                });
+                opened(error, channel);
+            });
+        };
+        try {
+            listen(client, "error", remember);
+            listen(client, "close", () => {
+                if (!(closed[0] && closed[1]))
+                    remember(failure("ARES_TRANSPORT_CLOSED"));
+            });
+            for (const output of outputs) listen(output, "error", remember);
+            return original.call(
+                session,
+                cmd,
+                opt,
+                stdin,
+                destination(stdout),
+                destination(stderr),
+                result
+            );
+        } catch (error) {
+            finishing = true;
+            cleanup();
+            throw error;
+        }
+    };
+}
+
 function run(args) {
     if (args.length < 2) throw new Error(USAGE);
     const { entry, novacom } = validateCli(args[0], args[1]);
@@ -95,11 +241,23 @@ function run(args) {
     // Keep the first probe result, including errors. The separate begin() method
     // still establishes the SSH session and authenticates with the original key.
     prototype.checkConnection = completeOnce(prototype.checkConnection);
+    if (args[1] === "ares-novacom" && args.slice(2).includes("--run")) {
+        if (
+            typeof prototype.begin !== "function" ||
+            typeof prototype.run_ssh !== "function"
+        ) {
+            throw new Error(
+                "The CLI command stream interface differs from the verified package."
+            );
+        }
+        prototype.begin = completeOnce(prototype.begin);
+        prototype.run_ssh = drainRun(prototype.run_ssh);
+    }
     process.argv = [process.execPath, entry, ...args.slice(2)];
     require(entry);
 }
 
-module.exports = { completeOnce, run, validateCli };
+module.exports = { completeOnce, drainRun, run, validateCli };
 
 if (require.main === module) {
     if (process.argv.length === 3 && process.argv[2] === "--help") {

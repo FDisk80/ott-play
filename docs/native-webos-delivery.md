@@ -199,8 +199,19 @@ verifier above for the broader source and catalog checks.
 Device operations require macOS or Linux and an existing Developer Mode alias.
 If Ares is not on `PATH`, add
 `--ares-root /absolute/path/to/node_modules/@webos-tools/cli` to select the
-supported CLI version `3.2.6`. Add `--ares-compat` only when using the existing
-repository compatibility wrapper; it requires that explicit `--ares-root`.
+supported CLI version `3.2.6`. For its duplicate-callback or truncated-output
+workaround, pass both `--ares-root` and `--ares-compat`, as in the read-only
+preflight command below. The compatibility wrapper requires that explicit root.
+For the verified CLI source, this opt-in wrapper also delays
+`ares-novacom --run` completion until both SSH output channels have ended and closed and
+queued destination writes have flushed. Nonzero exits and transport/write
+errors still fail; missing completion remains bounded by the updater timeout.
+This workaround applies only inside that CLI process and never edits the
+installed SDK. Other Ares commands retain the existing TCP-probe workaround.
+The updater keeps standard input open for its bounded Luna identity and running
+queries until the command finishes. Luna's one-reply mode can otherwise exit
+successfully on input closure before producing a reply. The pipe is closed on
+completion or failure; empty or incomplete JSON still fails validation.
 These options reuse the alias and credentials already configured on the
 computer. They do not enable Developer Mode, start Key Server or acquire keys.
 Private state transfer also verifies the supported CLI source before installing
@@ -215,7 +226,8 @@ When the intended television is available, explicitly request read-only checks:
 ```sh
 python3 scripts/update-webos-native.py \
   --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
-  --work-dir /absolute/path/to/private/native-update --preflight
+  --work-dir /absolute/path/to/private/native-update --preflight \
+  --ares-root /absolute/path/to/node_modules/@webos-tools/cli --ares-compat
 ```
 
 The device check requires LG's [device-specific identifier](https://webostv.developer.lge.com/develop/references/device-unique-id)
@@ -234,7 +246,8 @@ Review the detected native application and version, then apply the same update:
 ```sh
 python3 scripts/update-webos-native.py \
   --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
-  --work-dir /absolute/path/to/private/native-update --apply
+  --work-dir /absolute/path/to/private/native-update --apply \
+  --ares-root /absolute/path/to/node_modules/@webos-tools/cli --ares-compat
 ```
 
 The helper validates the official release and local package before installation.
@@ -317,7 +330,8 @@ request the separate recovery operation:
 ```sh
 python3 scripts/update-webos-native.py \
   --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
-  --work-dir /absolute/path/to/private/native-update --reconcile
+  --work-dir /absolute/path/to/private/native-update --reconcile \
+  --ares-root /absolute/path/to/node_modules/@webos-tools/cli --ares-compat
 ```
 
 `--reconcile` verifies the saved release, device identity and installed payload,

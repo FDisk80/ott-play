@@ -388,15 +388,23 @@ this model as well. It does not qualify the published **0.2.0** package.
   platform denies a native capability, use the existing hosted player while
   investigating; do not change platform permissions or install system packages.
 
-#### CLI 3.2.6: `Callback was already called.`
+#### CLI 3.2.6: duplicate callbacks or truncated command output
 
 This was reproduced with `@webos-tools/cli` **3.2.6** and Node **26.8.2** after
 validating the key and passphrase. The CLI's TCP connection probe connected,
 then socket closure emitted `ENOTCONN`, completing the same callback twice.
 It was a CLI probe error, not a reason to reset the TV or obtain another key.
 
+The same CLI can report remote command completion on the SSH exit event before
+stdout and stderr have drained. A successful exit alone therefore does not
+prove that a large `ares-novacom --run` response is complete.
+
 The optional [`ares-compat.cjs`](ares-compat.cjs) launcher guards that probe's
 completion once, only for the exact reviewed CLI version and source hash.
+For explicit `ares-novacom --run` commands, it also waits for both output
+channels to end and close and for destination writes to flush, preserving
+nonzero exits and transport/write errors. Other commands keep the TCP-only
+workaround. A channel that never closes remains subject to the caller timeout.
 It retains SSH authentication and original command options; it changes neither
 the installed CLI files nor global `NODE_OPTIONS`. From the repository root:
 
@@ -412,7 +420,9 @@ After those checks succeed, the same launcher accepts `ares-install` and
 `ares-launch` with the installation or launch arguments shown above. It refuses
 an unreviewed version or source mismatch; do not weaken those checks to force
 another CLI version through it. Normal CLI commands remain the first choice
-when this specific failure is absent.
+when neither of these failures is present. The native updater opts in with
+both `--ares-root /path/to/node_modules/@webos-tools/cli` and `--ares-compat`;
+these options never modify the installed SDK or enable the workaround globally.
 
 ### Updates and Developer Mode expiry
 

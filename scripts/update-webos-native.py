@@ -446,7 +446,8 @@ def command_error(raw):
     return "ares_command_failed"
 
 
-def run_command(command, *, operation, timeout=30, data=None, private_input=False):
+def run_command(command, *, operation, timeout=30, data=None, private_input=False, keep_stdin_open=False):
+    check(type(keep_stdin_open) is bool and not (keep_stdin_open and (data is not None or private_input)), "invalid_held_input")
     environment = {**os.environ, "DEBUG": "", "NODE_DEBUG": ""}
     with (
         tempfile.TemporaryFile() as output,
@@ -473,9 +474,9 @@ def run_command(command, *, operation, timeout=30, data=None, private_input=Fals
         try:
             process = subprocess.Popen(
                 command,
-                stdin=source
-                if data is not None and not private_input
-                else subprocess.DEVNULL,
+                stdin=subprocess.PIPE if keep_stdin_open else (
+                    source if data is not None and not private_input else subprocess.DEVNULL
+                ),
                 stdout=output,
                 stderr=errors,
                 env=environment,
@@ -494,12 +495,16 @@ def run_command(command, *, operation, timeout=30, data=None, private_input=Fals
         except OSError:
             raise UpdateError("ares_execution_unavailable") from None
         finally:
-            if process is not None and process.poll() is None:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
+            try:
+                if process is not None and process.poll() is None:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    process.wait()
+            finally:
+                if process is not None and process.stdin is not None:
+                    process.stdin.close()
         check(
             os.fstat(output.fileno()).st_size <= OUTPUT_LIMIT
             and os.fstat(errors.fileno()).st_size <= 1024 * 1024,
@@ -609,7 +614,8 @@ class Ares:
                 "unsupported_ares_version",
             )
 
-    def command(self, tool, *arguments, operation="preflight", timeout=30, data=None):
+    def command(self, tool, *arguments, operation="preflight", timeout=30, data=None, keep_stdin_open=False):
+        check(not keep_stdin_open or (tool == "ares-novacom" and data is None), "invalid_held_input")
         if data is not None:
             check(tool == "ares-novacom", "unsupported_private_transfer")
             return self.runner(
@@ -630,7 +636,8 @@ class Ares:
             check(executable is not None, "ares_not_installed")
             command = [executable]
         return self.runner(
-            [*command, *arguments], operation=operation, timeout=timeout, data=data
+            [*command, *arguments], operation=operation, timeout=timeout, data=data,
+            **({"keep_stdin_open": True} if keep_stdin_open else {}),
         )
 
     def private_input_command(self):
@@ -674,7 +681,7 @@ class Ares:
         try:
             response = json_bytes(
                 "\n".join(
-                    cli_lines(self.remote(DEVICE_ID_COMMAND).decode("utf-8"))
+                    cli_lines(self.remote(DEVICE_ID_COMMAND, keep_stdin_open=True).decode("utf-8"))
                 ).encode()
             )
             check(
@@ -733,7 +740,8 @@ class Ares:
         command = "/usr/bin/luna-send-pub -n 1 "
         params = " '{\"subscribe\":false}'"
         sessions = json_bytes(self.remote(
-            command + "luna://com.webos.service.sessionmanager/getSessionList" + params
+            command + "luna://com.webos.service.sessionmanager/getSessionList" + params,
+            keep_stdin_open=True,
         ))
         check(
             isinstance(sessions, dict) and type(sessions.get("returnValue")) is bool,
@@ -766,7 +774,8 @@ class Ares:
             if session_id:
                 command += "-c " + shlex.quote(str(session_id)) + " "
         response = json_bytes(self.remote(
-            command + "luna://com.webos.applicationManager/dev/running" + params
+            command + "luna://com.webos.applicationManager/dev/running" + params,
+            keep_stdin_open=True,
         ))
         check(
             isinstance(response, dict) and response.get("returnValue") is True
@@ -785,7 +794,7 @@ class Ares:
             result.add(app_id)
         return result
 
-    def remote(self, command, *, data=None):
+    def remote(self, command, *, data=None, keep_stdin_open=False):
         # SDK 3.2.6 can report SSH exit before draining stdout. A fresh trailing
         # frame proves ordered-stream completion; it is not peer authentication.
         check(isinstance(command, str) and "\0" not in command, "invalid_remote_command")
@@ -798,7 +807,8 @@ class Ares:
         )
         check(len(wrapped.encode("utf-8")) <= 1024 * 1024, "remote_command_limit")
         raw = self.device(
-            "ares-novacom", "--run", wrapped, operation="private_state", data=data
+            "ares-novacom", "--run", wrapped, operation="private_state", data=data,
+            **({"keep_stdin_open": True} if keep_stdin_open else {}),
         )
         check(isinstance(raw, bytes) and len(raw) <= OUTPUT_LIMIT, "invalid_remote_output")
         prefix, separator, framed = raw.partition(begin.encode("ascii"))
