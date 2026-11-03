@@ -15,6 +15,14 @@ const {
 } = require("../scripts/classic-function-names.cjs");
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "ottplay-linker-"));
 function testInventoryWithoutCompiler() {
+    assert.ok(
+        !CLASSIC_MODULES.includes("build/plugins/diagnostics-permission.js"),
+        "Unused legacy permission storage must not enter the runtime inventory"
+    );
+    assert.ok(
+        CLASSIC_MODULES.includes("build/plugins/diagnostics-controller.js"),
+        "Connection-authorized diagnostics must remain in the runtime inventory"
+    );
     for (const [moduleFile, consumer] of [
         ["build/commands/player-state.js", "build/commands/remote-requests.js"],
         ["build/plugins/player-state.js", "build/plugins/command-server.js"],
