@@ -15,7 +15,11 @@ module.exports = defineConfig({
     ],
     retries: 0,
     testDir: "./tests/browser",
-    testMatch: ["channel-list-csp.spec.cjs", "localized-keyboard.spec.cjs"],
+    testMatch: [
+        "channel-list-csp.spec.cjs",
+        "localized-keyboard.spec.cjs",
+        "classic-value-selector.spec.cjs",
+    ],
     timeout: 30000,
     use: {
         headless: true,

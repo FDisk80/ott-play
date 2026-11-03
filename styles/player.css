@@ -554,6 +554,20 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
 }
+#listAbout .value-selector {
+    position: relative;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-size: larger;
+}
+#listAbout .value-selector > span,
+#listAbout .value-selector > .osk-key {
+    white-space: nowrap;
+}
+#listAbout .value-selector > .osk-key {
+    text-overflow: ellipsis;
+}
 .item {
     position: relative;
     z-index: 1;
