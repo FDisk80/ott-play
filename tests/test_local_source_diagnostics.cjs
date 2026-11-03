@@ -68,7 +68,7 @@ function fixture() {
         clearTimeout(id) {
             timers.delete(id);
         },
-        document: { getElementById: () => node },
+        document: { getElementById: (id) => (id === "video" ? node : null) },
         setTimeout(fn) {
             const id = ++timerId;
             timers.set(id, fn);
@@ -234,7 +234,8 @@ for (const field of [
                 });
             else if (field === "attachment") f.state.attachment++;
             else if (field === "node")
-                f.w.document.getElementById = () => ({ ...f.node });
+                f.w.document.getElementById = (id) =>
+                    id === "video" ? { ...f.node } : null;
             else if (field === "handle")
                 f.backend.current = () => ({ ...f.handle });
             else if (field === "driver") f.w.__ottActiveProviderDriver = {};
@@ -297,7 +298,7 @@ test("a stable DOM video cannot claim a different or absent handle-owned media n
     }
 });
 test("media error and canPlayType are strict optional observations", async () => {
-    for (const value of [null, 0, 1, 4, 5, true, 1.5, "1"]) {
+    for (const value of [null, 0, 1, 2, 3, 4, 5, true, 1.5, "1"]) {
         const f = fixture();
         f.node.error = { code: value };
         f.node.canPlayType = (value) => (value.includes("avc1") ? "" : "maybe");
@@ -306,7 +307,7 @@ test("media error and canPlayType are strict optional observations", async () =>
         const result = await pending;
         assert.equal(
             result.mediaErrorCode,
-            value === 1 || value === 4 ? value : null
+            [1, 2, 3, 4].includes(value) ? value : null
         );
         assert.deepEqual(plain(result.codecs), { h264: "", hevc: "maybe" });
     }
@@ -351,6 +352,70 @@ test("empty DOM and absent native bridge are truthful without initialization", a
     assert.equal(result.consistent, true);
     assert.equal(result.currentSource.kind, "empty");
     assert.equal(f.calls.length, 0);
+});
+
+test("stable idle video without an owner keeps codec hints in browser and native snapshots", async () => {
+    for (const native of [false, true]) {
+        const f = fixture();
+        f.node.currentSrc = f.node.src = "";
+        f.state.generation = null;
+        f.backend.current = () => null;
+        if (!native) {
+            delete f.w.__TAURI_INTERNALS__;
+            delete f.w.__TAURI__;
+        }
+        const pending = f.collect();
+        if (native)
+            f.finish({
+                currentSource: route("empty", "not_applicable", null),
+                requestedSource: route("empty", "not_applicable", null),
+                version: 1,
+            });
+        const result = await pending;
+        assert.equal(result.consistent, true);
+        assert.equal(result.generation, null);
+        assert.equal(result.handleId, null);
+        assert.deepEqual(plain(result.codecs), {
+            h264: "probably",
+            hevc: "probably",
+        });
+        assert.equal(result.currentSource.kind, "empty");
+        assert.equal(result.requestedSource.kind, "empty");
+        assert.equal(f.calls.length, native ? 1 : 0);
+    }
+});
+test("idle exemption preserves active-source and detached-owner checks", async () => {
+    for (const mode of ["active-unowned", "idle-detached-owner"]) {
+        const f = fixture();
+        if (mode === "active-unowned") f.backend.current = () => null;
+        else {
+            f.node.currentSrc = f.node.src = "";
+            const detached = {};
+            f.handle.diagnosticMedia = () => ({
+                generation: f.state.generation,
+                media: detached,
+            });
+        }
+        const pending = f.collect();
+        f.finish();
+        const result = await pending;
+        assert.equal(result.consistent, false);
+        assert.deepEqual(plain(result.codecs), { h264: null, hevc: null });
+        assert.equal(result.currentSource.kind, "unavailable");
+        assert.equal(result.requestedSource.kind, "unavailable");
+    }
+});
+test("idle DOM replacement during native collection still invalidates the snapshot", async () => {
+    const f = fixture();
+    f.node.currentSrc = f.node.src = "";
+    f.backend.current = () => null;
+    const pending = f.collect();
+    const replacement = { ...f.node };
+    f.w.document.getElementById = (id) => (id === "video" ? replacement : null);
+    f.finish();
+    const result = await pending;
+    assert.equal(result.consistent, false);
+    assert.deepEqual(plain(result.codecs), { h264: null, hevc: null });
 });
 
 function statusDispatcher(f) {

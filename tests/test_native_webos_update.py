@@ -835,6 +835,25 @@ class BoundedCommandTests(unittest.TestCase):
                 self.assertIsNotNone(processes[0].poll())
 
 
+class PayloadHashCapabilityTests(unittest.TestCase):
+    def test_remote_probe_executes_hashing_and_rejects_unavailable_or_wrong_output(self):
+        ares = update.Ares.__new__(update.Ares)
+        expected = hashlib.sha256(b"").hexdigest().encode() + b"  -\n"
+        with patch.object(ares, "remote", return_value=expected) as remote:
+            ares.require_payload_hashing()
+        self.assertIn("command -v sha256sum", remote.call_args.args[0])
+        self.assertIn("printf '' | sha256sum", remote.call_args.args[0])
+        for response in (b"", b"wrong\n", expected + expected):
+            with self.subTest(response=response), patch.object(ares, "remote", return_value=response), \
+                    self.assertRaises(update.UpdateError) as caught:
+                ares.require_payload_hashing()
+            self.assertEqual(caught.exception.code, "payload_hashing_unavailable")
+        with patch.object(ares, "remote", side_effect=update.UpdateError("command_failed")), \
+                self.assertRaises(update.UpdateError) as caught:
+            ares.require_payload_hashing()
+        self.assertEqual(caught.exception.code, "payload_hashing_unavailable")
+
+
 class FakeAres:
     """Mutable device model. Any install/removal/auth command must be explicit."""
 
@@ -869,6 +888,9 @@ class FakeAres:
     def native_process(self):
         self.calls.append("native_process")
         return self.process_active
+
+    def require_payload_hashing(self):
+        self.calls.append("require_payload_hashing")
 
     def payload_matches(self, payload):
         self.calls.append("payload_matches")
@@ -969,14 +991,14 @@ class UpdateSequenceTests(unittest.TestCase):
         self.perform(ares, preflight=True)
         self.assertIn("identity", ares.calls)
         self.assertIn("installed", ares.calls)
-        self.assertTrue(set(ares.calls) <= {"identity", "installed", "running", "native_process", "payload_matches"})
+        self.assertTrue(set(ares.calls) <= {"identity", "installed", "running", "native_process", "payload_matches", "require_payload_hashing"})
         self.assertEqual(ares.files, ares.initial_files)
         self.assertEqual(ares.app["version"], "0.1.0")
 
     def test_current_version_is_idempotent_without_state_mutations(self):
         ares = FakeAres(version="0.2.0")
         self.perform(ares, apply=True)
-        self.assertTrue(set(ares.calls) <= {"identity", "installed", "running", "native_process", "payload_matches"})
+        self.assertTrue(set(ares.calls) <= {"identity", "installed", "running", "native_process", "payload_matches", "require_payload_hashing"})
         self.assertEqual(ares.files, ares.initial_files)
 
     def test_wrong_application_identity_is_rejected_before_changes(self):
@@ -992,6 +1014,112 @@ class UpdateSequenceTests(unittest.TestCase):
         with self.assertRaises(update.UpdateError):
             self.perform(ares, apply=True)
         self.assertTrue(set(ares.calls) <= {"identity", "installed", "running", "native_process"})
+
+    def test_missing_hash_utility_fails_preflight_and_apply_before_mutation(self):
+        for mode in ({"preflight": True}, {"apply": True}):
+            ares = FakeAres()
+            with self.subTest(mode=mode), patch.object(ares, "require_payload_hashing",
+                    side_effect=update.UpdateError("payload_hashing_unavailable")), \
+                    self.assertRaises(update.UpdateError) as caught:
+                self.perform(ares, **mode)
+            self.assertEqual(caught.exception.code, "payload_hashing_unavailable")
+            self.assertFalse(set(ares.calls) & {"close", "snapshot", "install", "restore", "launch"})
+            self.assertFalse((self.root / "state/update.json").exists())
+            self.assertEqual(ares.files, ares.initial_files)
+
+    def other_journal(self, **changes):
+        tag = "native-webos-v0.1.0-beta.1"
+        directory = self.root / tag
+        directory.mkdir(exist_ok=True)
+        receipt = {"schema": 1, "tag": tag, "version": "0.1.0", "application_id": APP_ID,
+                   "device": FakeAres().identity(), "outcome": "install-indeterminate", "install_started": True}
+        receipt.update(changes)
+        path = directory / "update.json"
+        path.write_text(json.dumps(receipt))
+        return path
+
+    def test_other_tag_pending_update_blocks_new_apply_before_device_access(self):
+        for outcome in ("installing", "install-indeterminate", "restoring", "launching", "needs-review"):
+            with self.subTest(outcome=outcome):
+                path = self.other_journal(outcome=outcome)
+                before = path.read_bytes()
+                ares = FakeAres()
+                with self.assertRaises(update.UpdateError) as caught:
+                    self.perform(ares, apply=True)
+                self.assertEqual(caught.exception.code, "pending_update")
+                self.assertEqual(ares.calls, [])
+                self.assertEqual(path.read_bytes(), before)
+
+    def test_other_tag_settled_or_proven_preinstall_journal_allows_update(self):
+        for outcome, started in (("complete", True), ("already-current", False), ("needs-review", False)):
+            with self.subTest(outcome=outcome):
+                self.other_journal(outcome=outcome, install_started=started)
+                ares = FakeAres(version="0.2.0")
+                self.assertEqual(self.perform(ares, apply=True)["outcome"], "already-current")
+
+    def assert_other_tag_preinstall_sequence(self, interrupted_close):
+        ares = FakeAres()
+        original_snapshot = ares.snapshot
+
+        def interrupted_snapshot(destination):
+            original_snapshot(destination)
+            raise update.UpdateError("snapshot_unavailable")
+
+        operation = "close" if interrupted_close else "snapshot"
+        failure = KeyboardInterrupt() if interrupted_close else interrupted_snapshot
+        with patch.object(ares, operation, side_effect=failure), \
+                self.assertRaises(KeyboardInterrupt if interrupted_close else update.UpdateError):
+            self.perform(ares, apply=True)
+        previous = self.root / self.release["tag"]
+        (self.root / "state").rename(previous)
+        journal = json.loads((previous / "update.json").read_bytes())
+        self.assertIs(journal["install_started"], False)
+        self.assertEqual(journal["outcome"], "closing" if interrupted_close else "needs-review")
+        retained = {p.relative_to(previous): p.read_bytes() for p in previous.rglob("*") if p.is_file()}
+        self.assertNotIn("install", ares.calls)
+        self.release = {**self.release, "tag": "native-webos-v0.2.0-beta.2"}
+        self.assertEqual(self.perform(ares, apply=True)["outcome"], "complete")
+        self.assertEqual(ares.calls.count("install"), 1)
+        self.assertEqual(ares.files, ares.initial_files)
+        self.assertEqual(retained, {p.relative_to(previous): p.read_bytes()
+                                    for p in previous.rglob("*") if p.is_file()})
+
+    def test_other_tag_interrupted_closing_sequence_keeps_original_journal(self):
+        self.assert_other_tag_preinstall_sequence(interrupted_close=True)
+
+    def test_other_tag_failed_snapshot_sequence_keeps_original_snapshot(self):
+        self.assert_other_tag_preinstall_sequence(interrupted_close=False)
+
+    def test_other_tag_unknown_marker_or_malformed_journal_fails_closed(self):
+        for raw in (b"{}", b"[]", b"not json", b'{"schema":1,"schema":1}',
+                    json.dumps({"schema": 1, "tag": "native-webos-v0.1.0-beta.1", "version": "0.1.0",
+                                "application_id": APP_ID, "device": FakeAres().identity(), "outcome": "complete"}).encode()):
+            with self.subTest(raw=raw):
+                path = self.other_journal()
+                path.write_bytes(raw)
+                ares = FakeAres()
+                with self.assertRaises(update.UpdateError):
+                    self.perform(ares, apply=True)
+                self.assertEqual(ares.calls, [])
+
+    def test_other_tag_unsafe_or_oversized_journal_is_rejected(self):
+        path = self.other_journal()
+        original = path.read_bytes()
+        path.unlink()
+        external = self.root / "external.json"
+        external.write_bytes(original)
+        path.symlink_to(external)
+        ares = FakeAres()
+        with self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        self.assertEqual(ares.calls, [])
+        self.assertEqual(external.read_bytes(), original)
+        path.unlink()
+        with path.open("wb") as stream:
+            stream.truncate(8 * 1024 * 1024 + 1)
+        with self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        self.assertEqual(ares.calls, [])
 
     def test_success_preserves_every_private_file_before_launch(self):
         ares = FakeAres()
@@ -1254,7 +1382,7 @@ class UpdateSequenceTests(unittest.TestCase):
         before = list(ares.calls)
         receipt = self.perform(ares, preflight=True)
         self.assertEqual(receipt["outcome"], "preflight")
-        self.assertTrue(set(ares.calls[len(before):]) <= {"identity", "installed", "running", "native_process", "payload_matches"})
+        self.assertTrue(set(ares.calls[len(before):]) <= {"identity", "installed", "running", "native_process", "payload_matches", "require_payload_hashing"})
         self.assertEqual(ares.calls.count("install"), 1)
         self.assertEqual(ares.calls.count("snapshot"), 1)
 

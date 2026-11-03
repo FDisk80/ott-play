@@ -183,7 +183,9 @@ function localSourceDiagnostics(w: any, runtime: () => string): Promise<any> {
         const hasSource = !!(before.current || before.requested);
         if (
             !same(before, after) ||
-            (before.node && before.node !== before.ownedNode) ||
+            (before.node &&
+                (hasSource || before.ownedNode) &&
+                before.node !== before.ownedNode) ||
             (hasSource &&
                 (before.generation === null ||
                     before.ownerGeneration !== before.generation ||

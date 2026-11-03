@@ -280,6 +280,15 @@ fresh snapshot. It does not automatically repeat an installer call. A missing
 marker, a `true` marker or an ambiguous journal stays blocked and requires the
 recovery checks below. Do not edit these markers to force a retry.
 
+Before `--apply`, the same per-device lock also protects a check of journals for
+other tags. An unresolved installation blocks a new tag. The pre-install
+exception is narrow: the earlier journal must explicitly contain
+`install_started: false` and its outcome must be `closing` or `needs-review`.
+No installer call has begun in those states, so a different tag may take its own
+fresh snapshot and proceed. The earlier journal, snapshot and other files remain
+untouched. A missing or unknown marker, malformed journal, or installation that
+has started does not qualify for this exception; complete that recovery first.
+
 An installer timeout produces `install-indeterminate`, even if readback already
 shows the target version. The helper records that observation without retrying
 the install, restoring over possibly active state or launching the player.

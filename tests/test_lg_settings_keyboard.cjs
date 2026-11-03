@@ -254,19 +254,27 @@ test("LG aliases stay on the shipped key map and History Back is one return", (f
 test("L and l reach the foreground graphical editor through the real LG base map", (f) => {
     openKeyboard(f);
     f.w.addEventListener("keydown", f.w.keyHandler);
-    for (const key of ["L", "l"]) {
-        f.w.document.body.dispatchEvent(
-            new f.w.KeyboardEvent("keydown", {
-                bubbles: true,
-                cancelable: true,
-                code: "KeyL",
-                key,
-                keyCode: 76,
-            })
-        );
+    for (const keyCode of [76, 0]) {
+        for (const key of ["L", "l"]) {
+            f.w.document.body.dispatchEvent(
+                new f.w.KeyboardEvent("keydown", {
+                    bubbles: true,
+                    cancelable: true,
+                    code: "KeyL",
+                    key,
+                    keyCode,
+                })
+            );
+        }
     }
-    assert.equal(f.w.editvar, "Ll");
+    assert.equal(f.w.editvar, "LlLl");
     assert.deepEqual(f.effects, []);
+});
+test("code-only KeyL fallback keeps fullscreen behavior without a printable key", (f) => {
+    openKeyboard(f);
+    f.press(0, { code: "KeyL", key: "" });
+    assert.equal(f.w.editvar, "");
+    assert.deepEqual(f.effects, ["openFullscreen"]);
 });
 test("L keeps fullscreen behavior after graphical editor closes", (f) => {
     openKeyboard(f);

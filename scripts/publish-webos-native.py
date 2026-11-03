@@ -553,13 +553,29 @@ def fetch_public_asset(url, destination, limit):
     require(urlsplit(url).hostname == "github.com", "Public asset must begin at the release download URL")
     request = Request(url, headers={"Accept-Encoding": "identity", "User-Agent": "OTTPlay-native-release-check"})
     deadline = time.monotonic() + TRANSFER_SECONDS
-    with build_opener(PublicRedirect()).open(request, timeout=10) as response, destination.open("xb") as target:
-        require(response.status == 200, "Public asset request failed")
-        count = 0
-        while chunk := response.read1(1024 * 1024):
-            count += len(chunk)
-            require(count <= limit and time.monotonic() < deadline, "Public asset response exceeds bound")
-            target.write(chunk)
+    owned = None
+    try:
+        with build_opener(PublicRedirect()).open(request, timeout=10) as response:
+            require(response.status == 200, "Public asset request failed")
+            with destination.open("xb") as target:
+                created = os.fstat(target.fileno())
+                owned = (created.st_dev, created.st_ino)
+                count = 0
+                while chunk := response.read1(1024 * 1024):
+                    count += len(chunk)
+                    require(count <= limit and time.monotonic() < deadline, "Public asset response exceeds bound")
+                    target.write(chunk)
+    except BaseException as error:
+        if owned is not None:
+            try:
+                current = destination.lstat()
+                if stat.S_ISREG(current.st_mode) and (current.st_dev, current.st_ino) == owned:
+                    destination.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                error.add_note("Failed to remove this download's incomplete asset")
+        raise
 
 
 def fetch_worker(url, limit):

@@ -18,6 +18,7 @@ import re
 import shlex
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tarfile
@@ -752,6 +753,15 @@ class Ares:
         )
         return bool(lines)
 
+    def require_payload_hashing(self):
+        # Exercise the same remote utility before closing or replacing the app.
+        try:
+            output = self.remote("command -v sha256sum >/dev/null || exit 79; printf '' | sha256sum")
+            lines = list(cli_lines(output.decode("utf-8")))
+        except (UpdateError, UnicodeError):
+            raise UpdateError("payload_hashing_unavailable") from None
+        check(lines == [digest(b"") + "  -"], "payload_hashing_unavailable")
+
     def payload_matches(self, payload):
         check(
             isinstance(payload, dict) and 0 < len(payload) <= 4096,
@@ -1192,6 +1202,7 @@ def _update_device(
             before["version"] == previous.get("previous_version"),
             "preinstall_target_changed",
         )
+    ares.require_payload_hashing()
     receipt.update(device=identity, previous_version=before["version"])
     active = APP_ID in ares.running()
     process = ares.native_process()
@@ -1372,6 +1383,50 @@ def update_lock(directory):
                 msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
 
 
+def check_other_update_journals(state_dir):
+    """Keep an earlier tag recoverable while holding the device-scoped lock."""
+    directory = Path(state_dir)
+    remaining = 8 * 1024 * 1024
+    with os.scandir(directory.parent) as entries:
+        for count, entry in enumerate(entries, 1):
+            check(count <= 1024, "update_journal_limit")
+            if entry.name == directory.name:
+                continue
+            check(not entry.is_symlink(), "unsafe_private_journal")
+            if not entry.is_dir(follow_symlinks=False):
+                continue
+            journal = Path(entry.path) / "update.json"
+            check(not journal.is_symlink(), "unsafe_private_journal")
+            try:
+                flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+                fd = os.open(journal, flags)
+            except FileNotFoundError:
+                continue
+            except OSError:
+                raise UpdateError("unsafe_private_journal") from None
+            with os.fdopen(fd, "rb") as stream:
+                info = os.fstat(stream.fileno())
+                check(stat.S_ISREG(info.st_mode) and info.st_size <= remaining
+                      and (not hasattr(os, "getuid") or info.st_uid == os.getuid()),
+                      "unsafe_private_journal")
+                raw = stream.read(remaining + 1)
+            remaining -= len(raw)
+            check(remaining >= 0, "update_journal_limit")
+            previous = json_bytes(raw)
+            check(isinstance(previous, dict) and previous.get("schema") == 1
+                  and previous.get("application_id") == APP_ID
+                  and previous.get("tag") == entry.name
+                  and type(previous.get("install_started")) is bool,
+                  "invalid_update_journal")
+            check(tag_version(previous["tag"]) == previous.get("version"), "invalid_update_journal")
+            require_device_binding(previous.get("device"))
+            settled = (previous.get("outcome") == "complete" and previous["install_started"] is True) or (
+                previous.get("outcome") == "already-current" and previous["install_started"] is False
+            )
+            preinstall = previous["install_started"] is False and previous.get("outcome") in {"closing", "needs-review"}
+            check(settled or preinstall, "pending_update")
+
+
 def update_device(
     ares,
     release,
@@ -1393,6 +1448,8 @@ def update_device(
     }
     if apply or reconcile:
         with update_lock(Path(state_dir).parent):
+            if apply:
+                check_other_update_journals(state_dir)
             return _update_device(ares, release, **options)
     return _update_device(ares, release, **options)
 

@@ -468,6 +468,73 @@ class PublicAssetTransportTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), b"payload")
             with self.assertRaises(publish.PromotionError):
                 publish.fetch_public_asset(url, Path(tmp) / "too-large", 6)
+            self.assertFalse((Path(tmp) / "too-large").exists())
+
+    def test_interrupted_download_removes_only_its_partial_and_can_retry(self):
+        failure = OSError("synthetic interrupted stream")
+        class Interrupted(WorkerTests.Response):
+            def read1(self, size):
+                if self.tell():
+                    raise failure
+                return super().read1(2)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: Interrupted(b"partial"))
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(OSError) as caught:
+                publish.fetch_public_asset("https://github.com/fixture/asset", path, 20)
+            self.assertIs(caught.exception, failure)
+            self.assertFalse(path.exists())
+            opener.open = lambda *args, **kwargs: WorkerTests.Response(b"complete")
+            with patch.object(publish, "build_opener", return_value=opener):
+                publish.fetch_public_asset("https://github.com/fixture/asset", path, 20)
+            self.assertEqual(path.read_bytes(), b"complete")
+
+    def test_exclusive_create_and_replaced_destination_are_never_removed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            path.write_bytes(b"existing")
+            opener = SimpleNamespace(open=lambda *args, **kwargs: WorkerTests.Response(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(FileExistsError):
+                publish.fetch_public_asset("https://github.com/fixture/asset", path, 20)
+            self.assertEqual(path.read_bytes(), b"existing")
+            path.unlink()
+            class Replaced(WorkerTests.Response):
+                def read1(self, size):
+                    path.unlink()
+                    path.write_bytes(b"replacement")
+                    raise OSError("synthetic replacement during transfer")
+            opener.open = lambda *args, **kwargs: Replaced(b"new")
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(OSError):
+                publish.fetch_public_asset("https://github.com/fixture/asset", path, 20)
+            self.assertEqual(path.read_bytes(), b"replacement")
+
+    def test_cleanup_failure_preserves_primary_error(self):
+        failure = OSError("synthetic stream failure")
+        class Interrupted(WorkerTests.Response):
+            def read1(self, size):
+                raise failure
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: Interrupted(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), \
+                    patch.object(Path, "unlink", side_effect=OSError("synthetic cleanup failure")), \
+                    self.assertRaises(OSError) as caught:
+                publish.fetch_public_asset("https://github.com/fixture/asset", path, 20)
+            self.assertIs(caught.exception, failure)
+            self.assertIn("incomplete asset", caught.exception.__notes__[0])
+            self.assertTrue(path.exists())
+
+    def test_response_close_failure_also_removes_owned_asset(self):
+        class BadClose(WorkerTests.Response):
+            def __exit__(self, *args):
+                super().__exit__(*args)
+                raise OSError("synthetic response close failure")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: BadClose(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(OSError):
+                publish.fetch_public_asset("https://github.com/fixture/asset", path, 20)
+            self.assertFalse(path.exists())
 
     def test_redirect_restricts_hosts_protocol_credentials_and_count(self):
         safe = "https://release-assets.githubusercontent.com/fixture?signature=example"
