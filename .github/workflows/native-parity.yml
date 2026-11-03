@@ -66,6 +66,15 @@ jobs:
       - name: Bundle MSI and NSIS without signing or publishing
         working-directory: src-tauri
         run: npx --no-install tauri build --ci --bundles "nsis,msi" -- --locked
+      - name: Verify embedded manifests before native tests
+        shell: pwsh
+        run: |
+          python tests/test_windows_manifest.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force build/windows-window-controls-report | Out-Null
+          cargo test --locked -p ottplay-tauri --no-run --message-format=json > build/windows-window-controls-report/test-artifacts.jsonl
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/check-windows-manifest.py --cargo-json build/windows-window-controls-report/test-artifacts.jsonl --binary target/release/ottplay-tauri.exe --output build/windows-window-controls-report/test-manifests.json
       - name: Test main-window control contracts on Windows
         run: cargo test --locked -p ottplay-tauri window_controls::tests
       - name: Test fullscreen confirmation contracts on Windows
@@ -74,6 +83,8 @@ jobs:
         run: python tests/test_window_controls_smoke.py
       - name: Build isolated window controls fixture
         run: cargo build --locked -p ottplay-tauri --example window_controls_smoke
+      - name: Verify isolated fixture manifest before launch
+        run: python scripts/check-windows-manifest.py --binary target/debug/examples/window_controls_smoke.exe --output build/windows-window-controls-report/fixture-manifest.json
       - name: Exercise native window IPC and ACL on Windows
         run: python scripts/check-window-controls.py
       - name: Preserve owned-window evidence
