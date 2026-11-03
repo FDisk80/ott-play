@@ -4263,22 +4263,30 @@ try {
             localDiagnosticsBaseline[name],
             name + " remains unchanged by optional Local diagnostics"
         );
-    assert.equal(
-        TOTAL_BUDGET.gzipBytes,
-        localDiagnosticsBaseline.TOTAL_BUDGET.gzipBytes
-    );
-    assert.equal(
-        TOTAL_BUDGET.bytes - localDiagnosticsBaseline.TOTAL_BUDGET.bytes,
-        LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.bytes
-    );
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            TOTAL_BUDGET[metric] -
+                localDiagnosticsBaseline.TOTAL_BUDGET[metric],
+            LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE[metric]
+        );
     const localEvidence = require("../docs/evidence/local-source-diagnostics-size-20261103.json");
     assert.deepEqual(
         localEvidence.allowance,
         LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE
     );
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            localEvidence.currentTotalCap[metric] -
+                localEvidence.previousTotalCap[metric],
+            LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE[metric]
+        );
     assert.equal(
-        localEvidence.currentTotalCap.gzipBytes,
-        localEvidence.previousTotalCap.gzipBytes
+        Math.max(
+            ...localEvidence.measurements.map(
+                (row) => row.delta.total.gzipBytes
+            )
+        ),
+        LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.gzipBytes
     );
     for (const row of localEvidence.measurements) {
         for (const metric of ["bytes", "gzipBytes"])
@@ -4290,9 +4298,13 @@ try {
         assert(row.candidate.entry.bytes <= BUDGET.bytes);
         assert(row.candidate.total.bytes <= TOTAL_BUDGET.bytes);
         assert(row.candidate.total.gzipBytes <= TOTAL_BUDGET.gzipBytes);
-        assert(
-            row.delta.total.bytes <= LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.bytes
-        );
+        for (const metric of ["bytes", "gzipBytes"]) {
+            assert(row.delta.total[metric] > 0);
+            assert(
+                row.delta.total[metric] <=
+                    LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE[metric]
+            );
+        }
     }
     for (const name of Object.keys(OPTIONAL_BUDGETS))
         if (name !== "local-compatibility")

@@ -1087,12 +1087,12 @@ const OPTIONAL_BUDGET = Object.freeze({ bytes: 7800, gzipBytes: 3300 });
 // Optional hosted transport and remote settings retain independent feature caps.
 // Their union does not change the legacy entry/provider or subtitle limits.
 // Passive Local identity observation travels with the existing Local feature.
-// Paired Node 26.8.2 measurements are recorded in
+// Controlled Node 22.23.4 ON/OFF measurements are recorded in
 // docs/evidence/local-source-diagnostics-size-20261103.json. Startup and legacy
-// budgets stay unchanged; only the measured complete raw payload is allocated.
+// budgets stay unchanged; only the complete feature payload is allocated.
 const LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE = Object.freeze({
     bytes: 5800,
-    gzipBytes: 0,
+    gzipBytes: 1724,
     optional: Object.freeze({ bytes: 9450, gzipBytes: 3550 }),
 });
 const OPTIONAL_BUDGETS = Object.freeze({
@@ -1408,7 +1408,9 @@ const TOTAL_BUDGET = Object.freeze({
         LOCAL_COMPATIBILITY_ALLOWANCE.bytes +
         LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.bytes,
     gzipBytes:
-        BASE_TOTAL_BUDGET.gzipBytes + LOCAL_COMPATIBILITY_ALLOWANCE.gzipBytes,
+        BASE_TOTAL_BUDGET.gzipBytes +
+        LOCAL_COMPATIBILITY_ALLOWANCE.gzipBytes +
+        LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.gzipBytes,
 });
 const ARTIFACTS = Object.freeze([
     "dist/player.js",
