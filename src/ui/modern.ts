@@ -410,6 +410,8 @@ function createModernInterface(w: any) {
             if (hero) {
                 railFocus = -1;
                 heroFocus = index;
+                shellParent?.classList.remove("modern-rail-focused");
+                syncRailFocus();
             } else if (actions[index] === action && railFocus !== index)
                 focusRail(index);
         };

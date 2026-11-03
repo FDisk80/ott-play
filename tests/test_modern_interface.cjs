@@ -849,10 +849,88 @@ test("Home hero actions are reachable between the top capsule and media strip wi
         assert.equal(f.doc.activeElement.dataset.modernHeroAction, "details");
         f.api.navigation({ id: "up" }, f.owner);
         assert.equal(f.doc.activeElement.dataset.modernAction, "home");
+        assert.equal(f.doc.querySelectorAll(".modern-rail-selected").length, 1);
         f.api.navigation({ id: "down" }, f.owner);
         assert.equal(f.doc.activeElement.dataset.modernHeroAction, "play");
+        assert.equal(f.doc.querySelectorAll(".modern-rail-selected").length, 0);
+        assert.equal(f.list.classList.contains("modern-rail-focused"), false);
         f.api.navigation({ id: "down" }, f.owner);
         assert.equal(f.doc.activeElement, row);
+        assert.equal(f.w.selIndex, 0);
+        assert.deepEqual(f.effects, []);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Home hero direct focus clears the rail and stays clear through repeated prepare", () => {
+    const f = shellFixture();
+    try {
+        f.w.selIndex = 0;
+        const row = f.container.appendChild(f.doc.createElement("div"));
+        row.id = "it0";
+        row.tabIndex = -1;
+        let rowFocus = 0;
+        row.addEventListener("focus", () => rowFocus++);
+        f.w.__ottModernSelectedActions = () => [
+            { id: "play", label: "Play", run: () => f.effects.push("play") },
+            {
+                id: "details",
+                label: "Details",
+                run: () => f.effects.push("details"),
+            },
+        ];
+        f.api.prepare(f.ids, f.formatter, f.container);
+        const rail = f.doc.querySelector('[data-modern-action="home"]');
+        for (const id of ["play", "details"]) {
+            rail.focus();
+            assert.equal(
+                f.doc.querySelectorAll(".modern-rail-selected").length,
+                1
+            );
+            assert.equal(
+                f.list.classList.contains("modern-rail-focused"),
+                true
+            );
+            const hero = f.doc.querySelector(
+                `[data-modern-hero-action="${id}"]`
+            );
+            let heroFocus = 0;
+            const onFocus = () => heroFocus++;
+            hero.addEventListener("focus", onFocus);
+            hero.focus();
+            assert.equal(f.doc.activeElement, hero);
+            assert.equal(
+                f.doc.querySelectorAll(".modern-rail-selected").length,
+                0
+            );
+            assert.equal(
+                f.list.classList.contains("modern-rail-focused"),
+                false
+            );
+            assert.equal(rail.tabIndex, 0);
+            f.api.prepare(f.ids, f.formatter, f.container);
+            assert.equal(f.doc.activeElement, hero);
+            assert.equal(
+                heroFocus,
+                1,
+                "retained active Hero needs no second focus event"
+            );
+            assert.equal(
+                f.doc.querySelectorAll(".modern-rail-selected").length,
+                0
+            );
+            assert.equal(
+                f.list.classList.contains("modern-rail-focused"),
+                false
+            );
+            hero.removeEventListener("focus", onFocus);
+        }
+        assert.equal(
+            rowFocus,
+            0,
+            "Hero focus must not briefly focus a media row"
+        );
         assert.equal(f.w.selIndex, 0);
         assert.deepEqual(f.effects, []);
     } finally {

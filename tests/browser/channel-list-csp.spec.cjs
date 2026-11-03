@@ -5026,10 +5026,15 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     () => !!document.activeElement.closest("#modernRail")
                 )
             ).toBe(true);
+            await expect(page.locator(".modern-rail-selected")).toHaveCount(1);
             await page.keyboard.press("ArrowDown");
             await expect(
                 page.locator('#modernHero [data-modern-hero-action="play"]')
             ).toBeFocused();
+            await expect(page.locator(".modern-rail-selected")).toHaveCount(0);
+            await expect(page.locator("#list")).not.toHaveClass(
+                /modern-rail-focused/
+            );
             await page.keyboard.press("ArrowDown");
             await expect(page.locator("#it0")).toBeFocused();
             expect(await page.evaluate(() => listArray[selIndex])).toBe(
