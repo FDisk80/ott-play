@@ -7,13 +7,8 @@
     },
     "torrent_indexer_children": {
       "version": 1,
-      "operations": [
-        "indexers"
-      ],
-      "scopedOperations": [
-        "caps",
-        "search"
-      ]
+      "operations": ["indexers"],
+      "scopedOperations": ["caps", "search"]
     }
   },
   "limits": {
@@ -150,12 +145,8 @@
             "size": 123,
             "seeders": null,
             "publishedAt": null,
-            "categoryIds": [
-              2000
-            ],
-            "languages": [
-              "en"
-            ]
+            "categoryIds": [2000],
+            "languages": ["en"]
           }
         ],
         "nextOffset": null,
@@ -787,12 +778,8 @@
             "size": 123,
             "seeders": null,
             "publishedAt": null,
-            "categoryIds": [
-              2000
-            ],
-            "languages": [
-              "en"
-            ]
+            "categoryIds": [2000],
+            "languages": ["en"]
           }
         ],
         "nextOffset": null,
@@ -827,12 +814,8 @@
             "size": 123,
             "seeders": null,
             "publishedAt": null,
-            "categoryIds": [
-              2000
-            ],
-            "languages": [
-              "en"
-            ]
+            "categoryIds": [2000],
+            "languages": ["en"]
           }
         ],
         "nextOffset": null,

@@ -64,6 +64,41 @@ fn session_options(token: CancellationToken, private: bool) -> SessionOptions {
         ..Default::default()
     }
 }
+
+// Most tests must never contact a tracker. The byte-path acceptance fixture
+// explicitly opts in to its one private, loopback-only tracker instead of
+// injecting peers and bypassing discovery.
+#[cfg(test)]
+fn test_tracker_allowed(source: &Source, allowed: Option<&str>) -> bool {
+    let Some(allowed) = allowed else {
+        return false;
+    };
+    let Ok(url) = reqwest::Url::parse(allowed) else {
+        return false;
+    };
+    if url.scheme() != "http"
+        || url.host_str() != Some("127.0.0.1")
+        || !url.port().is_some_and(|port| port > 0)
+        || url.path() != "/announce"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return false;
+    }
+    let Source::Metainfo(bytes) = source else {
+        return false;
+    };
+    let Ok(meta) = librqbit::torrent_from_bytes(bytes) else {
+        return false;
+    };
+    meta.info.data.private
+        && meta.iter_announce().next().is_some()
+        && meta
+            .iter_announce()
+            .all(|tracker| tracker.as_ref() == allowed.as_bytes())
+}
 #[cfg(test)]
 mod private_policy_tests {
     use super::*;
@@ -98,6 +133,60 @@ mod private_policy_tests {
         assert!(resolve_source(Source::Metainfo(b"not metainfo".to_vec()))
             .await
             .is_err());
+    }
+
+    #[test]
+    fn tracker_fixture_opt_in_is_private_exact_and_loopback_only() {
+        fn source(tracker: &str, private: bool, extra: Option<&str>) -> Source {
+            let list = extra.map_or_else(String::new, |extra| {
+                format!(
+                    "13:announce-listll{}:{tracker}{}:{extra}ee",
+                    tracker.len(),
+                    extra.len()
+                )
+            });
+            Source::Metainfo(format!(
+                "d8:announce{}:{tracker}{list}4:infod6:lengthi1e4:name1:x12:piece lengthi1e6:pieces20:000000000000000000007:privatei{}eee",
+                tracker.len(), u8::from(private)
+            ).into_bytes())
+        }
+        let allowed = "http://127.0.0.1:43210/announce";
+        let private = source(allowed, true, None);
+        assert!(test_tracker_allowed(&private, Some(allowed)));
+        assert!(!test_tracker_allowed(&private, None));
+        assert!(!test_tracker_allowed(
+            &source(allowed, false, None),
+            Some(allowed)
+        ));
+        assert!(!test_tracker_allowed(
+            &Source::Url("magnet:?xt=urn:btih:0123456789012345678901234567890123456789".into()),
+            Some(allowed)
+        ));
+        for other in [
+            "http://127.0.0.1:43211/announce",
+            "http://192.0.2.1:43210/announce",
+            "http://localhost:43210/announce",
+            "http://127.0.0.1:0/announce",
+            "https://127.0.0.1:43210/announce",
+            "http://user@127.0.0.1:43210/announce",
+            "http://127.0.0.1:43210/announce?key=value",
+            "http://127.0.0.1:43210/announce#fragment",
+        ] {
+            assert!(!test_tracker_allowed(
+                &source(other, true, None),
+                Some(allowed)
+            ));
+            assert!(!test_tracker_allowed(
+                &source(allowed, true, Some(other)),
+                Some(allowed)
+            ));
+            if other != "http://127.0.0.1:43211/announce" {
+                assert!(!test_tracker_allowed(
+                    &source(other, true, None),
+                    Some(other)
+                ));
+            }
+        }
     }
 }
 const MAX_FILES: usize = 4096;
@@ -238,6 +327,8 @@ pub struct TorrentManager {
     limits: super::ResourceLimits,
     #[cfg(test)]
     pub initial_peers: Mutex<Vec<std::net::SocketAddr>>,
+    #[cfg(test)]
+    pub(super) test_tracker: Mutex<Option<String>>,
 }
 impl TorrentManager {
     pub async fn new(
@@ -256,6 +347,8 @@ impl TorrentManager {
             limits,
             #[cfg(test)]
             initial_peers: Mutex::new(Vec::new()),
+            #[cfg(test)]
+            test_tracker: Mutex::new(None),
         });
         let weak = Arc::downgrade(&manager);
         let cancelled = manager.cancel.clone();
@@ -393,7 +486,8 @@ impl TorrentManager {
         #[cfg(test)]
         {
             options.dht = None;
-            options.disable_trackers = true;
+            options.disable_trackers =
+                !test_tracker_allowed(&source, lock(&self.test_tracker).as_deref());
         }
         // No incoming TCP listener, UPnP or service discovery is enabled.
         let engine = tokio::select! {
