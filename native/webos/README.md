@@ -9,8 +9,9 @@ Our reviewed changes are in `patches/`; upstream code is fetched during the
 build, not silently copied into the main player's source tree.
 
 The application ID is `com.openottplay.player.native`, the title is **OTTPlay
-Native**. The working source targets experimental **0.2.0**, which is not yet
-a published release; the published initial package is **0.1.0**. The
+Native**. Native **0.2.0** is published as
+[native-webos-v0.2.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1).
+Publication does not establish physical-TV acceptance. The
 existing `com.openottplay.player` hosted web application remains separate.
 
 ## What this target provides
@@ -233,15 +234,19 @@ rebuild, real-device execution or functional parity.
 
 ### Choose and verify the native package
 
-The initial experimental release is
-[native-webos-v0.1.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.1.0-beta.1).
-That release contains **0.1.0** assets, not the unreleased **0.2.0** candidate.
-Download `ottplay-native-webos-0.1.0.ipk`, its `.sha256` and `.json` files, and
-the matching source set from the same release. From the download directory, check:
+The current experimental release is
+[native-webos-v0.2.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1).
+Download `ottplay-native-webos-0.2.0.ipk`, its `.sha256` and `.json` files, and
+the matching source set from that release. From the download directory, check:
 
 ```sh
-shasum -a 256 -c ottplay-native-webos-0.1.0.sha256
+shasum -a 256 -c ottplay-native-webos-0.2.0.sha256
 ```
+
+Use the [checked update guide](../../docs/native-webos-delivery.md) for an
+existing installation. The initial
+[0.1.0 release](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.1.0-beta.1)
+remains available; its device observations do not qualify 0.2.0.
 
 The metadata must identify `type: native`, architecture `arm`, and application
 ID **`com.openottplay.player.native`**. The ordinary OTT-play webOS package
@@ -317,7 +322,7 @@ and launch its native ID. Run this from the download directory, or substitute
 the build output path `build/native-webos/dist/`:
 
 ```sh
-ares-install --device YOUR_TV ./ottplay-native-webos-0.1.0.ipk
+ares-install --device YOUR_TV ./ottplay-native-webos-0.2.0.ipk
 ares-install --device YOUR_TV --listfull
 ares-launch --device YOUR_TV com.openottplay.player.native
 ares-launch --device YOUR_TV --running
@@ -352,7 +357,7 @@ connection and system information were verified, installation and launch
 completed successfully, and `--running` confirmed the native application ID.
 The IPK SHA256 matched the published release digest. This is installation and
 startup evidence only; playback and decoder compatibility remain unverified on
-this model as well. It does not qualify the unreleased **0.2.0** candidate.
+this model as well. It does not qualify the published **0.2.0** package.
 
 ### Connection and startup troubleshooting
 
