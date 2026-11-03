@@ -3814,10 +3814,19 @@ for (const profile of ["server", "tauri"]) {
 test("portrait player settings keep Save visible and persist the selected engine", async ({
     browser,
 }) => {
-    const fixture = await fixturePage(browser, "server");
+    // Start at the final size so a delayed resize cannot redraw Save mid-click.
+    const fixture = await fixturePage(
+        {
+            newContext: (options) =>
+                browser.newContext({
+                    ...options,
+                    viewport: { height: 1230, width: 722 },
+                }),
+        },
+        "server"
+    );
     const { page } = fixture;
     try {
-        await page.setViewportSize({ height: 1230, width: 722 });
         await page.evaluate(() => {
             (function installPortraitSettingsDiagnostics() {
                 const trace = [];
@@ -3900,8 +3909,8 @@ test("portrait player settings keep Save visible and persist the selected engine
             .locator("#listIn .btn")
             .filter({ hasText: "Save Settings" });
         await expect(save).toBeVisible();
-        // Resizing schedules a list redraw, which can replace the visible Save
-        // node between the locator lookup and boundingBox's layout read.
+        // A layout update can replace the visible Save node between the
+        // locator lookup and boundingBox's layout read.
         await expect(async () => {
             const bounds = await save.boundingBox();
             expect(bounds).not.toBeNull();
@@ -3914,7 +3923,11 @@ test("portrait player settings keep Save visible and persist the selected engine
                 return parseFloat(getComputedStyle(node).fontSize);
             })
         ).toBeLessThanOrEqual(29);
-        await save.dblclick();
+        await save.click();
+        await expect(page.locator("#listIn .item.ott-selected")).toContainText(
+            "Save Settings"
+        );
+        await save.click();
         expect(
             await page.evaluate(() => {
                 window.__portraitSettingsRecord("after-save");
@@ -3922,6 +3935,9 @@ test("portrait player settings keep Save visible and persist the selected engine
             })
         ).toBe(1);
         expect(await page.evaluate(() => window.playerMode)).toBe(1);
+        expect(
+            await page.evaluate(() => window.providerGetItem("sPlayers"))
+        ).toBe("1");
         expect(fixture.errors).toEqual([]);
     } catch (error) {
         try {
