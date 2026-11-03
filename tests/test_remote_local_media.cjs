@@ -1331,6 +1331,78 @@ test("native API passes canonical lookup to sources without starting a catalog s
     );
 });
 
+test("missing native folder reports source_unavailable without changing current playback", async () => {
+    for (const op of ["sources", "play", "shuffle"]) {
+        const f = pluginFixture({
+            invoke(name) {
+                if (name === "local_media_sources")
+                    return Promise.reject("source_unavailable");
+            },
+        });
+        await tick();
+        const driver = f.w.__ottActiveProviderDriver;
+        const channelLoad = f.w.__ottCommandChannelLoad;
+        const saved = [...f.data];
+        const args =
+            op === "sources"
+                ? { path: "/media/disconnected/Movies" }
+                : { source: "/media/disconnected/Movies" };
+        const result = await new Promise((resolve) =>
+            execute(f.w, request(op, args), resolve)
+        );
+        assert.equal(result.status, "rejected");
+        assert.equal(result.data.error, "source_unavailable");
+        assert.equal(f.w.__ottActiveProviderDriver, driver);
+        assert.equal(f.w.__ottCommandChannelLoad, channelLoad);
+        assert.deepEqual([...f.data], saved);
+        assert.equal(f.w.__ottLocalMediaRequestActive, false);
+        assert.equal(f.reads, 0);
+        assert.equal(
+            f.calls.filter(([name]) => name === "local_media_sources").length,
+            1
+        );
+        assert.equal(
+            f.calls.some(([name]) =>
+                [
+                    "local_media_link_folder",
+                    "offline_media_endpoint",
+                    "provider",
+                ].includes(name)
+            ),
+            false
+        );
+    }
+});
+
+test("native source errors without the exact fixed code remain generic and private", async () => {
+    for (const error of [
+        "Local sources unavailable; select an accessible absolute directory",
+        "source_unavailable: private diagnostic context",
+        new Error("source_unavailable"),
+    ]) {
+        const f = pluginFixture({
+            invoke(name) {
+                if (name === "local_media_sources")
+                    return Promise.reject(error);
+            },
+        });
+        await tick();
+        const result = await new Promise((resolve) =>
+            execute(f.w, request("play", { source: "/media/Movies" }), resolve)
+        );
+        assert.equal(result.data.error, "native_error");
+        assert.equal(
+            JSON.stringify(result).includes("private diagnostic"),
+            false
+        );
+        assert.equal(f.reads, 0);
+        assert.equal(
+            f.calls.some(([name]) => name === "provider"),
+            false
+        );
+    }
+});
+
 test("local selection is scoped to the active saved profile binding", async () => {
     const f = pluginFixture();
     await tick();

@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "base": "0d2bd64f52f5c2c537cf8dd1276b017965c85ea4",
+  "compatibleBase": "ffe4c346a6c2e66c3fb71352494943b75fdfd9c5",
+  "toolchain": {
+    "node": "26.8.2",
+    "zlib": "1.2.12"
+  },
+  "measurementContext": {
+    "sameToolchain": true,
+    "gitSourceIdentityBytesExcluded": 40,
+    "betaSuffixIncluded": false
+  },
+  "allowance": {
+    "bytes": 5800,
+    "gzipBytes": 0,
+    "optional": {
+      "bytes": 9450,
+      "gzipBytes": 3550
+    }
+  },
+  "protectedCaps": {
+    "budget": {
+      "bytes": 1188352,
+      "gzipBytes": 363165
+    },
+    "legacyTotalBudget": {
+      "bytes": 1433408,
+      "gzipBytes": 447420
+    }
+  },
+  "previousTotalCap": {
+    "bytes": 1863353,
+    "gzipBytes": 574760
+  },
+  "currentTotalCap": {
+    "bytes": 1869153,
+    "gzipBytes": 574760
+  },
+  "measurements": [
+    {
+      "variant": "dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1187847,
+          "gzipBytes": 361795,
+          "path": "dist/player.js",
+          "sha256": "0046a9e2bb7aa2908c4bd9c610a5e179c1fae57b3ce126106fb1543c640f5bf7"
+        },
+        "local": {
+          "bytes": 4012,
+          "gzipBytes": 1729,
+          "path": "dist/local-compatibility.js",
+          "sha256": "2aaa2fa4d8855ca97f2669d54a5e7dd5979e3f3e0d2aac364dae935446404b0b"
+        },
+        "legacy": {
+          "bytes": 1432720,
+          "gzipBytes": 446032
+        },
+        "total": {
+          "bytes": 1862933,
+          "gzipBytes": 572783
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1188201,
+          "gzipBytes": 361843,
+          "path": "dist/player.js",
+          "sha256": "be28fee599a01725039e67335878dffa64e909f5febc8126a8c01e78babc70ea"
+        },
+        "local": {
+          "bytes": 9174,
+          "gzipBytes": 3402,
+          "path": "dist/local-compatibility.js",
+          "sha256": "ff68491f9351005b4ab6f8b9d71e04b86037c30040b302db22adade442d1ba69"
+        },
+        "legacy": {
+          "bytes": 1433074,
+          "gzipBytes": 446080
+        },
+        "total": {
+          "bytes": 1868449,
+          "gzipBytes": 574504
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "local": {
+          "bytes": 5162,
+          "gzipBytes": 1673
+        },
+        "legacy": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "total": {
+          "bytes": 5516,
+          "gzipBytes": 1721
+        }
+      }
+    },
+    {
+      "variant": "src-tauri/frontend/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1187805,
+          "gzipBytes": 361847,
+          "path": "src-tauri/frontend/dist/player.js",
+          "sha256": "0f9bff793b4b574deecaac3768bf13cde30a2686c88144b914654e98b0768494"
+        },
+        "local": {
+          "bytes": 4012,
+          "gzipBytes": 1729,
+          "path": "src-tauri/frontend/dist/local-compatibility.js",
+          "sha256": "2aaa2fa4d8855ca97f2669d54a5e7dd5979e3f3e0d2aac364dae935446404b0b"
+        },
+        "legacy": {
+          "bytes": 1432678,
+          "gzipBytes": 446084
+        },
+        "total": {
+          "bytes": 1862891,
+          "gzipBytes": 572835
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1188159,
+          "gzipBytes": 361895,
+          "path": "src-tauri/frontend/dist/player.js",
+          "sha256": "d7adfa801b2b797e30b47683bfab6378812da8d7630245a8efa47950f777ed0e"
+        },
+        "local": {
+          "bytes": 9174,
+          "gzipBytes": 3402,
+          "path": "src-tauri/frontend/dist/local-compatibility.js",
+          "sha256": "ff68491f9351005b4ab6f8b9d71e04b86037c30040b302db22adade442d1ba69"
+        },
+        "legacy": {
+          "bytes": 1433032,
+          "gzipBytes": 446132
+        },
+        "total": {
+          "bytes": 1868407,
+          "gzipBytes": 574556
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "local": {
+          "bytes": 5162,
+          "gzipBytes": 1673
+        },
+        "legacy": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "total": {
+          "bytes": 5516,
+          "gzipBytes": 1721
+        }
+      }
+    },
+    {
+      "variant": "dist-mobile/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1187805,
+          "gzipBytes": 361847,
+          "path": "dist-mobile/dist/player.js",
+          "sha256": "0f9bff793b4b574deecaac3768bf13cde30a2686c88144b914654e98b0768494"
+        },
+        "local": {
+          "bytes": 4012,
+          "gzipBytes": 1729,
+          "path": "dist-mobile/dist/local-compatibility.js",
+          "sha256": "2aaa2fa4d8855ca97f2669d54a5e7dd5979e3f3e0d2aac364dae935446404b0b"
+        },
+        "legacy": {
+          "bytes": 1432678,
+          "gzipBytes": 446084
+        },
+        "total": {
+          "bytes": 1862891,
+          "gzipBytes": 572835
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1188159,
+          "gzipBytes": 361895,
+          "path": "dist-mobile/dist/player.js",
+          "sha256": "d7adfa801b2b797e30b47683bfab6378812da8d7630245a8efa47950f777ed0e"
+        },
+        "local": {
+          "bytes": 9174,
+          "gzipBytes": 3402,
+          "path": "dist-mobile/dist/local-compatibility.js",
+          "sha256": "ff68491f9351005b4ab6f8b9d71e04b86037c30040b302db22adade442d1ba69"
+        },
+        "legacy": {
+          "bytes": 1433032,
+          "gzipBytes": 446132
+        },
+        "total": {
+          "bytes": 1868407,
+          "gzipBytes": 574556
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "local": {
+          "bytes": 5162,
+          "gzipBytes": 1673
+        },
+        "legacy": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "total": {
+          "bytes": 5516,
+          "gzipBytes": 1721
+        }
+      }
+    }
+  ],
+  "invariants": [
+    "Status and capabilities never load the optional asset.",
+    "Ordinary Local preparePlayback warms the existing Local asset; direct playback does not wait.",
+    "The Local manager is a per-page singleton; profile and provider changes retain that instance and change its observed catalog.",
+    "HEVC hvc1.1.6.L93.B0 canPlayType is advisory and cannot establish L120 file decoding.",
+    "Diagnostics perform no filesystem/media requests, runtime initialization or compatibility preparation."
+  ],
+  "validation": [
+    "Vite production build passed",
+    "ES5 validation passed for 352 scripts",
+    "Entry, legacy and unrelated asset caps unchanged",
+    "Complete gzip cap unchanged",
+    "135 Local/diagnostic regression tests passed",
+    "Native compilation delegated to integration owner; no hardware acceptance claimed"
+  ]
+}

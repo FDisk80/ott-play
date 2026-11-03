@@ -83,12 +83,15 @@ function fixture() {
         changeSelect() {},
         changeVolume() {},
         clearInterval() {},
+        closeFullscreen: () => effects.push("closeFullscreen"),
         curColor: "#fff",
         curColorB: "#000",
+        isNormalScreen: () => true,
         listCaptionElement: w.document.getElementById("listCaption"),
         listDetailElement: w.document.getElementById("listDetail"),
         listFooterElement: w.document.getElementById("listPodval"),
         nativeListInertia: null,
+        openFullscreen: () => effects.push("openFullscreen"),
         ott_device: "lg-webos",
         setInterval() {
             return ++timer;
@@ -100,9 +103,6 @@ function fixture() {
             shifts.push(String(value));
         },
         sNoColorKeys: true,
-        stbEventToKeyCode(event) {
-            return (event && (event.keyCode || event.which)) || 0;
-        },
         stbGetItem(key) {
             return key === "ottplaylang" ? w.fixtureLocale : null;
         },
@@ -122,6 +122,7 @@ function fixture() {
         },
         swopLoadValue() {},
     });
+    w.eval(functions("src/core/index.ts", ["stbEventToKeyCode"]));
     w.eval(lgDeclarations());
     require("./helpers/screen-runtime.cjs")(w);
     w.eval(keyboardCode());
@@ -249,6 +250,49 @@ test("LG aliases stay on the shipped key map and History Back is one return", (f
     );
     assert.equal(f.w.history.length, before + 1);
     assert.equal(f.w.__ottScreens.current().kind, "list");
+});
+test("L and l reach the foreground graphical editor through the real LG base map", (f) => {
+    openKeyboard(f);
+    f.w.addEventListener("keydown", f.w.keyHandler);
+    for (const key of ["L", "l"]) {
+        f.w.document.body.dispatchEvent(
+            new f.w.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                code: "KeyL",
+                key,
+                keyCode: 76,
+            })
+        );
+    }
+    assert.equal(f.w.editvar, "Ll");
+    assert.deepEqual(f.effects, []);
+});
+test("L keeps fullscreen behavior after graphical editor closes", (f) => {
+    openKeyboard(f);
+    f.press(f.w.keys.RETURN);
+    assert.equal(f.w.__ottClassicScreenPort.owner("editor"), null);
+    f.press(76, { code: "KeyL", key: "L" });
+    assert.deepEqual(f.effects, ["openFullscreen"]);
+});
+test("an editor covered by a dialog does not suppress the L shortcut", (f) => {
+    openKeyboard(f);
+    f.w.__ottClassicScreenPort.openOverlay("dialog", () => {});
+    f.press(76, { code: "KeyL", key: "L" });
+    assert.equal(f.w.editvar, "");
+    assert.deepEqual(f.effects, ["openFullscreen"]);
+});
+test("modified L and numeric-only 76 keep their previous shortcut behavior", (f) => {
+    openKeyboard(f);
+    for (const modifiers of [
+        { ctrlKey: true },
+        { altKey: true },
+        { metaKey: true },
+    ])
+        f.press(76, { code: "KeyL", key: "L", ...modifiers });
+    f.press(76);
+    assert.equal(f.w.editvar, "");
+    assert.deepEqual(f.effects, Array(4).fill("openFullscreen"));
 });
 test("Latin, Turkish and paged Vietnamese input stay with the settings owner", (f) => {
     const rows = [{ settingId: "pageSize" }];

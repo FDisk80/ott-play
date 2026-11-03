@@ -1132,6 +1132,18 @@ export function stbEventToKeyCode(event: any): number {
     }
 
     if (keyCode === 76) {
+        var screenPort = (window as any).__ottClassicScreenPort;
+        var textEditor = screenPort && screenPort.owner("editor");
+        if (
+            textEditor &&
+            textEditor.foreground() &&
+            textEditor.model.nativeInputSecret === undefined &&
+            (key === "l" || key === "L") &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            !event.metaKey
+        )
+            return keyCode;
         // L/l/KeyL — fullscreen toggle on non-Tauri platforms.
         // On Tauri the capture-phase document listener in
         // installTauriFsKeyCapture owns L (stopImmediatePropagation

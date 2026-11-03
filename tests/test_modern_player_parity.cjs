@@ -310,3 +310,62 @@ test("Modern leaves Space on the scrubber to existing playback shortcuts", (t) =
     assert.equal(event.defaultPrevented, false);
     assert.deepEqual(calls, []);
 });
+
+for (const change of [
+    { after: true, before: false, track: "audio" },
+    { after: false, before: true, track: "audio" },
+    { after: true, before: false, track: "subtitle" },
+    { after: false, before: true, track: "subtitle" },
+]) {
+    test(`Modern action focus survives ${change.track} becoming ${change.after ? "available" : "unavailable"}`, (t) => {
+        const { api, calls, open, w } = fixture(t);
+        let available = change.before;
+        w.stbAudioTracksExists = () =>
+            change.track === "audio" ? available : true;
+        w.stbSubtitleExists = () =>
+            change.track === "subtitle" ? Number(available) : 1;
+        w.stbToggleAspectRatio = () => calls.push(["aspect"]);
+        w.stbToggleAudioTrack = () => calls.push(["audio"]);
+        w.stbToggleSubtitle = () => calls.push(["subtitle"]);
+        w.channelsList = () => calls.push(["list"]);
+        open();
+        const action = (name) =>
+            w.document.querySelector(`[data-modern-player-action="${name}"]`);
+        action("aspect").focus();
+        available = change.after;
+        api.sync();
+        assert.equal(w.document.activeElement, action("aspect"));
+        assert.equal(api.handleKey({ keyCode: w.keys.ENTER }), true);
+        assert.deepEqual(
+            calls.filter(([name]) =>
+                ["aspect", "audio", "subtitle", "list"].includes(name)
+            ),
+            [["aspect"]]
+        );
+        assert.equal(api.handleKey({ keyCode: w.keys.RIGHT }), true);
+        assert.equal(w.document.activeElement, action("list"));
+        api.handleKey({ keyCode: w.keys.ENTER });
+        assert.equal(calls.at(-1)[0], "list");
+    });
+}
+
+test("Modern action focus moves to a visible neighbor when its track disappears", (t) => {
+    const { api, calls, open, w } = fixture(t);
+    let available = true;
+    w.stbAudioTracksExists = () => true;
+    w.stbSubtitleExists = () => Number(available);
+    w.stbToggleAspectRatio = () => calls.push(["aspect"]);
+    open();
+    w.document.querySelector('[data-modern-player-action="subtitle"]').focus();
+    available = false;
+    api.sync();
+    assert.equal(
+        w.document.activeElement.getAttribute("data-modern-player-action"),
+        "aspect"
+    );
+    assert.equal(api.handleKey({ keyCode: w.keys.ENTER }), true);
+    assert.deepEqual(
+        calls.filter(([name]) => name === "aspect"),
+        [["aspect"]]
+    );
+});

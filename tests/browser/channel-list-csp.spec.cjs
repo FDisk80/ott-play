@@ -241,6 +241,12 @@ async function fixturePage(
         ["/dist/player.js", read(stage + "dist/player.js")],
         ["/dist/modern-interface.js", read(stage + "dist/modern-interface.js")],
         ["/dist/provider-plex.js", read(stage + "dist/provider-plex.js")],
+        ["/dist/provider-m3u.js", read(stage + "dist/provider-m3u.js")],
+        ["/providers/m3u/about.html", read("providers/m3u/about.html")],
+        [
+            "/providers/m3u/logo.png",
+            fs.readFileSync(path.join(root, "providers/m3u/logo.png")),
+        ],
         [
             "/dist/subtitle-appearance.js",
             read(stage + "dist/subtitle-appearance.js"),
@@ -320,9 +326,13 @@ async function fixturePage(
             body: assets.get(url.pathname),
             contentType: url.pathname.endsWith(".css")
                 ? "text/css"
-                : url.pathname.startsWith("/fonts/")
-                  ? "application/octet-stream"
-                  : "text/javascript",
+                : url.pathname.endsWith(".html")
+                  ? "text/html"
+                  : url.pathname.endsWith(".png")
+                    ? "image/png"
+                    : url.pathname.startsWith("/fonts/")
+                      ? "application/octet-stream"
+                      : "text/javascript",
             status: 200,
         });
     });
@@ -2035,6 +2045,8 @@ for (const profile of ["server", "tauri", "capacitor"]) {
             const fixture = await fixturePage(browser, profile);
             const page = fixture.page;
             try {
+                if (profile === "tauri")
+                    await attachModernRuntimeIdentity(page, browser);
                 await page.evaluate(() => {
                     uiInit();
                     uiInit();
@@ -4279,6 +4291,8 @@ for (const profile of ["server", "tauri", "capacitor"]) {
         });
         const { page } = fixture;
         try {
+            if (profile === "tauri")
+                await attachModernRuntimeIdentity(page, browser);
             await expect(page.locator("#listIn .modern-channel")).toHaveCount(
                 0
             );
@@ -5322,6 +5336,8 @@ for (const viewport of [
         });
         const { page } = fixture;
         try {
+            if (viewport.width === 393)
+                await attachModernRuntimeIdentity(page, browser);
             await page.setViewportSize(viewport);
             await seedModernMovies(page, 100, 17);
             await expect(page.locator("#it17.modern-card")).toBeVisible();
@@ -5485,6 +5501,7 @@ test("Modern navigation keeps library, categories, settings and search in the sa
     });
     const { page } = fixture;
     try {
+        await attachModernRuntimeIdentity(page, browser);
         await seedModernMovies(page, 80, 5);
         // The global Favorites store is lazy, but its entrypoint must be
         // available before a user has opened it in this session.
@@ -5824,6 +5841,384 @@ test("Modern fullscreen timeline and audio picker preserve the playback owner", 
             path: test.info().outputPath("modern-fullscreen-zero-position.png"),
         });
         expect(await page.evaluate(() => __modernMediaEffects)).toEqual([]);
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    test(`Modern dynamic tracks preserve the focused Aspect action (${profile})`, async ({
+        browser,
+    }) => {
+        const fixture = await fixturePage(browser, profile, {
+            interfaceTheme: 2,
+        });
+        const { page } = fixture;
+        try {
+            await attachModernRuntimeIdentity(page, browser);
+            await page.evaluate(() => {
+                // Model decoder track discovery on the actual core video element.
+                // Keyboard ownership, track discovery and actions stay production code.
+                stbInit();
+                window.__dynamicAudio = [];
+                window.__dynamicSubtitles = [];
+                const media = document.getElementById("video");
+                Object.defineProperties(media, {
+                    audioTracks: {
+                        configurable: true,
+                        get: () => __dynamicAudio,
+                    },
+                    currentTime: { configurable: true, get: () => 250 },
+                    duration: { configurable: true, get: () => 1000 },
+                    paused: { configurable: true, get: () => false },
+                    textTracks: {
+                        configurable: true,
+                        get: () => __dynamicSubtitles,
+                    },
+                });
+                window.catIndex = 0;
+                window.primaryIndex = 0;
+                window.curList = cats.Fixture;
+                __ottClassicPlayback.command({
+                    channelId: "one",
+                    type: "live",
+                });
+                __ottClassicPlayback.command({
+                    duration: 1000,
+                    type: "finite-channel",
+                });
+                saveSettings({ interfaceMode: 1 });
+                closeList();
+                __ottClassicPlayback.command({ type: "playing" });
+                updateMediaInfo();
+            });
+            const aspect = page.locator('[data-modern-player-action="aspect"]');
+            for (const availability of [
+                { audio: true, label: "audio-appears", subtitle: false },
+                { audio: false, label: "audio-disappears", subtitle: false },
+                { audio: false, label: "subtitles-appear", subtitle: true },
+                { audio: false, label: "subtitles-disappear", subtitle: false },
+            ]) {
+                await page.evaluate(() => {
+                    showChannelInfo(30);
+                    $("#info1").finish();
+                });
+                await expect(aspect).toBeVisible();
+                if (
+                    await page.evaluate(
+                        () => __ottModernPlayer.state().group !== "timeline"
+                    )
+                )
+                    await page.keyboard.press("ArrowUp");
+                await page.keyboard.press("ArrowDown");
+                for (let step = 0; step < 12; step++) {
+                    if (
+                        await aspect.evaluate(
+                            (button) => button === document.activeElement
+                        )
+                    )
+                        break;
+                    await page.keyboard.press("ArrowRight");
+                }
+                await expect(aspect).toBeFocused();
+                await page.evaluate(({ audio, subtitle }) => {
+                    window.__dynamicAudio = audio
+                        ? [
+                              {
+                                  enabled: true,
+                                  label: "English",
+                                  language: "eng",
+                              },
+                              {
+                                  enabled: false,
+                                  label: "French",
+                                  language: "fra",
+                              },
+                          ]
+                        : [];
+                    window.__dynamicSubtitles = subtitle
+                        ? [
+                              {
+                                  kind: "captions",
+                                  label: "English",
+                                  language: "eng",
+                                  mode: "disabled",
+                              },
+                          ]
+                        : [];
+                    __ottModernPlayer.sync();
+                }, availability);
+                await expect(
+                    page.locator('[data-modern-player-action="audio"]')
+                )[availability.audio ? "toBeVisible" : "toBeHidden"]();
+                await expect(
+                    page.locator('[data-modern-player-action="subtitle"]')
+                )[availability.subtitle ? "toBeVisible" : "toBeHidden"]();
+                await expect(aspect).toBeFocused();
+                await page.screenshot({
+                    path: test.info().outputPath(availability.label + ".png"),
+                });
+                await page.keyboard.press("Enter");
+                const picker = page.locator("#numprog");
+                await expect(picker).toBeVisible();
+                // This is the actual Aspect callback, not an audio/subtitle/list callback.
+                await expect(picker.getByRole("button")).toHaveText([
+                    "Fit to screen",
+                    "Fill screen",
+                ]);
+                await picker
+                    .getByRole("button", {
+                        exact: true,
+                        name:
+                            availability.audio || availability.subtitle
+                                ? "Fill screen"
+                                : "Fit to screen",
+                    })
+                    .click();
+                await expect(picker).toBeHidden();
+                await expect(page.locator("#video")).toHaveCSS(
+                    "object-fit",
+                    availability.audio || availability.subtitle
+                        ? "cover"
+                        : "contain"
+                );
+            }
+            expect(fixture.errors).toEqual([]);
+            expect(fixture.unexpectedRequests).toEqual([]);
+        } finally {
+            await fixture.close();
+        }
+    });
+}
+
+for (const initialMode of [0, 1]) {
+    test(`Graphical editor accepts L and l across Classic and Modern (initial ${initialMode})`, async ({
+        browser,
+    }) => {
+        const fixture = await fixturePage(browser, "server", {
+            interfaceTheme: 2,
+        });
+        const { page } = fixture;
+        try {
+            await attachModernRuntimeIdentity(page, browser);
+            await page.evaluate(() => {
+                // Desktop/native shells intentionally choose HTML input. Exercise the
+                // real non-native STB graphical path without changing its dispatcher.
+                window.ott_device = "lg-webos";
+                stbSetItem("ottplaylang", "_eng");
+                saveSettings({ editor: 0 });
+                setEditor();
+                stbBindKeyHandler();
+                window.__graphicalSaves = [];
+                window.__graphicalFullscreenEvents = 0;
+                document.addEventListener(
+                    "fullscreenchange",
+                    () => __graphicalFullscreenEvents++
+                );
+                document.addEventListener(
+                    "webkitfullscreenchange",
+                    () => __graphicalFullscreenEvents++
+                );
+            });
+            for (const mode of [initialMode, 1 - initialMode]) {
+                await page.evaluate((mode) => {
+                    saveSettings({ interfaceMode: mode });
+                    window.editCaption = "Fixture label";
+                    window.editvar = "";
+                    window.setEdit = () => __graphicalSaves.push(editvar);
+                    showEditKey1();
+                }, mode);
+                const editor = page.locator("#listEdit");
+                await expect(editor.locator(".osk-grid")).toBeVisible();
+                await expect(
+                    editor.locator("input, textarea, [contenteditable=true]")
+                ).toHaveCount(0);
+                expect(
+                    await page.evaluate(() => {
+                        const owner = __ottClassicScreenPort.owner("editor");
+                        return (
+                            owner.foreground() &&
+                            owner.model.nativeInputSecret === undefined
+                        );
+                    })
+                ).toBe(true);
+                await page.keyboard.press("l");
+                await page.keyboard.press("L");
+                await expect
+                    .poll(() => page.evaluate(() => editvar))
+                    .toBe("lL");
+                await expect(page.locator("#ee")).toHaveText("lL");
+                expect(
+                    await page.evaluate(
+                        () =>
+                            !!(
+                                document.fullscreenElement ||
+                                document.webkitFullscreenElement
+                            )
+                    )
+                ).toBe(false);
+                expect(
+                    await page.evaluate(() => __graphicalFullscreenEvents)
+                ).toBe(0);
+                const keys = await page.evaluate(() => ({
+                    cancel: window.keys.RETURN,
+                    save: window.keys.BLUE,
+                }));
+                await expectVisibleControlsWithinViewport(
+                    page,
+                    `#listPodval [data-ott-key="${keys.save}"], #listPodval [data-ott-key="${keys.cancel}"]`
+                );
+                await page.screenshot({
+                    path: test
+                        .info()
+                        .outputPath(`graphical-editor-mode-${mode}.png`),
+                });
+                await page
+                    .locator(`#listPodval [data-ott-key="${keys.save}"]`)
+                    .click();
+                await expect(editor).toBeHidden();
+                expect(await page.evaluate(() => __graphicalSaves.length)).toBe(
+                    mode === initialMode ? 1 : 2
+                );
+                await page.evaluate(() => {
+                    window.editvar = "saved";
+                    showEditKey1();
+                });
+                await page.keyboard.press("l");
+                await page.keyboard.press("L");
+                await expect
+                    .poll(() => page.evaluate(() => editvar))
+                    .toBe("savedlL");
+                await page
+                    .locator(`#listPodval [data-ott-key="${keys.cancel}"]`)
+                    .click();
+                await expect(editor).toBeHidden();
+                expect(await page.evaluate(() => __graphicalSaves)).toEqual(
+                    mode === initialMode ? ["lL"] : ["lL", "lL"]
+                );
+            }
+            expect(fixture.errors).toEqual([]);
+            expect(fixture.unexpectedRequests).toEqual([]);
+        } finally {
+            await fixture.close();
+        }
+    });
+}
+
+async function activateOwnedFixtureRow(page, row) {
+    await expect(row).toHaveCount(1);
+    const id = await row.getAttribute("id");
+    expect(id).toMatch(/^it\d+$/);
+    const target = Number(id.slice(2));
+    const selected = await page.evaluate(() => window.selIndex);
+    expect(Number.isInteger(selected)).toBe(true);
+    expect(Math.abs(target - selected)).toBeLessThan(80);
+    for (let index = selected; index < target; index++)
+        await page.keyboard.press("ArrowDown");
+    for (let index = selected; index > target; index--)
+        await page.keyboard.press("ArrowUp");
+    await expect(row).toHaveClass(/ott-selected/);
+    await page.keyboard.press("Enter");
+}
+
+test("Modern M3U provider and profile screens preserve editor Save and Cancel", async ({
+    browser,
+}) => {
+    const fixture = await fixturePage(browser, "server", { interfaceTheme: 2 });
+    const { page } = fixture;
+    try {
+        await attachModernRuntimeIdentity(page, browser);
+        await page.evaluate(() => {
+            // A configured empty slot opens production settings without downloading
+            // a playlist. All subsequent navigation and storage edits use real UI.
+            stbSetItem("ottplaylang", "_eng");
+            stbSetItem("ottplayprov", "m3u");
+            stbSetItem(
+                "m3um3uArr",
+                JSON.stringify({
+                    active: 0,
+                    M3Us: [{ name: "Fixture profile", rechours: 0, www: "" }],
+                })
+            );
+            saveSettings({ interfaceMode: 1 });
+            stbBindKeyHandler();
+            loadProv();
+        });
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        window.__ottActiveProviderDriver &&
+                        __ottActiveProviderDriver.id
+                )
+            )
+            .toBe("m3u");
+        await expect(page.locator("#listCaption")).toHaveText(
+            "Edit playlist data"
+        );
+        await page
+            .locator('#modernShell [data-modern-action="providers"]')
+            .click();
+        const provider = page
+            .locator("#listIn .item")
+            .filter({ hasText: "m3u-m3u8 playlists" });
+        await expect(provider).toHaveCount(1);
+        await activateOwnedFixtureRow(page, provider);
+        await expect(page.locator("#listCaption")).toHaveText("Settings");
+        await page.keyboard.press("Backspace");
+        await expect(page.locator("#listCaption")).toHaveText("Menu");
+        await activateOwnedFixtureRow(
+            page,
+            page
+                .locator("#listIn .item")
+                .filter({ hasText: "Select playlist: 1 - Fixture profile" })
+        );
+        await expect(page.locator("#listCaption")).toHaveText(
+            "Select playlist"
+        );
+        await activateOwnedFixtureRow(page, page.locator("#it0"));
+        await expect(page.locator("#listCaption")).toHaveText(
+            "Edit playlist data"
+        );
+        const nameRow = () =>
+            page.locator("#listIn .item").filter({ hasText: "Playlist Name:" });
+        await activateOwnedFixtureRow(page, nameRow());
+        await expect(page.locator("#editvar")).toBeFocused();
+        await page.locator("#editvar").fill("Discarded label");
+        await page.locator('#listEdit [data-ott-key="27"]').click();
+        await expect(page.locator("#listEdit")).toBeHidden();
+        await expect(nameRow()).toContainText("Fixture profile");
+        expect(
+            await page.evaluate(
+                () => JSON.parse(stbGetItem("m3um3uArr")).M3Us[0].name
+            )
+        ).toBe("Fixture profile");
+        await activateOwnedFixtureRow(page, nameRow());
+        await page.locator("#editvar").fill("Saved fixture profile");
+        await expectVisibleControlsWithinViewport(
+            page,
+            '#listEdit [data-ott-key="13"], #listEdit [data-ott-key="27"]'
+        );
+        await page.screenshot({
+            path: test.info().outputPath("m3u-profile-editor.png"),
+        });
+        await page.locator('#listEdit [data-ott-key="13"]').click();
+        await expect(page.locator("#listEdit")).toBeHidden();
+        await expect(nameRow()).toContainText("Saved fixture profile");
+        expect(
+            await page.evaluate(
+                () => JSON.parse(stbGetItem("m3um3uArr")).M3Us[0].name
+            )
+        ).toBe("Saved fixture profile");
+        await page.keyboard.press("Backspace");
+        await expect(page.locator("#listCaption")).toHaveText(
+            "Select playlist"
+        );
+        await expect(page.locator("#it0")).toContainText(
+            "Saved fixture profile"
+        );
         expect(fixture.errors).toEqual([]);
         expect(fixture.unexpectedRequests).toEqual([]);
     } finally {

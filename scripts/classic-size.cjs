@@ -1086,6 +1086,15 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
 const OPTIONAL_BUDGET = Object.freeze({ bytes: 7800, gzipBytes: 3300 });
 // Optional hosted transport and remote settings retain independent feature caps.
 // Their union does not change the legacy entry/provider or subtitle limits.
+// Passive Local identity observation travels with the existing Local feature.
+// Paired Node 26.8.2 measurements are recorded in
+// docs/evidence/local-source-diagnostics-size-20261103.json. Startup and legacy
+// budgets stay unchanged; only the measured complete raw payload is allocated.
+const LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE = Object.freeze({
+    bytes: 5800,
+    gzipBytes: 0,
+    optional: Object.freeze({ bytes: 9450, gzipBytes: 3550 }),
+});
 const OPTIONAL_BUDGETS = Object.freeze({
     "control-transport": Object.freeze({
         bytes: 6000 + PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
@@ -1125,7 +1134,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
     // Compatibility is net-new; Local UI and the admitted command runner move
     // existing code off startup. Every emitted asset remains counted once.
     // Isolated raw/gzip: compatibility3527/1529, UI8453/3297, runner2460/1155.
-    "local-compatibility": Object.freeze({ bytes: 4800, gzipBytes: 1900 }),
+    "local-compatibility": LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.optional,
     "local-media-ui": Object.freeze({ bytes: 8500, gzipBytes: 3400 }),
     "media-companion": Object.freeze({
         bytes:
@@ -1394,7 +1403,10 @@ const LOCAL_COMPATIBILITY_ALLOWANCE = Object.freeze({
     gzipBytes: 2304,
 });
 const TOTAL_BUDGET = Object.freeze({
-    bytes: BASE_TOTAL_BUDGET.bytes + LOCAL_COMPATIBILITY_ALLOWANCE.bytes,
+    bytes:
+        BASE_TOTAL_BUDGET.bytes +
+        LOCAL_COMPATIBILITY_ALLOWANCE.bytes +
+        LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.bytes,
     gzipBytes:
         BASE_TOTAL_BUDGET.gzipBytes + LOCAL_COMPATIBILITY_ALLOWANCE.gzipBytes,
 });
@@ -1569,6 +1581,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
         localFavoriteWriteRecoveryAllowance:
             LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
+        localSourceDiagnosticsAllowance: LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE,
         localStallRecoveryAllowance: LOCAL_STALL_RECOVERY_ALLOWANCE,
         localStartupPreviewAllowance: LOCAL_STARTUP_PREVIEW_ALLOWANCE,
         mediaCompanionEntryAllowance: MEDIA_COMPANION_ENTRY_ALLOWANCE,
@@ -2034,6 +2047,7 @@ module.exports = {
     LOCAL_COMPATIBILITY_ALLOWANCE,
     LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
     LOCAL_FAVORITES_PATH_ALLOWANCE,
+    LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE,
     LOCAL_STALL_RECOVERY_ALLOWANCE,
     LOCAL_STARTUP_PREVIEW_ALLOWANCE,
     MEDIA_COMPANION_ENTRY_ALLOWANCE,

@@ -59,6 +59,7 @@ let {
     BUDGET,
     BASE_TOTAL_BUDGET,
     LOCAL_COMPATIBILITY_ALLOWANCE,
+    LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE,
     LOCAL_STALL_RECOVERY_ALLOWANCE,
     LOCAL_COMMAND_SESSION_ALLOWANCE,
     LOCAL_STARTUP_PREVIEW_ALLOWANCE,
@@ -114,7 +115,7 @@ function capsWithoutAllowances(names) {
     for (const initializer of initializers.sort((a, b) => b.pos - a.pos))
         source =
             source.slice(0, initializer.getStart(parsed)) +
-            "Object.freeze({bytes:0,gzipBytes:0,entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})" +
+            "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})" +
             source.slice(initializer.end);
     const Module = require("node:module");
     const baseline = new Module(filename, module);
@@ -134,6 +135,7 @@ const localFavoriteWriteRecoveryBaseline = capsWithoutAllowances([
     "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
 ]);
 const historicalIncomingCaps = capsWithoutAllowances([
+    "LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE",
     "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
     "LOCAL_FAVORITES_PATH_ALLOWANCE",
     "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
@@ -4242,8 +4244,62 @@ try {
     for (const key of ["bytes", "gzipBytes"])
         assert.equal(
             TOTAL_BUDGET[key],
-            BASE_TOTAL_BUDGET[key] + LOCAL_COMPATIBILITY_ALLOWANCE[key]
+            BASE_TOTAL_BUDGET[key] +
+                LOCAL_COMPATIBILITY_ALLOWANCE[key] +
+                LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE[key]
         );
+    const localDiagnosticsBaseline = capsWithoutAllowances([
+        "LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE",
+    ]);
+    for (const name of [
+        "BUDGET",
+        "BASE_TOTAL_BUDGET",
+        "LEGACY_TOTAL_BUDGET",
+        "PROVIDER_BUDGET",
+        "OPTIONAL_BUDGET",
+    ])
+        assert.deepEqual(
+            require("../scripts/classic-size.cjs")[name],
+            localDiagnosticsBaseline[name],
+            name + " remains unchanged by optional Local diagnostics"
+        );
+    assert.equal(
+        TOTAL_BUDGET.gzipBytes,
+        localDiagnosticsBaseline.TOTAL_BUDGET.gzipBytes
+    );
+    assert.equal(
+        TOTAL_BUDGET.bytes - localDiagnosticsBaseline.TOTAL_BUDGET.bytes,
+        LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.bytes
+    );
+    const localEvidence = require("../docs/evidence/local-source-diagnostics-size-20261103.json");
+    assert.deepEqual(
+        localEvidence.allowance,
+        LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE
+    );
+    assert.equal(
+        localEvidence.currentTotalCap.gzipBytes,
+        localEvidence.previousTotalCap.gzipBytes
+    );
+    for (const row of localEvidence.measurements) {
+        for (const metric of ["bytes", "gzipBytes"])
+            for (const part of ["entry", "local", "legacy", "total"])
+                assert.equal(
+                    row.delta[part][metric],
+                    row.candidate[part][metric] - row.baseline[part][metric]
+                );
+        assert(row.candidate.entry.bytes <= BUDGET.bytes);
+        assert(row.candidate.total.bytes <= TOTAL_BUDGET.bytes);
+        assert(row.candidate.total.gzipBytes <= TOTAL_BUDGET.gzipBytes);
+        assert(
+            row.delta.total.bytes <= LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.bytes
+        );
+    }
+    for (const name of Object.keys(OPTIONAL_BUDGETS))
+        if (name !== "local-compatibility")
+            assert.deepEqual(
+                OPTIONAL_BUDGETS[name],
+                localDiagnosticsBaseline.OPTIONAL_BUDGETS[name]
+            );
     for (const name of Object.keys(OPTIONAL_BUDGETS)) {
         const file = path.join(root, "dist", name + ".js");
         fs.writeFileSync(file, "x".repeat(OPTIONAL_BUDGETS[name].bytes + 1));

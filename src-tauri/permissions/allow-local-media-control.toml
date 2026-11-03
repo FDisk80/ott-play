@@ -1,4 +1,4 @@
 [[permission]]
 identifier = "allow-local-media-control"
 description = "Allow explicit native folder control and private source export from the main player window"
-commands.allow = ["local_media_capabilities", "local_media_sources", "local_media_link_folder", "local_media_cancel_request"]
+commands.allow = ["local_media_capabilities", "local_media_sources", "local_media_link_folder", "local_media_cancel_request", "local_source_diagnostics"]

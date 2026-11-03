@@ -175,6 +175,7 @@ const CLASSIC_MODULES = [
     "build/commands/remote-notifications.js",
     "build/commands/player-state.js",
     "build/commands/remote-provider-diagnostics.js",
+    "build/commands/remote-local-source-diagnostics.js",
     "build/commands/remote-requests.js",
     "build/app/init.js",
     "build/app/device.js",
@@ -290,7 +291,10 @@ const CLASSIC_OPTIONAL_BUNDLES = Object.freeze({
         "build/commands/global-favorites-items.js",
         "build/media/global-favorites-host.js",
     ],
-    "local-compatibility": ["build/plugins/local-compatibility.js"],
+    "local-compatibility": [
+        "build/plugins/local-compatibility.js",
+        "build/commands/remote-local-source-diagnostics.js",
+    ],
     "local-media-ui": ["build/plugins/local-media-ui.js"],
     "media-companion": ["build/plugins/media-companion.js"],
     "modern-interface": ["build/ui/modern-player.js", "build/ui/modern.js"],
@@ -347,6 +351,9 @@ const CLASSIC_PRIVATE_MODULES = Object.freeze({
     "build/channels/library.js": Object.freeze(["window.__ottChannelLibrary"]),
     "build/commands/remote-local-runner.js": Object.freeze([
         "window.__ottRemoteLocalMediaRun",
+    ]),
+    "build/commands/remote-local-source-diagnostics.js": Object.freeze([
+        "window.__ottLocalSourceDiagnostics",
     ]),
     "build/core/shaka-tracks.js": Object.freeze(["window.__ottShakaTracks"]),
     "build/debug/playback-debug.js": Object.freeze(["window.__ottDebug"]),

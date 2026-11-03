@@ -237,7 +237,18 @@ export function installLocalMedia(w: any): any {
                     "AVI/MKV compatibility is unavailable on this library"
                 )
             );
-        if (!compatibilityPlayback(url)) return Promise.resolve(url);
+        if (!compatibilityPlayback(url)) {
+            // Warm the existing Local feature during playback, never from status.
+            // A missing/slow diagnostic asset must not delay direct playback.
+            if (
+                !w.__ottLocalSourceDiagnostics &&
+                playbackItem(url) &&
+                !localCall(w.__ottStandby, "blocked", [], 1) &&
+                (!current || current())
+            )
+                loadLocalFeature(localText1).catch(function () {});
+            return Promise.resolve(url);
+        }
         if (
             localCall(w.__ottStandby, "blocked", [], 1) ||
             (current && !current()) ||

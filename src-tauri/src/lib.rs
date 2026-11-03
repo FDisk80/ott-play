@@ -89,6 +89,7 @@ pub fn run() {
             commands::offline_media::offline_media_remove_source,
             commands::offline_media::local_media_capabilities,
             commands::offline_media::local_media_sources,
+            commands::local_source_diagnostics::local_source_diagnostics,
             commands::offline_media::local_media_link_folder,
             commands::offline_media::local_media_cancel_request,
             commands::runtime_diagnostics::runtime_diagnostics,

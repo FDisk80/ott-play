@@ -15,6 +15,19 @@ pub struct OfflineMediaState(
     Mutex<Option<Runtime>>,
     Mutex<HashMap<String, ottplay_core::offline_media::NativeRequest>>,
 );
+impl OfflineMediaState {
+    pub(super) fn diagnostic_endpoint(&self) -> Option<String> {
+        self.0
+            .try_lock()
+            .ok()?
+            .as_ref()
+            .map(|value| value.endpoint.clone())
+    }
+    #[cfg(test)]
+    pub(super) fn diagnostic_lock_for_test(&self) -> impl Drop + '_ {
+        self.0.try_lock().expect("test runtime lock")
+    }
+}
 #[derive(Serialize)]
 pub struct Endpoint {
     endpoint: String,
@@ -254,6 +267,15 @@ pub struct LocalMediaFolder {
     source: ottplay_core::offline_media::NativeSource,
 }
 
+fn source_lookup_error(error: anyhow::Error) -> String {
+    if error.is::<ottplay_core::offline_media::NativeSourceUnavailable>() {
+        "source_unavailable"
+    } else {
+        "Local sources unavailable; select an accessible absolute directory"
+    }
+    .into()
+}
+
 #[tauri::command]
 pub fn local_media_capabilities(
     window: tauri::WebviewWindow,
@@ -287,7 +309,7 @@ pub async fn local_media_sources(
             selection.as_deref(),
         )
         .await
-        .map_err(|_| "Local sources unavailable; select an accessible absolute directory")?;
+        .map_err(source_lookup_error)?;
     Ok(LocalMediaSources {
         endpoint: current.endpoint,
         sources,
@@ -397,6 +419,23 @@ pub async fn local_media_cancel_request(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_lookup_error_classifies_only_the_typed_folder_failure() {
+        let error = anyhow::Error::new(ottplay_core::offline_media::NativeSourceUnavailable)
+            .context("private diagnostic context");
+        assert_eq!(source_lookup_error(error), "source_unavailable");
+        for message in [
+            "Requested local folder is unavailable",
+            "Local media storage unavailable",
+            "Cannot read media sources",
+        ] {
+            assert_eq!(
+                source_lookup_error(anyhow::anyhow!(message.to_owned())),
+                "Local sources unavailable; select an accessible absolute directory"
+            );
+        }
+    }
 
     #[test]
     fn local_source_control_is_main_window_only() {
