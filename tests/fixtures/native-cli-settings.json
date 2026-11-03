@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "capabilities": {
+    "version": 1,
+    "player": {"version": "1.2.0-fixture", "platform": "webos-native", "runtime": "native-fixture", "standby": false},
+    "lifecycle": ["exit_app", "standby", "wake"],
+    "input": [],
+    "playback": [],
+    "player_settings": {"version": 1, "operations": ["schema", "get", "set"], "max_page_size": 20}
+  },
+  "schema": {
+    "version": 1,
+    "op": "schema",
+    "runtime": "native-fixture",
+    "context": {"token": "context-fixture", "provider": "m3u", "profile": 7},
+    "settings": [
+      {
+        "id": "uiFontScale", "type": "integer", "scope": "application", "sensitive": false,
+        "access": {"read": true, "write": true},
+        "constraints": {"minimum": 50, "maximum": 150}, "default_value": 100,
+        "apply": "immediate", "description": "Interface text scale.", "unit": "percent"
+      },
+      {
+        "id": "players", "type": "integer", "scope": "application", "sensitive": false,
+        "access": {"read": true, "write": false, "reason": "device_forced_auto"},
+        "constraints": {"values": [0]}, "default_value": 0, "apply": "next_stream",
+        "description": "This installation uses the native media decoder.",
+        "choices": [{"value": 0, "label": "Native", "aliases": ["native"]}]
+      },
+      {
+        "id": "interfaceMode", "type": "integer", "scope": "application", "sensitive": false,
+        "access": {"read": true, "write": false, "reason": "device_forced_auto"},
+        "constraints": {"values": [1]}, "default_value": 1, "apply": "immediate",
+        "description": "This installation uses the native interface.",
+        "choices": [{"value": 1, "label": "Modern", "aliases": ["modern"]}]
+      }
+    ],
+    "next_cursor": null
+  },
+  "gets": [
+    {
+      "version": 1, "op": "get", "runtime": "native-fixture",
+      "context": {"token": "context-fixture", "provider": "m3u", "profile": 7},
+      "descriptor": {
+        "id": "uiFontScale", "type": "integer", "scope": "application", "sensitive": false,
+        "access": {"read": true, "write": true},
+        "constraints": {"minimum": 50, "maximum": 150}, "default_value": 100,
+        "apply": "immediate", "description": "Interface text scale.", "unit": "percent"
+      },
+      "setting": {"id": "uiFontScale", "revision": "revision-font-fixture", "storage": "default", "value": 100, "effective_value": 100}
+    },
+    {
+      "version": 1, "op": "get", "runtime": "native-fixture",
+      "context": {"token": "context-fixture", "provider": "m3u", "profile": 7},
+      "descriptor": {
+        "id": "players", "type": "integer", "scope": "application", "sensitive": false,
+        "access": {"read": true, "write": false, "reason": "device_forced_auto"},
+        "constraints": {"values": [0]}, "default_value": 0, "apply": "next_stream",
+        "description": "This installation uses the native media decoder.",
+        "choices": [{"value": 0, "label": "Native", "aliases": ["native"]}]
+      },
+      "setting": {"id": "players", "revision": "revision-player-fixture", "storage": "default", "value": 0}
+    },
+    {
+      "version": 1, "op": "get", "runtime": "native-fixture",
+      "context": {"token": "context-fixture", "provider": "m3u", "profile": 7},
+      "descriptor": {
+        "id": "interfaceMode", "type": "integer", "scope": "application", "sensitive": false,
+        "access": {"read": true, "write": false, "reason": "device_forced_auto"},
+        "constraints": {"values": [1]}, "default_value": 1, "apply": "immediate",
+        "description": "This installation uses the native interface.",
+        "choices": [{"value": 1, "label": "Modern", "aliases": ["modern"]}]
+      },
+      "setting": {"id": "interfaceMode", "revision": "revision-interface-fixture", "storage": "default", "value": 1}
+    }
+  ]
+}

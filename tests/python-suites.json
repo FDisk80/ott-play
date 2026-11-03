@@ -18,6 +18,7 @@
     ["tests/test_webos_native_release.py"],
     ["tests/test_native_webos_publish.py"],
     ["tests/test_webos_runtime_sources.py"],
+    ["tests/test_webos_native_cli_smoke.py"],
     ["tests/test_linux_playback_packaging.py"],
     ["tests/test_nas_configuration.py"],
     ["tests/test_local_proxy.py"],
