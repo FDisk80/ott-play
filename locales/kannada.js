@@ -545,6 +545,7 @@ var keyStrings = {
     "Hide providers?": "ಪೂರೈಕೆದಾರರನ್ನು ಮರೆಮಾಡುವುದೇ?",
     "History in Media Library": "ಮಾಧ್ಯಮ ಲೈಬ್ರರಿಯಲ್ಲಿ ಇತಿಹಾಸ",
     "History of watched movies": "ಇತಿಹಾಸವನ್ನು ವೀಕ್ಷಿಸಿ",
+    Home: "ಮುಖಪುಟ",
     "HTTP port": "HTTP ಪೋರ್ಟ್",
     "HTTP remote control is unavailable on this device.":
         "HTTP ರಿಮೋಟ್ ಕಂಟ್ರೋಲ್ ಈ ಸಾಧನದಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ.",

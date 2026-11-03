@@ -555,6 +555,7 @@ var keyStrings = {
     "Hide providers?": "Zoo ndị na-eweta ọrụ?",
     "History in Media Library": "Akụkọ na ọba mgbasa ozi",
     "History of watched movies": "Akụkọ nlele",
+    Home: "Mbido",
     "HTTP port": "Ọdụ HTTP",
     "HTTP remote control is unavailable on this device.":
         "Njikwa HTTP dị anya adịghị na ngwaọrụ a.",

@@ -540,6 +540,7 @@ var keyStrings = {
     "Hide providers?": "להסתיר ספקים?",
     "History in Media Library": "היסטוריה בספריית המדיה",
     "History of watched movies": "היסטוריית צפייה",
+    Home: "בית",
     "HTTP port": "יציאת HTTP",
     "HTTP remote control is unavailable on this device.":
         "שליטה דרך HTTP אינה זמינה במכשיר זה.",

@@ -555,6 +555,7 @@ var keyStrings = {
     "Hide providers?": "ارائه دهندگان را مخفی کنید؟",
     "History in Media Library": "تاریخچه در کتابخانه رسانه",
     "History of watched movies": "سابقه تماشا",
+    Home: "خانه",
     "HTTP port": "پورت HTTP",
     "HTTP remote control is unavailable on this device.":
         "کنترل از راه دور HTTP در این دستگاه در دسترس نیست.",

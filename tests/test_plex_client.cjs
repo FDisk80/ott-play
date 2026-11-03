@@ -362,6 +362,63 @@ test("JSON and XML folders recurse through Plex keys and shows/seasons retain st
     assert(!f.host.mediaRecords[0].description.includes("<script>"));
 });
 
+test("Plex resolves portrait and backdrop on access without serializing credentials", () => {
+    const f = fixture();
+    f.client.load(
+        { path: "/library/sections/1/all", plexSource: source },
+        () => {}
+    );
+    last(f).reply({
+        MediaContainer: {
+            Metadata: [
+                {
+                    art: "/library/metadata/42/art/9002",
+                    Media: [{ Part: [{ key: "/library/parts/1/file.mp4" }] }],
+                    ratingKey: "42",
+                    thumb: "/library/metadata/42/thumb/9001",
+                    title: "Film",
+                    type: "movie",
+                },
+                {
+                    Media: [{ Part: [{ key: "/library/parts/2/file.mp4" }] }],
+                    ratingKey: "43",
+                    thumb: "/library/metadata/43/thumb/9003",
+                    title: "Poster only",
+                    type: "movie",
+                },
+            ],
+            size: 2,
+            totalSize: 2,
+        },
+    });
+    const row = f.host.mediaRecords.find(
+        (record) => record.request?.path === "/library/metadata/42"
+    );
+    const thumbOnly = f.host.mediaRecords.find(
+        (record) => record.request?.path === "/library/metadata/43"
+    );
+    const art = new URL(row.backdrop);
+    assert.equal(art.origin, "https://plex.invalid");
+    assert.equal(art.pathname, "/library/metadata/42/art/9002");
+    assert.equal(art.searchParams.get("X-Plex-Token"), token);
+    assert.equal(
+        new URL(row.poster).pathname,
+        "/library/metadata/42/thumb/9001"
+    );
+    const thumb = new URL(thumbOnly.poster);
+    assert.equal(thumb.pathname, "/library/metadata/43/thumb/9003");
+    const saved = f.client.persist(row);
+    assert.equal(saved.poster, undefined);
+    assert.equal(saved.backdrop, undefined);
+    assert(!JSON.stringify(saved).includes(token));
+    assert(!JSON.stringify(row).includes(token));
+    assert.equal(Object.assign({}, row).poster, undefined);
+    assert.equal(new URL(thumbOnly.backdrop).pathname, thumb.pathname);
+    f.client.dispose();
+    assert.equal(row.poster, "");
+    assert.equal(row.backdrop, "");
+});
+
 test("catalog labels stay nonblank without exposing filesystem parents or changing paging", () => {
     const f = fixture();
     f.client.load(

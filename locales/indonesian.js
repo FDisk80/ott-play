@@ -562,6 +562,7 @@ var keyStrings = {
     "Hide providers?": "Sembunyikan penyedia?",
     "History in Media Library": "Riwayat di pustaka media",
     "History of watched movies": "Riwayat tontonan",
+    Home: "Beranda",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Kendali jarak jauh HTTP tidak tersedia di perangkat ini.",

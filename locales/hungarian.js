@@ -568,6 +568,7 @@ var keyStrings = {
     "Hide providers?": "Elrejti a szolgáltatókat?",
     "History in Media Library": "Előzmények a médiatárban",
     "History of watched movies": "Megtekintési előzmények",
+    Home: "Kezdőlap",
     "HTTP port": "HTTP-port",
     "HTTP remote control is unavailable on this device.":
         "A HTTP-távirányítás nem érhető el ezen az eszközön.",

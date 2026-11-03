@@ -543,6 +543,7 @@ var keyStrings = {
     "Hide providers?": "ప్రొవైడర్లను దాచాలా?",
     "History in Media Library": "మీడియా లైబ్రరీలో చరిత్ర",
     "History of watched movies": "చరిత్రను చూడండి",
+    Home: "హోమ్",
     "HTTP port": "HTTP పోర్ట్",
     "HTTP remote control is unavailable on this device.":
         "HTTP రిమోట్ కంట్రోల్ ఈ పరికరంలో అందుబాటులో లేదు.",

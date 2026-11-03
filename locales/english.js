@@ -554,6 +554,7 @@ var keyStrings = {
     "Hide providers?": "Hide providers?",
     "History in Media Library": "History in media library",
     "History of watched movies": "Watch history",
+    Home: "Home",
     "HTTP port": "HTTP port",
     "HTTP remote control is unavailable on this device.":
         "HTTP remote control is unavailable on this device.",

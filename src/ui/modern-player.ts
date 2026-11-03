@@ -105,7 +105,9 @@ function createModernPlayer(w: any) {
         return !!(w.stbIsPlaying && w.stbIsPlaying());
     }
     function formatDuration(value: any): string {
-        var total = Math.max(0, Math.floor(Number(value) || 0));
+        var numeric = Number(value);
+        if (!isFinite(numeric)) return "";
+        var total = Math.max(0, Math.floor(numeric));
         var hours = Math.floor(total / 3600);
         var minutes = Math.floor((total % 3600) / 60);
         var seconds = total % 60;
@@ -379,6 +381,7 @@ function createModernPlayer(w: any) {
                 }
             }
             if (target === progress) group = "timeline";
+            if (target === statusElement) group = "status";
             node.classList.toggle(
                 "modern-player-actions-focus",
                 group === "actions"
@@ -552,6 +555,8 @@ function createModernPlayer(w: any) {
             if (!visible.length) return;
             railFocus = Math.max(0, Math.min(visible.length - 1, railFocus));
             visible[railFocus].entry.button.focus();
+        } else if (next === "status" && statusElement) {
+            statusElement.focus();
         } else if (progress) {
             progress.focus();
         }
@@ -610,7 +615,13 @@ function createModernPlayer(w: any) {
             syncVisibility();
             return false;
         }
-        var id = keyId(event);
+        var statusSpace =
+            group === "status" &&
+            statusElement === w.document.activeElement &&
+            (event.key === " " ||
+                event.key === "Spacebar" ||
+                Number(event.keyCode || event.which) === 32);
+        var id = statusSpace ? "accept" : keyId(event);
         if (!id) return false;
         // Synthetic native keys have no DOM target. Keep an unowned input
         // focused instead of falling through to background channel navigation.
@@ -645,6 +656,7 @@ function createModernPlayer(w: any) {
             }
         } else if (id === "accept") {
             if (group === "timeline") togglePlayback();
+            else if (group === "status" && statusElement) statusElement.click();
             else activateRail();
         }
         return true;
@@ -780,10 +792,10 @@ function createModernPlayer(w: any) {
         updateStatus();
     }
     function progressPercent(kind: string): number {
-        var percent = 0;
+        var percent: number | null = null;
         if (kind === "live" && w._prog100 && w._prog100.time_to) {
             var span = Number(w._prog100.time_to) - Number(w._prog100.time);
-            if (span > 0)
+            if (span > 0 && isFinite(span))
                 percent =
                     ((Date.now() / 1000 - Number(w._prog100.time)) / span) *
                     100;
@@ -796,18 +808,22 @@ function createModernPlayer(w: any) {
                 position -= Number(w._prog100.time);
             } else {
                 var media = video();
-                position = media ? Number(media.currentTime) || 0 : 0;
+                position = media ? Number(media.currentTime) : NaN;
                 duration = media ? Number(media.duration) || 0 : 0;
                 if (!duration && typeof w.stbGetLen === "function")
                     duration = Number(w.stbGetLen()) || 0;
             }
-            if (duration > 0) percent = (position / duration) * 100;
+            if (duration > 0 && isFinite(duration) && isFinite(position))
+                percent = (position / duration) * 100;
         }
-        if (!percent && progress) {
+        if (percent !== null && !isFinite(percent)) percent = null;
+        // Zero is a measured position, including the first frame after a seek.
+        // Keep the shared footer fallback only until timing is available.
+        if (percent === null && progress) {
             var fill = progress.querySelector("#progress") as HTMLElement;
             percent = parseFloat((fill && fill.style.width) || "0") || 0;
         }
-        return Math.max(0, Math.min(100, percent));
+        return Math.max(0, Math.min(100, percent === null ? 0 : percent));
     }
     function updateTimeline(kind: string): void {
         var percent = progressPercent(kind);
@@ -828,7 +844,7 @@ function createModernPlayer(w: any) {
                 Number(w.playTime || 0) -
                 Number(w._prog100.time);
             left = formatDuration(pos);
-            right = "-" + formatDuration(Math.max(0, span - pos));
+            right = formatDuration(span - pos);
         } else {
             var media = video();
             var position = media ? Number(media.currentTime) || 0 : 0;
@@ -838,9 +854,9 @@ function createModernPlayer(w: any) {
             if (!position && typeof w.stbGetPosTime === "function")
                 position = Number(w.stbGetPosTime()) || 0;
             left = formatDuration(position);
-            right =
-                duration > 0 ? "-" + formatDuration(duration - position) : "";
+            right = duration > 0 ? formatDuration(duration - position) : "";
         }
+        if (kind !== "live" && right) right = "-" + right;
         if (elapsedElement) {
             elapsedElement.textContent = left;
             elapsedElement.hidden = !left;
@@ -913,12 +929,15 @@ function createModernPlayer(w: any) {
     }
     function updateStatus(): void {
         if (!statusElement) return;
+        var hadFocus = statusElement === w.document.activeElement;
         var source = w.document.getElementById("video_res");
         var message = source ? text(source) : "";
         statusElement.textContent = message;
         statusElement.hidden = !message;
         var interactive = !!(
-            source && source.getAttribute("role") === "button"
+            message &&
+            source &&
+            source.getAttribute("role") === "button"
         );
         statusElement.classList.toggle(
             "modern-player-status-action",
@@ -930,6 +949,10 @@ function createModernPlayer(w: any) {
         } else {
             statusElement.removeAttribute("role");
             statusElement.removeAttribute("tabindex");
+        }
+        if (group === "status" && !interactive) {
+            group = "timeline";
+            if (hadFocus) setGroup("actions");
         }
     }
     function syncVisibility(): void {

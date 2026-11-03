@@ -545,6 +545,7 @@ var keyStrings = {
     "Hide providers?": "প্ৰদানকাৰীসমূহ লুকুৱাবনে?",
     "History in Media Library": "মিডিয়া লাইব্ৰেৰীত ইতিহাস",
     "History of watched movies": "চোৱাৰ ইতিহাস",
+    Home: "মুখ্যপৃষ্ঠা",
     "HTTP port": "HTTP প’ৰ্ট",
     "HTTP remote control is unavailable on this device.":
         "এই ডিভাইচত HTTP ৰিম’ট নিয়ন্ত্ৰণ উপলব্ধ নহয়।",

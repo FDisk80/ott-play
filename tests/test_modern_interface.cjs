@@ -10,7 +10,10 @@ const { compatibilitySource } = require("./helpers/english-source-fixture.cjs");
 const root = path.resolve(__dirname, "..");
 function compile(file) {
     return ts.transpileModule(fs.readFileSync(path.join(root, file), "utf8"), {
-        compilerOptions: { target: ts.ScriptTarget.ES5 },
+        compilerOptions: {
+            module: ts.ModuleKind.CommonJS,
+            target: ts.ScriptTarget.ES5,
+        },
     }).outputText;
 }
 function settingsFixture(stored = new Map()) {
@@ -346,6 +349,7 @@ test("10k catalogue renders a bounded window without cloning or traversing it", 
         const original = f.ids.slice();
         const layout = f.api.prepare(f.ids, f.formatter, f.container);
         assert.equal(layout.grid, true);
+        assert(layout.cellWidth > 0);
         assert(layout.pageSize > 0 && layout.pageSize <= 30);
         assert(f.reads() <= 2, "layout must not read all source metadata");
         const start = 3450;
@@ -620,7 +624,313 @@ test("Modern mounts one shared shell with typed selected-item information and re
     }
 });
 
-test("rail focus uses current owned actions and Back returns to the same media item", () => {
+test("Home and Library reuse the catalogue, selection and decoder with distinct bounded layouts", () => {
+    const f = shellFixture();
+    try {
+        let paints = 0;
+        let layout;
+        f.w.__ottModernActions = () => [
+            {
+                id: "library",
+                label: "Media Library",
+                run: () =>
+                    assert.fail("a local view switch must not route or reload"),
+            },
+        ];
+        f.w.showPage = (retainDetail) => {
+            assert.equal(retainDetail, true);
+            paints++;
+            layout = f.api.prepare(f.ids, f.formatter, f.container);
+        };
+        layout = f.api.prepare(f.ids, f.formatter, f.container);
+        assert(f.list.classList.contains("modern-view-home"));
+        assert.equal(layout.home, true);
+        assert.equal(layout.pageSize, layout.columns);
+        const originalIds = f.ids.slice();
+        f.doc.querySelector('[data-modern-action="library"]').click();
+        assert(f.list.classList.contains("modern-view-library"));
+        assert(!f.list.classList.contains("modern-view-home"));
+        assert.equal(layout.home, false);
+        assert(layout.pageSize <= layout.columns * 2);
+        assert.equal(paints, 1);
+        f.doc.querySelector('[data-modern-action="library"]').click();
+        assert.equal(paints, 1, "reselecting the active view does not repaint");
+        f.doc.querySelector('[data-modern-action="home"]').click();
+        assert.equal(paints, 2);
+        assert.equal(layout.pageSize, layout.columns);
+        assert.equal(f.w.selIndex, 3450);
+        assert.deepEqual(f.ids, originalIds);
+        assert.equal(f.owner.model.render, f.formatter);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Library fits natural portrait cards and enlarged captions in a narrow viewport", () => {
+    const f = shellFixture();
+    try {
+        const container = f.doc.createElement("div");
+        container.id = "listIn";
+        container.style.fontSize = "28px";
+        f.container.replaceWith(container);
+        Object.defineProperties(container, {
+            clientHeight: { value: 543 },
+            clientWidth: { value: 361 },
+        });
+        f.w.innerWidth = 393;
+        f.w.innerHeight = 851;
+        f.w.sUiFontScale = 140;
+        let layout;
+        f.w.showPage = () => {
+            layout = f.api.prepare(f.ids, f.formatter, container);
+        };
+        f.w.showPage();
+        assert.equal(layout.home, true);
+        f.doc.querySelector('[data-modern-action="library"]').click();
+        assert.equal(layout.home, false);
+        assert(
+            layout.columns > 1,
+            "one enlarged poster would clip its caption"
+        );
+        assert(layout.columns <= 8);
+        const naturalHeight = (layout.cellWidth - 2) * 1.5 + 28 * 3.2 + 2;
+        assert(naturalHeight <= layout.cellHeight + 1);
+        assert(layout.cellHeight <= container.clientHeight);
+        assert.equal(f.w.selIndex, 3450);
+        assert.equal(f.effects.length, 0);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("provider/settings controls and category selector keep host callbacks outside the top capsule", () => {
+    const f = shellFixture();
+    try {
+        f.w.__ottModernActions = () =>
+            ["favorites", "search", "categories", "providers", "settings"].map(
+                (id) => ({
+                    id,
+                    label: id,
+                    run: () => f.effects.push(id),
+                })
+            );
+        f.api.prepare(f.ids, f.formatter, f.container);
+        for (const id of ["home", "library", "favorites", "search"])
+            assert(
+                f.doc.querySelector(`#modernRail [data-modern-action="${id}"]`)
+            );
+        for (const id of ["providers", "settings"]) {
+            const button = f.doc.querySelector(
+                `.modern-account-actions [data-modern-action="${id}"]`
+            );
+            assert(button);
+            assert(button.querySelector("svg"));
+            button.click();
+        }
+        f.doc
+            .querySelector(
+                '.modern-library-actions [data-modern-action="categories"]'
+            )
+            .click();
+        assert.deepEqual(f.effects, ["providers", "settings", "categories"]);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("hero actions use selected-item contracts and reject stale selection, covered owners and kiosk", () => {
+    const f = shellFixture();
+    try {
+        f.api.prepare(f.ids, f.formatter, f.container);
+        assert.equal(f.doc.querySelectorAll(".modern-hero-action").length, 0);
+        f.w.__ottModernSelectedActions = () => [
+            {
+                id: "play",
+                label: "Play",
+                run: () => f.effects.push("play:" + f.w.selIndex),
+            },
+            {
+                id: "details",
+                label: "Details",
+                run: () => f.effects.push("details"),
+            },
+        ];
+        f.api.detail();
+        const stale = f.doc.querySelector('[data-modern-hero-action="play"]');
+        f.w.selIndex = 4;
+        stale.click();
+        assert.deepEqual(f.effects, []);
+        f.api.detail();
+        const play = f.doc.querySelector('[data-modern-hero-action="play"]');
+        f.foreground(false);
+        play.click();
+        f.foreground(true);
+        f.w.__ottKiosk.enabled = () => true;
+        play.click();
+        assert.deepEqual(f.effects, []);
+        f.w.__ottKiosk.enabled = () => false;
+        play.click();
+        assert.deepEqual(f.effects, ["play:4"]);
+        f.doc.querySelector('[data-modern-action="library"]').click();
+        play.click();
+        assert.deepEqual(
+            f.effects,
+            ["play:4"],
+            "hidden Library hero controls are stale"
+        );
+        assert.equal(f.doc.querySelectorAll(".modern-hero-action").length, 0);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Up from a later visible grid page reaches the capsule; Down restores its item", () => {
+    const f = shellFixture();
+    try {
+        const layout = f.api.prepare(f.ids, f.formatter, f.container);
+        f.w.selIndex = layout.pageSize * 3 + 1;
+        const row = f.container.appendChild(f.doc.createElement("div"));
+        row.id = "it" + f.w.selIndex;
+        row.tabIndex = 0;
+        const selected = f.w.selIndex;
+        assert.equal(f.api.navigation({ id: "up" }, f.owner), true);
+        assert.equal(f.doc.activeElement.dataset.modernAction, "home");
+        assert.equal(f.api.navigation({ id: "down" }, f.owner), true);
+        assert.equal(f.doc.activeElement, row);
+        assert.equal(f.w.selIndex, selected);
+        f.w.__ottKiosk.enabled = () => true;
+        assert.equal(f.api.navigation({ id: "up" }, f.owner), false);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Home hero actions are reachable between the top capsule and media strip with D-pad", () => {
+    const f = shellFixture();
+    try {
+        f.w.selIndex = 0;
+        const row = f.container.appendChild(f.doc.createElement("div"));
+        row.id = "it0";
+        row.tabIndex = -1;
+        f.w.__ottModernSelectedActions = () => [
+            { id: "play", label: "Play", run: () => f.effects.push("play") },
+            {
+                id: "details",
+                label: "Details",
+                run: () => f.effects.push("details"),
+            },
+        ];
+        f.api.prepare(f.ids, f.formatter, f.container);
+        f.api.navigation({ id: "up" }, f.owner);
+        assert.equal(f.doc.activeElement.dataset.modernHeroAction, "play");
+        f.api.navigation({ id: "right" }, f.owner);
+        assert.equal(f.doc.activeElement.dataset.modernHeroAction, "details");
+        f.api.navigation({ id: "up" }, f.owner);
+        assert.equal(f.doc.activeElement.dataset.modernAction, "home");
+        f.api.navigation({ id: "down" }, f.owner);
+        assert.equal(f.doc.activeElement.dataset.modernHeroAction, "play");
+        f.api.navigation({ id: "down" }, f.owner);
+        assert.equal(f.doc.activeElement, row);
+        assert.equal(f.w.selIndex, 0);
+        assert.deepEqual(f.effects, []);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("option pages never focus a category control hidden with the catalog heading", () => {
+    const f = shellFixture();
+    try {
+        const menu = () => "Settings";
+        f.owner.model.render = menu;
+        f.w.selIndex = 0;
+        f.w.__ottModernActions = () => [
+            {
+                id: "library",
+                label: "Library",
+                run: () => f.effects.push("library"),
+            },
+            {
+                id: "categories",
+                label: "Categories",
+                run: () => assert.fail("invisible category"),
+            },
+            {
+                id: "settings",
+                label: "Settings",
+                run: () => f.effects.push("settings"),
+            },
+        ];
+        f.api.prepare(["Settings"], menu, f.container);
+        assert.equal(
+            f.doc.querySelector('[data-modern-action="categories"]'),
+            null
+        );
+        f.api.navigation({ id: "up" }, f.owner);
+        f.api.navigation({ id: "right" }, f.owner);
+        f.api.navigation({ id: "right" }, f.owner);
+        assert.equal(f.doc.activeElement.dataset.modernAction, "settings");
+        f.api.navigation({ id: "accept" }, f.owner);
+        assert.deepEqual(f.effects, ["settings"]);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+for (const type of ["live catalogue", "option list"]) {
+    test(`Modern ${type} keeps Up linear across page boundaries`, () => {
+        const f = shellFixture();
+        try {
+            const formatter = () => "Settings";
+            if (type === "live catalogue")
+                formatter.__ottCatalog = {
+                    row: (id) => ({ channel_name: "Channel " + id }),
+                };
+            f.owner.model.render = formatter;
+            f.w.selIndex = 0;
+            const layout = f.api.prepare(f.ids, formatter, f.container);
+            assert.equal(layout.grid, false);
+            for (const index of [1, layout.pageSize, layout.pageSize * 2]) {
+                f.w.selIndex = index;
+                const row = f.container.appendChild(f.doc.createElement("div"));
+                row.id = "it" + index;
+                row.tabIndex = 0;
+                row.focus();
+                assert.equal(f.api.navigation({ id: "up" }, f.owner), false);
+                assert.equal(f.doc.activeElement, row);
+                assert.equal(f.w.selIndex, index);
+                // The shared linear handler retains ownership of this step.
+                f.w.changeSelect(-1);
+                assert.equal(f.w.selIndex, index - 1);
+            }
+            f.w.selIndex = 0;
+            assert.equal(f.api.navigation({ id: "up" }, f.owner), true);
+            assert.equal(
+                f.doc.activeElement.dataset.modernAction,
+                type === "live catalogue" ? "library" : "browse"
+            );
+        } finally {
+            f.dom.window.close();
+        }
+    });
+}
+
+test("Modern grid keeps top navigation available from a later page's first row", () => {
+    const f = shellFixture();
+    try {
+        const layout = f.api.prepare(f.ids, f.formatter, f.container);
+        assert.equal(layout.grid, true);
+        const selected = layout.pageSize + layout.columns - 1;
+        f.w.selIndex = selected;
+        assert.equal(f.api.navigation({ id: "up" }, f.owner), true);
+        assert.equal(f.doc.activeElement.dataset.modernAction, "home");
+        assert.equal(f.w.selIndex, selected);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("top navigation uses horizontal travel and Back returns to the same media item", () => {
     const f = shellFixture();
     try {
         f.w.selIndex = 0;
@@ -628,13 +938,15 @@ test("rail focus uses current owned actions and Back returns to the same media i
         row.id = "it0";
         row.tabIndex = 0;
         f.api.prepare(f.ids, f.formatter, f.container);
-        assert.equal(f.api.navigation({ id: "left" }, f.owner), true);
-        assert.equal(f.doc.activeElement.dataset.modernAction, "browse");
-        f.api.navigation({ id: "down" }, f.owner);
+        assert.equal(f.api.navigation({ id: "up" }, f.owner), true);
+        assert.equal(f.doc.activeElement.dataset.modernAction, "home");
+        f.api.navigation({ id: "right" }, f.owner);
+        assert.equal(f.doc.activeElement.dataset.modernAction, "library");
+        f.api.navigation({ id: "right" }, f.owner);
         assert.equal(f.doc.activeElement.dataset.modernAction, "settings");
         f.api.navigation({ id: "accept" }, f.owner);
         assert.deepEqual(f.effects, ["settings"]);
-        f.api.navigation({ id: "left" }, f.owner);
+        f.api.navigation({ id: "up" }, f.owner);
         assert.equal(f.api.navigation({ id: "back" }, f.owner), true);
         assert.equal(f.doc.activeElement, row);
         assert.equal(f.w.selIndex, 0);
@@ -794,7 +1106,7 @@ test("existing media controls keep their callbacks and are exposed without copyi
     }
 });
 
-test("global Library action replaces the local Browse fallback and cannot double fire on keyboard Enter", () => {
+test("menu Library action uses the host route and cannot double fire on keyboard Enter", () => {
     const f = shellFixture();
     try {
         f.w.__ottModernActions = () => [
@@ -804,7 +1116,9 @@ test("global Library action replaces the local Browse fallback and cannot double
                 run: () => f.effects.push("library"),
             },
         ];
-        f.api.prepare(f.ids, f.formatter, f.container);
+        const menu = () => "Settings";
+        f.owner.model.render = menu;
+        f.api.prepare(["Settings"], menu, f.container);
         assert.equal(
             f.doc.querySelector('[data-modern-action="browse"]'),
             null

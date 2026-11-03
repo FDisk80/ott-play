@@ -573,7 +573,9 @@ test("later selection and recent-provider reordering retain the demo ID/name pai
     assert.equal(w.arrayProvaiders[2], "xtream");
     assert.equal(w.arrayProvaiders[3], "plex");
     assert.equal(w.arrayProvaiders[4], "vportal");
-    assert.equal(w.arrayProvaiders[5], "");
+    assert.equal(w.arrayProvaiders[5], "demo");
+    assert.equal(w.arrayProvaiders[6], "offline");
+    assert.equal(w.arrayProvaiders[7], "");
     w.selIndex = demo;
     w.listKeyHandlerFn(w.keys.ENTER);
     assert.deepEqual(loaded, ["demo"]);
@@ -584,7 +586,7 @@ test("later selection and recent-provider reordering retain the demo ID/name pai
     assert.equal(saved.get("m3um3uArr"), storage().get("m3um3uArr"));
 });
 
-test("Plex stays with protocol shortcuts when old history contains fixed providers", () => {
+test("protocols and local sources stay above TV services despite old history", () => {
     const { w, saved, loaded } = uiFixture();
     const history = JSON.stringify([
         "plex",
@@ -592,29 +594,57 @@ test("Plex stays with protocol shortcuts when old history contains fixed provide
         "m3u",
         "stalker",
         "xtream",
+        "offline",
+        "torrent",
     ]);
     saved.set("ottplayprovs", history);
-    for (let opened = 0; opened < 2; opened++) {
+    for (const torrentAvailable of [false, true, false, true, false]) {
+        w.__ottMediaCompanion = {
+            nativePending: () => false,
+            providerAvailable: () => torrentAvailable,
+        };
         w.selectProvaider();
-        assert.deepEqual(Array.from(w.arrayProvaiders.slice(0, 7)), [
+        const sources = [
             "m3u",
             "stalker",
             "xtream",
             "plex",
             "vportal",
-            "",
             "demo",
+            "offline",
+            ...(torrentAvailable ? ["torrent"] : []),
+        ];
+        const divider = sources.length;
+        assert.deepEqual(Array.from(w.arrayProvaiders.slice(0, divider + 1)), [
+            ...sources,
+            "",
         ]);
+        assert.equal(w.arrayProvaiders[divider + 1], "ottclub");
+        assert.equal(
+            w.arrayProvaiders.filter((id) => id === "torrent").length,
+            torrentAvailable ? 1 : 0
+        );
         assert.equal(
             w.listArray[3],
             '<div class="btn blue">&nbsp;</div>&nbsp;Plex'
         );
         assert.equal(w.listArray[4], "VPortal");
-        assert.equal(w.listArray[5], "");
+        assert.equal(w.listArray[5], "Demo — moving test pattern");
+        assert.equal(w.listArray[6], "Local videos");
+        if (torrentAvailable) assert.equal(w.listArray[7], "Torrent");
+        assert.equal(w.listArray[divider], "");
         assert.doesNotMatch(w.getListItemFn(w.listArray[3], 3), /class="btn"/);
         assert.doesNotMatch(w.getListItemFn(w.listArray[4], 4), /class="btn"/);
         assert.doesNotMatch(w.getListItemFn(w.listArray[5], 5), /class="btn"/);
-        assert.match(w.getListItemFn(w.listArray[6], 6), /class="btn">1</);
+        assert.doesNotMatch(w.getListItemFn(w.listArray[6], 6), /class="btn"/);
+        assert.doesNotMatch(
+            w.getListItemFn(w.listArray[divider], divider),
+            /class="btn"/
+        );
+        assert.match(
+            w.getListItemFn(w.listArray[divider + 1], divider + 1),
+            /class="btn">1</
+        );
     }
     w.selIndex = 3;
     w.listKeyHandlerFn(w.keys.ENTER);
@@ -637,8 +667,8 @@ test("Plex stays with protocol shortcuts when old history contains fixed provide
     w.listKeyHandlerFn(w.keys.N1);
     assert.equal(
         saved.get("ottplayprov"),
-        "demo",
-        "Number one follows the divider"
+        "ottclub",
+        "Number one selects the first TV service after the divider"
     );
 });
 
@@ -678,6 +708,44 @@ test("Plex blue shortcut uses every shipped device mapping in both distributions
             assert.equal(loaded.length, 1, "No redundant provider load");
         }
     }
+});
+
+test("service numbering and all nine shortcuts respect the provider-group boundary", () => {
+    for (let number = 1; number <= 9; number++) {
+        const { w, saved, loaded } = uiFixture();
+        saved.set("ottplayprovs", JSON.stringify(["edem", "demo", "ottclub"]));
+        w.keys["N" + number] = 48 + number;
+        w.selectProvaider();
+        const divider = w.arrayProvaiders.indexOf("");
+        assert(divider >= 0);
+        assert.equal(w.arrayProvaiders[divider + 1], "ottclub");
+        assert.equal(w.arrayProvaiders[divider + 2], "edem");
+        const index = divider + number;
+        const expected = w.arrayProvaiders[index];
+        assert.match(
+            w.getListItemFn(w.listArray[index], index),
+            new RegExp('class="btn">' + number + "<")
+        );
+        assert.doesNotMatch(
+            w.getListItemFn(w.listArray[divider + 10], divider + 10),
+            /class="btn">10</
+        );
+        w.listKeyHandlerFn(48 + number);
+        assert.equal(saved.get("ottplayprov"), expected);
+        assert.equal(loaded.length, 1);
+    }
+});
+
+test("malformed recent history keeps the default service order", () => {
+    const { w, saved } = uiFixture();
+    saved.set("ottplayprovs", "{");
+    assert.doesNotThrow(() => w.selectProvaider());
+    const firstService = w.arrayProvaiders.indexOf("") + 1;
+    assert.equal(w.arrayProvaiders[firstService], "ottclub");
+    assert.match(
+        w.getListItemFn(w.listArray[firstService], firstService),
+        /class="btn">1</
+    );
 });
 
 test("Plex hides its blue hint when color hints are disabled and remains selectable", () => {

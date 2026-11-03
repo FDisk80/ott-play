@@ -4322,6 +4322,53 @@ for (const profile of ["server", "tauri", "capacitor"]) {
         }
     });
 
+    test(`Modern live list crosses a page boundary before Up enters navigation (${profile})`, async ({
+        browser,
+    }) => {
+        const fixture = await fixturePage(browser, profile, {
+            interfaceTheme: 2,
+        });
+        const { page } = fixture;
+        try {
+            await page.evaluate(() => {
+                saveSettings({ interfaceMode: 1 });
+                stbBindKeyHandler();
+            });
+            await expect(page.locator("#listIn")).toHaveClass(/modern-live/);
+            const boundary = await page.evaluate(() => {
+                const boundary = Number(listPageSize);
+                if (!(boundary > 0 && boundary < listArray.length))
+                    throw new Error("Live fixture must have a second page");
+                changeSelect(boundary - selIndex);
+                document.getElementById("it" + selIndex).focus();
+                return boundary;
+            });
+            await page.keyboard.press("ArrowUp");
+            expect(await page.evaluate(() => selIndex)).toBe(boundary - 1);
+            await expect(page.locator("#it" + (boundary - 1))).toBeFocused();
+            await page.screenshot({
+                path: test.info().outputPath("modern-live-previous-page.png"),
+            });
+            await page.evaluate(() => {
+                changeSelect(-selIndex);
+                document.getElementById("it0").focus();
+            });
+            await page.keyboard.press("ArrowUp");
+            expect(
+                await page.evaluate(
+                    () => !!document.activeElement.closest("#modernRail")
+                )
+            ).toBe(true);
+            expect(await page.evaluate(() => selIndex)).toBe(0);
+            await page.keyboard.press("ArrowDown");
+            await expect(page.locator("#it0")).toBeFocused();
+            expect(fixture.errors).toEqual([]);
+            expect(fixture.unexpectedRequests).toEqual([]);
+        } finally {
+            await fixture.close();
+        }
+    });
+
     test(`Modern grid stays bounded at 10000 files and respects modal ownership (${profile})`, async ({
         browser,
     }) => {
@@ -4337,6 +4384,21 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 "Ocean of Silence"
             );
             await saveModernScreenshot(page, profile, "grid");
+            const cardGeometry = await page.evaluate(() => {
+                const art = document
+                    .querySelector("#it3450 .modern-art")
+                    .getBoundingClientRect();
+                const number = document.querySelector("#it3450 .modern-number");
+                return {
+                    artRatio: art.width / art.height,
+                    numberDisplay: number
+                        ? getComputedStyle(number).display
+                        : "none",
+                };
+            });
+            expect(cardGeometry.artRatio).toBeGreaterThan(1.7);
+            expect(cardGeometry.artRatio).toBeLessThan(1.85);
+            expect(cardGeometry.numberDisplay).toBe("none");
             const size = await page.locator("#listIn .item").count();
             expect(size).toBeGreaterThan(0);
             expect(size).toBeLessThanOrEqual(30);
@@ -4851,7 +4913,7 @@ async function expectVisibleControlsWithinViewport(page, selector) {
 }
 
 for (const profile of ["server", "tauri", "capacitor"]) {
-    test(`Modern library uses the complete shell and returns from rail focus (${profile})`, async ({
+    test(`Modern Home and Library share selection with horizontal navigation (${profile})`, async ({
         browser,
     }) => {
         const fixture = await fixturePage(browser, profile, {
@@ -4862,6 +4924,10 @@ for (const profile of ["server", "tauri", "capacitor"]) {
             await seedModernMovies(page, 10000, 0);
             const rail = page.locator('#modernRail[aria-label="Menu"]');
             await expect(rail).toBeVisible();
+            await expect(page.locator("#list")).toHaveClass(/modern-view-home/);
+            await expect(
+                page.locator('[data-modern-action="home"]')
+            ).toHaveAttribute("aria-current", "page");
             await expect(page.locator("#modernHero")).toBeVisible();
             await expect(
                 page.locator("#modernHero .modern-hero-title")
@@ -4887,8 +4953,14 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                         .length,
                     heroWidth: hero.width,
                     left: list.left,
-                    navRight: nav.right,
+                    navBottom: nav.bottom,
                     right: list.right,
+                    rowTops: Array.from(
+                        document.querySelectorAll("#listIn .modern-card")
+                    ).map((card) =>
+                        Math.round(card.getBoundingClientRect().top)
+                    ),
+                    top: list.top,
                     width: list.width,
                 };
             });
@@ -4896,8 +4968,14 @@ for (const profile of ["server", "tauri", "capacitor"]) {
             expect(geometry.cardCount).toBeLessThanOrEqual(64);
             expect(geometry.width).toBeGreaterThan(1280 * 0.65);
             expect(geometry.heroWidth).toBeGreaterThan(1280 * 0.5);
-            expect(geometry.left).toBeGreaterThanOrEqual(geometry.navRight - 1);
+            expect(geometry.left).toBeGreaterThanOrEqual(0);
+            expect(geometry.top).toBeGreaterThanOrEqual(geometry.navBottom - 1);
             expect(geometry.right).toBeLessThanOrEqual(1281);
+            expect(new Set(geometry.rowTops).size).toBe(1);
+            await expectVisibleControlsWithinViewport(
+                page,
+                "#modernRail [data-modern-action], .modern-account-actions [data-modern-action]"
+            );
             await page.evaluate(() => {
                 stbBindKeyHandler();
                 window.__modernRailEffects = [];
@@ -4905,17 +4983,87 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 window.stbStop = () => __modernRailEffects.push("stop");
                 document.getElementById("it0").focus();
             });
-            await page.keyboard.press("ArrowLeft");
+            await page.keyboard.press("ArrowUp");
+            await expect(
+                page.locator('#modernHero [data-modern-hero-action="play"]')
+            ).toBeFocused();
+            await page.keyboard.press("ArrowUp");
             expect(
                 await page.evaluate(
                     () => !!document.activeElement.closest("#modernRail")
                 )
             ).toBe(true);
-            await page.keyboard.press("ArrowRight");
+            await page.keyboard.press("ArrowDown");
+            await expect(
+                page.locator('#modernHero [data-modern-hero-action="play"]')
+            ).toBeFocused();
+            await page.keyboard.press("ArrowDown");
             await expect(page.locator("#it0")).toBeFocused();
             expect(await page.evaluate(() => listArray[selIndex])).toBe(
                 "movie-0"
             );
+            await page.locator('[data-modern-action="library"]').click();
+            await expect(page.locator("#list")).toHaveClass(
+                /modern-view-library/
+            );
+            await expect(
+                page.locator('[data-modern-action="library"]')
+            ).toHaveAttribute("aria-current", "page");
+            const library = await page.evaluate(() => {
+                const art = document
+                    .querySelector("#it0 .modern-art")
+                    .getBoundingClientRect();
+                return {
+                    ratio: art.width / art.height,
+                    rows: new Set(
+                        Array.from(
+                            document.querySelectorAll("#listIn .modern-card")
+                        ).map((card) =>
+                            Math.round(card.getBoundingClientRect().top)
+                        )
+                    ).size,
+                    selected: listArray[selIndex],
+                };
+            });
+            expect(library.ratio).toBeGreaterThan(0.64);
+            expect(library.ratio).toBeLessThan(0.69);
+            expect(library.selected).toBe("movie-0");
+            // A short viewport can fit only one natural-height poster row.
+            expect(library.rows).toBeGreaterThanOrEqual(1);
+            expect(library.rows).toBeLessThanOrEqual(2);
+            await page.setViewportSize({ height: 851, width: 393 });
+            await page.evaluate(() => saveSettings({ uiFontScale: 140 }));
+            await expect
+                .poll(async () =>
+                    page.evaluate(() => {
+                        const card = document.getElementById("it0");
+                        const box = card.getBoundingClientRect();
+                        const art = card
+                            .querySelector(".modern-art")
+                            .getBoundingClientRect();
+                        const copy = card
+                            .querySelector(".modern-copy")
+                            .getBoundingClientRect();
+                        const ratio = art.width / art.height;
+                        return (
+                            box.width > 120 &&
+                            ratio > 0.64 &&
+                            ratio < 0.69 &&
+                            copy.bottom <= box.bottom + 1 &&
+                            box.right <= innerWidth &&
+                            box.bottom <= innerHeight
+                        );
+                    })
+                )
+                .toBe(true);
+            await page.evaluate(() => saveSettings({ uiFontScale: 100 }));
+            await page.setViewportSize({ height: 720, width: 1280 });
+            await page.locator('[data-modern-action="home"]').click();
+            await expect(page.locator("#list")).toHaveClass(/modern-view-home/);
+            expect(await page.evaluate(() => listArray[selIndex])).toBe(
+                "movie-0"
+            );
+            await page.evaluate(() => document.getElementById("it0").focus());
             await page.screenshot({
                 path: test.info().outputPath("modern-library-shell.png"),
             });
@@ -4927,6 +5075,85 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 "movie-0"
             );
             expect(await page.evaluate(() => __modernRailEffects)).toEqual([]);
+            expect(fixture.errors).toEqual([]);
+            expect(fixture.unexpectedRequests).toEqual([]);
+        } finally {
+            await fixture.close();
+        }
+    });
+}
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    test(`Modern hero uses the selected item's shared Play and Description commands (${profile})`, async ({
+        browser,
+    }) => {
+        const fixture = await fixturePage(browser, profile, {
+            interfaceTheme: 2,
+        });
+        const { page } = fixture;
+        try {
+            await seedModernMovies(page, 80, 5);
+            await page.evaluate(() => {
+                stbBindKeyHandler();
+                window.__heroPlays = [];
+                window.playChannel = (category, index) =>
+                    __heroPlays.push([category, listArray[index]]);
+            });
+            const hero = page.locator("#modernHero");
+            const buttons = await hero
+                .locator(".modern-hero-action")
+                .evaluateAll((items) =>
+                    items.map((item) => {
+                        const icon = item
+                            .querySelector("svg")
+                            .getBoundingClientRect();
+                        return {
+                            height: item.getBoundingClientRect().height,
+                            iconHeight: icon.height,
+                            iconWidth: icon.width,
+                            textSize: parseFloat(
+                                getComputedStyle(item).fontSize
+                            ),
+                        };
+                    })
+                );
+            expect(buttons.length).toBe(2);
+            expect(
+                Math.abs(buttons[0].height - buttons[1].height)
+            ).toBeLessThan(2);
+            for (const button of buttons) {
+                expect(button.iconHeight).toBeLessThanOrEqual(
+                    button.textSize * 1.5
+                );
+                expect(button.iconWidth).toBeLessThanOrEqual(
+                    button.textSize * 1.5
+                );
+            }
+            await hero
+                .getByRole("button", { exact: true, name: "Description" })
+                .click();
+            await expect(page.locator("#listAbout")).toBeVisible();
+            await expect(page.locator("#listAbout")).toContainText(
+                "Under City Lights"
+            );
+            expect(await page.evaluate(() => __heroPlays)).toEqual([]);
+            await page.evaluate(() => _doKey(keys.RETURN));
+            await expect(page.locator("#listAbout")).toBeHidden();
+            expect(await page.evaluate(() => listArray[selIndex])).toBe(
+                "movie-5"
+            );
+
+            await page.evaluate(() => changeSelect(1));
+            await expect(hero.locator(".modern-hero-title")).toHaveText(
+                "Ocean of Silence"
+            );
+            await hero
+                .getByRole("button", { exact: true, name: "Play" })
+                .click();
+            expect(await page.evaluate(() => __heroPlays)).toEqual([
+                [0, "movie-6"],
+            ]);
+            await expect(page.locator("#list")).toBeHidden();
             expect(fixture.errors).toEqual([]);
             expect(fixture.unexpectedRequests).toEqual([]);
         } finally {
@@ -5144,7 +5371,7 @@ test("Modern navigation keeps library, categories, settings and search in the sa
             stbBindKeyHandler();
         });
         const action = (name) =>
-            page.locator(`#modernRail [data-modern-action="${name}"]`);
+            page.locator(`#modernShell [data-modern-action="${name}"]`);
         await expect(action("library")).toBeVisible();
         await action("categories").click();
         await expect(page.locator("#listCaption")).toHaveText(
@@ -5166,6 +5393,14 @@ test("Modern navigation keeps library, categories, settings and search in the sa
             page,
             '#modernRail [data-modern-action="library"]'
         );
+        await action("library").focus();
+        for (let step = 0; step < 10; step++) {
+            await page.keyboard.press("ArrowRight");
+            await expect(
+                page.locator("#modernShell button:focus")
+            ).toBeVisible();
+        }
+        await expect(page.locator("#listCaption")).toHaveText("Settings");
         await page.screenshot({
             path: test.info().outputPath("modern-settings.png"),
         });
@@ -5366,6 +5601,81 @@ test("Modern fullscreen timeline and audio picker preserve the playback owner", 
                 () => __ottCoreBackend().current() === __modernPlaybackOwner
             )
         ).toBe(true);
+        await page.evaluate(() => {
+            // The decoder reports an actual zero after rewind. A stale shared
+            // footer fill must not be mistaken for a newer timing sample.
+            // This fixture replaces stbPlay and never starts a decoder. Supply
+            // its timing element at the same #video boundary used by the UI.
+            let video = document.getElementById("video");
+            if (!video) {
+                video = document.createElement("video");
+                video.id = "video";
+                video.hidden = true;
+                document.body.appendChild(video);
+            }
+            Object.defineProperty(video, "currentTime", {
+                configurable: true,
+                value: 0,
+            });
+            Object.defineProperty(video, "duration", {
+                configurable: true,
+                value: 1000,
+            });
+            window.stbGetPosTime = () => 0;
+            showChannelInfo(30);
+            $("#info1").finish();
+            document.getElementById("progress").style.width = "65%";
+            __ottModernPlayer.sync();
+        });
+        await expect(page.locator("#modernPlayer")).toBeVisible();
+        expect(
+            await page
+                .locator("#progress")
+                .evaluate((element) => element.style.width)
+        ).toBe("0%");
+        await expect(page.locator(".modern-player-elapsed")).toHaveText("0:00");
+
+        await page.evaluate(() => {
+            window.__modernStatusChoices = 0;
+            const source = document.getElementById("video_res");
+            source.textContent = "Playback details";
+            source.setAttribute("role", "button");
+            source.onclick = () => {
+                window.__modernStatusChoices++;
+            };
+            __ottModernPlayer.sync();
+        });
+        const status = page.locator(".modern-player-status");
+        for (const key of ["Enter", "Space"]) {
+            await page.evaluate(() => {
+                showChannelInfo(30);
+                $("#info1").finish();
+                __ottModernPlayer.sync();
+            });
+            await expect(status).toHaveAttribute("role", "button");
+            await status.focus();
+            await page.keyboard.press(key);
+            await expect(page.locator("#modernPlayer")).toBeHidden();
+        }
+        expect(await page.evaluate(() => __modernStatusChoices)).toBe(2);
+        await page.evaluate(() => {
+            showChannelInfo(30);
+            $("#info1").finish();
+            __ottModernPlayer.sync();
+        });
+        await status.focus();
+        await page.evaluate(() => {
+            document.getElementById("video_res").textContent = "";
+            __ottModernPlayer.sync();
+        });
+        await expect(status).toBeHidden();
+        await expect(status).not.toHaveAttribute("tabindex", "0");
+        await expect(
+            page.locator(".modern-player-actions button:focus")
+        ).toBeVisible();
+        await page.screenshot({
+            path: test.info().outputPath("modern-fullscreen-zero-position.png"),
+        });
         expect(await page.evaluate(() => __modernMediaEffects)).toEqual([]);
         expect(fixture.errors).toEqual([]);
         expect(fixture.unexpectedRequests).toEqual([]);

@@ -565,6 +565,7 @@ var keyStrings = {
     "Hide providers?": "Pêşkêşkeran veşêrin?",
     "History in Media Library": "Dîrok di pirtûkxaneya medyayê de",
     "History of watched movies": "Dîroka temaşekirinê",
+    Home: "Destpêk",
     "HTTP port": "porta HTTP",
     "HTTP remote control is unavailable on this device.":
         "Kontrola ji dûr a HTTP li ser vê cîhazê tune ye.",

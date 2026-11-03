@@ -569,6 +569,7 @@ var keyStrings = {
     "Hide providers?": "Provayderlar yashirilsinmi?",
     "History in Media Library": "Media kutubxonasidagi tarix",
     "History of watched movies": "Tomosha tarixi",
+    Home: "Bosh sahifa",
     "HTTP port": "HTTP porti",
     "HTTP remote control is unavailable on this device.":
         "Bu qurilmada HTTP pulti mavjud emas.",

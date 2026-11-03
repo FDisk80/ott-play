@@ -566,6 +566,7 @@ var keyStrings = {
     "Hide providers?": "Сакриј провајдере?",
     "History in Media Library": "Историја у медијској библиотеци",
     "History of watched movies": "Историја гледања",
+    Home: "Почетна",
     "HTTP port": "HTTP порт",
     "HTTP remote control is unavailable on this device.":
         "HTTP даљински управљач није доступан на овом уређају.",

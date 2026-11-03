@@ -564,6 +564,7 @@ var keyStrings = {
     "Hide providers?": "Skjul udbydere?",
     "History in Media Library": "Historik i mediebiblioteket",
     "History of watched movies": "Afspilningshistorik",
+    Home: "Forside",
     "HTTP port": "HTTP port",
     "HTTP remote control is unavailable on this device.":
         "HTTP fjernbetjening er ikke tilgængelig på denne enhed.",

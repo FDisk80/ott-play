@@ -568,6 +568,7 @@ var keyStrings = {
     "Hide providers?": "Да се скрият ли доставчиците?",
     "History in Media Library": "История в медийната библиотека",
     "History of watched movies": "История на гледането",
+    Home: "Начало",
     "HTTP port": "HTTP порт",
     "HTTP remote control is unavailable on this device.":
         "HTTP дистанционното не е налично на това устройство.",

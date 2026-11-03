@@ -551,6 +551,7 @@ var keyStrings = {
     "Hide providers?": "فراهم ڪندڙ لڪائجن؟",
     "History in Media Library": "ميڊيا لائبريري جي تاريخ",
     "History of watched movies": "ڏسڻ جي تاريخ",
+    Home: "مکيه صفحو",
     "HTTP port": "HTTP پورٽ",
     "HTTP remote control is unavailable on this device.":
         "هن ڊوائيس تي HTTP ريموٽ ڪنٽرول موجود ناهي.",

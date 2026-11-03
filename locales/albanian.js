@@ -574,6 +574,7 @@ var keyStrings = {
     "Hide providers?": "Të fshihen ofruesit?",
     "History in Media Library": "Historia në bibliotekën mediatike",
     "History of watched movies": "Historia e shikimit",
+    Home: "Ballina",
     "HTTP port": "porta HTTP",
     "HTTP remote control is unavailable on this device.":
         "Telekomanda HTTP nuk disponohet në këtë pajisje.",

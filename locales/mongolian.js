@@ -569,6 +569,7 @@ var keyStrings = {
     "Hide providers?": "Үйлчилгээ үзүүлэгчдийг нуух уу?",
     "History in Media Library": "Медиа сангийн түүх",
     "History of watched movies": "Үзсэн түүх",
+    Home: "Нүүр",
     "HTTP port": "HTTP порт",
     "HTTP remote control is unavailable on this device.":
         "Энэ төхөөрөмж дээр HTTP алсын удирдлага боломжгүй.",

@@ -563,6 +563,7 @@ var keyStrings = {
     "Hide providers?": "Ɓoye masu bada sabis?",
     "History in Media Library": "Tarihi a ɗakin kafofin watsa labarai",
     "History of watched movies": "Tarihin kallo",
+    Home: "Farko",
     "HTTP port": "Tashar HTTP",
     "HTTP remote control is unavailable on this device.":
         "Sarrafa HTTP daga nesa ba ya samuwa a wannan na'ura.",

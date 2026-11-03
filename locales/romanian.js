@@ -576,6 +576,7 @@ var keyStrings = {
     "Hide providers?": "Ascundeți furnizorii?",
     "History in Media Library": "Istoric în biblioteca media",
     "History of watched movies": "Istoricul vizionărilor",
+    Home: "Acasă",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Controlul HTTP nu este disponibil pe acest dispozitiv.",

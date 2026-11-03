@@ -535,6 +535,7 @@ var keyStrings = {
     "Hide providers?": "አቅራቢዎችን ደብቅ?",
     "History in Media Library": "በሚዲያ ቤተ መጻሕፍት ውስጥ ታሪክ",
     "History of watched movies": "የእይታ ታሪክ",
+    Home: "መነሻ",
     "HTTP port": "የHTTP ወደብ",
     "HTTP remote control is unavailable on this device.":
         "የHTTP የርቀት መቆጣጠሪያ በዚህ መሣሪያ አይገኝም።",

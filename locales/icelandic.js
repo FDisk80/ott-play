@@ -552,6 +552,7 @@ var keyStrings = {
     "Hide providers?": "Fela þjónustuaðila?",
     "History in Media Library": "Ferill í miðlasafni",
     "History of watched movies": "Áhorfsferill",
+    Home: "Heim",
     "HTTP port": "HTTP-gátt",
     "HTTP remote control is unavailable on this device.":
         "HTTP-fjarstýring er ekki tiltæk í þessu tæki.",

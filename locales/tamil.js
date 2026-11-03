@@ -558,6 +558,7 @@ var keyStrings = {
     "Hide providers?": "வழங்குநர்களை மறைக்கவா?",
     "History in Media Library": "ஊடக நூலகத்தில் வரலாறு",
     "History of watched movies": "வரலாற்றைப் பார்க்கவும்",
+    Home: "முகப்பு",
     "HTTP port": "HTTP போர்ட்",
     "HTTP remote control is unavailable on this device.":
         "HTTP ரிமோட் கண்ட்ரோல் இந்தச் சாதனத்தில் இல்லை.",

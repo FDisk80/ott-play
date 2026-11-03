@@ -578,6 +578,7 @@ var keyStrings = {
     "Hide providers?": "Fihla abahlinzeki?",
     "History in Media Library": "Umlando kumtapo wemidiya",
     "History of watched movies": "Umlando wokubuka",
+    Home: "Ekhaya",
     "HTTP port": "Imbobo ye-HTTP",
     "HTTP remote control is unavailable on this device.":
         "Ukulawula ukude nge-HTTP akutholakali kule divayisi.",

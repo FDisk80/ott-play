@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "scope": "Plex poster/backdrop URLs resolved lazily for the current client through non-enumerable getters. Only legacy and complete payload allowances change; startup, generic provider and all optional limits remain unchanged.",
+  "reproduction": "node scripts/measure-modern-shell.cjs e7f18d5786f5853e7e32f66644090ab0a82f8713 /tmp/ott-plex-artwork-size plex",
+  "measurement": "All six production Plex modules, identical TypeScript options, classic assembler and optimizer/name policy; only src/plugins/plex.ts differs. Candidate bytes and SHA-256 match the full production build.",
+  "toolchain": {
+    "gzipLevel": 9,
+    "node": "26.8.2",
+    "terser": "5.51.2",
+    "typescript": "5.9.3",
+    "zlib": "1.2.12"
+  },
+  "packageLock": "b8c1a17b830a48366a835c3c4c4808ab45bc103676b9fcff04c86e7179a0d0c8",
+  "baseline": {
+    "revision": "e7f18d5786f5853e7e32f66644090ab0a82f8713",
+    "inputs": {
+      "src/plugins/plex-playback-policy.ts": "261ef5e1937c3b01c18e8a618e5b9af35880a6900ddd83ed04f0e2df7778b9a6",
+      "src/plugins/plex.ts": "cbc98d830a5fdbba61f2af18cf3ab2b6eab10d179074cbeead6d2051af1b9ae0",
+      "src/plugins/plex-auth.ts": "36fc2faabe4d97797ffa7487dde9144ae4539176b156345c5998958983f9fe28",
+      "src/plugins/plex-list.ts": "ea85b554d81d780a9df155ed6c38728a424c82aab11be8072077fa879ae87463",
+      "src/plugins/plex-queue.ts": "d11011c69b710d081214b8c33bbc274576f869107c6ac0e59165eec6b52f67df",
+      "src/provider/plex-driver.ts": "305df5fc4b8cb971753ec856513b2310ce04ab7ce9d888406ee9c7f02edf75cc"
+    },
+    "output": {
+      "bytes": 62407,
+      "gzipBytes": 21313,
+      "sha256": "ab07a37c7e03c5632598ece3907401b8b9f8fa77a7214950a5b8162ad178978e"
+    }
+  },
+  "candidate": {
+    "inputs": {
+      "src/plugins/plex-playback-policy.ts": "261ef5e1937c3b01c18e8a618e5b9af35880a6900ddd83ed04f0e2df7778b9a6",
+      "src/plugins/plex.ts": "028f26c2eaf84aeb3899599acf7ee5cca338bf34fb9a95a8635cbb647fd26445",
+      "src/plugins/plex-auth.ts": "36fc2faabe4d97797ffa7487dde9144ae4539176b156345c5998958983f9fe28",
+      "src/plugins/plex-list.ts": "ea85b554d81d780a9df155ed6c38728a424c82aab11be8072077fa879ae87463",
+      "src/plugins/plex-queue.ts": "d11011c69b710d081214b8c33bbc274576f869107c6ac0e59165eec6b52f67df",
+      "src/provider/plex-driver.ts": "305df5fc4b8cb971753ec856513b2310ce04ab7ce9d888406ee9c7f02edf75cc"
+    },
+    "output": {
+      "bytes": 62592,
+      "gzipBytes": 21390,
+      "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+    },
+    "fullBuildOutput": {
+      "path": "dist/provider-plex.js",
+      "bytes": 62592,
+      "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+    }
+  },
+  "allowance": {
+    "bytes": 185,
+    "gzipBytes": 77
+  },
+  "budgets": {
+    "before": {
+      "legacy": {
+        "bytes": 1429319,
+        "gzipBytes": 445983
+      },
+      "baseTotal": {
+        "bytes": 1845795,
+        "gzipBytes": 568461
+      },
+      "total": {
+        "bytes": 1850275,
+        "gzipBytes": 570765
+      }
+    },
+    "after": {
+      "legacy": {
+        "bytes": 1429504,
+        "gzipBytes": 446060
+      },
+      "baseTotal": {
+        "bytes": 1845980,
+        "gzipBytes": 568538
+      },
+      "total": {
+        "bytes": 1850460,
+        "gzipBytes": 570842
+      }
+    }
+  },
+  "protectedCaps": {
+    "entry": {
+      "bytes": 1184448,
+      "gzipBytes": 361805
+    },
+    "provider": {
+      "bytes": 863400,
+      "gzipBytes": 268490
+    }
+  },
+  "reviewedCleanup": "The shared descriptor factory avoids duplicating the credential-lifetime guard for poster and backdrop.",
+  "limits": "No margin is added beyond the measured 185 raw bytes and 77 gzip bytes. The existing generic per-provider cap remains unchanged."
+}
