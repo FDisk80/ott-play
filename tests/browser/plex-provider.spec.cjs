@@ -60,6 +60,64 @@ function aspectMediaReady({ engine, previous, target }) {
     );
 }
 
+// Self-contained for Playwright serialization; observes without changing playback.
+function kioskAspectMediaReady() {
+    const phase = window.__ottClassicPlayback.snapshot().phase;
+    const media = window.video;
+    const ready =
+        phase === "playing" &&
+        Number.isFinite(media.duration) &&
+        media.duration > 0.5 &&
+        media.currentTime > 0.1;
+    try {
+        const sample =
+            window.__aspectKioskReadiness ||
+            (window.__aspectKioskReadiness = {
+                index: 0,
+                started: performance.now(),
+            });
+        const elapsed = performance.now() - sample.started;
+        const moments = [0, 1000, 5000, 15000, 30000];
+        // Keep at most five scalar snapshots in the existing failure trace.
+        if (!ready && elapsed >= moments[sample.index]) {
+            sample.index++;
+            const seconds = (value) =>
+                Number.isFinite(value) ? Math.round(value * 1000) / 1000 : null;
+            const buffered = media.buffered;
+            const last = buffered.length - 1;
+            const snapshot = {
+                bufferEnd: last >= 0 ? seconds(buffered.end(last)) : null,
+                bufferStart: last >= 0 ? seconds(buffered.start(0)) : null,
+                currentTime: seconds(media.currentTime),
+                duration: seconds(media.duration),
+                durationFinite: Number.isFinite(media.duration),
+                elapsedMs: Math.round(elapsed),
+                ended: media.ended,
+                errorCode: media.error?.code || null,
+                hlsAttached: window.hlsInstance?.media === media,
+                networkState: media.networkState,
+                paused: media.paused,
+                phase: [
+                    "idle",
+                    "loading",
+                    "playing",
+                    "paused",
+                    "stopped",
+                ].includes(phase)
+                    ? phase
+                    : "unknown",
+                readyState: media.readyState,
+                sourcePresent: !!media.currentSrc,
+                visible: document.visibilityState === "visible",
+            };
+            console.log("Plex kiosk readiness: " + JSON.stringify(snapshot));
+        }
+    } catch (_) {
+        // Diagnostics cannot change the readiness result or query a failed page.
+    }
+    return ready;
+}
+
 const plex = "https://plex.fixture";
 const token = "fixture-plex-secret";
 const mediaRoot = path.resolve(__dirname, "../fixtures/media-runtime");
@@ -1633,13 +1691,10 @@ for (const { engine, strict } of [
                     mode: "fill",
                     savedMode: "fill",
                 });
-                await page.waitForFunction(
-                    () =>
-                        window.__ottClassicPlayback.snapshot().phase ===
-                            "playing" &&
-                        Number.isFinite(window.video.duration) &&
-                        window.video.duration > 0.5 &&
-                        window.video.currentTime > 0.1
+                await observeAspectReadiness(
+                    page,
+                    { engine, phase: "replay" },
+                    () => page.waitForFunction(kioskAspectMediaReady)
                 );
                 // Observe the real decoder event before the application's target
                 // listener replays the pinned channel. Only the current attempt
