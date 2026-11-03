@@ -1,0 +1,330 @@
+{
+  "schema": 1,
+  "feature": "Exact Local Favorites paths and private receiver binding proofs",
+  "allowance": {
+    "entry": {
+      "bytes": 1024,
+      "gzipBytes": 512
+    },
+    "favorites": {
+      "bytes": 7424,
+      "gzipBytes": 2048
+    }
+  },
+  "accounting": {
+    "entry": ["entry"],
+    "legacy": ["entry"],
+    "favorites-transfer": ["favorites"],
+    "complete": ["entry", "favorites"],
+    "unrelatedProviderAndOptionalCaps": "unchanged"
+  },
+  "comparison": {
+    "baseRevision": "e7f18d5786f5853e7e32f66644090ab0a82f8713",
+    "candidateTree": "55ce99262d71d7f5b009ab60032228669423fd24",
+    "baseBuildExit": 0,
+    "candidateBuildExitBeforeAllowance": 1,
+    "candidateInputErrors": []
+  },
+  "measurementContext": {
+    "toolchain": {
+      "node": "26.8.2",
+      "zlib": "1.2.12"
+    },
+    "gitSourceIdentityBytesExcluded": 40,
+    "betaSuffixIncluded": false,
+    "qualification": "Both measured source archives omitted Git metadata. Deltas compare identical identity behavior; these are not final published release measurements.",
+    "releaseReserve": "Git source identity (40 raw bytes) and a future beta version suffix consume existing aggregate headroom separately; they are not charged again as feature growth. Gzip identity/suffix variation requires the final packaging gate."
+  },
+  "previousCaps": {
+    "entry": {
+      "bytes": 1184448,
+      "gzipBytes": 361805
+    },
+    "favorites": {
+      "bytes": 249493,
+      "gzipBytes": 64330
+    },
+    "legacy": {
+      "bytes": 1429319,
+      "gzipBytes": 445983
+    },
+    "total": {
+      "bytes": 1844081,
+      "gzipBytes": 569026
+    }
+  },
+  "measurements": [
+    {
+      "variant": "web",
+      "baseline": {
+        "entry": {
+          "bytes": 1184177,
+          "gzipBytes": 360456
+        },
+        "favorites": {
+          "bytes": 249221,
+          "gzipBytes": 64002
+        },
+        "legacy": {
+          "bytes": 1428865,
+          "gzipBytes": 444616
+        },
+        "total": {
+          "bytes": 1844004,
+          "gzipBytes": 567211
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1185176,
+          "gzipBytes": 360936
+        },
+        "favorites": {
+          "bytes": 256545,
+          "gzipBytes": 65946
+        },
+        "legacy": {
+          "bytes": 1429864,
+          "gzipBytes": 445096
+        },
+        "total": {
+          "bytes": 1852327,
+          "gzipBytes": 569635
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 999,
+          "gzipBytes": 480
+        },
+        "favorites": {
+          "bytes": 7324,
+          "gzipBytes": 1944
+        },
+        "legacy": {
+          "bytes": 999,
+          "gzipBytes": 480
+        },
+        "total": {
+          "bytes": 8323,
+          "gzipBytes": 2424
+        }
+      },
+      "featureHeadroom": {
+        "entry": {
+          "bytes": 25,
+          "gzipBytes": 32
+        },
+        "favorites": {
+          "bytes": 100,
+          "gzipBytes": 104
+        }
+      },
+      "resultingHeadroom": {
+        "entry": {
+          "bytes": 296,
+          "gzipBytes": 1381
+        },
+        "favorites": {
+          "bytes": 372,
+          "gzipBytes": 432
+        },
+        "legacy": {
+          "bytes": 479,
+          "gzipBytes": 1399
+        },
+        "total": {
+          "bytes": 202,
+          "gzipBytes": 1951
+        }
+      },
+      "entryHashes": {
+        "baseline": "003103200b94c95dd534a6ebfdbff821c7e0d65e8aefb0aba25ac4b381a92e99",
+        "candidate": "768fa9744b2303f77b99f3e6ed20a4ca75ae9e33dbc1526d548a4cbe3383947c"
+      }
+    },
+    {
+      "variant": "tauri",
+      "baseline": {
+        "entry": {
+          "bytes": 1184135,
+          "gzipBytes": 360509
+        },
+        "favorites": {
+          "bytes": 249221,
+          "gzipBytes": 64002
+        },
+        "legacy": {
+          "bytes": 1428823,
+          "gzipBytes": 444669
+        },
+        "total": {
+          "bytes": 1843962,
+          "gzipBytes": 567264
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1185134,
+          "gzipBytes": 360988
+        },
+        "favorites": {
+          "bytes": 256545,
+          "gzipBytes": 65946
+        },
+        "legacy": {
+          "bytes": 1429822,
+          "gzipBytes": 445148
+        },
+        "total": {
+          "bytes": 1852285,
+          "gzipBytes": 569687
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 999,
+          "gzipBytes": 479
+        },
+        "favorites": {
+          "bytes": 7324,
+          "gzipBytes": 1944
+        },
+        "legacy": {
+          "bytes": 999,
+          "gzipBytes": 479
+        },
+        "total": {
+          "bytes": 8323,
+          "gzipBytes": 2423
+        }
+      },
+      "featureHeadroom": {
+        "entry": {
+          "bytes": 25,
+          "gzipBytes": 33
+        },
+        "favorites": {
+          "bytes": 100,
+          "gzipBytes": 104
+        }
+      },
+      "resultingHeadroom": {
+        "entry": {
+          "bytes": 338,
+          "gzipBytes": 1329
+        },
+        "favorites": {
+          "bytes": 372,
+          "gzipBytes": 432
+        },
+        "legacy": {
+          "bytes": 521,
+          "gzipBytes": 1347
+        },
+        "total": {
+          "bytes": 244,
+          "gzipBytes": 1899
+        }
+      },
+      "entryHashes": {
+        "baseline": "5a056ba65caa9726921631fe650c1a6eb4ef5f0e4a963b2e9d14ce177040e319",
+        "candidate": "a455c6b00438234be0cdd45f560a40530292c98d5c6acd8e77b08c2364f956ce"
+      }
+    },
+    {
+      "variant": "capacitor",
+      "baseline": {
+        "entry": {
+          "bytes": 1184135,
+          "gzipBytes": 360509
+        },
+        "favorites": {
+          "bytes": 249221,
+          "gzipBytes": 64002
+        },
+        "legacy": {
+          "bytes": 1428823,
+          "gzipBytes": 444669
+        },
+        "total": {
+          "bytes": 1843962,
+          "gzipBytes": 567264
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1185134,
+          "gzipBytes": 360988
+        },
+        "favorites": {
+          "bytes": 256545,
+          "gzipBytes": 65946
+        },
+        "legacy": {
+          "bytes": 1429822,
+          "gzipBytes": 445148
+        },
+        "total": {
+          "bytes": 1852285,
+          "gzipBytes": 569687
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 999,
+          "gzipBytes": 479
+        },
+        "favorites": {
+          "bytes": 7324,
+          "gzipBytes": 1944
+        },
+        "legacy": {
+          "bytes": 999,
+          "gzipBytes": 479
+        },
+        "total": {
+          "bytes": 8323,
+          "gzipBytes": 2423
+        }
+      },
+      "featureHeadroom": {
+        "entry": {
+          "bytes": 25,
+          "gzipBytes": 33
+        },
+        "favorites": {
+          "bytes": 100,
+          "gzipBytes": 104
+        }
+      },
+      "resultingHeadroom": {
+        "entry": {
+          "bytes": 338,
+          "gzipBytes": 1329
+        },
+        "favorites": {
+          "bytes": 372,
+          "gzipBytes": 432
+        },
+        "legacy": {
+          "bytes": 521,
+          "gzipBytes": 1347
+        },
+        "total": {
+          "bytes": 244,
+          "gzipBytes": 1899
+        }
+      },
+      "entryHashes": {
+        "baseline": "5a056ba65caa9726921631fe650c1a6eb4ef5f0e4a963b2e9d14ce177040e319",
+        "candidate": "a455c6b00438234be0cdd45f560a40530292c98d5c6acd8e77b08c2364f956ce"
+      }
+    }
+  ],
+  "inputSha256": {
+    "comparison.json": "f4ec72c789d062d3b75c95e9d88e591bd4af03088822f82bc3a589019961fee0",
+    "base-size.json": "5e907b012ec7f1334af54268f9d801e1b7cd66f08521af531fc7124d3a58a1b0",
+    "candidate-size.json": "7c1a7b9b9a779fae004fba972df7f508ff4c94b467a2c0342be134ee47dc8b93"
+  }
+}

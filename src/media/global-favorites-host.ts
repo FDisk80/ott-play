@@ -9,6 +9,7 @@ import { createGlobalFavoritesFacade } from "../settings/global-favorites-facade
 import { createGlobalFavoritesPortableCodec } from "../settings/global-favorites-portable";
 import { createGlobalFavoritesCommitter } from "../settings/global-favorites-receipts";
 import { createGlobalFavoritesRecovery } from "../settings/global-favorites-recovery";
+import { createLocalFavoriteProofs } from "../settings/local-favorite-proofs";
 import { captureGlobalFavorite } from "./global-favorites-capture";
 import { globalFavoriteCanonical } from "./global-favorites-identities";
 import {
@@ -27,6 +28,7 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
         "remoteCheckpoint",
         "handleRemoteProfiles",
         "isProviderAllowed",
+        "localItemRelativePath",
         "providerIds",
         "selectProviderByIndex",
         "selectMediaProfile",
@@ -191,6 +193,12 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
         isProviderAllowed: function (id: string) {
             return mainCall("isProviderAllowed", [id], false);
         },
+        localFavoriteProof: function (selector: any, locator: any) {
+            return localProofs.read(selector, locator);
+        },
+        localItemRelativePath: function (item: any) {
+            return mainCall("localItemRelativePath", [item], null);
+        },
         providerIds: function () {
             return mainCall("providerIds", [], []);
         },
@@ -300,6 +308,15 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
         sha256: ports.sha256,
         uuid: ports.uuid,
     });
+    var localProofs = createLocalFavoriteProofs({
+        canWrite: function () {
+            return !!committer && committer.canWrite();
+        },
+        current: current,
+        grant: grant,
+        sha256: ports.sha256,
+        snapshot: store.snapshot,
+    });
     var router = createGlobalFavoritesRouter({
         activate: async function (target: any, guard: () => boolean) {
             var session = await player.activate(target, guard);
@@ -382,11 +399,7 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
             if (current()) w.showShift(w._("Unavailable"));
         },
         identity: function (entry: any) {
-            return codec.identity({
-                locator: entry.locator,
-                origin: entry.origin,
-                title: entry.title,
-            });
+            return favoriteRowIdentity(entry);
         },
         onMove: function () {
             w.__ottSetInfoInteraction?.(false);
@@ -710,6 +723,13 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
             }
         });
     }
+    function favoriteRowIdentity(value: any): string {
+        return codec.identity({
+            locator: value.locator,
+            origin: value.origin,
+            title: value.title,
+        });
+    }
     function membershipToken(source: string, entry: any): Promise<string> {
         return ports.sha256(
             JSON.stringify([
@@ -718,6 +738,44 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
                 codec.identity(entry),
             ])
         );
+    }
+    function bareLocal(captured: any): boolean {
+        return (
+            captured?.value?.locator?.kind === "local-media" &&
+            captured.value.locator.relativePath.indexOf("/") < 0
+        );
+    }
+    async function verifiedLocalMembership(captured: any): Promise<any> {
+        var exact = captured.localProof
+            ? captured
+            : await captureGlobalFavorite(w, player, codec);
+        if (
+            !exact?.localProof ||
+            codec.identity(exact.value) !== codec.identity(captured.value)
+        )
+            return null;
+        var exactCurrent = exact.current;
+        var proof = await localProofs.read(exact.selector, exact.value.locator);
+        function valid(mutating = false): boolean {
+            return (
+                !!proof &&
+                (mutating ? proof.storageCurrent() : proof.current()) &&
+                exactCurrent() &&
+                proof.itemId === exact.localProof.itemId &&
+                proof.sourceId === exact.localProof.sourceId &&
+                proof.relativePath === exact.localProof.relativePath
+            );
+        }
+        return valid()
+            ? {
+                  current: function () {
+                      return valid();
+                  },
+                  mutationCurrent: function () {
+                      return valid(true);
+                  },
+              }
+            : null;
     }
     async function toggle(
         payload?: any,
@@ -764,13 +822,7 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
             var before = await store.snapshot(),
                 identity = codec.identity(capture.value);
             var found = before.entries.filter(function (entry: any) {
-                return (
-                    codec.identity({
-                        locator: entry.locator,
-                        origin: entry.origin,
-                        title: entry.title,
-                    }) === identity
-                );
+                return favoriteRowIdentity(entry) === identity;
             });
             if (!before.current() || !capture.current())
                 throw new Error("changed");
@@ -785,9 +837,48 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
                 })
             )
                 throw new Error("reconciliation_required");
+            // An old basename may describe a different nested file. A toggle
+            // must not interpret that collision as membership of this root file.
+            var membership =
+                bareLocal(capture) && found.length && present !== true
+                    ? await verifiedLocalMembership(capture)
+                    : null;
+            if (
+                bareLocal(capture) &&
+                found.length &&
+                present !== true &&
+                !membership
+            )
+                throw new Error("unavailable");
+            if (membership) {
+                var capturedCurrent = capture.current;
+                capture.current = function () {
+                    return capturedCurrent() && membership.mutationCurrent();
+                };
+            }
             var removing = present === undefined ? found.length > 0 : !present;
+            var needsLocalProof = !removing && bareLocal(capture);
+            if (needsLocalProof) {
+                // The routed row alone is not new user evidence. Capture the
+                // exact current catalog item again for this explicit add.
+                var exact = await captureGlobalFavorite(
+                    w,
+                    player,
+                    codec,
+                    payload
+                );
+                if (
+                    !exact?.localProof ||
+                    !exact.current() ||
+                    codec.identity(exact.value) !== identity
+                )
+                    throw new Error("unavailable");
+                capture = exact;
+            }
             if (!removing && found.length) {
                 if (!before.current()) throw new Error("revision_conflict");
+                if (needsLocalProof)
+                    await localProofs.record(capture, before.revision);
                 return {
                     changed: false,
                     outcome: "verified",
@@ -808,7 +899,7 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
                 if (!capture.current() || !local.current())
                     throw new Error("changed");
             }
-            var result = await store.mutate(
+            var plan = await store.prepare(
                 before.revision,
                 removing
                     ? {
@@ -827,8 +918,66 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
                     );
                 }
             );
-            if (result.outcome !== "verified")
-                throw new Error("storage_unavailable");
+            var result = await plan.underLock(async function (commit, held) {
+                var proofKey = "local-favorite-path-proofs.v1",
+                    storeKey = "remoteFavorites.v1",
+                    proofBefore = needsLocalProof ? held.read(proofKey) : null,
+                    result = await commit();
+                if (result.outcome !== "verified")
+                    throw new Error("storage_unavailable");
+                if (needsLocalProof) {
+                    try {
+                        await localProofs.record(
+                            capture,
+                            result.revision,
+                            held
+                        );
+                    } catch (error) {
+                        // This branch only inserted a new row. Keep the same
+                        // lock through proof publication and compensation; never
+                        // erase a concurrent edit or a possibly committed proof.
+                        var rollback = function (): boolean {
+                            return (
+                                held === grant &&
+                                held.current() &&
+                                held.read("favorites-receipts.v1") ===
+                                    receiptRaw &&
+                                held.read(proofKey) === proofBefore
+                            );
+                        };
+                        var restored = false;
+                        try {
+                            // CAS cannot delete a key. An absent old document
+                            // therefore becomes its valid empty v2 equivalent.
+                            var prior =
+                                plan.beforeRaw === null
+                                    ? JSON.stringify({
+                                          entries: [],
+                                          legacy: [],
+                                          legacyAliases: {},
+                                          migrations: [],
+                                          version: 2,
+                                      })
+                                    : plan.beforeRaw;
+                            restored =
+                                rollback() &&
+                                held.read(storeKey) === plan.afterRaw &&
+                                held.compareAndSwap(
+                                    storeKey,
+                                    plan.afterRaw,
+                                    prior,
+                                    rollback
+                                ) === "confirmed" &&
+                                held.read(storeKey) === prior &&
+                                rollback();
+                        } catch (_) {}
+                        if (!restored)
+                            throw new Error("reconciliation_required");
+                        throw error;
+                    }
+                }
+                return result;
+            });
             if (result.changed && (!removing || found.length))
                 ports.favoriteToggled(capture.value.title, !removing);
             return result;
@@ -841,25 +990,41 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
             router.captureCurrent() ||
             (await captureGlobalFavorite(w, player, codec));
         if (!captured) throw new Error("unavailable");
+        if (bareLocal(captured)) {
+            var snapshot = await store.snapshot();
+            if (
+                snapshot.entries.some(function (entry: any) {
+                    return (
+                        favoriteRowIdentity(entry) ===
+                        codec.identity(captured.value)
+                    );
+                })
+            ) {
+                var membership = await verifiedLocalMembership(captured);
+                if (!membership) throw new Error("unavailable");
+                var previous = captured.current;
+                captured.current = function () {
+                    return previous() && membership.current();
+                };
+            }
+            if (!snapshot.current()) throw new Error("changed");
+        }
         if (!captured.current()) throw new Error("changed");
         return captured;
     }
     var facade = createGlobalFavoritesFacade({
+        addCurrent: function (admission?: () => boolean) {
+            return toggle(undefined, admission, true);
+        },
         capture: capture,
         captureLegacy: ports.captureLegacy,
         caselessKey: function (value: string) {
             if (!current()) throw new Error("context_changed");
             return main.caselessKey(value);
         },
-        codec: codec,
+
         current: current,
-        locatorKinds: [
-            "channel",
-            "channel-name",
-            "local-media",
-            "plex-media",
-            "vportal-media",
-        ],
+
         playEntry: function (id: string, admission: () => boolean) {
             return router.select(id, admission);
         },
@@ -867,7 +1032,7 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
         qualify: function () {
             return committer && committer.qualify();
         },
-        sha256: ports.sha256,
+
         store: store,
         uuid: ports.uuid,
     });
@@ -968,9 +1133,22 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
                     current,
                     entries[i].locator
                 );
+                var local = entries[i].locator;
+                var exact =
+                    candidates.length === 1 &&
+                    local.kind === "local-media" &&
+                    local.relativePath.indexOf("/") < 0
+                        ? await localProofs.read(candidates[0].selector, local)
+                        : null;
                 states.push(
                     candidates.length === 1
-                        ? "resolved"
+                        ? local.kind === "local-media" &&
+                          local.relativePath.indexOf("/") < 0 &&
+                          (!exact ||
+                              !exact.current() ||
+                              exact.title !== entries[i].title)
+                            ? "missing"
+                            : "resolved"
                         : candidates.length > 1
                           ? "ambiguous"
                           : "missing"
@@ -990,6 +1168,24 @@ export function createGlobalFavoritesHost(w: any, ports: any): any {
         var captured =
             router.captureCurrent() ||
             (await captureGlobalFavorite(w, player, codec));
+        if (
+            bareLocal(captured) &&
+            snapshot.entries.some(function (entry: any) {
+                return (
+                    favoriteRowIdentity(entry) ===
+                    codec.identity(captured.value)
+                );
+            })
+        ) {
+            var membership = await verifiedLocalMembership(captured);
+            if (!membership) captured = null;
+            else {
+                var previous = captured.current;
+                captured.current = function () {
+                    return previous() && membership.current();
+                };
+            }
+        }
         if (
             !context.current() ||
             !snapshot.current() ||

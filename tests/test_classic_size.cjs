@@ -6,6 +6,8 @@ const vm = require("node:vm");
 const ts = require("typescript");
 let {
     FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
+    LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
+    LOCAL_FAVORITES_PATH_ALLOWANCE,
     COMPANION_DIAGNOSTICS_ALLOWANCE,
     TORRENT_DISCOVERY_ALLOWANCE,
     TORRENT_STREAMS_ALLOWANCE,
@@ -121,13 +123,25 @@ function capsWithoutAllowances(names) {
 const favoritesCategoryPersistenceBaseline = capsWithoutAllowances([
     "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
 ]);
+const localFavoritesPathCaps = latestCaps;
+const localFavoritesPathBaseline = capsWithoutAllowances([
+    "LOCAL_FAVORITES_PATH_ALLOWANCE",
+]);
+const localFavoriteWriteRecoveryBaseline = capsWithoutAllowances([
+    "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
+]);
+const historicalIncomingCaps = capsWithoutAllowances([
+    "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
+    "LOCAL_FAVORITES_PATH_ALLOWANCE",
+    "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
+]);
 ({
     BASE_TOTAL_BUDGET,
     BUDGET,
     LEGACY_TOTAL_BUDGET,
     OPTIONAL_BUDGETS,
     TOTAL_BUDGET,
-} = favoritesCategoryPersistenceBaseline);
+} = historicalIncomingCaps);
 const archiveRelativeSeekCaps = {
     BASE_TOTAL_BUDGET,
     BUDGET,
@@ -448,6 +462,102 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const writeRecoveryEvidence = require("../docs/evidence/local-favorite-write-recovery-size-20261102.json");
+    assert.deepEqual(
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
+        writeRecoveryEvidence.allowance
+    );
+    assert(Object.isFrozen(LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE));
+    for (const cap of Object.values(LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE))
+        assert(Object.isFrozen(cap));
+    assert.equal(writeRecoveryEvidence.measurements.length, 3);
+    assert.equal(
+        new Set(writeRecoveryEvidence.measurements.map((row) => row.variant))
+            .size,
+        3
+    );
+    const recoveryCapNames = {
+        entry: "BUDGET",
+        favorites: "favorites-transfer",
+        legacy: "LEGACY_TOTAL_BUDGET",
+        total: "TOTAL_BUDGET",
+    };
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const entry = LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry[metric],
+            favorites =
+                LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites[metric];
+        assert(Number.isInteger(entry) && entry >= 0);
+        assert(Number.isInteger(favorites) && favorites >= 0);
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                latestCaps[name][metric] -
+                    localFavoriteWriteRecoveryBaseline[name][metric],
+                entry +
+                    (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
+                        ? favorites
+                        : 0),
+                name + " counts each write-recovery component once"
+            );
+        for (const name of Object.keys(latestCaps.OPTIONAL_BUDGETS))
+            assert.equal(
+                latestCaps.OPTIONAL_BUDGETS[name][metric] -
+                    localFavoriteWriteRecoveryBaseline.OPTIONAL_BUDGETS[name][
+                        metric
+                    ],
+                name === "favorites-transfer" ? favorites : 0,
+                name + " retains unrelated optional caps"
+            );
+        for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+            assert.equal(
+                require("../scripts/classic-size.cjs")[name][metric],
+                localFavoriteWriteRecoveryBaseline[name][metric]
+            );
+        for (const row of writeRecoveryEvidence.measurements) {
+            const delta = {};
+            for (const name of Object.keys(recoveryCapNames)) {
+                const before = row.baseline[name][metric],
+                    after = row.candidate[name][metric],
+                    allocated =
+                        name === "favorites"
+                            ? favorites
+                            : entry + (name === "total" ? favorites : 0),
+                    previousHeadroom =
+                        writeRecoveryEvidence.previousCaps[name][metric] -
+                        before;
+                assert(Number.isInteger(before) && before >= 0);
+                assert(Number.isInteger(after) && after >= 0);
+                assert(
+                    Number.isInteger(
+                        writeRecoveryEvidence.previousCaps[name][metric]
+                    )
+                );
+                delta[name] = after - before;
+                assert.equal(row.delta[name][metric], delta[name]);
+                assert(
+                    delta[name] <= allocated,
+                    row.variant + " " + name + " measured recovery growth fits"
+                );
+                assert(
+                    previousHeadroom >= 0,
+                    row.variant + " " + name + " baseline fits"
+                );
+                assert(
+                    writeRecoveryEvidence.previousCaps[name][metric] +
+                        allocated -
+                        after >=
+                        previousHeadroom,
+                    row.variant + " " + name + " retains previous headroom"
+                );
+            }
+            assert.equal(delta.legacy, delta.entry);
+            assert.equal(delta.total, delta.entry + delta.favorites);
+        }
+    }
     const categoryPersistenceEvidence = require("../docs/evidence/favorites-category-persistence-size-20261102.json");
     assert.deepEqual(
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
@@ -550,6 +660,94 @@ try {
             assert.equal(deltas.total, deltas.entry + deltas.favorites);
         }
     }
+    const pathEvidence = require("../docs/evidence/local-favorites-path-size-20261102.json");
+    assert.deepEqual(LOCAL_FAVORITES_PATH_ALLOWANCE, pathEvidence.allowance);
+    assert(Object.isFrozen(LOCAL_FAVORITES_PATH_ALLOWANCE));
+    for (const cap of Object.values(LOCAL_FAVORITES_PATH_ALLOWANCE))
+        assert(Object.isFrozen(cap));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const entry = LOCAL_FAVORITES_PATH_ALLOWANCE.entry[metric];
+        const favorites = LOCAL_FAVORITES_PATH_ALLOWANCE.favorites[metric];
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                localFavoritesPathCaps[name][metric] -
+                    localFavoritesPathBaseline[name][metric],
+                entry +
+                    (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
+                        ? favorites
+                        : 0),
+                name + " counts each applicable Local Favorites allowance once"
+            );
+        assert.equal(
+            localFavoritesPathCaps.OPTIONAL_BUDGETS["favorites-transfer"][
+                metric
+            ] -
+                localFavoritesPathBaseline.OPTIONAL_BUDGETS[
+                    "favorites-transfer"
+                ][metric],
+            favorites
+        );
+        for (const name of Object.keys(OPTIONAL_BUDGETS))
+            if (name !== "favorites-transfer")
+                assert.equal(
+                    localFavoritesPathCaps.OPTIONAL_BUDGETS[name][metric],
+                    localFavoritesPathBaseline.OPTIONAL_BUDGETS[name][metric]
+                );
+        for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+            assert.equal(
+                require("../scripts/classic-size.cjs")[name][metric],
+                localFavoritesPathBaseline[name][metric]
+            );
+        for (const row of pathEvidence.measurements) {
+            const deltas = Object.fromEntries(
+                ["entry", "favorites", "legacy", "total"].map((name) => [
+                    name,
+                    row.candidate[name][metric] - row.baseline[name][metric],
+                ])
+            );
+            assert.equal(deltas.entry, row.delta.entry[metric]);
+            assert.equal(deltas.favorites, row.delta.favorites[metric]);
+            assert.equal(deltas.legacy, deltas.entry);
+            assert.equal(deltas.total, deltas.entry + deltas.favorites);
+            assert.equal(
+                row.featureHeadroom.entry[metric],
+                entry - deltas.entry
+            );
+            assert.equal(
+                row.featureHeadroom.favorites[metric],
+                favorites - deltas.favorites
+            );
+            for (const name of ["entry", "favorites", "legacy", "total"]) {
+                const allocated =
+                    name === "favorites"
+                        ? favorites
+                        : entry + (name === "total" ? favorites : 0);
+                const headroom =
+                    pathEvidence.previousCaps[name][metric] +
+                    allocated -
+                    row.candidate[name][metric];
+                assert.equal(row.resultingHeadroom[name][metric], headroom);
+                assert(
+                    headroom >= 0,
+                    row.variant +
+                        " " +
+                        name +
+                        " recorded candidate fits approved caps"
+                );
+            }
+        }
+    }
+    assert.equal(
+        pathEvidence.measurementContext.gitSourceIdentityBytesExcluded,
+        40
+    );
+    assert.equal(pathEvidence.measurementContext.betaSuffixIncluded, false);
+    assert.deepEqual(pathEvidence.comparison.candidateInputErrors, []);
     const archiveEvidence = require("../docs/evidence/archive-relative-seek-size-20261102.json");
     assert.deepEqual(
         ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
@@ -4235,6 +4433,9 @@ try {
     for (const [key, allowance] of Object.entries({
         favoritesCategoryPersistenceAllowance:
             FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
+        localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
+        localFavoriteWriteRecoveryAllowance:
+            LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
         mediaCompanionEntryAllowance: MEDIA_COMPANION_ENTRY_ALLOWANCE,
         mediaCompanionOptionalAllowance: MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
         mediaCompanionPreparationAllowance:

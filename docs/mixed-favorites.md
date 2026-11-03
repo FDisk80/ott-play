@@ -58,12 +58,20 @@ filesystem access, or provision provider credentials. Destination profile slots,
 private identifiers and Local folder permissions can differ from the source.
 Profiles are resolved through their configured identities or explicit mappings.
 
-For example, an ordered list can switch from `Clips / opening.mp4` to a channel
+For example, an ordered list can switch from `Clips / Season 1/opening.mp4` to a channel
 in M3U profile `One`, then a VPortal movie, a Plex movie, and a channel in M3U
 profile `Two`. On the receiving player, the equivalent profiles and the Local
 root must be configured and accessible. A missing or ambiguous profile, root,
 channel or movie is reported as unavailable. The player does not substitute the
 same numbered channel or another similarly named file.
+
+Version 1 Local entries containing only a filename cannot distinguish an older
+shortened path from a file at the folder root. After transfer, explicitly select
+and add the intended file on the receiving player. A complete nested path such as
+`Season 1/opening.mp4` creates a new playable Favorite; it does not repair or replace
+an imported `opening.mp4` entry, which remains unavailable and can be removed.
+Re-adding the exact root file verifies that existing entry on this player. Existing
+exact receiver-local bindings remain usable; see [Local path compatibility](offline-media-native.md).
 
 Merge retains existing entries and does not duplicate the same portable
 identity. A conflicting title for an existing identity requires explicit

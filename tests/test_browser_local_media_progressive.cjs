@@ -79,6 +79,8 @@ function fixture(count, extension = "mp4", brokenIndex = -1, mime, waits = {}) {
             permissionRequests++;
             return "granted";
         },
+        resolve: async (handle) =>
+            files.includes(handle) ? [handle.name] : null,
         values: () => {
             iteratorCreations++;
             let index = 0;
@@ -208,19 +210,12 @@ function fixture(count, extension = "mp4", brokenIndex = -1, mime, waits = {}) {
 }
 async function settle(pending) {
     let timer;
+    const timeout = new Error("Pending directory regression did not complete");
     try {
         return await Promise.race([
             pending,
             new Promise((_, reject) => {
-                timer = setTimeout(
-                    () =>
-                        reject(
-                            new Error(
-                                "Pending directory regression did not complete"
-                            )
-                        ),
-                    5000
-                );
+                timer = setTimeout(() => reject(timeout), 5000);
             }),
         ]);
     } finally {
@@ -232,6 +227,64 @@ async function flushScans() {
 }
 
 (async () => {
+    const paths = fixture(0);
+    const file = (name) => ({
+        getFile: async () => ({
+            lastModified: 1,
+            name,
+            size: 1,
+            type: "video/mp4",
+        }),
+        kind: "file",
+        name,
+        queryPermission: async () => "granted",
+    });
+    const values = (entries) => () => {
+        let index = 0;
+        return {
+            next: async () =>
+                index < entries.length
+                    ? { done: false, value: entries[index++] }
+                    : { done: true },
+        };
+    };
+    paths.saved()[0].handle.values = values([
+        file("Clip.mp4"),
+        {
+            kind: "directory",
+            name: "Season 1",
+            values: values([file("Clip.mp4")]),
+        },
+        {
+            kind: "directory",
+            name: "Кино %20",
+            values: values([file("Фильм.mp4")]),
+        },
+    ]);
+    paths.saved().push({
+        created: 2,
+        handle: file("Picked.mp4"),
+        id: "source-picked",
+        name: "Picked.mp4",
+    });
+    paths.saved().push({
+        blob: { lastModified: 1, size: 1, type: "video/mp4" },
+        created: 3,
+        id: "old-copy",
+        name: "old/path.mp4",
+    });
+    const pathCatalog = await settle(paths.api.list());
+    assert.deepEqual(
+        Array.from(pathCatalog.items, (item) => [item.name, item.relativePath]),
+        [
+            ["Clip.mp4", "Clip.mp4"],
+            ["Season 1/Clip.mp4", "Season 1/Clip.mp4"],
+            ["Кино %20/Фильм.mp4", "Кино %20/Фильм.mp4"],
+            ["Picked.mp4", null],
+            ["old/path.mp4", null],
+        ]
+    );
+
     let releaseInitial;
     const sharedInitial = fixture(3, "mp4", -1, undefined, {
         iterator: new Promise((resolve) => {
@@ -515,6 +568,7 @@ async function flushScans() {
     );
     assert.equal(bootstrapped.items.length, 1);
     assert.equal(bootstrapped.items[0].name, candidates[2].path);
+    assert.equal(bootstrapped.items[0].relativePath, candidates[2].path);
     assert.equal(
         cachedSource.iteratorReads(),
         readsBeforeBootstrap,
@@ -522,15 +576,69 @@ async function flushScans() {
     );
     assert.equal(bootstrapped.preferred.state, "missing");
 
+    const movedCache = fixture(1);
+    await settle(movedCache.api.list());
+    await flushScans();
+    const movedHandle = movedCache.saved()[0].bootstrap[0].handle;
+    const movedRoot = movedCache.saved()[0].handle;
+    movedRoot.resolve = async (handle) =>
+        handle === movedHandle ? ["Moved", handle.name] : null;
+    movedRoot.values = values([
+        { kind: "directory", name: "Moved", values: values([movedHandle]) },
+    ]);
+    const movedSnapshots = [];
+    const movedCatalog = await settle(
+        movedCache.reinstall().list((catalog) => {
+            movedSnapshots.push(...catalog.items);
+        })
+    );
+    assert.equal(movedCatalog.items.length, 1);
+    assert.equal(movedCatalog.items[0].relativePath, "Moved/movie-0.mp4");
+    assert(
+        movedSnapshots.every(
+            (item) => item.relativePath === "Moved/movie-0.mp4"
+        ),
+        "a still-readable moved handle cannot publish its stale cached root path"
+    );
+
+    const unresolvedCache = fixture(1);
+    await settle(unresolvedCache.api.list());
+    await flushScans();
+    delete unresolvedCache.saved()[0].handle.resolve;
+    let firstUnproven;
+    const unprovenCache = await settle(
+        unresolvedCache.reinstall().list((catalog) => {
+            if (catalog.items.length && !firstUnproven)
+                firstUnproven = catalog.items[0];
+        })
+    );
+    assert.equal(
+        firstUnproven.relativePath,
+        null,
+        "cached playback without root resolve must not create path proof"
+    );
+    assert.equal(
+        unprovenCache.items[0].relativePath,
+        "movie-0.mp4",
+        "the fresh walk upgrades the row without changing its earlier snapshot"
+    );
+
     const directFile = fixture(3, "mp4", -1, undefined, {
         iterator: new Promise(() => {}),
     });
+    const directRoot = directFile.saved()[0].handle;
+    directRoot.getDirectoryHandle = async (name) => {
+        assert.equal(name, "sub");
+        return { getFileHandle: directRoot.getFileHandle };
+    };
+    directRoot.resolve = async (handle) => ["sub", handle.name];
     await settle(directFile.api.list((catalog) => !catalog.sources.length));
     const selectedFile = await settle(
         directFile.api.bootstrapFile("source-movies", "sub/movie-1.mp4")
     );
     assert.equal(selectedFile.items[0].id, "source-movies:sub/movie-1.mp4");
     assert.equal(selectedFile.items[0].directory, "sub");
+    assert.equal(selectedFile.items[0].relativePath, "sub/movie-1.mp4");
     assert.equal(selectedFile.scanning, true);
     assert.equal(selectedFile.partial, true);
     assert.equal(selectedFile.preferred.state, "found");
@@ -796,6 +904,7 @@ async function flushScans() {
         "source-movies:movie-9999.mp4",
         "saved file resolves directly before traversal"
     );
+    assert.equal(resumed.items[0].relativePath, "movie-9999.mp4");
     assert.equal(new Set(resumed.items.map((item) => item.id)).size, 10000);
     assert.equal(
         resumed.items.find((item) => item.id === full.items[0].id).url,
@@ -978,6 +1087,7 @@ async function flushScans() {
     assert.equal(permissionFailure.reconnectRequired, true);
     assert.equal(permissionFailure.sources[0].available, false);
     assert.equal(permissionFailure.items[0].url, "");
+    assert.equal(permissionFailure.items[0].relativePath, null);
     assert.equal(stalledPermission.iteratorCreations(), 0);
     assert.equal(
         stalledPermission.permissionRequests(),

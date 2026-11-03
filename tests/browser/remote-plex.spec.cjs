@@ -807,7 +807,9 @@ test("authenticated archive offsets rebuild broadcast URLs and preserve pause", 
         pending.push({ action, id, params });
         await expect.poll(() => results.has(id)).toBe(true);
         const result = results.get(id);
-        expect(result.status).toBe("ok");
+        expect(result.status, JSON.stringify({ action, params, result })).toBe(
+            "ok"
+        );
         return result.data;
     }
     try {

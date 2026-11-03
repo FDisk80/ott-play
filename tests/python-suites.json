@@ -40,6 +40,7 @@
     ["tests/test_native_xmltv_records.py", "--platform", "android"],
     ["tests/test_native_media_lifecycle.py", "--platform", "android"],
     ["tests/test_mobile_metadata_standby.py", "--platform", "android"],
+    ["tests/test_mobile_local_paths.py", "--platform", "android"],
     ["tests/test_runtime_diagnostics_native.py", "--platform", "android"]
   ],
   "ios": [
@@ -55,6 +56,7 @@
     ["tests/test_native_xmltv_records.py", "--platform", "ios"],
     ["tests/test_native_media_lifecycle.py", "--platform", "ios"],
     ["tests/test_mobile_metadata_standby.py", "--platform", "ios"],
+    ["tests/test_mobile_local_paths.py", "--platform", "ios"],
     ["tests/test_runtime_diagnostics_native.py", "--platform", "ios"]
   ]
 }

@@ -4,8 +4,8 @@ const ts = require("typescript");
 module.exports = function offlineProfileSource(includeStore = true) {
     return (
         includeStore
-            ? ["settings/store", "offline/profiles"]
-            : ["offline/profiles"]
+            ? ["settings/store", "offline/local-item-path", "offline/profiles"]
+            : ["offline/local-item-path", "offline/profiles"]
     )
         .map(
             (name) =>
@@ -17,6 +17,10 @@ module.exports = function offlineProfileSource(includeStore = true) {
                         )
                         .replace(
                             /^import \{ commitSettingsWrites \} from .*;\n/m,
+                            ""
+                        )
+                        .replace(
+                            /^import \{ localItemRelativePath \} from .*;\n/m,
                             ""
                         )
                         .replace(/^export /gm, ""),

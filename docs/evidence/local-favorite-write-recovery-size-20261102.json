@@ -1,0 +1,303 @@
+{
+  "schema": 1,
+  "feature": "Local Favorite write failure compensation and safe retry",
+  "base": "d0682ac87e6a5bbf06964cd395e40bcf77bace7c",
+  "candidate": "72ddfdd59557d85f83578726e7227a31a83b9641",
+  "candidateTree": "baec01ba0ecea93f4afd93c9805772bfa91d109f",
+  "version": "1.1.62",
+  "toolchain": {
+    "node": "26.8.2",
+    "zlib": "1.2.12"
+  },
+  "method": "Paired source builds with identical Node/zlib and version. Candidate diagnostics completed with no input errors and six size violations before this allowance. Only the entry and optional Favorites assets changed; provider and all other optional asset hashes were verified identical. Allocate measured growth rounded narrowly, preserving prior headroom; no additional source-identity or release reserve. Earlier path and category evidence remains immutable. Final packaging retains strict size gates.",
+  "allowance": {
+    "entry": {
+      "bytes": 32,
+      "gzipBytes": 16
+    },
+    "favorites": {
+      "bytes": 864,
+      "gzipBytes": 288
+    }
+  },
+  "accounting": {
+    "entry": ["entry"],
+    "legacy": ["entry"],
+    "favorites-transfer": ["favorites"],
+    "complete": ["entry", "favorites"],
+    "unrelatedProviderAndOptionalCaps": "unchanged"
+  },
+  "previousCaps": {
+    "entry": {
+      "bytes": 1188320,
+      "gzipBytes": 363149
+    },
+    "favorites": {
+      "bytes": 257205,
+      "gzipBytes": 66442
+    },
+    "legacy": {
+      "bytes": 1433191,
+      "gzipBytes": 447327
+    },
+    "total": {
+      "bytes": 1855665,
+      "gzipBytes": 572482
+    }
+  },
+  "measurements": [
+    {
+      "variant": "dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1187998,
+          "gzipBytes": 361738,
+          "path": "dist/player.js",
+          "sha256": "1d581eea89afa93f3a7499488e84c4364dbdcdb1fb167d5d40f315e3e5be1b79"
+        },
+        "favorites": {
+          "bytes": 256828,
+          "gzipBytes": 65996,
+          "path": "dist/favorites-transfer.js",
+          "sha256": "607271faee60847d2f2f02779360c036350dec65b93e645a0e77b32752163d9c"
+        },
+        "legacy": {
+          "bytes": 1432686,
+          "gzipBytes": 445898
+        },
+        "total": {
+          "bytes": 1855432,
+          "gzipBytes": 570487
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1188016,
+          "gzipBytes": 361743,
+          "path": "dist/player.js",
+          "sha256": "dc9a35cab3f4cd8b90d6cdddd4fe1cf23534b8ba98d408daa6d9eefe8b770425"
+        },
+        "favorites": {
+          "bytes": 257688,
+          "gzipBytes": 66261,
+          "path": "dist/favorites-transfer.js",
+          "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+        },
+        "legacy": {
+          "bytes": 1432704,
+          "gzipBytes": 445903
+        },
+        "total": {
+          "bytes": 1856310,
+          "gzipBytes": 570757
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 18,
+          "gzipBytes": 5
+        },
+        "favorites": {
+          "bytes": 860,
+          "gzipBytes": 265
+        },
+        "legacy": {
+          "bytes": 18,
+          "gzipBytes": 5
+        },
+        "total": {
+          "bytes": 878,
+          "gzipBytes": 270
+        }
+      },
+      "resultingHeadroom": {
+        "entry": {
+          "bytes": 336,
+          "gzipBytes": 1422
+        },
+        "favorites": {
+          "bytes": 381,
+          "gzipBytes": 469
+        },
+        "legacy": {
+          "bytes": 519,
+          "gzipBytes": 1440
+        },
+        "total": {
+          "bytes": 251,
+          "gzipBytes": 2029
+        }
+      }
+    },
+    {
+      "variant": "src-tauri/frontend/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1187956,
+          "gzipBytes": 361789,
+          "path": "src-tauri/frontend/dist/player.js",
+          "sha256": "6c0b24e6a8a1c37184ee7eb000f0c9f4df3a7b10bc751ae0bdb02a28e397846c"
+        },
+        "favorites": {
+          "bytes": 256828,
+          "gzipBytes": 65996,
+          "path": "src-tauri/frontend/dist/favorites-transfer.js",
+          "sha256": "607271faee60847d2f2f02779360c036350dec65b93e645a0e77b32752163d9c"
+        },
+        "legacy": {
+          "bytes": 1432644,
+          "gzipBytes": 445949
+        },
+        "total": {
+          "bytes": 1855390,
+          "gzipBytes": 570538
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1187974,
+          "gzipBytes": 361795,
+          "path": "src-tauri/frontend/dist/player.js",
+          "sha256": "7a8fb9eb75701116be50dcb4acbc43cc5546bcc970c440a854ad172715fd36ff"
+        },
+        "favorites": {
+          "bytes": 257688,
+          "gzipBytes": 66261,
+          "path": "src-tauri/frontend/dist/favorites-transfer.js",
+          "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+        },
+        "legacy": {
+          "bytes": 1432662,
+          "gzipBytes": 445955
+        },
+        "total": {
+          "bytes": 1856268,
+          "gzipBytes": 570809
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 18,
+          "gzipBytes": 6
+        },
+        "favorites": {
+          "bytes": 860,
+          "gzipBytes": 265
+        },
+        "legacy": {
+          "bytes": 18,
+          "gzipBytes": 6
+        },
+        "total": {
+          "bytes": 878,
+          "gzipBytes": 271
+        }
+      },
+      "resultingHeadroom": {
+        "entry": {
+          "bytes": 378,
+          "gzipBytes": 1370
+        },
+        "favorites": {
+          "bytes": 381,
+          "gzipBytes": 469
+        },
+        "legacy": {
+          "bytes": 561,
+          "gzipBytes": 1388
+        },
+        "total": {
+          "bytes": 293,
+          "gzipBytes": 1977
+        }
+      }
+    },
+    {
+      "variant": "dist-mobile/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1187956,
+          "gzipBytes": 361789,
+          "path": "dist-mobile/dist/player.js",
+          "sha256": "6c0b24e6a8a1c37184ee7eb000f0c9f4df3a7b10bc751ae0bdb02a28e397846c"
+        },
+        "favorites": {
+          "bytes": 256828,
+          "gzipBytes": 65996,
+          "path": "dist-mobile/dist/favorites-transfer.js",
+          "sha256": "607271faee60847d2f2f02779360c036350dec65b93e645a0e77b32752163d9c"
+        },
+        "legacy": {
+          "bytes": 1432644,
+          "gzipBytes": 445949
+        },
+        "total": {
+          "bytes": 1855390,
+          "gzipBytes": 570538
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1187974,
+          "gzipBytes": 361795,
+          "path": "dist-mobile/dist/player.js",
+          "sha256": "7a8fb9eb75701116be50dcb4acbc43cc5546bcc970c440a854ad172715fd36ff"
+        },
+        "favorites": {
+          "bytes": 257688,
+          "gzipBytes": 66261,
+          "path": "dist-mobile/dist/favorites-transfer.js",
+          "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+        },
+        "legacy": {
+          "bytes": 1432662,
+          "gzipBytes": 445955
+        },
+        "total": {
+          "bytes": 1856268,
+          "gzipBytes": 570809
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 18,
+          "gzipBytes": 6
+        },
+        "favorites": {
+          "bytes": 860,
+          "gzipBytes": 265
+        },
+        "legacy": {
+          "bytes": 18,
+          "gzipBytes": 6
+        },
+        "total": {
+          "bytes": 878,
+          "gzipBytes": 271
+        }
+      },
+      "resultingHeadroom": {
+        "entry": {
+          "bytes": 378,
+          "gzipBytes": 1370
+        },
+        "favorites": {
+          "bytes": 381,
+          "gzipBytes": 469
+        },
+        "legacy": {
+          "bytes": 561,
+          "gzipBytes": 1388
+        },
+        "total": {
+          "bytes": 293,
+          "gzipBytes": 1977
+        }
+      }
+    }
+  ],
+  "inputSha256": {
+    "pr991-archive-fix-size.json": "3f52643069b8e0868c11bf639d9fdfd097dc1e299f2616e52bc4664a45a867af",
+    "pr991-review-final-size.json": "ae29d74bcfe78dc44bf4c6291339c69a8752e34fcfdf23e2166798087cbcd26b"
+  }
+}

@@ -115,6 +115,8 @@ function createMainPorts(w) {
         caselessKey: caseless.caselessKey,
         handleRemoteProfiles: profiles.handleRemoteProfiles,
         isProviderAllowed: provider.isProviderAllowed,
+        localItemRelativePath: actualModule("src/offline/local-item-path.ts", w)
+            .localItemRelativePath,
         profilesModule: profiles,
         providerIds: () => provider.providerIds,
         providerModule: provider,

@@ -63,6 +63,7 @@ export async function captureGlobalFavorite(
     };
     var locator: any = null,
         root: any = null,
+        localProof: any = null,
         title = "";
     if (!payload) {
         var playing = w.__ottMedia?.current();
@@ -98,6 +99,19 @@ export async function captureGlobalFavorite(
         });
         if (items.length !== 1) return null;
         var item = items[0];
+        if (typeof player.localItemRelativePath !== "function") return null;
+        var relativePath = player.localItemRelativePath(item);
+        if (
+            relativePath === null ||
+            catalog.items.filter(function (candidate: any) {
+                return (
+                    candidate.sourceId === item.sourceId &&
+                    candidate.available !== false &&
+                    player.localItemRelativePath(candidate) === relativePath
+                );
+            }).length !== 1
+        )
+            return null;
         var keys =
             slot === null
                 ? ["s0"]
@@ -118,9 +132,36 @@ export async function captureGlobalFavorite(
         root = { alias: roots[0].name, id: item.sourceId, key: keys[0] };
         locator = {
             kind: "local-media",
-            relativePath: item.name,
+            relativePath: relativePath,
             rootAlias: root.alias,
         };
+        // Only a catalog's explicit path can attest a root-level file. An old
+        // name-only catalog may have discarded its original parent directory.
+        if (
+            Object.prototype.hasOwnProperty.call(item, "relativePath") &&
+            item.relativePath === relativePath
+        ) {
+            localProof = {
+                itemId: item.id,
+                relativePath: relativePath,
+                sourceId: item.sourceId,
+            };
+            catalogCurrent = function () {
+                return (
+                    view.current() &&
+                    catalog.items.filter(function (candidate: any) {
+                        return (
+                            candidate.id === id &&
+                            candidate.sourceId === localProof.sourceId &&
+                            candidate.available !== false &&
+                            candidate.relativePath === relativePath &&
+                            player.localItemRelativePath(candidate) ===
+                                relativePath
+                        );
+                    }).length === 1
+                );
+            };
+        }
         title = item.name;
     } else if (provider === "plex") {
         if (
@@ -346,6 +387,7 @@ export async function captureGlobalFavorite(
     if (!selector || !current()) return null;
     var captured = {
         current: current,
+        localProof: localProof,
         root: root,
         selector: selector,
         slot: slot,

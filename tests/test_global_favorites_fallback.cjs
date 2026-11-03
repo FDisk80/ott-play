@@ -84,6 +84,9 @@ const mainPorts = createMainPorts(w);
 const entry = moduleAt(
     "src/commands/global-favorites.ts",
     {
+        "../offline/local-item-path": {
+            localItemRelativePath: mainPorts.localItemRelativePath,
+        },
         "../provider": mainPorts.providerModule,
         "../storage/index": { captureFavoritesPhysicalStorage: capture },
         "../utils/caseless": { caselessKey: mainPorts.caselessKey },

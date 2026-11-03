@@ -1113,6 +1113,71 @@ for (const deferred of [
     );
 }
 
+// Pausing at the oldest retained instant must not disable the next seek when
+// the retention window advances. Only the destination must remain available.
+for (const file of [false, true]) {
+    for (const offset of [60, -10, -9007199254740991, 9007199254740991]) {
+        const c = fixture(),
+            opened = [];
+        let now = 1000000.25,
+            epoch = Math.ceil(now - 86400),
+            current = true;
+        const context = {
+            channelId: "1",
+            file,
+            isCurrent: () => current,
+            retention: 86400,
+            schedule: [],
+            sourceId: "a",
+        };
+        const controller = c.__ottArchiveSession.create(c.OttPlayCore, {
+            authorize: () => false,
+            capture: () => context,
+            epoch: () => epoch,
+            guide() {},
+            now: () => now,
+            open(_context, model) {
+                opened.push({ paused: model.paused, position: model.position });
+                return context;
+            },
+            pause() {},
+            publish() {},
+            resolve(_context, _model, done) {
+                done("archive");
+            },
+            seek() {
+                assert.fail(
+                    "a paused archive seek must reopen the destination"
+                );
+            },
+        });
+        assert.equal(controller.canSeekRelative(), true);
+        now += 2;
+        assert.equal(controller.canSeekRelative(), true);
+        const result = controller.seekRelative(offset, () => current, true);
+        const requested = Math.floor(epoch + offset),
+            earliest = Math.ceil(now - context.retention),
+            latest = Math.floor(now) - 1,
+            position = Math.max(earliest, Math.min(latest, requested));
+        assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+            clamped: position !== requested,
+            earliest,
+            from: epoch,
+            latest,
+            position,
+            timeline: "archive",
+        });
+        assert.deepEqual(opened, [{ paused: true, position }]);
+        current = false;
+        assert.equal(controller.canSeekRelative(), false);
+        current = true;
+        for (const invalid of [0, -1, NaN, Infinity, now + 1]) {
+            epoch = invalid;
+            assert.equal(controller.canSeekRelative(), false);
+        }
+    }
+}
+
 // Integer retention lower edge is rounded inward; invalid inputs do not resolve.
 {
     const c = fixture();
