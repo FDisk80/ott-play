@@ -515,7 +515,7 @@ try {
                 .gzipBytes - measured.output.gzipBytes,
             repaint.gzipHeadroom[stage]
         );
-    assert.deepEqual(repaint.gzipHeadroom, { before: 121, after: 118 });
+    assert.deepEqual(repaint.gzipHeadroom, { after: 118, before: 121 });
     assert.equal(
         repaint.candidate.output.gzipBytes - repaint.baseline.output.gzipBytes,
         repaint.delta.gzipBytes
