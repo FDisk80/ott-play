@@ -1381,6 +1381,122 @@ for (const provider of ["m3u", "plex", "vportal", "offline"]) {
     assert.deepEqual(plain(favorite.members), [1, "1", 2]);
 }
 
+// The real storage overlay keeps the active cursor in RAM while metadata is durable.
+for (const mode of ["preview", "transient"]) {
+    for (const fault of [null, "metadata", "logical-cursor", "no-readback"]) {
+        const backing = new Map();
+        const storageHost = {
+            localStorage: {
+                getItem: (key) => backing.get(key) ?? null,
+                key: (index) => [...backing.keys()][index] || null,
+                get length() {
+                    return backing.size;
+                },
+                removeItem: (key) => backing.delete(key),
+                setItem: (key, value) => backing.set(key, String(value)),
+            },
+        };
+        const storage = require("./helpers/remote-transfer-dependency.cjs")(
+            "../storage/index",
+            storageHost,
+            { document: { cookie: "" } }
+        ).storage;
+        const physicalKey = "offlinechannelLibrary:offline";
+        let armed = false;
+        let changed = false;
+        const ports = {
+            current: () => true,
+            get(key) {
+                if (armed && changed && fault === "logical-cursor") {
+                    armed = false;
+                    const actual = JSON.parse(storage.get(physicalKey));
+                    actual.selected = {
+                        groupId: "genre:9",
+                        itemId: "stream:30",
+                    };
+                    storage.set(physicalKey, JSON.stringify(actual));
+                }
+                return storage.get("offline" + key);
+            },
+            getPersisted(key) {
+                if (armed && fault === "metadata") {
+                    armed = false;
+                    const actual = JSON.parse(backing.get(physicalKey));
+                    actual.hidden = ["concurrent-hidden"];
+                    backing.set(physicalKey, JSON.stringify(actual));
+                }
+                return backing.get("offline" + key) ?? null;
+            },
+            set(key, value) {
+                storage.set("offline" + key, value);
+                if (armed) changed = true;
+            },
+            sourceId: "offline",
+        };
+        const initial = create(ports, rows);
+        assert(initial.select("genre:7", 11));
+        const discard =
+            mode === "preview"
+                ? storage.localPlayback.preview(() => "local-fixture").discard
+                : storage.localPlayback.begin(() => "local-fixture");
+        const active = create(ports, rows);
+        assert(active.select("genre:7", 12));
+        assert.equal(
+            JSON.parse(backing.get(physicalKey)).selected.itemId,
+            "stream:10"
+        );
+        assert.equal(
+            JSON.parse(storage.get(physicalKey)).selected.itemId,
+            "stream:20"
+        );
+        if (fault === "no-readback") delete ports.getPersisted;
+        armed = true;
+        assert.equal(
+            active.setPreference("audio", 11, 2, true),
+            fault === null,
+            mode +
+                ": accept only verified metadata and exact logical readback (" +
+                fault +
+                ")"
+        );
+        const persisted = JSON.parse(backing.get(physicalKey));
+        assert.equal(persisted.selected.itemId, "stream:10");
+        if (fault === null) {
+            assert.equal(active.preference("audio", 11), 2);
+            assert.equal(active.savedPreference("audio", 11), 2);
+            const logical = JSON.parse(storage.get(physicalKey));
+            assert.equal(logical.selected.itemId, "stream:20");
+            delete logical.selected;
+            delete persisted.selected;
+            assert.deepEqual(
+                logical,
+                persisted,
+                "all metadata, not only audio, matches physical readback"
+            );
+            discard();
+            const restored = create(ports, rows);
+            assert.equal(restored.preference("audio", 11), 2);
+            assert.equal(restored.snapshot().selected.itemId, "stream:10");
+        } else {
+            assert.equal(
+                active.preference("audio", 11),
+                undefined,
+                "failed verification cannot publish the new model"
+            );
+            if (fault === "metadata") {
+                assert.equal(persisted.preferences.audio["stream:10"], 2);
+                assert.deepEqual(persisted.hidden, ["concurrent-hidden"]);
+            }
+            if (fault === "logical-cursor")
+                assert.equal(
+                    JSON.parse(storage.get(physicalKey)).selected.itemId,
+                    "stream:30"
+                );
+            discard();
+        }
+    }
+}
+
 console.log(
     "Channel library: stable identity, catalog/user separation, migration, account isolation, storage failures PASS"
 );

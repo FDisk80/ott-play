@@ -7,6 +7,44 @@ const vm = require("node:vm");
 const ts = require("typescript");
 const test = require("node:test");
 const { fixture } = require("./helpers/provider-driver-fixture.cjs");
+// Exercise the actual channel-ready entry point and bookmark adapter. Only the
+// native decoder and DOM shell are replaced by the existing deterministic rig.
+function installChannelStartup(h) {
+    const file = "src/channels/index.ts";
+    const source = ts.createSourceFile(
+        file,
+        fs.readFileSync(file, "utf8"),
+        ts.ScriptTarget.Latest,
+        true
+    );
+    const names = ["onChannelsLoaded", "restoreContinueWatch", "setCurrent"];
+    const functions = source.statements.filter(
+        (node) =>
+            ts.isFunctionDeclaration(node) && names.includes(node.name?.text)
+    );
+    assert.equal(functions.length, names.length);
+    vm.runInContext(
+        ts.transpileModule(
+            functions
+                .map((node) => node.getText(source).replace(/^export /, ""))
+                .join("\n"),
+            { compilerOptions: { target: ts.ScriptTarget.ES5 } }
+        ).outputText,
+        h
+    );
+    Object.assign(h, {
+        clearBootHide() {},
+        console: {
+            error(error) {
+                throw error;
+            },
+            log() {},
+        },
+        loadEpgTimers() {},
+        loadFavoritesLists() {},
+        sFavorites: false,
+    });
+}
 function setup(options = {}) {
     const f = fixture();
     const h = f.host;
@@ -55,7 +93,24 @@ function setup(options = {}) {
     if (savedId)
         f.saved.set(
             "offlinechannelLibrary:offline",
-            JSON.stringify({ selected: { itemId: "channel:" + savedId } })
+            JSON.stringify(
+                options.channelStartup
+                    ? {
+                          groups: [],
+                          hidden: [],
+                          locks: [],
+                          nextGroup: 1,
+                          preferences: {},
+                          selected: {
+                              groupId: "system:all",
+                              itemId: "channel:" + savedId,
+                          },
+                          sourceId: "offline",
+                          unlocks: [],
+                          version: 1,
+                      }
+                    : { selected: { itemId: "channel:" + savedId } }
+            )
         );
     f.saved.set("offlineprimaryIndex", "3450");
     f.saved.set(
@@ -75,6 +130,20 @@ function setup(options = {}) {
         })
     );
     let progress, finish;
+    let imported =
+        typeof options.imported === "string"
+            ? options.imported
+            : options.imported
+              ? "local-saved"
+              : "";
+    if (options.profileSelected !== undefined)
+        h.__ottOfflineProfiles = {
+            catalogGuard: () => () => true,
+            filter: (value) => value,
+            namespace: () => "offline",
+            read: () => ({ active: 0 }),
+            selection: () => options.profileSelected,
+        };
     h.__ottLocalMedia = {
         libraryIdentity: () =>
             options.mode === "browser" ? "browser-test" : "native-test",
@@ -84,7 +153,11 @@ function setup(options = {}) {
         },
         startupSource: () =>
             options.unknownSource ? undefined : "selected-source",
-        takeImportSelection: () => (options.imported ? "local-saved" : ""),
+        takeImportSelection() {
+            const selected = imported;
+            imported = "";
+            return selected;
+        },
     };
     if (options.kiosk) h.__ottKiosk = { enabled: () => true };
     const driver = f.mount("offline"),
@@ -122,7 +195,9 @@ function setup(options = {}) {
         }),
     });
     const snapshots = [];
-    driver.load((catalog, error) => {
+    if (options.channelStartup) installChannelStartup(h);
+    if (options.session) h.ottpStorage.localPlayback.begin(() => "same-folder");
+    const receive = (catalog, error) => {
         assert.equal(error, undefined);
         snapshots.push(catalog);
         if (!catalog.incremental) {
@@ -131,8 +206,14 @@ function setup(options = {}) {
             h.catsArray = ["All"];
             h.cats = { All: h.cList };
             h.curList = h.cList;
-            const id = catalog.selectedId || h.cList[0];
-            if (id) h.playChannel(0, h.cList.indexOf(id));
+            if (options.channelStartup) {
+                h.__ottCatalogSelectedId = catalog.selectedId;
+                h.__ottMissingCatalogSelection = !!catalog.selectionMissing;
+                h.onChannelsLoaded();
+            } else {
+                const id = catalog.selectedId || h.cList[0];
+                if (id) h.playChannel(0, h.cList.indexOf(id));
+            }
         } else {
             for (const id of catalog.ids)
                 if (!h.channels[id]) {
@@ -140,7 +221,8 @@ function setup(options = {}) {
                     h.cList.push(id);
                 }
         }
-    });
+    };
+    driver.load(receive);
     const rawBefore = new Map(f.saved);
     const first = {
         id: "first",
@@ -180,6 +262,16 @@ function setup(options = {}) {
         plays,
         progress: (v) => progress(v),
         rawBefore,
+        reload(nextImport = "", fresh = false) {
+            // Mirror loadProv's ordered boundary: checkpoint the departing
+            // session before installing a fresh ephemeral storage owner.
+            playback.checkpointNow();
+            playback.cancel();
+            imported = nextImport;
+            h.__ottCatalogSelectedId = undefined;
+            if (fresh) h.ottpStorage.localPlayback.begin(() => "same-folder");
+            driver.load(receive);
+        },
         snapshots,
         value,
         wanted,
@@ -392,4 +484,124 @@ test("automatic EOF-next retains restoration, but a subsequent manual pause canc
         );
         f.driver.dispose();
     }
+});
+
+function durableJournal(f) {
+    return f.saved.get("offlineplaybackJournal");
+}
+function assertDurableSelection(f) {
+    assert.deepEqual(
+        JSON.parse(f.saved.get("offlinechannelLibrary:offline")).selected,
+        { groupId: "system:all", itemId: "channel:local-saved" },
+        "a temporary choice must not replace the active profile's saved cursor"
+    );
+}
+function currentJournal(f) {
+    return JSON.parse(f.h.stbGetItem("offlineplaybackJournal")).bookmark;
+}
+function advanceLocal(f, seconds) {
+    f.playback.command({
+        duration: 600,
+        generation: f.playback.snapshot().generation,
+        position: seconds,
+        type: "position",
+    });
+    f.playback.checkpointNow();
+}
+async function completeLocal(f, items = [f.first, f.wanted]) {
+    f.finish(f.value(items, false));
+    await Promise.resolve();
+}
+
+test("fresh temporary choice wins over the active profile's old selected movie", async () => {
+    const f = setup({
+        channelStartup: true,
+        imported: "local-first",
+        profileSelected: "local-saved",
+        session: true,
+    });
+    const before = durableJournal(f);
+    await completeLocal(f, [f.wanted, f.first]);
+    assert.equal(f.snapshots[0].selectedId, "local-first");
+    assert.equal(
+        f.snapshots[0].ids.indexOf("local-first"),
+        1,
+        "the explicit choice must not pass through a first-row fallback"
+    );
+    assert.deepEqual(f.plays, [{ id: "local-first", position: 0 }]);
+    assert.equal(
+        durableJournal(f),
+        before,
+        "the saved profile's resume remains intact"
+    );
+    assertDurableSelection(f);
+    f.driver.dispose();
+});
+
+test("fresh temporary selection of the same movie starts at zero despite a saved bookmark", async () => {
+    const f = setup({
+        channelStartup: true,
+        imported: "local-saved",
+        profileSelected: "local-saved",
+        session: true,
+    });
+    const before = durableJournal(f);
+    await completeLocal(f);
+    assert.equal(f.snapshots[0].selectedId, "local-saved");
+    assert.equal(f.snapshots[0].ids.indexOf("local-saved"), 1);
+    assert.deepEqual(f.plays, [{ id: "local-saved", position: 0 }]);
+    assert.equal(durableJournal(f), before);
+    assertDurableSelection(f);
+    f.driver.dispose();
+});
+
+test("a second temporary command for the same folder replaces the previous RAM resume", async () => {
+    const f = setup({
+        channelStartup: true,
+        imported: "local-saved",
+        profileSelected: "local-saved",
+        session: true,
+    });
+    const before = durableJournal(f);
+    await completeLocal(f);
+    advanceLocal(f, 41);
+    assert.equal(
+        currentJournal(f).position,
+        41,
+        "the first session owns its RAM checkpoint"
+    );
+    f.reload("local-saved", true);
+    await completeLocal(f);
+    assert.deepEqual(f.plays.at(-1), { id: "local-saved", position: 0 });
+    assert.equal(durableJournal(f), before);
+    assertDurableSelection(f);
+    f.driver.dispose();
+});
+
+test("ordinary active-profile startup still restores its selected movie and position", async () => {
+    const f = setup({ channelStartup: true, profileSelected: "local-saved" });
+    await completeLocal(f);
+    assert.deepEqual(f.plays, [{ id: "local-saved", position: 147 }]);
+    assert.equal(f.h.ottpStorage.localPlayback.active(), false);
+    f.driver.dispose();
+});
+
+test("restarting the current temporary session may restore only its own RAM movie and position", async () => {
+    const f = setup({
+        channelStartup: true,
+        imported: "local-saved",
+        profileSelected: "local-saved",
+        session: true,
+    });
+    const before = durableJournal(f);
+    await completeLocal(f);
+    advanceLocal(f, 31);
+    assert.equal(currentJournal(f).channelId, "local-saved");
+    assert.equal(currentJournal(f).position, 31);
+    f.reload();
+    await completeLocal(f);
+    assert.deepEqual(f.plays.at(-1), { id: "local-saved", position: 31 });
+    assert.equal(durableJournal(f), before);
+    assertDurableSelection(f);
+    f.driver.dispose();
 });
