@@ -581,6 +581,7 @@ var keyStrings = {
     "Hide providers?": "Απόκρυψη παρόχων;",
     "History in Media Library": "Ιστορικό στη βιβλιοθήκη πολυμέσων",
     "History of watched movies": "Ιστορικό προβολής",
+    Home: "Αρχική",
     "HTTP port": "Θύρα HTTP",
     "HTTP remote control is unavailable on this device.":
         "Ο τηλεχειρισμός HTTP δεν είναι διαθέσιμος σε αυτήν τη συσκευή.",

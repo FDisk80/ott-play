@@ -587,6 +587,7 @@ var keyStrings = {
     "History in Media Library":
         "Tantara ao amin'ny tranombokin'ny haino aman-jery",
     "History of watched movies": "Tantaran'ny fijerena",
+    Home: "Fandraisana",
     "HTTP port": "Seranan-tserasera HTTP",
     "HTTP remote control is unavailable on this device.":
         "Tsy misy fanaraha-maso HTTP lavitra amin'ity fitaovana ity.",

@@ -624,6 +624,20 @@ const MODERN_PLAYER_OPTIONAL_ALLOWANCE = Object.freeze({
     bytes: 17600,
     gzipBytes: 5100,
 });
+// Native-style Home/Library shell, artwork and guarded selected-item actions,
+// including final focus ownership and finite playback-time presentation fixes.
+// Paired e7f18/current optional builds retain the existing raw/gzip headroom.
+// Entry, provider and legacy-total limits are unchanged; count this once below.
+// Evidence: docs/evidence/modern-native-shell-size-20261102.json.
+const MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE = Object.freeze({
+    bytes: 6607,
+    gzipBytes: 1897,
+});
+// Authenticated poster/backdrop getters stay in the lazy Plex provider.
+// Count its measured delta only in legacy/complete totals, preserving the
+// existing entry, generic per-provider and optional limits.
+// Evidence: docs/evidence/plex-artwork-size-20261102.json.
+const PLEX_ARTWORK_ALLOWANCE = Object.freeze({ bytes: 185, gzipBytes: 77 });
 const MODERN_INTERFACE_RELATED_ALLOWANCES = Object.freeze({
     "favorites-transfer": Object.freeze({ bytes: 64, gzipBytes: 32 }),
     "remote-settings-lifecycle": Object.freeze({ bytes: 700, gzipBytes: 256 }),
@@ -711,9 +725,28 @@ const FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE = Object.freeze({
     entry: Object.freeze({ bytes: 2848, gzipBytes: 832 }),
     favorites: Object.freeze({ bytes: 288, gzipBytes: 64 }),
 });
+// Exact source-archive comparison after lossless path/proof deduplication:
+// entry +999/+480 gzip; optional Favorites +7324/+1944. Retain the prior
+// source-identity, native-transform and release-suffix headroom. Count the
+// entry in legacy payloads and both parts once in complete payloads.
+// Evidence: docs/evidence/local-favorites-path-size-20261102.json.
+const LOCAL_FAVORITES_PATH_ALLOWANCE = Object.freeze({
+    entry: Object.freeze({ bytes: 1024, gzipBytes: 512 }),
+    favorites: Object.freeze({ bytes: 7424, gzipBytes: 2048 }),
+});
+// Local Favorite write recovery keeps the entry, exact-path proof and rollback
+// under one existing lock. Count only measured entry and optional-family growth;
+// preserve prior headroom and the immutable earlier feature evidence.
+// Evidence: docs/evidence/local-favorite-write-recovery-size-20261102.json.
+const LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE = Object.freeze({
+    entry: Object.freeze({ bytes: 32, gzipBytes: 16 }),
+    favorites: Object.freeze({ bytes: 864, gzipBytes: 288 }),
+});
 const BUDGET = Object.freeze({
     bytes:
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.bytes +
         COMPANION_DIAGNOSTICS_ALLOWANCE.entry.bytes +
         MODERN_EXPERIENCE_ALLOWANCE.entry.bytes +
@@ -744,6 +777,8 @@ const BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.gzipBytes +
         COMPANION_DIAGNOSTICS_ALLOWANCE.entry.gzipBytes +
         MODERN_EXPERIENCE_ALLOWANCE.entry.gzipBytes +
@@ -953,6 +988,9 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
+        PLEX_ARTWORK_ALLOWANCE.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.plex.bytes +
@@ -995,6 +1033,9 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
+        PLEX_ARTWORK_ALLOWANCE.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.plex.gzipBytes +
@@ -1046,6 +1087,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
     "favorites-transfer": Object.freeze({
         bytes:
             FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.bytes +
+            LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites.bytes +
+            LOCAL_FAVORITES_PATH_ALLOWANCE.favorites.bytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.favorites.bytes +
             TORZNAB_DISCOVERY_ALLOWANCE.favorites.bytes +
             TORRENT_PROVIDER_ALLOWANCE.favorites.bytes +
@@ -1058,6 +1101,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
             MIXED_GLOBAL_FAVORITES_OPTIONAL_ALLOWANCE.bytes,
         gzipBytes:
             FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.gzipBytes +
+            LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites.gzipBytes +
+            LOCAL_FAVORITES_PATH_ALLOWANCE.favorites.gzipBytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.favorites.gzipBytes +
             TORZNAB_DISCOVERY_ALLOWANCE.favorites.gzipBytes +
             TORRENT_PROVIDER_ALLOWANCE.favorites.gzipBytes +
@@ -1093,11 +1138,13 @@ const OPTIONAL_BUDGETS = Object.freeze({
     }),
     "modern-interface": Object.freeze({
         bytes:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.bytes +
             MODERN_INTERFACE_OPTIONAL_ALLOWANCE.bytes +
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.bytes +
             MODERN_EXPERIENCE_ALLOWANCE.renderer.bytes,
         gzipBytes:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.gzipBytes +
             MODERN_INTERFACE_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.gzipBytes +
@@ -1170,6 +1217,12 @@ const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.bytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites.bytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.favorites.bytes +
+        PLEX_ARTWORK_ALLOWANCE.bytes +
+        MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
             (sum, cap) => sum + cap.bytes,
             0
@@ -1245,6 +1298,12 @@ const BASE_TOTAL_BUDGET = Object.freeze({
     gzipBytes:
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.gzipBytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites.gzipBytes +
+        LOCAL_FAVORITES_PATH_ALLOWANCE.favorites.gzipBytes +
+        PLEX_ARTWORK_ALLOWANCE.gzipBytes +
+        MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
             (sum, cap) => sum + cap.gzipBytes,
             0
@@ -1499,6 +1558,9 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         legacyTotalBudget: LEGACY_TOTAL_BUDGET,
         localCommandSessionAllowance: LOCAL_COMMAND_SESSION_ALLOWANCE,
         localCompatibilityAllowance: LOCAL_COMPATIBILITY_ALLOWANCE,
+        localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
+        localFavoriteWriteRecoveryAllowance:
+            LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
         localStallRecoveryAllowance: LOCAL_STALL_RECOVERY_ALLOWANCE,
         localStartupPreviewAllowance: LOCAL_STARTUP_PREVIEW_ALLOWANCE,
         mediaCompanionEntryAllowance: MEDIA_COMPANION_ENTRY_ALLOWANCE,
@@ -1515,6 +1577,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
             MIXED_GLOBAL_FAVORITES_PROVIDER_ALLOWANCE,
         modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+        modernNativeShellOptionalAllowance:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
         modernPlayerOptionalAllowance: MODERN_PLAYER_OPTIONAL_ALLOWANCE,
         modules,
         optimizer,
@@ -1522,6 +1586,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         optionalBudgets: OPTIONAL_BUDGETS,
         playerPresenceEntryAllowance: PLAYER_PRESENCE_ENTRY_ALLOWANCE,
         playerPresenceTransportAllowance: PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
+        plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
         plexQueueStepTotalAllowance: PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
         privateModules: Object.fromEntries(
             Object.entries(CLASSIC_PRIVATE_MODULES).filter(([file]) =>
@@ -1836,6 +1901,9 @@ function writeBuildBundleReport(
             favoritesTransferPlexAllowance: FAVORITES_TRANSFER_PLEX_ALLOWANCE,
             inputErrors,
             legacyTotalBudget: LEGACY_TOTAL_BUDGET,
+            localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
+            localFavoriteWriteRecoveryAllowance:
+                LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
             mediaCompanionEntryAllowance: MEDIA_COMPANION_ENTRY_ALLOWANCE,
             mediaCompanionOptionalAllowance: MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
             mediaCompanionPreparationAllowance:
@@ -1852,6 +1920,8 @@ function writeBuildBundleReport(
             mode: label(context.mode || "standard"),
             modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
             modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+            modernNativeShellOptionalAllowance:
+                MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
             optimizerBinding: {
                 outputSha256: optimizer.outputSha256,
                 stagedExpectedSha256: expectedSha256,
@@ -1860,6 +1930,7 @@ function writeBuildBundleReport(
             playerPresenceEntryAllowance: PLAYER_PRESENCE_ENTRY_ALLOWANCE,
             playerPresenceTransportAllowance:
                 PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
+            plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
             plexQueueStepTotalAllowance: PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
             providerBudget: PROVIDER_BUDGET,
             providerBundles: sets,
@@ -1953,6 +2024,8 @@ module.exports = {
     LEGACY_TOTAL_BUDGET,
     LOCAL_COMMAND_SESSION_ALLOWANCE,
     LOCAL_COMPATIBILITY_ALLOWANCE,
+    LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
+    LOCAL_FAVORITES_PATH_ALLOWANCE,
     LOCAL_STALL_RECOVERY_ALLOWANCE,
     LOCAL_STARTUP_PREVIEW_ALLOWANCE,
     MEDIA_COMPANION_ENTRY_ALLOWANCE,
@@ -1968,12 +2041,14 @@ module.exports = {
     MODERN_INTERFACE_ENTRY_ALLOWANCE,
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
+    MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     measureBundle,
     OPTIONAL_BUDGET,
     OPTIONAL_BUDGETS,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
     PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
+    PLEX_ARTWORK_ALLOWANCE,
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PROVIDER_BUDGET,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,

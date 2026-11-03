@@ -572,6 +572,7 @@ var keyStrings = {
     "Hide providers?": "Nascondere i fornitori?",
     "History in Media Library": "Cronologia nella raccolta multimediale",
     "History of watched movies": "Cronologia di visione",
+    Home: "Inizio",
     "HTTP port": "Porta HTTP",
     "HTTP remote control is unavailable on this device.":
         "Il controllo remoto HTTP non è disponibile su questo dispositivo.",

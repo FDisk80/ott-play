@@ -573,6 +573,7 @@ var keyStrings = {
     "Hide providers?": "Ma la qariyaa bixiyeyaasha?",
     "History in Media Library": "Taariikhda maktabadda warbaahinta",
     "History of watched movies": "Taariikhda daawashada",
+    Home: "Bogga hore",
     "HTTP port": "Dekedda HTTP",
     "HTTP remote control is unavailable on this device.":
         "Kontoroolka fog ee HTTP lagama heli karo qalabkan.",

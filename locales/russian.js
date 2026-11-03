@@ -559,6 +559,7 @@ var keyStrings = {
     "Hide providers?": "Скрыть провайдеров?",
     "History in Media Library": "История в медиатеке",
     "History of watched movies": "История просмотра",
+    Home: "Главная",
     "HTTP port": "HTTP-порт",
     "HTTP remote control is unavailable on this device.":
         "HTTP-пульт недоступен на этом устройстве.",

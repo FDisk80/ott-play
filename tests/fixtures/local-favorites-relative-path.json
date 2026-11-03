@@ -1,0 +1,8 @@
+{
+  "source": { "name": "Movies", "kind": "folder" },
+  "items": [
+    { "name": "Episode.mp4", "directory": "Season 1", "relativePath": "Family/Season 1/Episode.mp4" },
+    { "name": "Episode.mp4", "directory": "Season 2", "relativePath": "Family/Season 2/Episode.mp4" },
+    { "name": "Фильм.mp4", "directory": "Comedy", "relativePath": "Comedy/Фильм.mp4" }
+  ]
+}

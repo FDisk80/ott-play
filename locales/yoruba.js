@@ -550,6 +550,7 @@ var keyStrings = {
     "Hide providers?": "Fi àwọn olùpèsè pamọ́?",
     "History in Media Library": "Ìtàn nínú ilé-ìkàwé mídíà",
     "History of watched movies": "Ìtàn wíwo",
+    Home: "Ilé",
     "HTTP port": "Ibùdó HTTP",
     "HTTP remote control is unavailable on this device.":
         "Ìṣàkóso HTTP láti ọ̀nà jíjìn kò sí lárọ̀ọ́wọ́tó lórí ẹ̀rọ yìí.",

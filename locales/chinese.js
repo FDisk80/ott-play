@@ -529,6 +529,7 @@ var keyStrings = {
     "Hide providers?": "隐藏提供商？",
     "History in Media Library": "媒体库中的历史记录",
     "History of watched movies": "观看记录",
+    Home: "首页",
     "HTTP port": "HTTP端口",
     "HTTP remote control is unavailable on this device.":
         "HTTP 远程控制在此设备上不可用。",

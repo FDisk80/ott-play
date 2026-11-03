@@ -1,0 +1,35 @@
+name: Native CLI acceptance
+
+on:
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-ott-play/ottplay-control-server
+          ref: 1ade4763232e9a9228b4e868f463ec12c1b64e96
+          path: .native-cli-control
+          persist-credentials: false
+      - name: Check bounded observation and redaction
+        run: python3 -m unittest discover -s tests -p test_webos_native_cli_smoke.py -v
+      - name: Validate native settings with the actual CLI parser
+        run: python3 scripts/check-native-cli-settings.py --cli .native-cli-control/cli/ott.py
+      - name: Exercise the actual CLI transport against a loopback fixture
+        run: python3 scripts/check-native-cli-transport.py --cli .native-cli-control/cli/ott.py

@@ -55,6 +55,46 @@ class NativeHarnessSourceTests(unittest.TestCase):
         self.assertNotIn('allDataStoreIdentifiers', cleanup)
         self.assertNotIn('defaultDataStore', cleanup)
 
+    def test_cleanup_releases_only_own_store_caches_before_identifier_removal(self):
+        cleanup = SOURCE.split('async fn cleanup(', 1)[1].split('pub fn run()', 1)[0]
+        order = ['app.get_webview_window(label).is_none()',
+                 'data_store_identifier(&output.join(slot))',
+                 'release_owned_store_data(app, identifier, deadline).await',
+                 'for attempt in 1..=40',
+                 'removeDataStoreForIdentifier_completionHandler']
+        for operation in order:
+            self.assertIn(operation, cleanup, 'Cleanup must release the exact store before removing its identifier')
+        positions = [cleanup.index(value) for value in order]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn('"own_store_data_release_callbacks":released_stores', cleanup)
+        self.assertLess(cleanup.index('release_owned_store_data('), cleanup.index('released_stores.push('))
+        self.assertIn('Own named-store data release failed for {slot}', cleanup)
+        self.assertIn('require(removed,', cleanup)
+
+    def test_store_release_callback_does_not_retain_store_or_get_a_new_deadline(self):
+        self.assertIn('async fn release_owned_store_data(', SOURCE, 'Missing bounded native store-release phase')
+        release = SOURCE.split('async fn release_owned_store_data(', 1)[1].split('async fn cleanup(', 1)[0]
+        self.assertIn('identifier: [u8; 16]', release)
+        self.assertIn('deadline: Instant', release)
+        self.assertNotIn('Instant::now() +', release)
+        self.assertIn('objc2::rc::autoreleasepool', release)
+        self.assertIn('NSUUID::from_bytes(identifier)', release)
+        self.assertIn('WKWebsiteDataStore::dataStoreForIdentifier(&uuid, mtm)', release)
+        self.assertIn('WKWebsiteDataStore::allWebsiteDataTypes(mtm)', release)
+        self.assertIn('NSDate::distantPast()', release)
+        self.assertIn('store.removeDataOfTypes_modifiedSince_completionHandler', release)
+        # The completion only sends an acknowledgement. No retained WK object
+        # may survive in its capture while identifier removal is attempted.
+        callback = release.split('let callback =', 1)[1].split('let uuid =', 1)[0]
+        self.assertNotIn('store', callback)
+        order = ['store.removeDataOfTypes_modifiedSince_completionHandler', 'drop(store)',
+                 'timeout_at(tokio::time::Instant::from_std(deadline), receiver)',
+                 'main_loop_release(app, deadline).await']
+        positions = [release.index(value) for value in order]
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn('allDataStoreIdentifiers', release)
+        self.assertNotIn('defaultDataStore', release)
+
     def test_shared_storage_wait_requires_exact_writer_value_before_lock_tests(self):
         phase = SOURCE.split('let shared_started = Instant::now();', 1)[1].split('for label in ["slot2", "slot3", "slot4"]', 1)[0]
         self.assertIn('if sample? == "own-shared-value"', phase)

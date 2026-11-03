@@ -544,6 +544,7 @@ var keyStrings = {
     "Hide providers?": "ซ่อนผู้ให้บริการ?",
     "History in Media Library": "ประวัติในไลบรารีสื่อ",
     "History of watched movies": "ดูประวัติ",
+    Home: "หน้าหลัก",
     "HTTP port": "พอร์ต HTTP",
     "HTTP remote control is unavailable on this device.":
         "รีโมทคอนโทรล HTTP ไม่พร้อมใช้งานบนอุปกรณ์นี้",

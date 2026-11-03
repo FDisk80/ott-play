@@ -376,6 +376,17 @@ function createPlexClient(
             return "&#" + character.charCodeAt(0) + ";";
         });
     }
+    function artwork(path: string): PropertyDescriptor {
+        return {
+            get: function () {
+                return path &&
+                    !disposed &&
+                    (!options.isCurrent || options.isCurrent())
+                    ? url(path, {})
+                    : "";
+            },
+        };
+    }
     function target(path: string, title: string): any {
         return { path: path, plexSource: source, title: title };
     }
@@ -506,6 +517,8 @@ function createPlexClient(
             var titleKey =
                 playable && /^\d+$/.test(id) ? "Untitled" : "Untitled folder";
             var title = suppliedTitle || translate(titleKey);
+            var poster = plexPath(item.thumb) || plexPath(item.art);
+            var backdrop = plexPath(item.art) || poster;
             var record: any = null;
             if (playable && /^\d+$/.test(id)) {
                 record = {
@@ -528,6 +541,13 @@ function createPlexClient(
                 };
             }
             if (record) {
+                // Resolve credentials only when an active renderer requests the
+                // image. Non-enumerable accessors cannot leak authenticated URLs
+                // into saved catalogues, copied records or Favorites exports.
+                Object.defineProperties(record, {
+                    backdrop: artwork(backdrop),
+                    poster: artwork(poster),
+                });
                 if (!suppliedTitle)
                     record.__ottMediaLabel = { key: titleKey, value: title };
                 result.push(record);

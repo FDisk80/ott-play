@@ -384,6 +384,8 @@ test("actual Local capture uses exact bound root and relative path", async () =>
     const player = {
         allowed: () => true,
         captureSelector: async () => ({ bound: true }),
+        localItemRelativePath: actualModule("src/offline/local-item-path.ts", w)
+            .localItemRelativePath,
         selected: () => ({ default: true }),
     };
     const result = await capture(w, player, codec);
@@ -608,6 +610,714 @@ test("playback pairing rejects mismatched providers and stale profile/source gra
     f = playbackBindingFixture("stalker");
     f.state.staleSource = true;
     rejects(f, "stale_context");
+});
+
+const relativePathFixture = require("./fixtures/local-favorites-relative-path.json");
+function localCatalogFixture(prefix = "sender") {
+    return {
+        items: relativePathFixture.items.map((item, index) => ({
+            ...item,
+            available: true,
+            id: prefix + "-" + index,
+            sourceId: prefix + "-root",
+        })),
+        sources: [{ ...relativePathFixture.source, id: prefix + "-root" }],
+    };
+}
+async function captureLocalItem(catalog, index) {
+    const w = {
+        __ottActiveProviderDriver: { configuration: () => null, id: "offline" },
+        __ottClassicPlayback: {
+            snapshot: () => ({
+                generation: 3,
+                target: { channelId: "local-" + catalog.items[index].id },
+            }),
+        },
+        __ottCommandChannelLoad: {},
+        __ottLocalMedia: {
+            favoriteSnapshot: () => ({ catalog, current: () => true }),
+        },
+        __ottOfflineProfiles: { read: () => ({ active: -1 }) },
+        __ottSourceIdentity: { current: () => "source" },
+    };
+    return actualModule(
+        "src/media/global-favorites-capture.ts",
+        w
+    ).captureGlobalFavorite(
+        w,
+        {
+            allowed: () => true,
+            captureSelector: async () => ({ bound: true }),
+            localItemRelativePath: actualModule(
+                "src/offline/local-item-path.ts",
+                w
+            ).localItemRelativePath,
+            selected: () => ({ default: true }),
+        },
+        codec
+    );
+}
+function localPlayerFixture(catalog, localFavoriteProof) {
+    let state = { generation: 0, phase: "idle", target: null };
+    const scanned = [],
+        played = [];
+    const ids = catalog.items.map((item) => "local-" + item.id);
+    const w = {
+        __ottActiveProviderDriver: { id: "offline" },
+        __ottChannels: { index: () => 0 },
+        __ottClassicPlayback: { snapshot: () => state },
+        __ottCommandChannelLoad: {},
+        __ottLocalMedia: {
+            cancelScan() {},
+            favoriteSnapshot: () => ({ catalog, current: () => true }),
+            libraryIdentity: () => "receiver-library",
+            remoteCatalog: async (current, source, firstPlayable) => {
+                assert(current());
+                assert.equal(source, catalog.sources[0].id);
+                scanned.push(
+                    catalog.items.map((item) =>
+                        firstPlayable({ items: [item] })
+                    )
+                );
+                return catalog;
+            },
+        },
+        __ottSourceIdentity: {
+            current: () => "receiver-source",
+            media: () => "receiver-source",
+        },
+        _playSession: 0,
+        cats: { All: ids },
+        catsArray: ["All"],
+        channels: Object.fromEntries(ids.map((id) => [id, { itemId: id }])),
+        clearTimeout() {},
+        commandChannelsReady: true,
+        playChannel(group, index, _force, current) {
+            assert(current());
+            assert.equal(group, 0);
+            const id = ids[index];
+            assert(
+                w.__ottGlobalFavoritesHandoff.accept({
+                    channelId: id,
+                    sourceId: "receiver-source",
+                })
+            );
+            played.push(id);
+            w._playSession++;
+            state = {
+                generation: state.generation + 1,
+                phase: "playing",
+                target: { channelId: id, sourceId: "receiver-source" },
+            };
+            return true;
+        },
+        setTimeout() {
+            throw Error("Unexpected wait in prepared local catalog");
+        },
+        stbGetItem: () => null,
+    };
+    const player = actualModule(
+        "src/media/global-favorites-player.ts",
+        w
+    ).createGlobalFavoritesPlayer(w, {
+        bindings: { list: async () => ({ entries: [] }) },
+        current: () => true,
+        isProviderAllowed: () => true,
+        localFavoriteProof,
+        localItemRelativePath: actualModule("src/offline/local-item-path.ts", w)
+            .localItemRelativePath,
+        remoteCheckpoint() {},
+        sha256: async (text) =>
+            require("node:crypto")
+                .createHash("sha256")
+                .update(text)
+                .digest("hex"),
+    });
+    return { catalog, played, player, scanned, w };
+}
+
+test("native catalog full paths survive capture and transfer despite identical basenames", async () => {
+    const catalog = localCatalogFixture();
+    const entries = [];
+    for (let index = 0; index < catalog.items.length; index++) {
+        const captured = await captureLocalItem(catalog, index);
+        assert(captured);
+        assert.equal(captured.value.title, catalog.items[index].name);
+        assert.equal(
+            captured.value.locator.relativePath,
+            relativePathFixture.items[index].relativePath
+        );
+        entries.push(captured.value);
+    }
+    assert.notEqual(codec.identity(entries[0]), codec.identity(entries[1]));
+    const transferred = codec.document(
+        JSON.parse(JSON.stringify({ entries, version: 1 }))
+    );
+    assert(transferred);
+    for (let index = 0; index < transferred.entries.length; index++) {
+        // A new runtime and changed IDs model restarting on another client.
+        const f = localPlayerFixture(localCatalogFixture("receiver"));
+        const favorite = transferred.entries[index];
+        const targets = await f.player.targets(
+            favorite.origin,
+            () => true,
+            favorite.locator
+        );
+        assert.equal(targets.length, 1);
+        const session = await f.player.activate(targets[0], () => true);
+        const item = await session.resolve(favorite.locator, () => true);
+        assert.equal(item.id, "local-receiver-" + index);
+        assert.deepEqual(
+            f.scanned[0],
+            catalog.items.map((_item, position) => position === index)
+        );
+        assert(await session.play(item, () => true));
+        const proof = session.capturePlayback();
+        assert(proof && proof.current());
+        session.complete();
+        assert(
+            proof.current(),
+            "completing the handoff retains exact played identity"
+        );
+        f.catalog.items[index].name = "Display label changed.mp4";
+        assert(proof.current(), "display basename is not file identity");
+        f.catalog.items[index].relativePath =
+            "Other/" + relativePathFixture.items[index].name;
+        assert.equal(
+            proof.current(),
+            false,
+            "same basename cannot keep a changed-file playback proof"
+        );
+        f.catalog.items[index].name = favorite.locator.relativePath;
+        f.catalog.items[index].relativePath = null;
+        assert.equal(
+            proof.current(),
+            false,
+            "explicit nonportable path cannot use display name in playback proof"
+        );
+        delete f.catalog.items[index].relativePath;
+        assert(
+            proof.current(),
+            "legacy omitted path still verifies its complete relative name"
+        );
+    }
+});
+
+test("a basename-only saved Favorite cannot redirect to a different nested file", async () => {
+    const catalog = localCatalogFixture();
+    // Even one matching basename is not proof: the original root file may
+    // have been removed while a different nested file has the same name.
+    catalog.items = [catalog.items[2]];
+    const captured = await captureLocalItem(catalog, 0);
+    const favorite = captured.value;
+    favorite.locator.relativePath = catalog.items[0].name;
+    const saved = JSON.stringify(favorite);
+    const f = localPlayerFixture(catalog);
+    const [target] = await f.player.targets(
+        favorite.origin,
+        () => true,
+        favorite.locator
+    );
+    const session = await f.player.activate(target, () => true);
+    assert.equal(await session.resolve(favorite.locator, () => true), null);
+    assert.equal(
+        JSON.stringify(favorite),
+        saved,
+        "unresolved Favorite remains intact"
+    );
+    assert.equal(f.played.length, 0);
+    session.release();
+});
+
+test("legacy browser and Capacitor full names remain valid without relativePath", async () => {
+    const catalog = localCatalogFixture();
+    for (const item of catalog.items) {
+        item.name = item.relativePath;
+        delete item.relativePath;
+    }
+    const captured = await captureLocalItem(catalog, 1);
+    assert.equal(
+        captured.value.locator.relativePath,
+        relativePathFixture.items[1].relativePath
+    );
+    const f = localPlayerFixture(catalog);
+    const [target] = await f.player.targets(
+        captured.value.origin,
+        () => true,
+        captured.value.locator
+    );
+    const session = await f.player.activate(target, () => true);
+    const item = await session.resolve(captured.value.locator, () => true);
+    assert.equal(item.id, "local-sender-1");
+    assert(await session.play(item, () => true));
+    assert(session.capturePlayback().current());
+});
+
+test("an invalid explicit relativePath cannot fall back during capture or resolution", async () => {
+    for (const invalid of [
+        undefined,
+        null,
+        "",
+        4,
+        "../escape.mp4",
+        "/absolute.mp4",
+        "C:/private.mp4",
+        "a\\b.mp4",
+        "a//b.mp4",
+        " file.mp4",
+        "file.mp4\u00a0",
+        "\ufefffile.mp4",
+        "\ud800",
+    ]) {
+        const catalog = localCatalogFixture();
+        const captured = await captureLocalItem(catalog, 0);
+        catalog.items[0].name = captured.value.locator.relativePath;
+        catalog.items[0].relativePath = invalid;
+        assert.equal(await captureLocalItem(catalog, 0), null);
+        const f = localPlayerFixture(catalog);
+        const [target] = await f.player.targets(
+            captured.value.origin,
+            () => true,
+            captured.value.locator
+        );
+        const session = await f.player.activate(target, () => true);
+        assert.equal(
+            await session.resolve(captured.value.locator, () => true),
+            null
+        );
+        assert.equal(f.scanned[0][0], false);
+        session.release();
+    }
+});
+
+test("duplicate paths in one root are ambiguous, while source identity remains required", async () => {
+    const catalog = localCatalogFixture();
+    catalog.items[1].relativePath = catalog.items[0].relativePath;
+    assert.equal(await captureLocalItem(catalog, 0), null);
+    catalog.items[1].sourceId = "other-root";
+    assert(await captureLocalItem(catalog, 0));
+    const captured = await captureLocalItem(catalog, 0);
+    const f = localPlayerFixture(catalog);
+    const [target] = await f.player.targets(
+        captured.value.origin,
+        () => true,
+        captured.value.locator
+    );
+    const session = await f.player.activate(target, () => true);
+    const item = await session.resolve(captured.value.locator, () => true);
+    assert(await session.play(item, () => true));
+    const proof = session.capturePlayback();
+    catalog.items[0].sourceId = "other-root";
+    assert.equal(proof.current(), false);
+});
+
+const localProofKey = "local-favorite-path-proofs.v1";
+function localProofFixture() {
+    const data = new Map(),
+        hooks = {},
+        writes = [];
+    let held = false,
+        active = true,
+        serial = 0;
+    const hash = async (text) =>
+        require("node:crypto").createHash("sha256").update(text).digest("hex");
+    const grant = {
+        compareAndSwap(key, before, after, admission) {
+            assert(held);
+            hooks.before?.(key);
+            if (
+                !admission() ||
+                grant.read(key) !== before ||
+                hooks.mode === "conflict"
+            )
+                return "conflict";
+            writes.push(key);
+            if (hooks.mode !== "ignored") data.set(key, after);
+            return hooks.mode === "unknown" ? "unknown" : "confirmed";
+        },
+        current: () => active,
+        async exclusive(work) {
+            assert(!held);
+            held = true;
+            try {
+                return await work(grant);
+            } finally {
+                held = false;
+            }
+        },
+        read: (key) => data.get(key) ?? null,
+    };
+    const store = actualModule(
+        "src/settings/global-favorites.ts",
+        {}
+    ).createGlobalFavoritesStore({
+        capture: () => grant,
+        codec,
+        current: () => active,
+        sha256: hash,
+        uuid: () =>
+            "00000000-0000-4000-8000-" + String(++serial).padStart(12, "0"),
+    });
+    const make = () =>
+        actualModule(
+            "src/settings/local-favorite-proofs.ts",
+            {}
+        ).createLocalFavoriteProofs({
+            canWrite: () => !hooks.blocked,
+            current: () => active,
+            grant,
+            sha256: hash,
+            snapshot: store.snapshot,
+        });
+    return { data, grant, hooks, make, store, writes };
+}
+function rootCatalog() {
+    return {
+        items: [
+            {
+                available: true,
+                id: "root-file-id",
+                name: "Clip.mp4",
+                relativePath: "Clip.mp4",
+                sourceId: "disk-root",
+            },
+        ],
+        sources: [{ id: "disk-root", kind: "folder", name: "Movies" }],
+    };
+}
+async function prepareLocalProof(f, catalog = rootCatalog()) {
+    const capture = await captureLocalItem(catalog, 0);
+    const player = localPlayerFixture(catalog);
+    const [target] = await player.player.targets(
+        capture.value.origin,
+        () => true,
+        capture.value.locator
+    );
+    capture.selector = target.selector;
+    const before = await f.store.snapshot();
+    const result = await f.store.mutate(before.revision, {
+        entries: [capture.value],
+        op: "put",
+    });
+    return { capture, catalog, revision: result.revision, target };
+}
+
+test("old or imported basenames cannot play a new root collision, even with the original nested file present", async () => {
+    for (const nested of [false, true]) {
+        const catalog = rootCatalog();
+        if (nested)
+            catalog.items.push({
+                ...catalog.items[0],
+                id: "original",
+                relativePath: "Season 1/Clip.mp4",
+            });
+        const captured = await captureLocalItem(catalog, 0);
+        const f = localPlayerFixture(catalog);
+        const [target] = await f.player.targets(
+            captured.value.origin,
+            () => true,
+            captured.value.locator
+        );
+        const session = await f.player.activate(target, () => true);
+        assert.equal(
+            await session.resolve(captured.value.locator, () => true),
+            null
+        );
+        assert.equal(
+            f.scanned.length,
+            0,
+            "an unproven basename must fail before scanning"
+        );
+        assert.equal(f.played.length, 0);
+        session.release();
+    }
+});
+
+test("explicit root capture has a durable exact-item proof across restart without adding wire fields", async () => {
+    const f = localProofFixture(),
+        prepared = await prepareLocalProof(f);
+    const first = f.make();
+    assert.equal(
+        await first.read(
+            prepared.target.selector,
+            prepared.capture.value.locator
+        ),
+        null
+    );
+    await first.record(prepared.capture, prepared.revision);
+    const restarted = f.make();
+    const reader = (selector, locator) => restarted.read(selector, locator);
+    const p = localPlayerFixture(prepared.catalog, reader);
+    const [target] = await p.player.targets(
+        prepared.capture.value.origin,
+        () => true,
+        prepared.capture.value.locator
+    );
+    const session = await p.player.activate(target, () => true);
+    const item = await session.resolve(
+        prepared.capture.value.locator,
+        () => true
+    );
+    assert.equal(item.id, "local-root-file-id");
+    assert(await session.play(item, () => true));
+    const proof = session.capturePlayback();
+    assert(proof.current());
+    assert.deepEqual(Object.keys(prepared.capture.value).sort(), [
+        "locator",
+        "origin",
+        "title",
+    ]);
+    assert.equal(
+        JSON.stringify((await f.store.portableSnapshot()).entries).includes(
+            "root-file-id"
+        ),
+        false
+    );
+    const writes = f.writes.length;
+    await restarted.read(target.selector, prepared.capture.value.locator);
+    assert.equal(f.writes.length, writes, "read is side-effect free");
+    prepared.catalog.items[0].relativePath = null;
+    assert.equal(
+        proof.current(),
+        false,
+        "same ID cannot revive an explicitly invalid path"
+    );
+    session.release();
+});
+
+test("proof binds exact Favorite UUID, canonical row, source and selected configuration", async () => {
+    const f = localProofFixture(),
+        prepared = await prepareLocalProof(f),
+        proofs = f.make();
+    await proofs.record(prepared.capture, prepared.revision);
+    const selector = prepared.target.selector,
+        locator = prepared.capture.value.locator;
+    assert(await proofs.read(selector, locator));
+    for (const changed of [
+        { ...selector, configurationDigest: "a".repeat(64) },
+        { ...selector, slot: 1 },
+        { ...selector, root: { ...selector.root, id: "other-disk" } },
+    ])
+        assert.equal(await proofs.read(changed, locator), null);
+    const raw = f.data.get("remoteFavorites.v1"),
+        changed = JSON.parse(raw);
+    changed.entries[0].title = "Different canonical row";
+    f.data.set("remoteFavorites.v1", JSON.stringify(changed));
+    assert.equal(await proofs.read(selector, locator), null);
+    f.data.set("remoteFavorites.v1", raw);
+    const oldProof = await proofs.read(selector, locator);
+    let snapshot = await f.store.snapshot();
+    await f.store.mutate(snapshot.revision, {
+        ids: [snapshot.entries[0].id],
+        op: "remove",
+    });
+    assert.equal(oldProof.current(), false);
+    snapshot = await f.store.snapshot();
+    await f.store.mutate(snapshot.revision, {
+        entries: [prepared.capture.value],
+        op: "put",
+    });
+    assert.equal(
+        await proofs.read(selector, locator),
+        null,
+        "a new import UUID cannot inherit orphaned evidence"
+    );
+    const readded = await f.store.snapshot();
+    await proofs.record(prepared.capture, readded.revision);
+    assert(
+        await proofs.read(selector, locator),
+        "explicit re-add can supply exact evidence again"
+    );
+});
+
+test("exact item ID and explicit path must still match after proof restore", async () => {
+    for (const change of [
+        (item) => {
+            item.id = "new-file-id";
+        },
+        (item) => {
+            item.sourceId = "other-disk";
+        },
+        (item) => {
+            item.relativePath = "Season 1/Clip.mp4";
+        },
+        (item) => {
+            item.relativePath = null;
+        },
+        (item) => {
+            delete item.relativePath;
+        },
+    ]) {
+        const f = localProofFixture(),
+            prepared = await prepareLocalProof(f),
+            proofs = f.make();
+        await proofs.record(prepared.capture, prepared.revision);
+        change(prepared.catalog.items[0]);
+        const p = localPlayerFixture(prepared.catalog, (selector, locator) =>
+            proofs.read(selector, locator)
+        );
+        const [target] = await p.player.targets(
+            prepared.capture.value.origin,
+            () => true,
+            prepared.capture.value.locator
+        );
+        const session = await p.player.activate(target, () => true);
+        assert.equal(
+            await session.resolve(prepared.capture.value.locator, () => true),
+            null
+        );
+        assert.equal(p.played.length, 0);
+        session.release();
+    }
+});
+
+test("proof writes require durable acknowledgement and retain store/receipt/source admission", async () => {
+    for (const mode of ["conflict", "ignored", "unknown", "stale", "blocked"]) {
+        const f = localProofFixture(),
+            prepared = await prepareLocalProof(f),
+            proofs = f.make();
+        if (mode === "stale") prepared.capture.current = () => false;
+        else if (mode === "blocked") f.hooks.blocked = true;
+        else f.hooks.mode = mode;
+        await assert.rejects(
+            proofs.record(prepared.capture, prepared.revision)
+        );
+        assert.equal(
+            await proofs.read(
+                prepared.target.selector,
+                prepared.capture.value.locator
+            ),
+            null
+        );
+        if (mode !== "unknown") assert.equal(f.data.has(localProofKey), false);
+    }
+    const f = localProofFixture(),
+        prepared = await prepareLocalProof(f),
+        proofs = f.make();
+    f.hooks.before = () =>
+        f.data.set("favorites-receipts.v1", "changed while waiting");
+    await assert.rejects(proofs.record(prepared.capture, prepared.revision));
+    assert.equal(f.data.has(localProofKey), false);
+});
+
+test("proof record preserves immediate admission and rejects synchronous lock failures as a promise", async () => {
+    const f = localProofFixture(),
+        prepared = await prepareLocalProof(f),
+        proofs = f.make();
+    let pending,
+        calls = 0;
+    const exclusive = f.grant.exclusive;
+    f.grant.exclusive = (work) => {
+        calls++;
+        return exclusive(work);
+    };
+    assert.doesNotThrow(() => {
+        pending = proofs.record(prepared.capture, prepared.revision);
+    });
+    assert.equal(calls, 1, "lock acquisition starts during the original call");
+    await pending;
+    prepared.capture.current = () => false;
+    assert.doesNotThrow(() => {
+        pending = proofs.record(prepared.capture, prepared.revision);
+    });
+    await assert.rejects(pending, /unavailable/);
+    assert.equal(calls, 1, "failed admission does not acquire a lock");
+    prepared.capture.current = () => true;
+    f.grant.exclusive = () => {
+        throw Error("busy");
+    };
+    assert.doesNotThrow(() => {
+        pending = proofs.record(prepared.capture, prepared.revision);
+    });
+    await assert.rejects(pending, /busy/);
+});
+
+test("capture never promotes an old basename-only catalog into exact proof", async () => {
+    const catalog = rootCatalog();
+    delete catalog.items[0].relativePath;
+    const captured = await captureLocalItem(catalog, 0);
+    assert(captured);
+    assert.equal(captured.localProof, null);
+});
+
+test("private proofs cannot be read, written, erased or imported through ordinary settings", async () => {
+    const imports =
+        require("./helpers/remote-transfer-dependency.cjs").storage();
+    const saved = JSON.stringify({ entries: [], version: 1 });
+    const data = new Map([
+        [localProofKey, saved],
+        ["ordinary", "yes"],
+    ]);
+    const backing = {
+        clear: () => data.clear(),
+        getItem: (key) => data.get(key) ?? null,
+        key: (index) => [...data.keys()][index],
+        get length() {
+            return data.size;
+        },
+        removeItem: (key) => data.delete(key),
+        setItem: (key, value) => data.set(key, value),
+    };
+    const w = {
+        localStorage: backing,
+        OttPlayCore: {
+            classicInstallationState: () => ({
+                commandServerAddress: "",
+                commandServerToken: "",
+                sLocalHttpDeviceCode: "",
+                sLocalHttpEnabled: "0",
+            }),
+            classicPortableKey: () => true,
+            classicPortableSnapshot: (value) => ({ ...value }),
+        },
+    };
+    const exports = {};
+    const output = ts.transpileModule(
+        fs.readFileSync("src/storage/index.ts", "utf8"),
+        {
+            compilerOptions: {
+                module: ts.ModuleKind.CommonJS,
+                target: ts.ScriptTarget.ES5,
+            },
+        }
+    ).outputText;
+    vm.runInNewContext(output, {
+        ...imports,
+        document: { cookie: "" },
+        exports,
+        window: w,
+    });
+    Object.assign(w, exports);
+    w.commitSettingsWrites = actualModule(
+        "src/settings/store.ts",
+        w
+    ).commitSettingsWrites;
+    assert.equal(exports.stbGetItem(localProofKey), null);
+    exports.stbSetItem(localProofKey, "forged");
+    exports.stbDelItem(localProofKey);
+    assert.equal(data.get(localProofKey), saved);
+    assert.equal(exports.stbGetAllItems()[localProofKey], undefined);
+    assert.equal(exports.isPortableSettingsKey(localProofKey), false);
+    assert.equal(
+        exports.portableSettingsSnapshot({ [localProofKey]: "forged" })[
+            localProofKey
+        ],
+        undefined
+    );
+    exports.restoreLocalSettingsSnapshot({
+        [localProofKey]: "forged",
+        ordinary: "changed",
+    });
+    assert.equal(data.get(localProofKey), saved);
+    assert.equal(data.get("ordinary"), "changed");
+    assert.throws(() =>
+        exports.writeSettingsJournal(
+            backing,
+            [{ after: "forged", before: saved, key: localProofKey }],
+            () => true
+        )
+    );
+    assert.equal(data.get(localProofKey), saved);
 });
 
 (async () => {

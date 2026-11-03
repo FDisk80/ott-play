@@ -2016,7 +2016,7 @@ test("settings grid keeps label markup consistent without confirming zero moveme
     assert.equal(w.listDetailElement.textContent, "Rock & Roll HD");
     assert.equal(w.$("#listAbout").is(":visible"), true);
 });
-test("settings grid measures each visible label once and clears the probe once", ({
+test("settings grid measures each visible label once with a disposable local probe", ({
     w,
     key,
 }) => {
@@ -2024,24 +2024,20 @@ test("settings grid measures each visible label once and clears the probe once",
     w.getViewportHeightScale = () => 1;
     w._curVal = 0;
     w.showPage();
-    w.$("body").append('<div id="testFont"></div>');
+    w.$("body").append('<div id="testFont">Unrelated measurement</div>');
     const widths = { A: 40, B: 120, C: 80, D: 40, E: 100, Wide: 250 };
     const measured = [];
-    let clears = 0;
+    let localProbe;
     const originalWidth = w.$.fn.width;
-    const originalText = w.$.fn.text;
     w.$.fn.width = function () {
-        if (this[0]?.id === "testFont") {
+        if (this[0]?.matches("#listAbout > div > span")) {
+            localProbe = this[0];
             const label = this[0].textContent.trim();
             measured.push(label);
             return widths[label];
         }
         if (this[0]?.id === "listAbout") return 1000;
         return originalWidth.apply(this, arguments);
-    };
-    w.$.fn.text = function (value) {
-        if (this[0]?.id === "testFont" && value === "") clears++;
-        return originalText.apply(this, arguments);
     };
     const row = {
         name: "Fixture",
@@ -2050,8 +2046,11 @@ test("settings grid measures each visible label once and clears the probe once",
     };
     w.selectValue(row);
     assert.deepEqual(measured, ["A", "Wide", "B", "C", "D", "E"]);
-    assert.equal(clears, 1);
-    assert.equal(w.document.getElementById("testFont").textContent, "");
+    assert.equal(localProbe.isConnected, false, "the local probe is discarded");
+    assert.equal(
+        w.document.getElementById("testFont").textContent,
+        "Unrelated measurement"
+    );
     assert.equal(
         parseFloat(w.document.getElementById("ik0").style.width),
         98 / 3,
@@ -2077,7 +2076,7 @@ for (const width of [0, undefined]) {
             const originalWidth = w.$.fn.width;
             w.$.fn.width = function () {
                 if (this[0]?.id === "listAbout") return 1000;
-                if (!this.length) return width;
+                if (this[0]?.matches("#listAbout > div > span")) return width;
                 return originalWidth.apply(this, arguments);
             };
             w.selectValue({ name: "Fixture", val: 0, values: ["A", "B"] });

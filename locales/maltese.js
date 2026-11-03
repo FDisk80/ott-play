@@ -572,6 +572,7 @@ var keyStrings = {
     "Hide providers?": "Taħbi l-fornituri?",
     "History in Media Library": "Kronoloġija fil-librerija tal-midja",
     "History of watched movies": "Kronoloġija tal-wiri",
+    Home: "Paġna ewlenija",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Il-kontroll mill-bogħod HTTP mhux disponibbli fuq dan l-apparat.",

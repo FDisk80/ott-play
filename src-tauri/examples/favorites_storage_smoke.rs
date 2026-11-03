@@ -423,10 +423,45 @@ mod smoke {
             "user_profiles_accessed":false,"visible_windows":false,"output":output});
         Ok(report)
     }
+    async fn release_owned_store_data(
+        app: &tauri::AppHandle,
+        identifier: [u8; 16],
+        deadline: Instant,
+    ) -> Result<(), String> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        app.run_on_main_thread(move || {
+            objc2::rc::autoreleasepool(|_| {
+                let Some(mtm) = objc2::MainThreadMarker::new() else {
+                    let _ = sender.send(Err("Main thread unavailable".to_string()));
+                    return;
+                };
+                let sender = std::cell::RefCell::new(Some(sender));
+                let callback = block2::RcBlock::new(move || {
+                    if let Some(sender) = sender.borrow_mut().take() { let _ = sender.send(Ok(())); }
+                });
+                let uuid = objc2_foundation::NSUUID::from_bytes(identifier);
+                // A destroyed view can leave this session in WebKit's process cache.
+                // Public data removal also releases that session's cached processes.
+                // Never enumerate stores or obtain the application's default store.
+                let store = unsafe { objc2_web_kit::WKWebsiteDataStore::dataStoreForIdentifier(&uuid, mtm) };
+                let types = unsafe { objc2_web_kit::WKWebsiteDataStore::allWebsiteDataTypes(mtm) };
+                let since = objc2_foundation::NSDate::distantPast();
+                unsafe { store.removeDataOfTypes_modifiedSince_completionHandler(&types, &since, &callback); }
+                // The completion must not keep this reference alive during removal.
+                drop(store);
+            });
+        }).map_err(|error| error.to_string())?;
+        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), receiver).await
+            .map_err(|_| "Own store data-release callback timed out".to_string())?
+            .map_err(|_| "Own store data-release channel closed".to_string())??;
+        // WebKit's callback can itself retain the store until it returns.
+        main_loop_release(app, deadline).await
+    }
     async fn cleanup(app: &tauri::AppHandle, output: &std::path::Path) -> Result<Value, String> {
         let deadline = Instant::now() + Duration::from_secs(30);
         let expected = CREATED.load(Ordering::SeqCst);
         let mut attempts = Vec::new();
+        let mut released_stores = Vec::new();
         require(expected != 0, "Own created-window mask is empty")?;
         for label in OWN_LABELS {
             if let Some(view) = app.get_webview_window(label) {
@@ -444,6 +479,10 @@ mod smoke {
             "Own window manager still contains a destroyed view")?;
         for slot in ["slot1", "slot2", "slot3", "slot4"] {
             let identifier = super::instance::data_store_identifier(&output.join(slot));
+            require(Instant::now() < deadline, "Own store data release exceeded cleanup deadline")?;
+            release_owned_store_data(app, identifier, deadline).await
+                .map_err(|error| format!("Own named-store data release failed for {slot}: {error}; attempts={}", json!(attempts)))?;
+            released_stores.push(json!({"slot":slot,"identifier":identifier}));
             let mut removed = false;
             // Only these exact intent UUIDs are retried, within one cleanup deadline.
             for attempt in 1..=40 {
@@ -477,7 +516,7 @@ mod smoke {
         }
         require(Instant::now() < deadline, "Own named-store cleanup exceeded original cleanup deadline")?;
         Ok(json!({"own_windows_destroyed":true,"destroyed_mask":DESTROYED.load(Ordering::SeqCst),
-            "expected_mask":expected,"own_uuid_removal_attempts":attempts}))
+            "expected_mask":expected,"own_store_data_release_callbacks":released_stores,"own_uuid_removal_attempts":attempts}))
     }
     pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
         let output = PathBuf::from(

@@ -785,3 +785,482 @@ test("compatibility leases and server credentials stay out of portable profiles"
         )
     );
 });
+
+const pathFixture = require("./fixtures/local-favorites-relative-path.json");
+test("local path validation retains segment, UTF-16 and boundary behavior", () => {
+    const actual = fixture().host.localItemRelativePath;
+    // The previous scanner is an independent oracle for the compact regexes.
+    function previous(value) {
+        if (
+            typeof value !== "string" ||
+            !value ||
+            value.trim() !== value ||
+            value.length > 8192 ||
+            /^[\/]|\\|^[A-Za-z]:|[\u0000-\u001f\u007f]/.test(value) ||
+            value.indexOf("://") >= 0 ||
+            value
+                .split("/")
+                .some((part) => !part || part === "." || part === "..")
+        )
+            return null;
+        for (let i = 0; i < value.length; i++) {
+            const code = value.charCodeAt(i);
+            if (code >= 0xd800 && code <= 0xdbff) {
+                const low = value.charCodeAt(++i);
+                if (!(low >= 0xdc00 && low <= 0xdfff)) return null;
+            } else if (code >= 0xdc00 && code <= 0xdfff) return null;
+        }
+        return value;
+    }
+    function check(value) {
+        const expected = previous(value);
+        assert.equal(actual({ name: value }), expected);
+        assert.equal(
+            actual({ name: "fallback.mp4", relativePath: value }),
+            expected
+        );
+    }
+    const alphabet = [
+        "a",
+        ".",
+        "/",
+        "\\",
+        "\n",
+        "\0",
+        "\ud800",
+        "\udbff",
+        "\udc00",
+        "\udfff",
+        "é",
+    ];
+    function walk(value, depth) {
+        check(value);
+        if (depth)
+            for (const character of alphabet)
+                walk(value + character, depth - 1);
+    }
+    walk("", 5);
+    for (let code = 0; code <= 0xffff; code++)
+        check("a" + String.fromCharCode(code) + ".mp4");
+    for (const value of [
+        undefined,
+        null,
+        0,
+        {},
+        " file.mp4",
+        "file.mp4 ",
+        "a".repeat(8192),
+        "a".repeat(8193),
+        "é".repeat(8192),
+        "custom:file.mp4",
+        "C:file.mp4",
+        "https://example.test/file.mp4",
+        "folder/scheme://file.mp4",
+        "folder/%2e%2e/file.mp4",
+        "文件夹/🎬.mp4",
+        "folder/../file.mp4",
+        "folder/./file.mp4",
+        "folder//file.mp4",
+    ])
+        check(value);
+    assert.equal(actual(null), null);
+    assert.equal(
+        actual({ name: "fallback.mp4", relativePath: undefined }),
+        null
+    );
+});
+
+test("portable profile and catalog path limits retain their distinct contracts", async () => {
+    const profile = await saved(fixture());
+    for (const [value, helperAccepts, profileAccepts] of [
+        [" file.mp4", false, true],
+        ["file.mp4 ", false, true],
+        ["custom:file.mp4", true, false],
+        ["é".repeat(513), true, false],
+        ["é".repeat(512), true, true],
+        ["folder/🎬.mp4", true, true],
+        ["folder//file.mp4", false, false],
+        ["https://example.test/file.mp4", false, false],
+    ]) {
+        const receiver = fixture();
+        const candidate = clone(profile);
+        candidate.selected.name = value;
+        assert.equal(
+            receiver.host.localItemRelativePath({ relativePath: value }) ===
+                value,
+            helperAccepts
+        );
+        assert.equal(
+            (
+                await receiver.call("profile_import", {
+                    number: 2,
+                    profile: candidate,
+                })
+            ).status,
+            profileAccepts ? "ok" : "rejected"
+        );
+    }
+});
+
+function nativePathCatalog(prefix) {
+    return {
+        items: pathFixture.items.map((item, index) => ({
+            ...item,
+            id: prefix + "-" + index,
+            sourceId: prefix + "-root",
+        })),
+        sources: [{ ...pathFixture.source, id: prefix + "-root" }],
+    };
+}
+
+test("native nested selection transfers and resumes the exact same-basename file", async () => {
+    const sender = fixture();
+    sender.setCatalog(nativePathCatalog("sender"));
+    sender.host.curList = ["local-sender-1"];
+    const profile = await saved(sender);
+    assert.equal(profile.selected.name, pathFixture.items[1].relativePath);
+
+    const receiver = fixture();
+    receiver.setCatalog(nativePathCatalog("receiver"));
+    assert.equal(
+        (await receiver.call("profile_import", { number: 3, profile })).status,
+        "ok"
+    );
+    assert.equal((await receiver.call("profile", { number: 3 })).status, "ok");
+    receiver.api.bind(receiver.catalog());
+    assert.equal(receiver.api.selection(), "local-receiver-1");
+    const restarted = fixture(receiver.data);
+    restarted.setCatalog(nativePathCatalog("receiver"));
+    assert.equal(restarted.api.selection(), "local-receiver-1");
+    assert.equal(
+        (await restarted.call("profile_export", { number: 3 })).data.profile
+            .selected.name,
+        pathFixture.items[1].relativePath
+    );
+});
+
+test("explicit invalid native path never falls back to name on save or binding", async () => {
+    const original = await saved(fixture());
+    for (const invalid of [
+        undefined,
+        null,
+        "",
+        "../movie.mp4",
+        "/private/movie.mp4",
+        " sub/movie.mp4",
+        "sub/movie.mp4\u00a0",
+    ]) {
+        const sender = fixture();
+        sender.catalog().items[0].relativePath = invalid;
+        assert.equal(
+            (await sender.call("profile_save", { number: 1 })).status,
+            "rejected"
+        );
+        assert.equal(sender.data.has("offlineProfiles"), false);
+
+        const receiver = fixture();
+        assert.equal(
+            (
+                await receiver.call("profile_import", {
+                    number: 2,
+                    profile: original,
+                })
+            ).status,
+            "ok"
+        );
+        assert.equal(
+            (await receiver.call("profile", { number: 2 })).status,
+            "ok"
+        );
+        receiver.catalog().items[0].relativePath = invalid;
+        const before = [...receiver.data];
+        assert.throws(
+            () => receiver.api.bind(receiver.catalog()),
+            /missing or ambiguous/
+        );
+        assert.deepEqual([...receiver.data], before);
+    }
+});
+
+test("explicit full paths retain the existing portable selected-name limit", async () => {
+    const f = fixture();
+    f.catalog().items[0].name = "short.mp4";
+    f.catalog().items[0].relativePath = "a/" + "x".repeat(1020) + ".mp4";
+    assert.equal(
+        (await f.call("profile_save", { number: 1 })).status,
+        "rejected"
+    );
+    assert.equal(f.data.has("offlineProfiles"), false);
+});
+
+test("an individually bound file with null relativePath saves transfers and resumes by file source", async () => {
+    function fileCatalog(prefix) {
+        return {
+            items: [
+                {
+                    id: prefix + "-item",
+                    name: "Clip.mp4",
+                    relativePath: null,
+                    sourceId: prefix + "-file",
+                },
+            ],
+            sources: [{ id: prefix + "-file", kind: "file", name: "Clip.mp4" }],
+        };
+    }
+    const sender = fixture();
+    sender.setCatalog(fileCatalog("sender"));
+    sender.host.curList = ["local-sender-item"];
+    const profile = await saved(sender);
+    assert.deepEqual(profile.sources, [
+        { key: "s0", kind: "file", name: "Clip.mp4" },
+    ]);
+    assert.deepEqual(profile.selected, { name: "Clip.mp4", source_key: "s0" });
+
+    const receiver = fixture();
+    receiver.setCatalog(fileCatalog("receiver"));
+    assert.equal(
+        (await receiver.call("profile_import", { number: 2, profile })).status,
+        "ok"
+    );
+    assert.equal((await receiver.call("profile", { number: 2 })).status, "ok");
+    receiver.api.bind(receiver.catalog());
+    assert.equal(receiver.api.selection(), "local-receiver-item");
+    assert.equal(fixture(receiver.data).api.selection(), "local-receiver-item");
+});
+
+test("a saved basename-only folder selection cannot select another nested file", async () => {
+    const sender = fixture();
+    sender.setCatalog({
+        items: [{ id: "old-item", name: "Clip.mp4", sourceId: "old-root" }],
+        sources: [{ id: "old-root", kind: "folder", name: "Movies" }],
+    });
+    sender.host.curList = ["local-old-item"];
+    const profile = await saved(sender);
+    const receiver = fixture();
+    receiver.setCatalog({
+        items: [
+            {
+                id: "new-item",
+                name: "Clip.mp4",
+                relativePath: "Another/Clip.mp4",
+                sourceId: "new-root",
+            },
+        ],
+        sources: [{ id: "new-root", kind: "folder", name: "Movies" }],
+    });
+    await receiver.call("profile_import", { number: 2, profile });
+    await receiver.call("profile", { number: 2 });
+    const before = [...receiver.data];
+    assert.throws(
+        () => receiver.api.bind(receiver.catalog()),
+        /missing or ambiguous/
+    );
+    assert.deepEqual(
+        [...receiver.data],
+        before,
+        "unresolved profile remains intact"
+    );
+});
+
+function rootCollisionCatalog(includeOriginal = true) {
+    return {
+        items: [
+            {
+                id: "wrong-root-file",
+                name: "Clip.mp4",
+                relativePath: "Clip.mp4",
+                sourceId: "receiver-root",
+            },
+            ...(includeOriginal
+                ? [
+                      {
+                          id: "original-nested-file",
+                          name: "Clip.mp4",
+                          relativePath: "Season1/Clip.mp4",
+                          sourceId: "receiver-root",
+                      },
+                  ]
+                : []),
+        ],
+        sources: [{ id: "receiver-root", kind: "folder", name: "Movies" }],
+    };
+}
+
+test("legacy imported folder basenames never rebind to a coincident root file", async () => {
+    // Literal old wire data: using a newly captured profile here would hide a
+    // future provenance-format migration and stop testing legacy imports.
+    const profile = {
+        binding_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        name: "Movies",
+        provider: "offline",
+        selected: { name: "Clip.mp4", source_key: "s0" },
+        sources: [{ key: "s0", kind: "folder", name: "Movies" }],
+        version: 1,
+    };
+    for (const includeOriginal of [true, false]) {
+        const receiver = fixture();
+        receiver.setCatalog(rootCollisionCatalog(includeOriginal));
+        assert.equal(
+            (await receiver.call("profile_import", { number: 2, profile }))
+                .status,
+            "ok"
+        );
+        assert.equal(
+            (await receiver.call("profile", { number: 2 })).status,
+            "ok"
+        );
+        const before = [...receiver.data];
+        assert.throws(
+            () => receiver.api.bind(receiver.catalog()),
+            /missing or ambiguous/
+        );
+        assert.deepEqual([...receiver.data], before);
+        assert.equal(receiver.data.has("offlineProfileBindings"), false);
+        assert.equal(receiver.api.selection(), "");
+        assert.deepEqual(
+            (await receiver.call("profile_export", { number: 2 })).data.profile,
+            profile
+        );
+    }
+});
+
+async function savedLegacyBasename() {
+    const f = fixture();
+    f.setCatalog({
+        items: [
+            {
+                id: "original-nested-file",
+                name: "Clip.mp4",
+                sourceId: "receiver-root",
+            },
+        ],
+        sources: [{ id: "receiver-root", kind: "folder", name: "Movies" }],
+    });
+    f.host.curList = ["local-original-nested-file"];
+    const profile = await saved(f);
+    assert.equal(profile.selected.name, "Clip.mp4");
+    assert.equal((await f.call("profile", { number: 1 })).status, "ok");
+    return { f, profile };
+}
+
+test("a legacy private selected ID survives restart and a root-name collision", async () => {
+    const { f, profile } = await savedLegacyBasename();
+    const restarted = fixture(f.data);
+    restarted.setCatalog(rootCollisionCatalog());
+    assert.equal(restarted.api.selection(), "local-original-nested-file");
+    restarted.api.bind(restarted.catalog());
+    assert.equal(restarted.api.selection(), "local-original-nested-file");
+    assert.deepEqual(
+        (await restarted.call("profile_export", { number: 1 })).data.profile,
+        profile
+    );
+    delete restarted.catalog().items[1].relativePath;
+    restarted.api.bind(restarted.catalog());
+    assert.equal(restarted.api.selection(), "local-original-nested-file");
+});
+
+test("legacy private selected IDs do not override invalid explicit paths", async () => {
+    for (const invalid of [
+        undefined,
+        null,
+        "",
+        "../escape.mp4",
+        " Folder/Clip.mp4",
+        "Folder/Clip.mp4\u00a0",
+        "/private/Clip.mp4",
+        "C:/private/Clip.mp4",
+    ]) {
+        const { f, profile } = await savedLegacyBasename();
+        f.setCatalog(rootCollisionCatalog());
+        f.catalog().items[1].relativePath = invalid;
+        const before = [...f.data];
+        assert.throws(() => f.api.bind(f.catalog()), /missing or ambiguous/);
+        assert.deepEqual([...f.data], before);
+        assert.equal(f.api.selection(), "local-original-nested-file");
+        assert.deepEqual(
+            (await f.call("profile_export", { number: 1 })).data.profile,
+            profile
+        );
+    }
+});
+
+test("legacy private proof must match library, signature, source and a present exact ID", async () => {
+    for (const invalidate of [
+        (binding) => {
+            binding.library = "browser:another";
+        },
+        (binding) => {
+            binding.signature = "another-profile";
+        },
+        (binding) => {
+            binding.sources.s0 = "another-source";
+        },
+        (binding) => {
+            binding.selected = "missing-original";
+        },
+    ]) {
+        const { f, profile } = await savedLegacyBasename();
+        const bindings = JSON.parse(f.data.get("offlineProfileBindings"));
+        invalidate(bindings[profile.binding_id]);
+        f.data.set("offlineProfileBindings", JSON.stringify(bindings));
+        f.setCatalog(rootCollisionCatalog());
+        const before = [...f.data];
+        assert.throws(() => f.api.bind(f.catalog()), /missing or ambiguous/);
+        assert.deepEqual([...f.data], before);
+    }
+});
+
+test("new root-file captures retain their exact private selection locally", async () => {
+    const f = fixture();
+    f.setCatalog(rootCollisionCatalog());
+    f.host.curList = ["local-wrong-root-file"];
+    const profile = await saved(f);
+    assert.equal(profile.selected.name, "Clip.mp4");
+    assert.equal((await f.call("profile", { number: 1 })).status, "ok");
+    const restarted = fixture(f.data);
+    restarted.setCatalog(rootCollisionCatalog());
+    assert.equal(restarted.api.selection(), "local-wrong-root-file");
+    restarted.api.bind(restarted.catalog());
+    assert.equal(restarted.api.selection(), "local-wrong-root-file");
+    assert.deepEqual(
+        (await restarted.call("profile_export", { number: 1 })).data.profile,
+        profile
+    );
+});
+
+test("an individual file profile cannot bind a folder source with the same name", async () => {
+    const sender = fixture();
+    sender.setCatalog({
+        items: [
+            {
+                id: "sender-item",
+                name: "Clip.mp4",
+                relativePath: null,
+                sourceId: "sender-file",
+            },
+        ],
+        sources: [{ id: "sender-file", kind: "file", name: "Clip.mp4" }],
+    });
+    sender.host.curList = ["local-sender-item"];
+    const profile = await saved(sender);
+    const receiver = fixture();
+    receiver.setCatalog({
+        items: [
+            {
+                id: "receiver-item",
+                name: "Clip.mp4",
+                relativePath: null,
+                sourceId: "receiver-folder",
+            },
+        ],
+        sources: [{ id: "receiver-folder", kind: "folder", name: "Clip.mp4" }],
+    });
+    await receiver.call("profile_import", { number: 2, profile });
+    await receiver.call("profile", { number: 2 });
+    const before = [...receiver.data];
+    assert.throws(
+        () => receiver.api.bind(receiver.catalog()),
+        /exactly one matching source/
+    );
+    assert.deepEqual([...receiver.data], before);
+});

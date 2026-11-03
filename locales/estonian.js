@@ -559,6 +559,7 @@ var keyStrings = {
     "Hide providers?": "Kas peita pakkujad?",
     "History in Media Library": "Meediateegi ajalugu",
     "History of watched movies": "Vaatamisajalugu",
+    Home: "Avaleht",
     "HTTP port": "HTTP port",
     "HTTP remote control is unavailable on this device.":
         "HTTP kaugjuhtimispult pole selles seadmes saadaval.",

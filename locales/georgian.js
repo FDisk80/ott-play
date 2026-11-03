@@ -565,6 +565,7 @@ var keyStrings = {
     "Hide providers?": "დამალო პროვაიდერები?",
     "History in Media Library": "ისტორია მედია ბიბლიოთეკაში",
     "History of watched movies": "ნახვის ისტორია",
+    Home: "მთავარი",
     "HTTP port": "HTTP პორტი",
     "HTTP remote control is unavailable on this device.":
         "HTTP დისტანციური მართვა ამ მოწყობილობაზე მიუწვდომელია.",

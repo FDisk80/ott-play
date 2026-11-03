@@ -29,6 +29,11 @@ function moduleAt(file, deps = {}, window = {}) {
             Object,
             Promise,
             require: (name) => {
+                if (name === "../offline/local-item-path")
+                    return actualModule(
+                        "src/offline/local-item-path.ts",
+                        window
+                    );
                 if (!(name in deps)) throw Error(name);
                 return deps[name];
             },

@@ -124,6 +124,7 @@ const STORAGE_COOKIE_ATTRIBUTES =
 export function isStorageMetadataKey(key: string): boolean {
     return (
         key === "ottplaySettingsJournalV1" ||
+        key === "local-favorite-path-proofs.v1" ||
         key === STORAGE_FALLBACK_KEYS ||
         key.indexOf(STORAGE_FALLBACK_KEYS + ".") === 0
     );

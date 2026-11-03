@@ -47,4 +47,19 @@ assert(
     !accept.includes('value.getString("sourceId")'),
     "Capacitor JSObject getters return nullable strings"
 );
+assert.equal(
+    (
+        source.match(
+            /put\("relativePath", item\.opt\("relativePath"\) \?: JSONObject\.NULL\)/g
+        ) || []
+    ).length,
+    2,
+    "both complete and progressive rows expose proven metadata paths or explicit null"
+);
+assert.match(scan, /relativeChildPath\(directoryPaths\[parent\], fullName\)/);
+assert.match(
+    link,
+    /existing\.optString\("grantUri"\) == grantUri\.toString\(\)/
+);
+assert.match(link, /if \(current != null\) onRecord\?\.invoke\(current\)/);
 console.log("Android local media scan source contract passed");

@@ -1,5 +1,6 @@
 /** Direct local sources: new entries store handles, never copied media bytes. */
 export function installBrowserLocalMedia(w: any): any {
+    var sourceUnavailableMessage = "Local folder source is unavailable";
     if (w.__ottBrowserLocalMedia) return w.__ottBrowserLocalMedia;
     var dbPromise: Promise<any> | null = null;
     var urls: any = {};
@@ -271,9 +272,7 @@ export function installBrowserLocalMedia(w: any): any {
                         }
                         var current = request.result;
                         if (!current) {
-                            reject(
-                                new Error("Local folder source is unavailable")
-                            );
+                            reject(new Error(sourceUnavailableMessage));
                             return;
                         }
                         // Reconnect/remove invalidate all old references.
@@ -310,7 +309,8 @@ export function installBrowserLocalMedia(w: any): any {
         file: any,
         name: string,
         sourceId: string,
-        live: any
+        live: any,
+        relativePath: string | null
     ): any {
         live[id] = true;
         var signature = file.size + ":" + file.lastModified;
@@ -360,6 +360,7 @@ export function installBrowserLocalMedia(w: any): any {
             id: id,
             mime: file.type || "application/octet-stream",
             name: name,
+            relativePath: relativePath,
             size: file.size,
             source: sourceId.indexOf("source-") === 0 ? "linked" : "imported",
             sourceId: sourceId,
@@ -388,7 +389,8 @@ export function installBrowserLocalMedia(w: any): any {
         var generation = retireScans();
         var items: any[] = [],
             sources: any[] = [],
-            live: any = {};
+            live: any = {},
+            unprovenItems: any = Object.create(null);
         var scanned = 0,
             discovered = 0,
             published = 0,
@@ -462,10 +464,31 @@ export function installBrowserLocalMedia(w: any): any {
             id: string,
             file: any,
             name: string,
-            sourceId: string
+            sourceId: string,
+            relativePath: string | null
         ): void {
-            if (!active() || live[id]) return;
-            var added = item(id, file, name, sourceId, live);
+            if (!active()) return;
+            if (live[id]) {
+                var pending = unprovenItems[id];
+                if (relativePath !== null && pending !== undefined) {
+                    // Replace the row; older published snapshots must retain
+                    // their unproven state until the real walk reaches it.
+                    items[pending] = item(
+                        id,
+                        file,
+                        name,
+                        sourceId,
+                        live,
+                        relativePath
+                    );
+                    delete unprovenItems[id];
+                    progress(true);
+                }
+                return;
+            }
+            var added = item(id, file, name, sourceId, live, relativePath);
+            if (relativePath === null && id !== sourceId)
+                unprovenItems[id] = items.length;
             items.push(added);
             if (!firstPlayable && added.available !== false && added.url) {
                 firstPlayable = true;
@@ -572,7 +595,8 @@ export function installBrowserLocalMedia(w: any): any {
                                         sourceId + ":" + name,
                                         file,
                                         name,
-                                        sourceId
+                                        sourceId,
+                                        name
                                     );
                                 }
                             });
@@ -605,12 +629,7 @@ export function installBrowserLocalMedia(w: any): any {
                 return Promise.resolve();
             var path = preferredId.slice(prefix.length),
                 parts = path.split("/");
-            if (
-                parts.some(function (part) {
-                    return !part || part === "." || part === "..";
-                })
-            )
-                return Promise.resolve();
+            if (/(^|\/)\.{0,2}(\/|$)/.test(path)) return Promise.resolve();
             var handle = Promise.resolve(record.handle);
             parts.slice(0, -1).forEach(function (part) {
                 handle = handle.then(function (directory) {
@@ -644,7 +663,7 @@ export function installBrowserLocalMedia(w: any): any {
                         preferredResult.state =
                             file && media(file) ? "found" : "missing";
                     if (file && media(file))
-                        add(preferredId!, file, path, record.id);
+                        add(preferredId!, file, path, record.id, path);
                     else progress(true);
                 })
                 .catch(function (error) {
@@ -672,20 +691,47 @@ export function installBrowserLocalMedia(w: any): any {
             candidates.forEach(function (candidate: any) {
                 chain = chain.then(function () {
                     if (!active() || firstPlayable || !candidate.handle) return;
+                    // A cached handle can survive a move. Re-resolve it against
+                    // its selected root before treating the old path as proof.
                     return readPhase("metadata", function () {
-                        return readHandle(
-                            record.id + ":" + candidate.path,
-                            candidate.handle
-                        );
+                        return typeof record.handle.resolve === "function"
+                            ? readHandle(
+                                  "resolve:" + record.id + ":" + candidate.path,
+                                  {
+                                      getFile: function () {
+                                          return record.handle.resolve(
+                                              candidate.handle
+                                          );
+                                      },
+                                  }
+                              )
+                            : null;
                     })
-                        .then(function (file) {
-                            if (active() && file && media(file))
-                                add(
+                        .then(function (parts: any) {
+                            if (!active()) return;
+                            if (
+                                typeof record.handle.resolve === "function" &&
+                                (!Array.isArray(parts) ||
+                                    parts.join("/") !== candidate.path)
+                            )
+                                return;
+                            return readPhase("metadata", function () {
+                                return readHandle(
                                     record.id + ":" + candidate.path,
-                                    file,
-                                    candidate.path,
-                                    record.id
+                                    candidate.handle
                                 );
+                            }).then(function (file) {
+                                if (active() && file && media(file))
+                                    add(
+                                        record.id + ":" + candidate.path,
+                                        file,
+                                        candidate.path,
+                                        record.id,
+                                        Array.isArray(parts)
+                                            ? candidate.path
+                                            : null
+                                    );
+                            });
                         })
                         .catch(function (error) {
                             if (error && error.name === "NotFoundError")
@@ -755,7 +801,13 @@ export function installBrowserLocalMedia(w: any): any {
                     chain = chain.then(function () {
                         if (!active()) return;
                         if (record.blob) {
-                            add(record.id, record.blob, record.name, record.id);
+                            add(
+                                record.id,
+                                record.blob,
+                                record.name,
+                                record.id,
+                                null
+                            );
                             return visit();
                         }
                         var source = {
@@ -823,7 +875,8 @@ export function installBrowserLocalMedia(w: any): any {
                                             record.id,
                                             file,
                                             file.name,
-                                            record.id
+                                            record.id,
+                                            null
                                         );
                                 });
                             })
@@ -855,6 +908,7 @@ export function installBrowserLocalMedia(w: any): any {
                                         available: false,
                                         id: record.id,
                                         name: record.name,
+                                        relativePath: null,
                                         size: 0,
                                         source: "linked",
                                         sourceId: record.id,
@@ -1004,9 +1058,7 @@ export function installBrowserLocalMedia(w: any): any {
             return record.id === id;
         })[0];
         if (!source || source.handle.kind !== "directory")
-            return Promise.reject(
-                new Error("Local folder source is unavailable")
-            );
+            return Promise.reject(new Error(sourceUnavailableMessage));
         if (!w.showDirectoryPicker)
             return Promise.reject(
                 new Error("Direct folder access is unavailable")
@@ -1148,9 +1200,7 @@ export function installBrowserLocalMedia(w: any): any {
             !parts.length ||
             /[\\\0]/.test(path) ||
             /^[a-z]:/i.test(path) ||
-            parts.some(function (part) {
-                return !part || part === "." || part === "..";
-            })
+            /(^|\/)\.{0,2}(\/|$)/.test(path)
         )
             return Promise.reject(
                 new Error("Enter a file path relative to this folder")
@@ -1160,10 +1210,7 @@ export function installBrowserLocalMedia(w: any): any {
                 record.id === sourceId && record.handle?.kind === "directory"
             );
         })[0];
-        if (!source)
-            return Promise.reject(
-                new Error("Local folder source is unavailable")
-            );
+        if (!source) return Promise.reject(new Error(sourceUnavailableMessage));
         var generation = retireScans();
         function current(): void {
             if (generation !== scanGeneration) {
@@ -1211,7 +1258,9 @@ export function installBrowserLocalMedia(w: any): any {
                                 available: available,
                                 directSources: !!w.showDirectoryPicker,
                                 discovered: 1,
-                                items: [item(id, file, path, sourceId, {})],
+                                items: [
+                                    item(id, file, path, sourceId, {}, path),
+                                ],
                                 partial: true,
                                 persistent: false,
                                 phase: "metadata",

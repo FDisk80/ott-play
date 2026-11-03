@@ -29,6 +29,14 @@ function moduleAt(file, deps, window) {
             Object,
             Promise,
             require: (name) => {
+                if (
+                    name === "../offline/local-item-path" ||
+                    name === "./local-item-path"
+                )
+                    return actualModule(
+                        "src/offline/local-item-path.ts",
+                        window || {}
+                    );
                 if (name === "./global-favorites-providers")
                     return actualModule(
                         "src/media/global-favorites-providers.ts",

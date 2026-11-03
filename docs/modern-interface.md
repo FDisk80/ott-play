@@ -37,17 +37,27 @@ card selection treatment and surface shapes.
 
 ## What changes
 
-- The library fills the window, with persistent navigation to the current
-  library, Favorites, categories, search, providers and settings. Available
-  navigation follows the same provider and access rules as Classic.
-- A selected-item header presents the title, artwork, collection and available
-  description above the catalogue. The old split-screen preview does not take
-  space away from the catalogue; playback continues in the same session.
+- The library fills the window, with a top navigation capsule for Home, the
+  current library, Favorites and search. Provider and settings controls sit
+  separately in the corner; category selection belongs to the catalogue
+  heading. Available navigation follows the same provider and access rules
+  as Classic.
+- Media catalogues open in **Home**: a large selected-item backdrop, title,
+  collection and available description above one row of media cards. Play
+  and Description actions appear when the current screen supplies those
+  actions. **Media library** switches to a poster grid of the same catalogue;
+  it preserves selection and does not reload the source or start playback.
+  The old split-screen preview does not take space away from the catalogue;
+  playback continues in the same session.
 - Live channel catalogues use larger rows with a number, channel identity,
   logo when available, programme text and progress. The focused row and the
   playing channel have distinct indicators.
-- Media catalogues and mixed Favorites use a bounded poster grid. A card shows its title and
-  available collection metadata. Missing or failed artwork leaves a readable
+- Media catalogues and mixed Favorites share both views. Home cards use a
+  16:9 artwork frame; Media library uses 2:3 posters. A title, available
+  collection metadata and distinct playing/focus indicators identify each
+  card. Plex uses `thumb` for posters and `art` for backdrops, with the other
+  image as fallback; the access token is resolved at paint time and is never
+  stored in catalogue records. Missing or failed artwork leaves a readable
   title and a simple letter placeholder.
 - Settings and categories use a spacious single-column list inside the same
   navigation shell. Search and text entry use a scrollable editor with visible
@@ -78,11 +88,15 @@ items. Enter/OK activates the selected item through the same action as Classic.
 Back, category selection, search and context actions retain their existing
 behavior. Channel catalogues retain their linear navigation.
 
-Left from the first grid column enters the navigation rail. Up/Down select a
-navigation action and Right returns to the selected catalogue item. Clicking
-a navigation action uses the same routes as keyboard operation. An open text
-editor or confirmation dialog keeps input ownership until it closes; covered
-navigation cannot change the provider behind it.
+Up from the first visible grid row enters the top navigation. In Home it
+first reaches the selected item's Play/Description actions when available;
+another Up reaches the navigation capsule. Left/Right move between actions.
+Down returns through the Home actions to the same selected catalogue item;
+Back returns directly to it. Home and Media library change presentation only;
+Favorites, search, category, provider and settings controls use the existing
+host routes. An open text editor or confirmation dialog keeps input ownership
+until it closes; covered navigation cannot change the provider behind it.
+Option pages do not expose a hidden catalogue-category action.
 
 During full-screen playback with playback controls inactive, the default **Up**
 button selects the next channel or file and **Down** selects the previous one,
@@ -129,9 +143,10 @@ for every item in a large local, Plex or VPortal catalogue. Existing background
 catalogue loading and source availability rules still apply.
 
 Column and row capacity adapt to the available catalogue area and interface
-font scale, with at most 24 cards mounted at once. On narrow windows the rail
-becomes a compact horizontal navigation bar; text editors and dialogs remain
-scrollable. Modern does not overwrite the saved Classic row count. The
+font scale. Home mounts one row of at most eight cards; Media library mounts
+at most two rows and sixteen cards. The top navigation becomes more compact
+on narrow windows; text editors and dialogs remain scrollable. Modern does
+not overwrite the saved Classic row count. The
 existing font family and **Font size, %** setting continue to apply; subtitle
 styling remains separate. Focus decoration avoids layout-changing animation,
 and the small decoration transitions are disabled when the platform requests

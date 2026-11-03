@@ -533,6 +533,7 @@ var keyStrings = {
     "Hide providers?": "ເຊື່ອງຜູ້ໃຫ້ບໍລິການບໍ?",
     "History in Media Library": "ປະຫວັດໃນຄັງສື່",
     "History of watched movies": "ປະຫວັດການເບິ່ງ",
+    Home: "ໜ້າຫຼັກ",
     "HTTP port": "ພອດ HTTP",
     "HTTP remote control is unavailable on this device.":
         "ອຸປະກອນນີ້ບໍ່ສາມາດໃຊ້ການຄວບຄຸມທາງໄກ HTTP.",

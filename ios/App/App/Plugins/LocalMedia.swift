@@ -253,6 +253,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                   let size = attributes[.size] as? NSNumber,
                   let url = bridge?.portablePath(fromLocalURL: file) else { continue }
             items.append(["id": entry.id, "name": entry.name, "mime": entry.mime, "size": size.int64Value,
+                          "relativePath": NSNull(),
                           "url": url.absoluteString, "source": "imported", "sourceId": "", "available": true, "access": "granted"])
         }
         var sourceRows: [[String: Any]] = []
@@ -274,6 +275,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                 let exists = url.flatMap { mediaInfo($0) } != nil
                 let portable = exists ? url.flatMap { bridge?.portablePath(fromLocalURL: $0) } : nil
                 items.append(["id": item.id, "name": item.name, "mime": item.mime, "size": item.size,
+                              "relativePath": source.kind == "folder" ? item.path as Any : NSNull(),
                               "url": portable?.absoluteString ?? "", "source": "linked", "sourceId": source.id,
                               "directory": url?.deletingLastPathComponent().lastPathComponent ?? "",
                               "available": portable != nil, "access": granted ? "granted" : "required"])
@@ -326,6 +328,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
         func linked(_ item: LinkedItem, _ source: Source, _ url: URL?) -> [String: Any] {
             let portable = url.flatMap { mediaInfo($0) != nil ? bridge?.portablePath(fromLocalURL: $0) : nil }
             return ["id": item.id, "name": item.name, "mime": item.mime, "size": item.size,
+                "relativePath": source.kind == "folder" ? item.path as Any : NSNull(),
                 "url": portable?.absoluteString ?? "", "source": "linked", "sourceId": source.id,
                 "directory": url?.deletingLastPathComponent().lastPathComponent ?? "", "available": portable != nil]
         }
@@ -357,6 +360,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                     if !FileManager.default.fileExists(atPath: file.path) { preferredState = "missing" }
                     else if regularPrivateFile(file, in: directory), let info = mediaInfo(file), let url = bridge?.portablePath(fromLocalURL: file) {
                         try append(["id": entry.id, "name": entry.name, "mime": entry.mime, "size": info.1,
+                            "relativePath": NSNull(),
                             "url": url.absoluteString, "source": "imported", "sourceId": entry.id, "available": true])
                     }
                 }
@@ -373,6 +377,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
             let file = directory.appendingPathComponent(entry.filename)
             if regularPrivateFile(file, in: directory), let info = mediaInfo(file), let url = bridge?.portablePath(fromLocalURL: file) {
                 try append(["id": entry.id, "name": entry.name, "mime": entry.mime, "size": info.1,
+                    "relativePath": NSNull(),
                     "url": url.absoluteString, "source": "imported", "sourceId": entry.id, "available": true])
             }
             try publish()

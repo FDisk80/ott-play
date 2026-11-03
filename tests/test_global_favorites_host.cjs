@@ -21,7 +21,8 @@ function fixture(partial = false) {
         handler = {},
         shown = [],
         toggles = [];
-    let writeFailure = null;
+    let writeFailure = null,
+        writeHook = null;
     const hash = (value) =>
         crypto
             .createHash("sha256")
@@ -191,11 +192,26 @@ function fixture(partial = false) {
                 w.stbGetItem(key) !== before
             )
                 return "conflict";
-            if (key === "remoteFavorites.v1" && writeFailure === "conflict")
+            const hooked = writeHook?.({ after, before, key });
+            if (hooked !== undefined) return hooked;
+            if (
+                (key === "remoteFavorites.v1" && writeFailure === "conflict") ||
+                (key === "local-favorite-path-proofs.v1" &&
+                    writeFailure === "proof-conflict")
+            )
                 return "conflict";
             writes.push(key);
-            data.set(key, after);
-            return key === "remoteFavorites.v1" && writeFailure === "unknown"
+            if (
+                !(
+                    key === "local-favorite-path-proofs.v1" &&
+                    writeFailure === "proof-ignored"
+                )
+            )
+                data.set(key, after);
+            return (key === "remoteFavorites.v1" &&
+                writeFailure === "unknown") ||
+                !active ||
+                (admitted && !admitted())
                 ? "unknown"
                 : "confirmed";
         },
@@ -275,6 +291,9 @@ function fixture(partial = false) {
         load,
         mainCalls,
         makeHost,
+        onWrite(hook) {
+            writeHook = hook;
+        },
         shown,
         toggles,
         w,
@@ -351,7 +370,336 @@ function assertRawUnchanged(f, before) {
     for (const [key, value] of before)
         assert.equal(f.data.get(key), value, key);
 }
+
+function rootLocalFixture() {
+    const f = fixture(),
+        w = f.w;
+    const item = {
+        available: true,
+        id: "file-in-root",
+        name: "Clip.mp4",
+        relativePath: "Clip.mp4",
+        sourceId: "local-disk",
+    };
+    const catalog = {
+        items: [item],
+        sources: [{ id: item.sourceId, kind: "folder", name: "Movies" }],
+    };
+    let state = {
+            generation: 1,
+            phase: "playing",
+            target: { channelId: "local-" + item.id, sourceId: "local-source" },
+        },
+        scans = 0;
+    w.__ottActiveProviderDriver = { configuration: () => null, id: "offline" };
+    w.__ottSourceIdentity = {
+        current: () => "local-source",
+        media: () => "local-source",
+    };
+    w.__ottClassicPlayback = { snapshot: () => state };
+    w.__ottOfflineProfiles = { read: () => ({ active: -1 }) };
+    w.__ottLocalMedia = {
+        cancelScan() {},
+        favoriteSnapshot: () => ({ catalog, current: () => true }),
+        libraryIdentity: () => "this-local-library",
+        async remoteCatalog(current, source, firstPlayable) {
+            assert(current());
+            assert.equal(source, item.sourceId);
+            assert(firstPlayable(catalog));
+            scans++;
+            return catalog;
+        },
+    };
+    w.__ottChannels = { index: () => 0, rememberCategory: () => true };
+    w.cats = { All: ["local-" + item.id] };
+    w.catsArray = ["All"];
+    w.channels = { ["local-" + item.id]: { itemId: "local-" + item.id } };
+    w._playSession = 1;
+    w.playChannel = (group, index, force, current) => {
+        assert(current());
+        assert(
+            w.__ottGlobalFavoritesHandoff.accept({
+                channelId: "local-" + item.id,
+                sourceId: "local-source",
+            })
+        );
+        w._playSession++;
+        state = {
+            generation: state.generation + 1,
+            phase: "playing",
+            target: { channelId: "local-" + item.id, sourceId: "local-source" },
+        };
+        return true;
+    };
+    return { ...f, catalog, item, scans: () => scans };
+}
+async function checkLocalProofHost() {
+    const key = "local-favorite-path-proofs.v1",
+        f = rootLocalFixture();
+    const captured = await f.host.capture();
+    assert(captured.localProof, "actual capture exposes exact item evidence");
+    assert(!f.data.has(key), "read-only capture must not persist trust");
+    await f.host.add({ __ottGlobalChannel: "local-" + f.item.id });
+    assert(f.data.has(key), "explicit add persists verified private evidence");
+    const id = (await f.host.store.snapshot()).entries[0].id;
+    f.host.dispose();
+    let restarted = f.makeHost(f.w, f.hostPorts);
+    assert.equal(
+        (await restarted.router.select(id).result).status,
+        "ok",
+        "actual cold host uses durable exact proof"
+    );
+    assert.equal(f.scans(), 1);
+    // Mimic an old basename import: retaining the root binding alone is insufficient.
+    restarted.dispose();
+    f.data.delete(key);
+    restarted = f.makeHost(f.w, f.hostPorts);
+    assert.notEqual((await restarted.router.select(id).result).status, "ok");
+    assert.equal(f.scans(), 1, "unproven import stops before scan");
+    const unprovenRaw = f.data.get("remoteFavorites.v1");
+    assert.equal(
+        (await restarted.currentItem()).entry,
+        null,
+        "unproven collision is not reported as the current Favorite"
+    );
+    await assert.rejects(restarted.capture(), /unavailable/);
+    await assert.rejects(
+        restarted.toggle({ __ottGlobalChannel: "local-" + f.item.id }),
+        /unavailable/
+    );
+    await assert.rejects(
+        restarted.remove({ __ottGlobalChannel: "local-" + f.item.id }),
+        /unavailable/
+    );
+    assert.equal(
+        f.data.get("remoteFavorites.v1"),
+        unprovenRaw,
+        "toggle/current-item remove cannot delete the old nested Favorite"
+    );
+    await restarted.add({ __ottGlobalChannel: "local-" + f.item.id });
+    assert(
+        f.data.has(key),
+        "explicit re-add of an existing row establishes missing proof"
+    );
+    assert((await restarted.currentItem()).entry);
+    await restarted.toggle({ __ottGlobalChannel: "local-" + f.item.id });
+    assert.equal(
+        (await restarted.store.snapshot()).entries.length,
+        0,
+        "proven root membership can be toggled off"
+    );
+    await restarted.facade.add();
+    assert.equal(
+        (await restarted.store.snapshot()).entries.length,
+        1,
+        "facade explicit add uses the same proof publication path"
+    );
+    restarted.dispose();
+    const ignored = rootLocalFixture();
+    ignored.failWrites("proof-ignored");
+    await assert.rejects(
+        ignored.host.add({ __ottGlobalChannel: "local-" + ignored.item.id }),
+        /storage_unavailable/
+    );
+    assert(!ignored.data.has(key));
+    assert.equal(
+        ignored.toggles.length,
+        0,
+        "ignored proof write never reports successful addition"
+    );
+    ignored.host.dispose();
+    console.log(
+        "PASS actual Local host explicit add, restart, unproven import, re-add and ignored proof writer"
+    );
+}
+
+async function checkLocalProofFailureAtomicity() {
+    const proofKey = "local-favorite-path-proofs.v1",
+        storeKey = "remoteFavorites.v1",
+        receiptKey = "favorites-receipts.v1";
+    for (const mode of ["proof-ignored", "proof-conflict", "proof-throw"]) {
+        const f = rootLocalFixture(),
+            payload = { __ottGlobalChannel: "local-" + f.item.id };
+        f.failWrites(mode);
+        if (mode === "proof-throw")
+            f.onWrite(({ key }) => {
+                if (key === proofKey) throw Error("write rejected");
+            });
+        await assert.rejects(f.host.add(payload), /storage_unavailable/);
+        assert.equal(
+            (await f.host.store.snapshot()).entries.length,
+            0,
+            `${mode}: failed proof cannot leave a newly added Favorite`
+        );
+        assert.equal(f.data.has(proofKey), false);
+        assert.equal(f.toggles.length, 0);
+        f.failWrites(null);
+        f.onWrite(null);
+        assert.equal((await f.host.add(payload)).outcome, "verified");
+        assert(
+            (await f.host.currentItem()).entry,
+            "retry needs no host recreation"
+        );
+        f.host.dispose();
+        const restarted = f.makeHost(f.w, f.hostPorts),
+            [saved] = (await restarted.store.snapshot()).entries;
+        assert.equal(
+            (await restarted.router.select(saved.id).result).status,
+            "ok"
+        );
+        restarted.dispose();
+    }
+    {
+        const f = rootLocalFixture(),
+            payload = { __ottGlobalChannel: "local-" + f.item.id };
+        await f.host.add(payload);
+        f.data.delete(proofKey);
+        const prior = f.data.get(storeKey);
+        f.failWrites("proof-ignored");
+        await assert.rejects(f.host.add(payload), /storage_unavailable/);
+        assert.equal(
+            f.data.get(storeKey),
+            prior,
+            "failed re-proof retains existing row and UUID"
+        );
+        f.failWrites(null);
+        await f.host.add(payload);
+        assert.equal(f.data.get(storeKey), prior);
+        assert((await f.host.currentItem()).entry);
+        f.host.dispose();
+    }
+    {
+        const f = rootLocalFixture(),
+            payload = { __ottGlobalChannel: "local-" + f.item.id };
+        await f.host.committer.qualify();
+        const initial = await f.host.store.snapshot();
+        await f.host.store.mutate(initial.revision, {
+            entries: [
+                {
+                    locator: { channelId: "m3u-epg:Kept", kind: "channel" },
+                    origin: {
+                        profile: "Profile",
+                        provider: "m3u",
+                        sourceAlias: "Source",
+                        subprofile: null,
+                    },
+                    title: "Kept",
+                },
+            ],
+            op: "put",
+        });
+        const prior = f.data.get(storeKey),
+            receipt = f.data.get(receiptKey);
+        f.failWrites("proof-ignored");
+        await assert.rejects(f.host.add(payload), /storage_unavailable/);
+        assert.equal(
+            f.data.get(storeKey),
+            prior,
+            "rollback restores the complete old document exactly"
+        );
+        assert.equal(
+            f.data.get(receiptKey),
+            receipt,
+            "rollback never invents or alters a receipt"
+        );
+        f.host.dispose();
+    }
+    for (const changed of [storeKey, receiptKey, proofKey]) {
+        const f = rootLocalFixture(),
+            payload = { __ottGlobalChannel: "local-" + f.item.id };
+        let changedRaw;
+        f.onWrite(({ key }) => {
+            if (key !== proofKey) return;
+            changedRaw =
+                changed === storeKey
+                    ? JSON.stringify({
+                          ...JSON.parse(f.data.get(storeKey)),
+                          migrations: ["1".repeat(64)],
+                      })
+                    : "concurrent writer owns this value";
+            f.data.set(changed, changedRaw);
+            return "conflict";
+        });
+        await assert.rejects(f.host.add(payload), /reconciliation_required/);
+        assert.equal(
+            f.data.get(changed),
+            changedRaw,
+            "compensation must preserve concurrent " + changed
+        );
+        assert.equal(JSON.parse(f.data.get(storeKey)).entries.length, 1);
+        assert.equal(f.toggles.length, 0);
+        f.host.dispose();
+    }
+    for (const failure of [
+        "rollback-ignored",
+        "grant-lost",
+        "runtime-expired",
+    ]) {
+        const f = rootLocalFixture(),
+            payload = { __ottGlobalChannel: "local-" + f.item.id };
+        let proofAttempted = false;
+        f.onWrite(({ key }) => {
+            if (key === proofKey) {
+                proofAttempted = true;
+                if (failure === "grant-lost") f.deactivate();
+                if (failure === "runtime-expired") f.expireRuntime();
+                return "conflict";
+            }
+            if (
+                proofAttempted &&
+                key === storeKey &&
+                failure === "rollback-ignored"
+            )
+                return "confirmed";
+        });
+        await assert.rejects(
+            f.host.add(payload),
+            failure === "runtime-expired"
+                ? /storage_unavailable/
+                : /reconciliation_required/
+        );
+        assert.equal(
+            JSON.parse(f.data.get(storeKey)).entries.length,
+            failure === "runtime-expired" ? 0 : 1,
+            "compensation relies on exact physical ownership, verifies its write and survives UI cancellation"
+        );
+        assert.equal(f.toggles.length, 0);
+        f.host.dispose();
+    }
+    {
+        const f = rootLocalFixture(),
+            payload = { __ottGlobalChannel: "local-" + f.item.id };
+        f.onWrite(({ after, key }) => {
+            if (key !== proofKey) return;
+            f.data.set(key, after);
+            return "unknown";
+        });
+        await assert.rejects(f.host.add(payload), /reconciliation_required/);
+        const saved = new Map(f.data);
+        f.onWrite(null);
+        await assert.rejects(f.host.add(payload), /unavailable/);
+        assertRawUnchanged(f, saved);
+        assert.equal(
+            f.toggles.length,
+            0,
+            "uncertain proof write cannot report success"
+        );
+        f.host.dispose();
+        const restarted = f.makeHost(f.w, f.hostPorts);
+        assert(
+            (await restarted.currentItem()).entry,
+            "restart validates actual durable proof instead of persisting an uncertainty flag"
+        );
+        restarted.dispose();
+    }
+    console.log(
+        "PASS Local proof failure compensation, retry, existing rows, concurrent writes and uncertain fencing"
+    );
+}
+
 async function main() {
+    await checkLocalProofHost();
+    await checkLocalProofFailureAtomicity();
     {
         const target = await seededPlayableFixture();
         assert.deepEqual(
@@ -802,6 +1150,7 @@ async function main() {
         "remoteCheckpoint",
         "handleRemoteProfiles",
         "isProviderAllowed",
+        "localItemRelativePath",
         "providerIds",
         "selectProviderByIndex",
         "selectMediaProfile",

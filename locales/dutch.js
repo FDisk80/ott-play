@@ -571,6 +571,7 @@ var keyStrings = {
     "Hide providers?": "Providers verbergen?",
     "History in Media Library": "Geschiedenis in mediabibliotheek",
     "History of watched movies": "Kijkgeschiedenis",
+    Home: "Start",
     "HTTP port": "HTTP-poort",
     "HTTP remote control is unavailable on this device.":
         "HTTP-afstandsbediening is niet beschikbaar op dit apparaat.",

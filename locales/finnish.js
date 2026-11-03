@@ -563,6 +563,7 @@ var keyStrings = {
     "Hide providers?": "Piilotetaanko palveluntarjoajat?",
     "History in Media Library": "Mediakirjaston historia",
     "History of watched movies": "Katseluhistoria",
+    Home: "Aloitus",
     "HTTP port": "HTTP portti",
     "HTTP remote control is unavailable on this device.":
         "HTTP kaukosäädin ei ole käytettävissä tässä laitteessa.",

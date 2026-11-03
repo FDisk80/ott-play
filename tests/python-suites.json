@@ -18,6 +18,7 @@
     ["tests/test_webos_native_release.py"],
     ["tests/test_native_webos_publish.py"],
     ["tests/test_webos_runtime_sources.py"],
+    ["tests/test_webos_native_cli_smoke.py"],
     ["tests/test_linux_playback_packaging.py"],
     ["tests/test_nas_configuration.py"],
     ["tests/test_local_proxy.py"],
@@ -40,6 +41,7 @@
     ["tests/test_native_xmltv_records.py", "--platform", "android"],
     ["tests/test_native_media_lifecycle.py", "--platform", "android"],
     ["tests/test_mobile_metadata_standby.py", "--platform", "android"],
+    ["tests/test_mobile_local_paths.py", "--platform", "android"],
     ["tests/test_runtime_diagnostics_native.py", "--platform", "android"]
   ],
   "ios": [
@@ -55,6 +57,7 @@
     ["tests/test_native_xmltv_records.py", "--platform", "ios"],
     ["tests/test_native_media_lifecycle.py", "--platform", "ios"],
     ["tests/test_mobile_metadata_standby.py", "--platform", "ios"],
+    ["tests/test_mobile_local_paths.py", "--platform", "ios"],
     ["tests/test_runtime_diagnostics_native.py", "--platform", "ios"]
   ]
 }

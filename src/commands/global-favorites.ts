@@ -1,3 +1,4 @@
+import { localItemRelativePath } from "../offline/local-item-path";
 import {
     isProviderAllowed,
     providerIds,
@@ -68,6 +69,7 @@ export function initializeGlobalFavorites(): any {
         },
         handleRemoteProfiles: handleRemoteProfiles,
         isProviderAllowed: isProviderAllowed,
+        localItemRelativePath: localItemRelativePath,
         now: Date.now,
         playLegacy: function (entry: any, admission: () => boolean) {
             var cancel: any;

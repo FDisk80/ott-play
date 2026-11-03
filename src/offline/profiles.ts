@@ -1,7 +1,11 @@
 import { commitSettingsWrites } from "../settings/store";
+import { localItemRelativePath } from "./local-item-path";
 
 /** Portable descriptions refer to local bindings; grants and media never leave the device. */
 export function installOfflineProfiles(w: any, media: any): any {
+    var busyMessage = "Another local profile operation is in progress";
+    var incompleteMessage =
+        "Wait for the local media scan to finish before saving or binding a profile";
     var key = "offlineProfiles";
     var bindingsKey = "offlineProfileBindings";
     var busy = false;
@@ -9,6 +13,9 @@ export function installOfflineProfiles(w: any, media: any): any {
         var error: any = new Error(message);
         error.offlineProfile = true;
         return error;
+    }
+    function profileChanged(stage: string): Error {
+        return profileFailure("Local profile changed " + stage);
     }
     function object(value: any): boolean {
         return !!value && typeof value === "object" && !Array.isArray(value);
@@ -33,9 +40,7 @@ export function installOfflineProfiles(w: any, media: any): any {
         return (
             text(value, 1024) &&
             !/^[\/]|\\|^[a-z][a-z0-9+.-]*:/i.test(value) &&
-            !value.split("/").some(function (part: string) {
-                return part === "." || part === ".." || !part;
-            })
+            !/(^|\/)\.{0,2}(\/|$)/.test(value)
         );
     }
     function validateProfile(value: any): boolean {
@@ -303,6 +308,16 @@ export function installOfflineProfiles(w: any, media: any): any {
         var list = w.curList || [];
         return String(list[w.primaryIndex] || "").replace(/^local-/, "");
     }
+    function selectedName(item: any, kind: string): string | null {
+        // An individually granted file has no root-relative path. Its profile
+        // already binds the exact file source by kind/name; folders still need
+        // their full relative path and must never fall back from explicit null.
+        return kind === "file"
+            ? typeof item.name === "string"
+                ? item.name
+                : null
+            : localItemRelativePath(item);
+    }
     function capture(catalog: any, name: string): any {
         var selected = selectedId();
         var sources = (catalog.sources || []).slice();
@@ -352,7 +367,10 @@ export function installOfflineProfiles(w: any, media: any): any {
                 })
                 .indexOf(item.sourceId || item.id);
             if (index >= 0)
-                profile.selected = { name: item.name, source_key: "s" + index };
+                profile.selected = {
+                    name: selectedName(item, sources[index].kind),
+                    source_key: "s" + index,
+                };
         }
         if (!validateProfile(profile))
             throw profileFailure(
@@ -412,7 +430,7 @@ export function installOfflineProfiles(w: any, media: any): any {
         if (busy)
             return Promise.resolve({
                 data: {
-                    error: "Another local profile operation is in progress",
+                    error: busyMessage,
                 },
                 status: "rejected",
             });
@@ -519,9 +537,7 @@ export function installOfflineProfiles(w: any, media: any): any {
                 var selectionBefore = selectedId();
                 return catalogSnapshot().then(function (catalog: any) {
                     if (!current() || selectedId() !== selectionBefore)
-                        throw profileFailure(
-                            "Local profile changed while reading sources"
-                        );
+                        throw profileChanged("while reading sources");
                     var captured = capture(
                         filter(catalog),
                         params.name === undefined
@@ -565,9 +581,7 @@ export function installOfflineProfiles(w: any, media: any): any {
                     )
                         throw profileFailure("Local playback storage changed");
                     if (!current() || selectedId() !== selectionBefore)
-                        throw profileFailure(
-                            "Local profile changed before checkpoint"
-                        );
+                        throw profileChanged("before checkpoint");
                     if (w.__ottClassicPlayback?.checkpointNow)
                         w.__ottClassicPlayback.checkpointNow();
                     if (
@@ -575,9 +589,7 @@ export function installOfflineProfiles(w: any, media: any): any {
                         selectedId() !== selectionBefore ||
                         (sessionCurrent && !sessionCurrent())
                     )
-                        throw profileFailure(
-                            "Local profile changed while checkpointing"
-                        );
+                        throw profileChanged("while checkpointing");
                     writeBatch(
                         values,
                         previous,
@@ -594,10 +606,7 @@ export function installOfflineProfiles(w: any, media: any): any {
                     );
                     bindingBefore = values[bindingsKey];
                     before = values[key];
-                    if (!current())
-                        throw profileFailure(
-                            "Local profile changed while saving"
-                        );
+                    if (!current()) throw profileChanged("while saving");
                     return receipt(store, number, "save");
                 });
             }
@@ -623,8 +632,7 @@ export function installOfflineProfiles(w: any, media: any): any {
                     throw profileFailure("Playlist reload is unavailable");
                 store.active = number - 1;
             } else throw profileFailure("Unsupported local profile operation");
-            if (!current())
-                throw profileFailure("Local profile changed while validating");
+            if (!current()) throw profileChanged("while validating");
             var reload = w.loadChannels;
             var savedLibrary =
                 action === "profile" ? binding(profile, true) : null;
@@ -670,14 +678,12 @@ export function installOfflineProfiles(w: any, media: any): any {
                 !current() ||
                 (action === "profile" && w.loadChannels !== reload)
             )
-                throw profileFailure("Local profile changed while saving");
+                throw profileChanged("while saving");
             if (librarySetting && typeof media.didRestoreLibrary === "function")
                 media.didRestoreLibrary();
-            if (!current())
-                throw profileFailure("Local profile changed before reload");
+            if (!current()) throw profileChanged("before reload");
             if (action === "profile") reload();
-            if (!current())
-                throw profileFailure("Local profile changed while reloading");
+            if (!current()) throw profileChanged("while reloading");
             return receipt(
                 store,
                 number,
@@ -712,9 +718,7 @@ export function installOfflineProfiles(w: any, media: any): any {
             catalog.scanning ||
             catalog.cancelled
         )
-            throw profileFailure(
-                "Wait for the local media scan to finish before saving or binding a profile"
-            );
+            throw profileFailure(incompleteMessage);
     }
     function bind(catalog: any): void {
         completeCatalog(catalog);
@@ -729,7 +733,8 @@ export function installOfflineProfiles(w: any, media: any): any {
         if (!profile)
             throw profileFailure("Load a local profile before binding it");
         var sources = catalog.sources || [],
-            refs: any = {};
+            refs: any = {},
+            kinds: Record<string, string> = {};
         profile.sources.forEach(function (source: any) {
             var matches = sources.filter(function (candidate: any) {
                 return (
@@ -742,14 +747,36 @@ export function installOfflineProfiles(w: any, media: any): any {
                     "Connect exactly one matching source for " + source.name
                 );
             refs[source.key] = matches[0].id;
+            kinds[source.key] = source.kind;
         });
         var selected: any = null;
         if (profile.selected) {
+            var sourceKey = profile.selected.source_key,
+                kind = kinds[sourceKey],
+                basenameOnly =
+                    kind === "folder" && profile.selected.name.indexOf("/") < 0,
+                priorBinding = basenameOnly ? binding(profile) : null;
+            // A v1 basename may have come from a nested native file. Only the
+            // original private binding can prove which item it meant; a new
+            // root-level file with the same name must not acquire that identity.
+            if (
+                basenameOnly &&
+                (!priorBinding ||
+                    typeof priorBinding.selected !== "string" ||
+                    !priorBinding.selected ||
+                    !object(priorBinding.sources) ||
+                    priorBinding.sources[sourceKey] !== refs[sourceKey])
+            )
+                throw profileFailure(
+                    "The saved video is missing or ambiguous; select the video again before saving this profile"
+                );
             var matches = catalog.items.filter(function (item: any) {
                 return (
-                    (item.sourceId || item.id) ===
-                        refs[profile.selected.source_key] &&
-                    item.name === profile.selected.name
+                    (item.sourceId || item.id) === refs[sourceKey] &&
+                    (basenameOnly
+                        ? item.id === priorBinding.selected &&
+                          selectedName(item, kind) !== null
+                        : selectedName(item, kind) === profile.selected.name)
                 );
             });
             if (matches.length !== 1)
@@ -797,17 +824,12 @@ export function installOfflineProfiles(w: any, media: any): any {
                 return catalog;
             },
             function () {
-                throw profileFailure(
-                    "Wait for the local media scan to finish before saving or binding a profile"
-                );
+                throw profileFailure(incompleteMessage);
             }
         );
     }
     function bindCurrent(): Promise<any> {
-        if (busy)
-            return Promise.reject(
-                profileFailure("Another local profile operation is in progress")
-            );
+        if (busy) return Promise.reject(profileFailure(busyMessage));
         var profileBefore: any,
             driver: any,
             library: any,
