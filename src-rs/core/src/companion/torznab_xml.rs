@@ -1,14 +1,16 @@
 //! Bounded Torznab XML decoding. No DTD, external entities, or response text is executed.
 use quick_xml::{events::Event, Reader};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 struct Node {
     name: String,
     attrs: HashMap<String, String>,
     text: String,
+    text_bytes: usize,
     children: Vec<Node>,
+    discarded: bool,
 }
 impl Node {
     fn child(&self, name: &str) -> Option<&Node> {
@@ -19,23 +21,49 @@ impl Node {
     }
 }
 fn document(bytes: &[u8]) -> Result<Node, &'static str> {
+    let root = raw_document(bytes, false)?;
+    if root.name == "error" {
+        return Err("torznab_api_error");
+    }
+    Ok(root)
+}
+fn raw_document(bytes: &[u8], discard_indexer_caps: bool) -> Result<Node, &'static str> {
     let text = std::str::from_utf8(bytes).map_err(|_| "torznab_invalid_xml")?;
     let mut reader = Reader::from_str(text);
     let mut stack: Vec<Node> = Vec::new();
     let mut root = None;
     let mut nodes = 0usize;
+    let mut retained_nodes = 0usize;
     loop {
         let event = reader.read_event().map_err(|_| "torznab_invalid_xml")?;
         let empty = matches!(&event, Event::Empty(_));
         match event {
             Event::Start(element) | Event::Empty(element) => {
                 nodes += 1;
-                if nodes > 16000 || stack.len() >= 16 || (stack.is_empty() && root.is_some()) {
+                let scan_limit = if discard_indexer_caps { 262144 } else { 16000 };
+                if nodes > scan_limit || stack.len() >= 16 || (stack.is_empty() && root.is_some()) {
                     return Err("torznab_xml_limit");
                 }
+                let name = String::from_utf8(element.local_name().as_ref().to_vec())
+                    .map_err(|_| "torznab_invalid_xml")?;
+                // Indexer discovery needs identity and labels, not each child's
+                // capability tree. Still parse every event in ignored subtrees:
+                // malformed XML, DTDs, entities and depth limits remain errors.
+                let discarded = stack.last().is_some_and(|node| node.discarded)
+                    || (discard_indexer_caps
+                        && stack.len() == 2
+                        && stack[0].name == "indexers"
+                        && stack[1].name == "indexer"
+                        && name == "caps");
+                if !discarded {
+                    retained_nodes += 1;
+                    if retained_nodes > 16000 {
+                        return Err("torznab_xml_limit");
+                    }
+                }
                 let mut node = Node {
-                    name: String::from_utf8(element.local_name().as_ref().to_vec())
-                        .map_err(|_| "torznab_invalid_xml")?,
+                    name,
+                    discarded,
                     ..Node::default()
                 };
                 for attr in element.attributes() {
@@ -58,7 +86,9 @@ fn document(bytes: &[u8]) -> Result<Node, &'static str> {
                     }
                 }
                 if empty {
-                    if let Some(parent) = stack.last_mut() {
+                    if node.discarded {
+                        continue;
+                    } else if let Some(parent) = stack.last_mut() {
                         parent.children.push(node);
                     } else {
                         root = Some(node);
@@ -69,7 +99,9 @@ fn document(bytes: &[u8]) -> Result<Node, &'static str> {
             }
             Event::End(_) => {
                 let node = stack.pop().ok_or("torznab_invalid_xml")?;
-                if let Some(parent) = stack.last_mut() {
+                if node.discarded {
+                    continue;
+                } else if let Some(parent) = stack.last_mut() {
                     parent.children.push(node);
                 } else {
                     root = Some(node);
@@ -103,11 +135,7 @@ fn document(bytes: &[u8]) -> Result<Node, &'static str> {
                 if !stack.is_empty() {
                     return Err("torznab_invalid_xml");
                 }
-                let root = root.ok_or("torznab_invalid_xml")?;
-                if root.name == "error" {
-                    return Err("torznab_api_error");
-                }
-                return Ok(root);
+                return root.ok_or("torznab_invalid_xml");
             }
             _ => {}
         }
@@ -115,10 +143,13 @@ fn document(bytes: &[u8]) -> Result<Node, &'static str> {
 }
 fn append(stack: &mut [Node], text: &str) -> Result<(), &'static str> {
     if let Some(node) = stack.last_mut() {
-        if node.text.len() + text.len() > 16384 {
+        node.text_bytes += text.len();
+        if node.text_bytes > 16384 {
             return Err("torznab_xml_limit");
         }
-        node.text.push_str(text);
+        if !node.discarded {
+            node.text.push_str(text);
+        }
     } else if !text.trim().is_empty() {
         return Err("torznab_invalid_xml");
     }
@@ -136,6 +167,107 @@ fn label(value: &str, maximum: usize) -> Option<String> {
     (!value.is_empty() && value.len() <= maximum && !value.chars().any(char::is_control))
         .then(|| value.to_owned())
 }
+
+pub(super) fn indexer_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && !value.eq_ignore_ascii_case("all")
+        && value.as_bytes()[0].is_ascii_alphanumeric()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
+#[derive(Clone, Serialize)]
+pub(super) struct Indexer {
+    pub id: String,
+    pub label: String,
+    pub language: Option<String>,
+    #[serde(rename = "type")]
+    pub type_: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+pub(super) struct Indexers {
+    pub supported: bool,
+    pub indexers: Vec<Indexer>,
+}
+
+pub(super) fn indexers(bytes: &[u8]) -> Result<Indexers, &'static str> {
+    if bytes.len() > 2 * 1024 * 1024 {
+        return Err("torznab_xml_limit");
+    }
+    let root = raw_document(bytes, true)?;
+    if root.name == "error" {
+        return if root.value("code") == Some("203") {
+            Ok(Indexers {
+                supported: false,
+                indexers: Vec::new(),
+            })
+        } else {
+            Err("torznab_api_error")
+        };
+    }
+    if root.name != "indexers" || !root.text.trim().is_empty() {
+        return Err("torznab_invalid_xml");
+    }
+    let mut entries = Vec::new();
+    let mut ids = HashSet::new();
+    for node in &root.children {
+        if node.name == "error" {
+            return Err("torznab_api_error");
+        }
+        if node.name != "indexer" || !node.text.trim().is_empty() {
+            return Err("torznab_invalid_xml");
+        }
+        if ids.len() >= 256 {
+            return Err("torznab_xml_limit");
+        }
+        let id = node
+            .value("id")
+            .filter(|id| indexer_id(id))
+            .ok_or("torznab_invalid_xml")?;
+        if !ids.insert(id) {
+            return Err("torznab_invalid_xml");
+        }
+        // Discovery may include available but unconfigured indexers. They cannot
+        // be selected, even if they happen to advertise usable capabilities.
+        if node.value("configured") != Some("true") {
+            continue;
+        }
+        entries.push(Indexer {
+            id: id.to_owned(),
+            label: indexer_text(node, "title", 128)?.ok_or("torznab_invalid_xml")?,
+            language: indexer_text(node, "language", 32)?,
+            type_: indexer_text(node, "type", 32)?,
+        });
+    }
+    Ok(Indexers {
+        supported: true,
+        indexers: entries,
+    })
+}
+
+fn indexer_text(node: &Node, name: &str, maximum: usize) -> Result<Option<String>, &'static str> {
+    let mut matches = node.children.iter().filter(|node| node.name == name);
+    let Some(value) = matches.next() else {
+        return Ok(None);
+    };
+    if matches.next().is_some() || !value.children.is_empty() {
+        return Err("torznab_invalid_xml");
+    }
+    if value.text.trim().is_empty() {
+        return Ok(None);
+    }
+    label(&value.text, maximum)
+        .map(Some)
+        .ok_or("torznab_invalid_xml")
+}
+
+#[cfg(test)]
+#[path = "torznab_xml_children_tests.rs"]
+mod children_tests;
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct Category {

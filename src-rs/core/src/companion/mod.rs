@@ -2,7 +2,10 @@
 //! This API contains no host-path commands and no dynamically downloaded code.
 use axum::{
     body::Body,
-    extract::{rejection::JsonRejection, DefaultBodyLimit, Path, State},
+    extract::{
+        rejection::{JsonRejection, QueryRejection},
+        DefaultBodyLimit, Path, Query, State,
+    },
     http::{header, HeaderMap, Method, Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -20,6 +23,8 @@ mod storage;
 mod tests;
 mod torrent;
 mod torznab;
+#[cfg(test)]
+mod torznab_children_tests;
 #[cfg(test)]
 mod torznab_fixture;
 mod torznab_store;
@@ -149,6 +154,10 @@ impl Companion {
                 axum::routing::delete(torznab_remove).options(preflight),
             )
             .route(
+                "/companion/:token/v1/torrent/sources/:id/indexers",
+                get(torznab_indexers).options(preflight),
+            )
+            .route(
                 "/companion/:token/v1/torrent/sources/:id/caps",
                 get(torznab_caps).options(preflight),
             )
@@ -244,6 +253,7 @@ fn failure(code: &'static str) -> Response {
         "session_missing"
         | "plugin_not_found"
         | "torznab_source_missing"
+        | "torznab_indexer_missing"
         | "torznab_reference_missing" => StatusCode::NOT_FOUND,
         "service_stopped" | "session_stopped" | "plugin_cancelled" => {
             StatusCode::SERVICE_UNAVAILABLE
@@ -273,7 +283,7 @@ async fn preflight() -> StatusCode {
 }
 async fn capabilities(State(c): State<Companion>) -> Json<Value> {
     Json(
-        json!({"schema":1,"torrent":true,"plugins":true,"localTorznab":true,"torrentSources":["magnet","http","https","local-reference"],"fileSelection":true,"maxSessions":c.0.limits.max_sessions,"maxStreams":c.0.limits.max_streams,"cacheBytes":c.0.limits.cache_bytes,"inboundPeerListener":false,"pluginNetwork":true,"pluginNetworkDefault":false}),
+        json!({"schema":1,"torrent":true,"plugins":true,"localTorznab":true,"localTorznabChildren":true,"torrentSources":["magnet","http","https","local-reference"],"fileSelection":true,"maxSessions":c.0.limits.max_sessions,"maxStreams":c.0.limits.max_streams,"cacheBytes":c.0.limits.cache_bytes,"inboundPeerListener":false,"pluginNetwork":true,"pluginNetworkDefault":false}),
     )
 }
 
@@ -351,11 +361,34 @@ async fn torznab_remove(
 ) -> Response {
     torznab_response(c.0.torznab.remove(id).await)
 }
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct IndexerScopeQuery {
+    #[serde(default, deserialize_with = "torznab::optional_indexer")]
+    indexer_id: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EmptyQuery {}
+async fn torznab_indexers(
+    State(c): State<Companion>,
+    Path((_, id)): Path<(String, String)>,
+    query: Result<Query<EmptyQuery>, QueryRejection>,
+) -> Response {
+    if query.is_err() {
+        return failure("invalid_request");
+    }
+    torznab_response(c.0.torznab.indexers(&id).await)
+}
 async fn torznab_caps(
     State(c): State<Companion>,
     Path((_, id)): Path<(String, String)>,
+    query: Result<Query<IndexerScopeQuery>, QueryRejection>,
 ) -> Response {
-    torznab_response(c.0.torznab.caps(&id).await)
+    let Ok(Query(query)) = query else {
+        return failure("invalid_request");
+    };
+    torznab_response(c.0.torznab.caps(&id, query.indexer_id.as_deref()).await)
 }
 async fn torznab_search(
     State(c): State<Companion>,

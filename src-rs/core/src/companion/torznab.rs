@@ -18,6 +18,8 @@ use tokio_util::sync::CancellationToken;
 
 const DEADLINE: Duration = Duration::from_secs(15);
 const RESULT_TTL: Duration = Duration::from_secs(15 * 60);
+const CAPS_CACHE_LIMIT: usize = 32;
+const INDEXERS_TTL: Duration = Duration::from_secs(60);
 type Result<T> = std::result::Result<T, &'static str>;
 #[derive(Clone)]
 pub(super) struct Torznab(Arc<Inner>);
@@ -29,12 +31,35 @@ struct Inner {
 struct State {
     store: Store,
     tokens: HashMap<String, CancellationToken>,
-    caps: HashMap<String, xml::Caps>,
+    caps: HashMap<Scope, (xml::Caps, Instant)>,
+    indexers: HashMap<Scope, CachedIndexers>,
+    indexers_pending: HashMap<Scope, String>,
     results: HashMap<String, Handle>,
 }
-struct Handle {
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct Scope {
     source_id: String,
     generation: String,
+    indexer_id: Option<String>,
+    membership: Option<String>,
+}
+impl Scope {
+    fn new(source: &Config, indexer_id: Option<&str>) -> Self {
+        Self {
+            source_id: source.id.clone(),
+            generation: source.generation.clone(),
+            indexer_id: indexer_id.map(str::to_owned),
+            membership: None,
+        }
+    }
+}
+struct CachedIndexers {
+    value: xml::Indexers,
+    membership: HashMap<String, String>,
+    created: Instant,
+}
+struct Handle {
+    scope: Scope,
     link: String,
     created: Instant,
 }
@@ -50,6 +75,8 @@ pub(super) struct Configure {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct Search {
     pub source_id: String,
+    #[serde(default, deserialize_with = "optional_indexer")]
+    pub indexer_id: Option<String>,
     pub query: String,
     #[serde(default)]
     pub category_ids: Vec<u64>,
@@ -62,6 +89,43 @@ pub(super) struct Search {
 pub(super) struct Prepare {
     pub source_id: String,
     pub result_ref: String,
+}
+
+// An omitted selector preserves the original source endpoint. A present selector
+// must be a string, never null or a silent request for aggregate results.
+pub(super) fn optional_indexer<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<String>, D::Error> {
+    String::deserialize(deserializer).map(Some)
+}
+
+// Only the explicit Jackett aggregate endpoint can enumerate/select children.
+// Keep its configured HTTPS origin and reverse-proxy prefix unchanged.
+fn scoped_endpoint(source: &Config, indexer_id: Option<&str>) -> Result<reqwest::Url> {
+    let mut url = endpoint_url(&source.endpoint)?;
+    let Some(id) = indexer_id else {
+        return Ok(url);
+    };
+    if !xml::indexer_id(id) {
+        return Err("torznab_invalid_indexer");
+    }
+    let (prefix, suffix) = jackett_path(&url).ok_or("torznab_indexers_unsupported")?;
+    let path = format!("{prefix}/api/v2.0/indexers/{id}/results/torznab{suffix}");
+    url.set_path(&path);
+    Ok(url)
+}
+fn jackett_path(url: &reqwest::Url) -> Option<(&str, &str)> {
+    const MARKER: &str = "/api/v2.0/indexers/all/results/torznab";
+    let path = url.path();
+    for suffix in ["/api/", "/api", "/", ""] {
+        let Some(stem) = path.strip_suffix(suffix) else {
+            continue;
+        };
+        if let Some(prefix) = stem.strip_suffix(MARKER) {
+            return Some((prefix, suffix));
+        }
+    }
+    None
 }
 
 pub(super) fn validate_config(id: &str, label: &str, endpoint: &str, key: &str) -> Result<()> {
@@ -232,6 +296,8 @@ impl Torznab {
                 store,
                 tokens,
                 caps: HashMap::new(),
+                indexers: HashMap::new(),
+                indexers_pending: HashMap::new(),
                 results: HashMap::new(),
             }),
             requests: Semaphore::new(2),
@@ -280,8 +346,14 @@ impl Torznab {
         if let Some(token) = state.tokens.remove(id) {
             token.cancel();
         }
-        state.caps.remove(id);
-        state.results.retain(|_, result| result.source_id != id);
+        state.caps.retain(|scope, _| scope.source_id != id);
+        state.indexers.retain(|scope, _| scope.source_id != id);
+        state
+            .indexers_pending
+            .retain(|scope, _| scope.source_id != id);
+        state
+            .results
+            .retain(|_, result| result.scope.source_id != id);
     }
     pub async fn remove(&self, id: String) -> Result<Value> {
         let this = self.clone();
@@ -318,20 +390,173 @@ impl Torznab {
         }
         Ok(())
     }
+    fn current_scope(
+        state: &State,
+        source: &Config,
+        scope: &Scope,
+        cancel: &CancellationToken,
+    ) -> Result<()> {
+        Self::current(state, source, cancel)?;
+        if let Some(id) = &scope.indexer_id {
+            let present = state
+                .indexers
+                .get(&Scope::new(source, None))
+                .is_some_and(|cached| {
+                    cached.value.supported && cached.membership.get(id) == scope.membership.as_ref()
+                });
+            if !present {
+                return Err("torznab_indexer_missing");
+            }
+        }
+        Ok(())
+    }
+    async fn load_indexers(
+        &self,
+        source: &Config,
+        cancel: &CancellationToken,
+        deadline: Instant,
+        refresh: bool,
+    ) -> Result<xml::Indexers> {
+        let scope = Scope::new(source, None);
+        let mut url = endpoint_url(&source.endpoint)?;
+        Self::current(&lock(&self.0.state), source, cancel)?;
+        if jackett_path(&url).is_none() {
+            return Ok(xml::Indexers {
+                supported: false,
+                indexers: vec![],
+            });
+        }
+        let request_id = {
+            let mut state = lock(&self.0.state);
+            Self::current(&state, source, cancel)?;
+            if !refresh {
+                if let Some(cached) = state
+                    .indexers
+                    .get(&scope)
+                    .filter(|c| c.created.elapsed() < INDEXERS_TTL)
+                {
+                    return Ok(cached.value.clone());
+                }
+            }
+            let request_id = storage::new_id();
+            state
+                .indexers_pending
+                .insert(scope.clone(), request_id.clone());
+            request_id
+        };
+        url.query_pairs_mut()
+            .append_pair("t", "indexers")
+            .append_pair("configured", "true")
+            .append_pair("apikey", &source.api_key);
+        let Payload::Torrent(bytes) =
+            request(url, 2 * 1024 * 1024, false, cancel, deadline).await?
+        else {
+            return Err("torznab_invalid_xml");
+        };
+        let value = xml::indexers(&bytes)?;
+        if Instant::now() >= deadline {
+            return Err("torznab_timeout");
+        }
+        let mut state = lock(&self.0.state);
+        Self::current(&state, source, cancel)?;
+        // A slower earlier response must never undo a newer refresh, including
+        // when the newer request failed and its data therefore cannot be used.
+        if state.indexers_pending.get(&scope) != Some(&request_id) {
+            return Err("torznab_cancelled");
+        }
+        let membership: HashMap<String, String> = value
+            .indexers
+            .iter()
+            .map(|row| {
+                let generation = state
+                    .indexers
+                    .get(&scope)
+                    .and_then(|previous| previous.membership.get(&row.id))
+                    .cloned()
+                    .unwrap_or_else(storage::new_id);
+                (row.id.clone(), generation)
+            })
+            .collect();
+        // Retain an epoch only for continuous membership. Removing and re-adding
+        // an identical ID cannot revive a request that belonged to the old child.
+        let retained = |candidate: &Scope| {
+            candidate.source_id != source.id
+                || candidate.generation != source.generation
+                || candidate
+                    .indexer_id
+                    .as_ref()
+                    .is_none_or(|id| membership.get(id) == candidate.membership.as_ref())
+        };
+        state.caps.retain(|key, _| retained(key));
+        state.results.retain(|_, handle| retained(&handle.scope));
+        state.indexers_pending.remove(&scope);
+        state.indexers.insert(
+            scope,
+            CachedIndexers {
+                value: value.clone(),
+                membership,
+                created: Instant::now(),
+            },
+        );
+        Ok(value)
+    }
+    pub async fn indexers(&self, id: &str) -> Result<Value> {
+        let _permit = self.0.requests.try_acquire().map_err(|_| "torznab_busy")?;
+        let (source, cancel) = self.source(id)?;
+        let value = self
+            .load_indexers(&source, &cancel, Instant::now() + DEADLINE, true)
+            .await?;
+        Ok(json!({"schema":1,"sourceId":id,"supported":value.supported,"indexers":value.indexers}))
+    }
+    async fn scope(
+        &self,
+        source: &Config,
+        indexer_id: Option<&str>,
+        cancel: &CancellationToken,
+        deadline: Instant,
+    ) -> Result<Scope> {
+        if let Some(id) = indexer_id {
+            if !xml::indexer_id(id) {
+                return Err("torznab_invalid_indexer");
+            }
+            let children = self.load_indexers(source, cancel, deadline, false).await?;
+            if !children.supported {
+                return Err("torznab_indexers_unsupported");
+            }
+            if !children.indexers.iter().any(|row| row.id == id) {
+                return Err("torznab_indexer_missing");
+            }
+        }
+        let mut scope = Scope::new(source, indexer_id);
+        if let Some(id) = indexer_id {
+            let state = lock(&self.0.state);
+            Self::current(&state, source, cancel)?;
+            scope.membership = Some(
+                state
+                    .indexers
+                    .get(&Scope::new(source, None))
+                    .and_then(|cached| cached.membership.get(id))
+                    .cloned()
+                    .ok_or("torznab_indexer_missing")?,
+            );
+        }
+        Ok(scope)
+    }
     async fn load_caps(
         &self,
         source: &Config,
+        scope: &Scope,
         cancel: &CancellationToken,
         deadline: Instant,
     ) -> Result<xml::Caps> {
         {
             let state = lock(&self.0.state);
-            Self::current(&state, source, cancel)?;
-            if let Some(caps) = state.caps.get(&source.id) {
-                return Ok(caps.clone());
+            Self::current_scope(&state, source, scope, cancel)?;
+            if let Some(caps) = state.caps.get(scope) {
+                return Ok(caps.0.clone());
             }
         }
-        let mut url = endpoint_url(&source.endpoint)?;
+        let mut url = scoped_endpoint(source, scope.indexer_id.as_deref())?;
         url.query_pairs_mut()
             .append_pair("t", "caps")
             .append_pair("apikey", &source.api_key);
@@ -344,19 +569,33 @@ impl Torznab {
             return Err("torznab_timeout");
         }
         let mut state = lock(&self.0.state);
-        Self::current(&state, source, cancel)?;
-        state.caps.insert(source.id.clone(), caps.clone());
+        Self::current_scope(&state, source, scope, cancel)?;
+        if state.caps.len() >= CAPS_CACHE_LIMIT && !state.caps.contains_key(scope) {
+            if let Some(oldest) = state
+                .caps
+                .iter()
+                .min_by_key(|(_, (_, time))| *time)
+                .map(|(key, _)| key.clone())
+            {
+                state.caps.remove(&oldest);
+            }
+        }
+        state
+            .caps
+            .insert(scope.clone(), (caps.clone(), Instant::now()));
         Ok(caps)
     }
-    pub async fn caps(&self, id: &str) -> Result<Value> {
+    pub async fn caps(&self, id: &str, indexer_id: Option<&str>) -> Result<Value> {
         let _permit = self.0.requests.try_acquire().map_err(|_| "torznab_busy")?;
         let (source, cancel) = self.source(id)?;
-        let caps = self
-            .load_caps(&source, &cancel, Instant::now() + DEADLINE)
-            .await?;
-        Ok(
-            json!({"schema":1,"sourceId":id,"searchAvailable":caps.search_available,"categories":caps.categories,"maxLimit":caps.max_limit}),
-        )
+        let deadline = Instant::now() + DEADLINE;
+        let scope = self.scope(&source, indexer_id, &cancel, deadline).await?;
+        let caps = self.load_caps(&source, &scope, &cancel, deadline).await?;
+        let mut value = json!({"schema":1,"sourceId":id,"searchAvailable":caps.search_available,"categories":caps.categories,"maxLimit":caps.max_limit});
+        if let Some(id) = indexer_id {
+            value["indexerId"] = json!(id);
+        }
+        Ok(value)
     }
     pub async fn search(&self, search: Search) -> Result<Value> {
         self.search_before(search, Instant::now() + DEADLINE).await
@@ -376,7 +615,10 @@ impl Torznab {
         }
         let _permit = self.0.requests.try_acquire().map_err(|_| "torznab_busy")?;
         let (source, cancel) = self.source(&search.source_id)?;
-        let caps = self.load_caps(&source, &cancel, deadline).await?;
+        let scope = self
+            .scope(&source, search.indexer_id.as_deref(), &cancel, deadline)
+            .await?;
+        let caps = self.load_caps(&source, &scope, &cancel, deadline).await?;
         if !caps.search_available {
             return Err("torznab_search_unavailable");
         }
@@ -388,7 +630,9 @@ impl Torznab {
             return Err("torznab_invalid_category");
         }
         let limit = search.limit.min(caps.max_limit);
-        let mut url = endpoint_url(&source.endpoint)?;
+        let mut url = scoped_endpoint(&source, scope.indexer_id.as_deref())?;
+        let mut link_source = source.clone();
+        link_source.endpoint = url.to_string();
         url.query_pairs_mut()
             .append_pair("t", "search")
             .append_pair("apikey", &source.api_key)
@@ -420,21 +664,29 @@ impl Torznab {
             return Err("torznab_invalid_page");
         }
         let mut state = lock(&self.0.state);
-        Self::current(&state, &source, &cancel)?;
+        Self::current_scope(&state, &source, &scope, &cancel)?;
         state
             .results
             .retain(|_, handle| handle.created.elapsed() < RESULT_TTL);
-        page.items.retain(|item| {
+        page.items.retain_mut(|item| {
             if item.link.starts_with("magnet:") {
                 Payload::Magnet(item.link.clone()).validate().is_ok()
             } else {
-                link_url(&source, &item.link).is_ok()
+                match link_url(&link_source, &item.link) {
+                    Ok(url) => {
+                        item.link = url.to_string();
+                        true
+                    }
+                    Err(_) => false,
+                }
             }
         });
         for item in &mut page.items {
-            if let Some((id, _)) = state.results.iter().find(|(_, h)| {
-                h.source_id == source.id && h.generation == source.generation && h.link == item.link
-            }) {
+            if let Some((id, _)) = state
+                .results
+                .iter()
+                .find(|(_, h)| h.scope == scope && h.link == item.link)
+            {
                 item.result_ref = id.clone();
             } else {
                 if state.results.len() >= 512 {
@@ -451,8 +703,7 @@ impl Torznab {
                 state.results.insert(
                     id.clone(),
                     Handle {
-                        source_id: source.id.clone(),
-                        generation: source.generation.clone(),
+                        scope: scope.clone(),
                         link: item.link.clone(),
                         created: Instant::now(),
                     },
@@ -465,9 +716,11 @@ impl Torznab {
             && next <= 1_000_000
             && page.total.is_none_or(|total| next < total))
         .then_some(next);
-        Ok(
-            json!({"schema":1,"sourceId":source.id,"items":page.items,"nextOffset":next_offset,"total":page.total}),
-        )
+        let mut value = json!({"schema":1,"sourceId":source.id,"items":page.items,"nextOffset":next_offset,"total":page.total});
+        if let Some(id) = scope.indexer_id {
+            value["indexerId"] = json!(id);
+        }
+        Ok(value)
     }
     pub async fn prepare(&self, prepare: Prepare) -> Result<Value> {
         let deadline = Instant::now() + DEADLINE;
@@ -478,18 +731,18 @@ impl Torznab {
         let (source, cancel) = self.source(&prepare.source_id)?;
         let cancel = cancel.child_token();
         let _cancel_on_drop = cancel.clone().drop_guard();
-        let link = {
+        let (scope, link) = {
             let state = lock(&self.0.state);
             let handle = state
                 .results
                 .get(&prepare.result_ref)
                 .filter(|h| {
-                    h.source_id == source.id
-                        && h.generation == source.generation
+                    h.scope.source_id == source.id
+                        && h.scope.generation == source.generation
                         && h.created.elapsed() < RESULT_TTL
                 })
                 .ok_or("torznab_reference_missing")?;
-            handle.link.clone()
+            (handle.scope.clone(), handle.link.clone())
         };
         let payload = if link.starts_with("magnet:") {
             Payload::Magnet(link)
@@ -507,7 +760,7 @@ impl Torznab {
         let this = self.clone();
         tokio::task::spawn_blocking(move || {
             let mut state = lock(&this.0.state);
-            Self::current(&state, &source, &cancel)?;
+            Self::current_scope(&state, &source, &scope, &cancel)?;
             if Instant::now() >= deadline {
                 return Err("torznab_timeout");
             }
@@ -559,5 +812,80 @@ impl Torznab {
         })
         .await
         .map_err(|_| "torznab_store_unavailable")?
+    }
+}
+
+#[cfg(test)]
+mod scope_url_tests {
+    use super::*;
+
+    fn config(endpoint: &str) -> Config {
+        Config {
+            id: "home".into(),
+            label: "Home".into(),
+            endpoint: endpoint.into(),
+            api_key: "fixture-only".into(),
+            generation: "a".repeat(32),
+        }
+    }
+    #[test]
+    fn exact_child_path_preserves_https_prefix_case_and_suffix() {
+        for suffix in ["", "/", "/api", "/api/"] {
+            let source = config(&format!("https://jackett.example/home%20proxy/api/v2.0/indexers/all/results/torznab{suffix}"));
+            assert_eq!(scoped_endpoint(&source, Some("Bittorrentfiles")).unwrap().as_str(),
+                format!("https://jackett.example/home%20proxy/api/v2.0/indexers/Bittorrentfiles/results/torznab{suffix}"));
+            assert_eq!(
+                scoped_endpoint(&source, None).unwrap().as_str(),
+                source.endpoint
+            );
+        }
+    }
+    #[test]
+    fn invalid_children_never_expand_or_fall_back_to_aggregate() {
+        let source =
+            config("https://jackett.example/prefix/api/v2.0/indexers/all/results/torznab/api");
+        for id in [
+            "", "all", "ALL", "All", "tag:fast", "../child", "a/b", "a%2fb", " child", "a?key=1",
+            "a#x", "a\\b",
+        ] {
+            assert_eq!(
+                scoped_endpoint(&source, Some(id)).unwrap_err(),
+                "torznab_invalid_indexer"
+            );
+        }
+        for endpoint in [
+            "https://jackett.example/api",
+            "https://jackett.example/api/v2.0/indexers/tag:fast/results/torznab/api",
+            "https://jackett.example/api/v2.0/indexers/one/results/torznab/api",
+        ] {
+            assert_eq!(
+                scoped_endpoint(&config(endpoint), Some("one")).unwrap_err(),
+                "torznab_indexers_unsupported"
+            );
+        }
+    }
+    #[test]
+    fn child_download_links_resolve_against_child_and_do_not_downgrade_https() {
+        let mut source =
+            config("https://jackett.example/prefix/api/v2.0/indexers/all/results/torznab/api");
+        source.endpoint = scoped_endpoint(&source, Some("ChildA"))
+            .unwrap()
+            .to_string();
+        assert_eq!(link_url(&source, "download?t=one").unwrap().as_str(), "https://jackett.example/prefix/api/v2.0/indexers/ChildA/results/torznab/download?t=one");
+        assert_eq!(
+            link_url(&source, "/prefix/dl/ChildA?t=one")
+                .unwrap()
+                .as_str(),
+            "https://jackett.example/prefix/dl/ChildA?t=one"
+        );
+        for link in [
+            "http://jackett.example/prefix/dl/ChildA",
+            "https://other.example/file",
+            "//other.example/file",
+            "https://user:pass@jackett.example/file",
+            "download#fragment",
+        ] {
+            assert_eq!(link_url(&source, link).unwrap_err(), "torznab_invalid_link");
+        }
     }
 }
