@@ -95,6 +95,25 @@ test("all live provider ids may use channel locator", () => {
             )
         );
 });
+for (const provider of ["plex", "local", "vportal"]) {
+    for (const locator of [
+        { channelId: "m3u-epg:news", kind: "channel" },
+        { group: "News", kind: "channel-name", name: "News" },
+    ]) {
+        test(
+            "reserved provider rejects " + provider + "/" + locator.kind,
+            () => {
+                assert.equal(
+                    codec.document({
+                        entries: [row(provider, locator)],
+                        version: 1,
+                    }),
+                    null
+                );
+            }
+        );
+    }
+}
 test("VPortal only provider ID field, not cmd/request/title occurrence", () => {
     assert(
         codec.normalize(

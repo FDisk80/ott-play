@@ -2,8 +2,10 @@
 """Verify a downloaded native webOS release bundle without building or installing.
 
 This checks the consistency of bytes and recorded evidence, not the authenticity
-of the publisher, an independent rebuild, or playback on a television. Nothing
-from a source archive is extracted or executed.
+of the publisher, an independent rebuild, or playback on a television. Nested
+archives may be spooled to bounded anonymous temporary files. Archive member
+names never become filesystem output paths, and archive-supplied code is never
+executed.
 """
 
 from __future__ import annotations
@@ -15,11 +17,18 @@ import importlib.util
 import io
 import ipaddress
 import json
+import lzma
+import posixpath
 import re
 import sys
 import tarfile
+import tempfile
+import zlib
+from contextlib import ExitStack
 from pathlib import Path, PurePosixPath
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qsl, unquote, urlsplit
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_SPEC = importlib.util.spec_from_file_location("native_webos_build", ROOT / "native/webos/build.py")
@@ -32,6 +41,8 @@ ARCHIVE_LIMIT = 2 * 1024 * 1024 * 1024
 EXPANDED_LIMIT = 8 * 1024 * 1024 * 1024
 MEMBER_LIMIT = 2 * 1024 * 1024 * 1024
 FILE_COUNT_LIMIT = 100_000
+XZ_MEMORY_LIMIT = 256 * 1024 * 1024
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 APP_ID = "com.openottplay.player.native"
 PRIVATE_NAMES = {
     "ottplay-profile.json",
@@ -89,6 +100,17 @@ def name(value):
     return value
 
 
+def cargo_vendor_directory(value):
+    # Cargo's versioned vendor names retain SemVer build metadata (for example
+    # ndk-sys-0.6.0+11769913). This is one archive directory component, not an
+    # external artifact filename; keep the latter's stricter name() policy.
+    require(
+        isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", value) and value not in {".", ".."},
+        "Cargo vendor directory must be a single safe component",
+    )
+    return value
+
+
 def member_name(value):
     require(isinstance(value, str) and value and "\\" not in value and "\x00" not in value, "Unsafe archive member")
     path = PurePosixPath(value)
@@ -141,16 +163,78 @@ class BoundedTarInfo(tarfile.TarInfo):
         return super()._proc_member(archive)
 
 
-def index_archive(source, captures=(), *, total_limit=EXPANDED_LIMIT, regular_only=True):
+def png_container(data):
+    """Check a bounded PNG container and CRCs, not decompressed pixel content."""
+    if len(data) > JSON_LIMIT or not data.startswith(PNG_SIGNATURE):
+        return False
+    view = memoryview(data)
+    offset, colour, depth, palette = 8, None, None, False
+    image_bytes, image_started, image_end = 0, False, False
+    while offset < len(data):
+        if len(data) - offset < 12:
+            return False
+        size = int.from_bytes(view[offset : offset + 4], "big")
+        end = offset + 12 + size
+        if end > len(data):
+            return False
+        kind = data[offset + 4 : offset + 8]
+        if not re.fullmatch(b"[A-Za-z]{2}[A-Z][A-Za-z]", kind):
+            return False
+        expected = int.from_bytes(view[end - 4 : end], "big")
+        if zlib.crc32(view[offset + 4 : end - 4]) != expected:
+            return False
+        body = view[offset + 8 : end - 4]
+        if offset == 8:
+            if kind != b"IHDR" or size != 13:
+                return False
+            width, height = int.from_bytes(body[:4], "big"), int.from_bytes(body[4:8], "big")
+            depth, colour, compression, filtering, interlace = body[8:13]
+            depths = {0: (1, 2, 4, 8, 16), 2: (8, 16), 3: (1, 2, 4, 8), 4: (8, 16), 6: (8, 16)}
+            if (
+                not 0 < width <= 16384
+                or not 0 < height <= 16384
+                or depth not in depths.get(colour, ())
+                or compression != 0
+                or filtering != 0
+                or interlace not in (0, 1)
+            ):
+                return False
+        elif kind == b"IHDR":
+            return False
+        elif kind == b"PLTE":
+            if palette or image_started or colour in (0, 4) or not 0 < size <= 768 or size % 3:
+                return False
+            if colour == 3 and size // 3 > 1 << depth:
+                return False
+            palette = True
+        elif kind == b"IDAT":
+            if image_end or (colour == 3 and not palette):
+                return False
+            image_started = True
+            image_bytes += size
+        elif kind == b"IEND":
+            return size == 0 and image_bytes > 0 and end == len(data)
+        elif kind[0] < ord("a"):
+            # An unknown critical chunk cannot be safely interpreted as PNG.
+            return False
+        if kind != b"IDAT" and image_started:
+            image_end = True
+        offset = end
+    return False
+
+
+def index_archive(source, captures=(), *, total_limit=EXPANDED_LIMIT, regular_only=True, spools=None, compression="gz"):
     """Index a tar in bounded memory, hashing each member as it is consumed."""
     rows, content, total, captured = {}, {}, 0, 0
-    kwargs = {"fileobj": source} if hasattr(source, "read") else {"filename": source}
-    # tarfile's streaming gzip reader does not validate CRC/ISIZE. Let gzip
-    # validate the complete compressed stream, including after the tar EOF.
-    with (
-        gzip.GzipFile(mode="rb", **kwargs) as decoded,
-        tarfile.open(fileobj=decoded, mode="r|", tarinfo=BoundedTarInfo) as archive,
-    ):
+    kwargs = {"fileobj": source} if hasattr(source, "read") else {"name": source}
+    with ExitStack() as stack:
+        if compression == "gz":
+            # The tar streaming decoder does not validate CRC/ISIZE. Keep
+            # gzip responsible for the complete stream, including its trailer.
+            gzip_kwargs = {"fileobj": source} if hasattr(source, "read") else {"filename": source}
+            decoded = stack.enter_context(gzip.GzipFile(mode="rb", **gzip_kwargs))
+            kwargs, compression = {"fileobj": decoded}, ""
+        archive = stack.enter_context(tarfile.open(mode="r|" + compression, tarinfo=BoundedTarInfo, **kwargs))
         for item in archive:
             key = member_name(item.name)
             require(key not in rows, "Duplicate archive member: " + key)
@@ -167,7 +251,10 @@ def index_archive(source, captures=(), *, total_limit=EXPANDED_LIMIT, regular_on
             captured += item.size if keep else 0
             require(captured <= JSON_LIMIT * 4, "Captured archive content exceeds size limit")
             h, h512, prefix, parts, count = hashlib.sha256(), hashlib.sha512(), b"", [], 0
+            collect_png = False
+            png_data = None
             stream = archive.extractfile(item)
+            sink = (spools or {}).get(key)
             while block := stream.read(1024 * 1024):
                 count += len(block)
                 require(count <= item.size, "Archive member size mismatch")
@@ -175,9 +262,21 @@ def index_archive(source, captures=(), *, total_limit=EXPANDED_LIMIT, regular_on
                 h512.update(block)
                 if len(prefix) < 52:
                     prefix += block[: 52 - len(prefix)]
+                    # Source members can be gigabytes. Only small PNG candidates
+                    # need a complete container; all others remain streamed.
+                    collect_png = item.size <= JSON_LIMIT and prefix.startswith(PNG_SIGNATURE)
+                    if collect_png and not keep:
+                        png_data = bytearray(item.size)
                 if keep:
                     parts.append(block)
+                elif collect_png:
+                    png_data[count - len(block) : count] = block
+                if sink is not None:
+                    sink.write(block)
             require(count == item.size, "Truncated archive member")
+            # PNG-only inspection uses one fixed-size buffer, without retaining
+            # blocks and allocating another full image when joining them.
+            data = b"".join(parts) if keep else png_data
             rows[key] = {
                 "sha256": h.hexdigest(),
                 "sha512": h512.hexdigest(),
@@ -185,16 +284,12 @@ def index_archive(source, captures=(), *, total_limit=EXPANDED_LIMIT, regular_on
                 "bytes": item.size,
                 "elf": prefix.startswith(b"\x7fELF"),
                 "arm": build.elf_arm(prefix),
-                "png": prefix.startswith(b"\x89PNG\r\n\x1a\n")
-                and prefix[12:16] == b"IHDR"
-                and len(prefix) >= 24
-                and 0 < int.from_bytes(prefix[16:20], "big") <= 16384
-                and 0 < int.from_bytes(prefix[20:24], "big") <= 16384,
+                "png": collect_png and png_container(data),
             }
             if keep:
-                content[key] = b"".join(parts)
-        # Drain through the tar reader so already-buffered bytes are checked
-        # too. Only bounded zero record padding may follow the tar end marker.
+                content[key] = data
+        # Read through the tar stream so its buffered bytes cannot hide data
+        # after the end marker. Only one bounded zero padding record is valid.
         padding = 0
         while trailer := archive.fileobj.read(tarfile.RECORDSIZE):
             padding += len(trailer)
@@ -223,7 +318,9 @@ def check_package(ipk, metadata):
     regular(ipk, IPK_LIMIT)
     members = build.ar_members(ipk.read_bytes())
     prefix = "usr/palm/applications/" + APP_ID + "/"
-    captures = {prefix + "appinfo.json"}
+    captures = {prefix + "appinfo.json"} | {
+        prefix + "companion/" + name for name in ("manifest.json", "receipt.json", "source.json")
+    }
     rows, content = index_archive(
         io.BytesIO(members["data.tar.gz"]), captures, total_limit=512 * 1024 * 1024, regular_only=False
     )
@@ -238,11 +335,15 @@ def check_package(ipk, metadata):
     verified = build.verify_ipk(ipk, spec)
     for key in ("application", "size", "sha256", "architecture", "type", "rootRequired", "payload_bytes"):
         require(verified[key] == metadata.get(key), "Package metadata mismatch: " + key)
+    require(
+        verified.get("companion") == metadata.get("companion") == metadata["build"].get("companion"),
+        "Companion package/build metadata mismatch",
+    )
     descriptor = decode(content[prefix + "appinfo.json"])
     for key in ("icon", "largeIcon", "splashBackground"):
         asset = prefix + member_name(descriptor.get(key))
         require(asset in rows and rows[asset].get("png"), "Packaged PNG artwork missing or invalid: " + key)
-    return rows, descriptor
+    return rows, descriptor, content
 
 
 def check_primary(path, metadata, receipt, package_rows, descriptor):
@@ -346,9 +447,538 @@ def check_primary(path, metadata, receipt, package_rows, descriptor):
     return upstream
 
 
-def check_runtime(path, metadata, source_set, primary, package_rows, upstream):
-    captures = {"RUNTIME-SOURCE-MANIFEST.json", "tools/webos-runtime-sources.json"}
-    rows, content = index_archive(path, captures)
+def companion_canonical(value):
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+
+
+def nested_index(archive, captures=(), **kwargs):
+    archive.seek(0)
+    return index_archive(archive, captures, **kwargs)
+
+
+def check_companion_local(archive, source, spec, manifest, packaged, package_rows):
+    captures = {"source-receipt.json", "source/Cargo.lock", "source/native/webos/companion/manifest.json"}
+    rows, content = nested_index(archive, captures)
+    check_private_paths(rows, source=True)
+    inventory = source["local_inputs"]
+    require(
+        hashlib.sha256(companion_canonical(inventory)).hexdigest()
+        == packaged["local_inputs_sha256"]
+        == source["local_inputs_sha256"],
+        "Companion local inventory digest mismatch",
+    )
+    expected = {"source/" + member_name(row["path"]): row for row in inventory}
+    require(
+        len(expected) == len(inventory) and set(rows) == set(expected) | {"source-receipt.json"},
+        "Companion local source inventory mismatch",
+    )
+    require(decode(content["source-receipt.json"]) == source, "Companion embedded source receipt mismatch")
+    recorded_file(rows, "source-receipt.json", packaged["source_receipt_sha256"])
+    for path, row in expected.items():
+        recorded_file(rows, path, row["sha256"])
+        require(
+            rows[path]["mode"] == row["mode"] and rows[path]["bytes"] == row["bytes"],
+            "Companion local source size/mode mismatch",
+        )
+    policy_path = "source/native/webos/companion/manifest.json"
+    require(decode(content[policy_path]) == spec, "Companion archived build policy mismatch")
+    recorded_file(rows, policy_path, packaged["manifest_sha256"])
+    for path in spec["required_source_files"]:
+        require("source/" + member_name(path) in rows, "Companion required local source is missing")
+    for path in spec["notice_files"]:
+        source_path = "source/" + member_name(path)
+        package_path = "usr/palm/applications/" + APP_ID + "/companion/licenses/" + member_name(path)
+        require(package_path in package_rows, "Companion packaged license notice missing")
+        recorded_file(rows, source_path, package_rows[package_path]["sha256"])
+    recorded_file(rows, "source/Cargo.lock", manifest["cargo_lock_sha256"])
+    lock = tomllib.loads(content["source/Cargo.lock"].decode())
+    packages = [
+        {key: item[key] for key in ("name", "version", "source", "checksum") if key in item}
+        for item in lock["package"]
+        if "source" in item
+    ]
+    require(packages == source["cargo_lock_dependencies"], "Companion Cargo.lock dependency receipt mismatch")
+    require(
+        len({(row["name"], row["version"], row["source"]) for row in packages}) == len(packages),
+        "Duplicate locked companion dependency",
+    )
+    for package in packages:
+        origin = package["source"]
+        if origin.startswith(("registry+", "sparse+")):
+            checksum(package.get("checksum"))
+        else:
+            require(
+                origin.startswith("git+") and re.search(r"#[0-9a-f]{40}$", origin),
+                "Companion dependency lacks a durable source identity",
+            )
+    return packages
+
+
+def check_companion_vendor(archive, packages, components):
+    rows, content = nested_index(archive, lambda path: path.endswith(("/Cargo.toml", "/.cargo-checksum.json")))
+    check_private_paths(rows, source=True)
+    require(
+        all(path.startswith("cargo-vendor/") and len(PurePosixPath(path).parts) >= 3 for path in rows),
+        "Companion vendor archive path mismatch",
+    )
+    directories = {PurePosixPath(path).parts[1] for path in rows}
+    require(
+        len(components) == len(packages) == len(directories)
+        and {row["directory"] for row in components} == directories,
+        "Companion vendor/lock component set mismatch",
+    )
+    remaining = list(packages)
+    for component in components:
+        prefix = "cargo-vendor/" + cargo_vendor_directory(component["directory"]) + "/"
+        checksum_path = prefix + ".cargo-checksum.json"
+        recorded_file(rows, checksum_path, component["checksum_manifest_sha256"])
+        cargo = tomllib.loads(content[prefix + "Cargo.toml"].decode())["package"]
+        sums = decode(content[checksum_path])
+        candidates = [
+            row
+            for row in remaining
+            if row["name"] == cargo["name"]
+            and row["version"] == cargo["version"]
+            and row.get("checksum") == sums["package"]
+        ]
+        require(len(candidates) == 1, "Companion vendored package differs from Cargo.lock")
+        package = candidates[0]
+        require(
+            all(component.get(key) == package.get(key) for key in ("name", "version", "source", "checksum"))
+            and component["files"] == len(sums["files"]),
+            "Companion vendor component identity mismatch",
+        )
+        remaining.remove(package)
+        expected = {prefix + member_name(path) for path in sums["files"]} | {checksum_path}
+        require({path for path in rows if path.startswith(prefix)} == expected, "Companion vendor file set mismatch")
+        for path, digest in sums["files"].items():
+            recorded_file(rows, prefix + member_name(path), digest)
+    require(not remaining, "Companion locked dependencies are missing")
+
+
+def cargo_registry_identity(url):
+    # Cargo treats both built-in index protocols as crates.io. Other sparse
+    # registries retain their prefix in both Cargo.lock and vendor output.
+    if url in {"https://github.com/rust-lang/crates.io-index", "sparse+https://index.crates.io/"}:
+        return ("registry", "crates-io")
+    return ("registry", url)
+
+
+def cargo_locked_identity(origin):
+    if origin.startswith("registry+"):
+        return cargo_registry_identity(origin.removeprefix("registry+"))
+    if origin.startswith("sparse+"):
+        return cargo_registry_identity(origin)
+    require(origin.startswith("git+"), "Companion Cargo source kind is unsupported")
+    url = urlsplit(origin.removeprefix("git+"))
+    reference = parse_qsl(url.query, keep_blank_values=True)
+    require(
+        len(reference) <= 1 and all(key in {"branch", "tag", "rev"} and value for key, value in reference),
+        "Companion Cargo Git reference is ambiguous",
+    )
+    return ("git", url._replace(query="", fragment="").geturl(), tuple(reference))
+
+
+def check_companion_cargo_config(config, packages):
+    """Follow every locked origin to the exported directory, without Cargo or network access."""
+    sources = config.get("source", {})
+    require(isinstance(sources, dict) and sources, "Companion Cargo source mappings missing")
+    identities = {}
+    directories = []
+    for alias, item in sources.items():
+        require(isinstance(item, dict), "Companion Cargo source must be a table")
+        kinds = [key for key in ("registry", "git", "directory", "local-registry") if key in item]
+        require(
+            len(kinds) == 1 or (not kinds and alias == "crates-io"),
+            "Companion Cargo source kind is missing or ambiguous",
+        )
+        require(
+            all(isinstance(value, str) and value for value in item.values()),
+            "Companion Cargo source values must be nonempty strings",
+        )
+        references = tuple((key, item[key]) for key in ("branch", "tag", "rev") if key in item)
+        require(
+            len(references) <= 1 and (not references or "git" in item),
+            "Companion Cargo Git reference is ambiguous",
+        )
+        identity = None
+        if not kinds:
+            identity = ("registry", "crates-io")
+        elif "registry" in item:
+            identity = cargo_registry_identity(item["registry"])
+        elif "git" in item:
+            url = urlsplit(item["git"])
+            require(not url.query and not url.fragment, "Companion Cargo Git URL contains an embedded reference")
+            identity = ("git", url.geturl(), references)
+        elif "directory" in item:
+            directories.append(item["directory"])
+        if alias == "crates-io":
+            require(identity == ("registry", "crates-io"), "Companion Cargo crates.io source identity mismatch")
+        if identity is not None:
+            require(identity not in identities, "Companion Cargo source identity is ambiguous")
+            identities[identity] = alias
+    require(
+        directories and all(path == "cargo-vendor" for path in directories),
+        "Companion Cargo source replacement path mismatch",
+    )
+    for origin in {package["source"] for package in packages}:
+        identity = cargo_locked_identity(origin)
+        require(identity in identities, "Companion Cargo locked source mapping missing")
+        alias = identities[identity]
+        visited = set()
+        while True:
+            require(alias not in visited, "Companion Cargo source replacement cycle")
+            require(alias in sources, "Companion Cargo source replacement target missing")
+            visited.add(alias)
+            item = sources[alias]
+            if "replace-with" not in item:
+                require(
+                    item.get("directory") == "cargo-vendor",
+                    "Companion Cargo source replacement does not end at cargo-vendor",
+                )
+                break
+            alias = item["replace-with"]
+
+
+def xz_source_index(archive):
+    """Limit both LZMA dictionary allocation and output before opening its tar."""
+    archive.seek(0)
+    decoder = lzma.LZMADecompressor(memlimit=XZ_MEMORY_LIMIT)
+    total = 0
+    with tempfile.TemporaryFile() as decoded:
+        while not decoder.eof:
+            block = archive.read(64 * 1024) if decoder.needs_input else b""
+            require(block or not decoder.needs_input, "Truncated companion Rust source archive")
+            output = decoder.decompress(block, max_length=1024 * 1024)
+            total += len(output)
+            require(total <= EXPANDED_LIMIT, "Expanded companion Rust source exceeds size limit")
+            decoded.write(output)
+        require(not decoder.unused_data and not archive.read(1), "Unexpected trailing Rust source archive data")
+        return nested_index(decoded, regular_only=False, compression="")
+
+
+def check_companion_rust(spools, rows, rust, spec, receipt):
+    toolchain = spec["rust_toolchain"]
+    require(
+        re.fullmatch(r"\d+\.\d+\.\d+", toolchain) and rust["toolchain"] == toolchain,
+        "Companion Rust toolchain mismatch",
+    )
+    pinned_commit = spec.get("rust_commit", "")
+    require(re.fullmatch(r"[0-9a-f]{40}", pinned_commit), "Companion Rust policy requires a full commit pin")
+    commits = re.findall(r"^commit-hash: (.*)$", receipt["rustc"], re.MULTILINE)
+    require(
+        commits == [pinned_commit] and rust["commit"] == pinned_commit and rust["source_archive_hash_verified"] is True,
+        "Companion Rust compiler/source commit mismatch",
+    )
+    require(
+        receipt["rustc"].startswith("rustc " + toolchain + " ")
+        and re.findall(r"^release: (.*)$", receipt["rustc"], re.MULTILINE) == [toolchain],
+        "Companion Rust compiler version mismatch",
+    )
+    notices, content = nested_index(spools["rust-notices.tar.gz"], {"channel-manifest.toml"})
+    check_private_paths(notices, source=True)
+    recorded_file(notices, "channel-manifest.toml", rust["channel_manifest_sha256"])
+    require(
+        {"COPYRIGHT.html", "COPYRIGHT-library.html"} <= notices.keys()
+        and any(path.startswith("licenses/") for path in notices),
+        "Companion Rust license notices missing",
+    )
+    channel = tomllib.loads(content["channel-manifest.toml"].decode())
+    for package in ("rustc", "rust-src", "rust-std"):
+        require(
+            channel["pkg"][package]["version"].startswith(toolchain + " (" + pinned_commit[:9] + " "),
+            "Companion Rust channel/source identity mismatch",
+        )
+    pinned = channel["pkg"]["rust-src"]["target"]["*"]
+    candidates = [path for path in rows if path.startswith("rust-src-")]
+    require(
+        len(candidates) == 1
+        and candidates[0] in {"rust-src-" + toolchain + extension for extension in (".tar.gz", ".tar.xz")},
+        "Companion Rust source component missing or ambiguous",
+    )
+    path = candidates[0]
+    recorded_file(rows, path, rust["archive_sha256"])
+    require(
+        rust["archive_sha256"] in (pinned.get("hash"), pinned.get("xz_hash")),
+        "Companion Rust source differs from pinned channel checksum",
+    )
+    archive_rows, _ = (
+        xz_source_index(spools[path]) if path.endswith(".xz") else nested_index(spools[path], regular_only=False)
+    )
+    check_private_paths(archive_rows, source=True)
+    library = "rust-src-" + toolchain + "/rust-src/lib/rustlib/src/rust/library/"
+    for path in ("Cargo.lock", "Cargo.toml", "core/src/lib.rs", "alloc/src/lib.rs", "std/src/lib.rs"):
+        row = archive_rows.get(library + path, {})
+        require(
+            not row.get("directory") and row.get("bytes", 0) > 0,
+            "Companion Rust library source missing or empty: " + path,
+        )
+
+
+def check_companion_compilers(linkage, evidence, receipt, attestation):
+    compilers = attestation.get("companion_compiler")
+    require(
+        isinstance(compilers, dict)
+        and set(compilers) == {"compiler", "backend", "archive_match"}
+        and compilers["archive_match"] == "PASS",
+        "Companion compiler SDK archive attestation missing or incomplete",
+    )
+    paths = set()
+    for descriptor, key, executable in (
+        ("compiler", "compiler_sha256", "gcc"),
+        ("backend", "compiler_backend_sha256", "gcc_backend"),
+    ):
+        item = compilers[descriptor]
+        require(
+            isinstance(item, dict) and set(item) == {"sdk_path", "sha256"},
+            "Companion compiler SDK descriptor mismatch",
+        )
+        path = member_name(item["sdk_path"])
+        require(
+            path == item["sdk_path"] and path != "." and path not in paths,
+            "Companion compiler SDK paths must be canonical, distinct files",
+        )
+        paths.add(path)
+        checksum(item["sha256"])
+        require(
+            item["sha256"] == linkage.get(key) == evidence.get(key) == receipt["sdk"]["executables"].get(executable),
+            "Companion compiler SDK/link evidence mismatch: " + descriptor,
+        )
+
+
+def check_companion_link_inventory(evidence, link_streams, attestation):
+    # Reuse the collector's pure name parser; do not resolve public build paths
+    # against this machine or rehash somebody else's build directory.
+    loader = importlib.util.spec_from_file_location("native_runtime_sources", ROOT / "scripts/webos-runtime-sources.py")
+    runtime_sources = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(runtime_sources)
+
+    def lines(stream):
+        stream.seek(0)
+        while line := stream.readline(1024 * 1024):
+            require(len(line) < 1024 * 1024 or line.endswith(b"\n"), "Companion linker line exceeds size limit")
+            yield line
+
+    roots = {
+        "build_root": "/build/ottplay-companion",
+        "build_target": "/build/companion-target",
+        "rust_sysroot": "/build/companion-rust",
+    }
+    require(
+        all(evidence.get(key) == value for key, value in roots.items())
+        and evidence.get("archive_inputs_capture") == "during-final-link",
+        "Companion link-time archive inventory roots/capture mismatch",
+    )
+    allowed = {PurePosixPath(path) for path in (*roots.values(), "/build/ottplay-native", "/build/webos-sdk")}
+    inventory = evidence.get("archive_inputs")
+    require(
+        isinstance(inventory, list) and 0 < len(inventory) <= FILE_COUNT_LIMIT,
+        "Companion link-time archive inventory missing",
+    )
+    declared = set()
+    for row in inventory:
+        require(
+            isinstance(row, dict) and set(row) == {"path", "sha256", "bytes", "observed_at_link", "validation"},
+            "Companion archive input fields mismatch",
+        )
+        path = PurePosixPath(row["path"])
+        require(
+            path.is_absolute()
+            and ".." not in path.parts
+            and "\\" not in row["path"]
+            and path.as_posix() == row["path"]
+            and any(path.is_relative_to(root) for root in allowed)
+            and row["path"] not in declared
+            and row["observed_at_link"] is True
+            and type(row["bytes"]) is int
+            and row["bytes"] > 0,
+            "Companion archive input identity/scope mismatch",
+        )
+        checksum(row["sha256"])
+        declared.add(row["path"])
+        target = PurePosixPath(roots["build_target"])
+        relative = path.relative_to(target).as_posix() if path.is_relative_to(target) else ""
+        ephemeral = path.suffix == ".rlib" and re.search(r"(?:^|/)deps/rustc[^/]+/", relative) is not None
+        require(
+            row["validation"] == ("link_time_only_ephemeral" if ephemeral else "link_time_and_current"),
+            "Companion archive validation scope mismatch",
+        )
+        if path.is_relative_to(PurePosixPath("/build/webos-sdk")):
+            sdk_path = path.relative_to(PurePosixPath("/build/webos-sdk")).as_posix()
+            require(
+                attestation["runtime_files_sha256"].get(sdk_path) == row["sha256"],
+                "Companion SDK archive digest mismatch",
+            )
+    names = runtime_sources.observed_archive_names(lines(link_streams[0]), lines(link_streams[1]))
+    observed = {posixpath.normpath(posixpath.join(roots["build_root"], path)) for path in names}
+    require(observed == declared, "Companion archive inventory differs from published linker inputs")
+
+
+def check_companion(archive, rows, content, metadata, runtime, package_rows, package_content, link_streams):
+    companion = metadata.get("companion")
+    optional_paths = {path for path in rows if path.startswith("companion/")}
+    if companion is None:
+        require(
+            "companion" not in runtime and not optional_paths, "Unexpected companion source without packaged helper"
+        )
+        return
+    require(
+        optional_paths
+        == {"companion/companion-source.tar.gz", "companion/source-closure.json", "companion/SOURCE-MANIFEST.json"},
+        "Companion runtime source set is incomplete",
+    )
+    binding = runtime["companion"]
+    closure = decode(content["companion/source-closure.json"])
+    manifest_bytes = content["companion/SOURCE-MANIFEST.json"]
+    manifest = decode(manifest_bytes)
+    archive_row = rows["companion/companion-source.tar.gz"]
+    require(
+        binding["packaged"] == companion
+        and binding["source_closure"] == closure
+        and binding["sdk_runtime_source_coverage"] == "PASS"
+        and binding["archive"]
+        == {"file": "companion/companion-source.tar.gz", "sha256": archive_row["sha256"], "bytes": archive_row["bytes"]}
+        and closure["source_archive"]
+        == {"file": "companion-source.tar.gz", "sha256": archive_row["sha256"], "bytes": archive_row["bytes"]},
+        "Companion runtime archive binding mismatch",
+    )
+    recorded_file(rows, "companion/SOURCE-MANIFEST.json", closure["source_manifest_sha256"])
+    for value in (closure, manifest):
+        require(
+            value["schema"] == 1
+            and value["complete_corresponding_source"] is False
+            and value["sdk_runtime_source_coverage"] == "PENDING_ENCLOSING_RELEASE"
+            and value["rebuild_validation"] == "NOT_RUN",
+            "Companion source coverage is missing or overclaimed",
+        )
+    require(
+        closure["locked_source_coverage"] == "PASS" and manifest["bit_identical_rebuild"] == "NOT_PROVEN",
+        "Companion locked source or rebuild status mismatch",
+    )
+    for key in (
+        "cargo_lock_sha256",
+        "dependency_count",
+        "rust",
+        "sdk_linkage",
+        "sdk_archive_sha256",
+        "local_inputs_sha256",
+    ):
+        require(closure[key] == manifest[key], "Companion closure/manifest mismatch: " + key)
+    for key in ("elf_sha256", "source_receipt_sha256", "local_source_archive_sha256", "local_inputs_sha256"):
+        require(closure[key] == companion[key], "Companion closure/package mismatch: " + key)
+    prefix = "usr/palm/applications/" + APP_ID + "/companion/"
+    spec = decode(package_content[prefix + "manifest.json"])
+    receipt = decode(package_content[prefix + "receipt.json"])
+    with ExitStack() as stack:
+        toolchain = manifest["rust"]["toolchain"]
+        require(
+            isinstance(toolchain, str) and re.fullmatch(r"\d+\.\d+\.\d+", toolchain), "Invalid companion Rust version"
+        )
+        spool_names = {"local-source.tar.gz", "cargo-vendor.tar.gz", "rust-notices.tar.gz"}
+        spool_names |= {"rust-src-" + toolchain + ext for ext in (".tar.gz", ".tar.xz")}
+        spools = {path: stack.enter_context(tempfile.TemporaryFile()) for path in spool_names}
+        captures = {
+            "SOURCE-MANIFEST.json",
+            "build-receipt.json",
+            "source-receipt.json",
+            "cargo-components.json",
+            "cargo-config.toml",
+        }
+        inner, data = nested_index(archive, captures, spools=spools)
+        check_private_paths(inner, source=True)
+        require(
+            {
+                path: {key: row[key] for key in ("sha256", "bytes")}
+                for path, row in inner.items()
+                if path != "SOURCE-MANIFEST.json"
+            }
+            == manifest["files"]
+            and data["SOURCE-MANIFEST.json"] == manifest_bytes,
+            "Companion source manifest file set/hash mismatch",
+        )
+        require(
+            data["build-receipt.json"] == package_content[prefix + "receipt.json"],
+            "Companion source/build receipt mismatch",
+        )
+        for path, key in (
+            ("build-receipt.json", "receipt_sha256"),
+            ("source-receipt.json", "source_receipt_sha256"),
+            ("local-source.tar.gz", "local_source_archive_sha256"),
+        ):
+            recorded_file(inner, path, companion[key])
+        source = decode(data["source-receipt.json"])
+        require(
+            source["schema"] == 1
+            and source["complete_corresponding_source"] is False
+            and source["release_source_requirements"] == spec["release_source_requirements"]
+            and source["dependency_scope"] == manifest["dependency_scope"],
+            "Companion local source declaration mismatch",
+        )
+        require(
+            manifest["package"] == receipt["package"] == spec["package"] == "ottplay-companion"
+            and manifest["target"] == receipt["target"] == spec["target"] == build.TARGET
+            and manifest["features"] == receipt["features"] == spec["features"]
+            and receipt["device_executed"] is False
+            and receipt["elf"]["device_executed"] is False,
+            "Companion identity or device claim mismatch",
+        )
+        packages = check_companion_local(spools["local-source.tar.gz"], source, spec, manifest, companion, package_rows)
+        components = decode(data["cargo-components.json"])
+        require(len(components) == manifest["dependency_count"], "Companion dependency count mismatch")
+        check_companion_vendor(spools["cargo-vendor.tar.gz"], packages, components)
+        config = tomllib.loads(data["cargo-config.toml"].decode())
+        check_companion_cargo_config(config, packages)
+        check_companion_rust(spools, inner, manifest["rust"], spec, receipt)
+    linkage = closure["sdk_linkage"]
+    evidence = runtime["shipped_elfs"]["ottplay-companion"]
+    require(
+        linkage["trace_available"] is True
+        and linkage["elf_sha256"] == companion["elf_sha256"]
+        and linkage["map_sha256"] == receipt["link_map_sha256"] == evidence["map_sha256"]
+        and linkage["trace_sha256"] == receipt["link_trace_sha256"] == evidence["trace_sha256"]
+        and linkage["receipt_sha256"] == receipt["link_receipt_sha256"] == evidence["link_receipt_sha256"]
+        and closure["sdk_archive_sha256"]
+        == receipt["sdk"]["archive_sha256"]
+        == runtime["sdk_attestation"]["archive_sha256"],
+        "Companion SDK/link evidence mismatch",
+    )
+    require(
+        all(receipt["sdk"].get(key) == runtime["sdk_attestation"][key] for key in ("host", "version")),
+        "Companion SDK host/version mismatch",
+    )
+    check_companion_compilers(linkage, evidence, receipt, runtime["sdk_attestation"])
+    check_companion_link_inventory(evidence, link_streams, runtime["sdk_attestation"])
+
+
+def check_runtime(path, metadata, source_set, primary, package_rows, upstream, package_content):
+    captures = {
+        "RUNTIME-SOURCE-MANIFEST.json",
+        "tools/webos-runtime-sources.json",
+        "companion/source-closure.json",
+        "companion/SOURCE-MANIFEST.json",
+    }
+    with ExitStack() as stack:
+        names = (
+            "companion/companion-source.tar.gz",
+            "evidence/ottplay-companion.link.map",
+            "evidence/ottplay-companion.link.trace",
+        )
+        spools = {name: stack.enter_context(tempfile.TemporaryFile()) for name in names}
+        rows, content = index_archive(path, captures, spools=spools)
+        runtime = check_runtime_evidence(rows, content, metadata, source_set, primary, package_rows, upstream)
+        check_companion(
+            spools[names[0]],
+            rows,
+            content,
+            metadata,
+            runtime,
+            package_rows,
+            package_content,
+            (spools[names[1]], spools[names[2]]),
+        )
+
+
+def check_runtime_evidence(rows, content, metadata, source_set, primary, package_rows, upstream):
     check_private_paths(rows, source=True)
     manifest = decode(content["RUNTIME-SOURCE-MANIFEST.json"])
     require(
@@ -409,11 +1039,12 @@ def check_runtime(path, metadata, source_set, primary, package_rows, upstream):
         for item in entry["runtime_inputs"]:
             require(item["source"] in by_id, "Runtime input has no distributed source")
             checksum(attestation["runtime_files_sha256"].get(item["sdk_path"]))
+    return manifest
 
 
 def public_artifact_host(host):
-    # Offline checks cannot prove DNS reachability, but must reject explicitly
-    # local names and non-global IP literals without querying any resolver.
+    # Offline validation cannot establish DNS reachability, but can reject
+    # explicitly local names and non-global IP literals without a resolver.
     if not host:
         return False
     host = host.rstrip(".").lower()
@@ -422,8 +1053,7 @@ def public_artifact_host(host):
     try:
         address = ipaddress.ip_address(host)
     except ValueError:
-        # URL clients can interpret legacy numeric forms (127.1, 2130706433,
-        # 0x7f000001, 0177.0.0.1) as IPv4. Do not mistake those for DNS names.
+        # Some URL clients interpret abbreviated, octal or hexadecimal IPv4.
         return not all(re.fullmatch(r"(?:0x[0-9a-f]+|[0-9]+)", part) for part in host.split("."))
     return address.is_global and not address.is_multicast
 
@@ -520,7 +1150,7 @@ def verify(metadata_path, *, require_feed=False, check_checkout=False):
     hash_file(ipk, metadata["sha256"], IPK_LIMIT)
     sum_path = regular(directory / (stem + ".sha256"), JSON_LIMIT)
     require(sum_path.read_text() == metadata["sha256"] + "  " + ipk.name + "\n", "Package checksum file mismatch")
-    package_rows, descriptor = check_package(ipk, metadata)
+    package_rows, descriptor, package_content = check_package(ipk, metadata)
     icon = directory / "ottplay-native-webos-icon.png"
     hash_file(icon, package_rows["usr/palm/applications/" + APP_ID + "/" + descriptor["icon"]]["sha256"], JSON_LIMIT)
     corresponding = metadata["corresponding_source"]
@@ -559,7 +1189,7 @@ def verify(metadata_path, *, require_feed=False, check_checkout=False):
         "Primary release receipt mismatch",
     )
     upstream = check_primary(primary_path, metadata, receipt, package_rows, descriptor)
-    check_runtime(runtime_path, metadata, source_set, primary, package_rows, upstream)
+    check_runtime(runtime_path, metadata, source_set, primary, package_rows, upstream, package_content)
     feed = check_feed(directory, metadata, stem, require_feed)
     if check_checkout:
         current = build.manifest()
@@ -601,6 +1231,7 @@ def main():
         EOFError,
         RecursionError,
         tarfile.TarError,
+        lzma.LZMAError,
     ) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1

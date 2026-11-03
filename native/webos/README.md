@@ -1,6 +1,6 @@
 # OTTPlay Native for LG webOS
 
-This is a separate, experimental **native Plex client**. Its SDL2/OpenGL ES
+This is a separate, experimental **native OTT player**. Its SDL2/OpenGL ES
 interface runs on the television without Chromium or a WebView. Media is
 demultiplexed by the bundled FFmpeg and sent to the television's native decoder.
 The UI and Plex runtime derive from
@@ -9,23 +9,27 @@ Our reviewed changes are in `patches/`; upstream code is fetched during the
 build, not silently copied into the main player's source tree.
 
 The application ID is `com.openottplay.player.native`, the title is **OTTPlay
-Native**, and its independent experimental version starts at **0.1.0**. The
+Native**. The working source targets experimental **0.2.0**, which is not yet
+a published release; the published initial package is **0.1.0**. The
 existing `com.openottplay.player` hosted web application remains separate.
 
 ## What this target provides
 
-The native Plex runtime supplies a remote-friendly GPU interface, libraries,
-posters, details, playback, seeking and track selection. Our integration adds
-the configuration entry points documented with the runtime patch. Playback
-support still depends on the LG model, firmware, source codecs and the Plex
-server's available conversions. A successful ARM build is not a successful
-physical-television playback test.
+The native interface provides M3U, Xtream, Stalker, VPortal, local folders and Plex as provider profiles, with a linear channel/video list, categories, full descriptions and artwork where the source supplies them. Saved profiles, selection, Favorites and playback position use the protected native store. Local files are read from their source, without an import copy.
 
-This package does **not** yet contain the main OTT player's M3U, VPortal, Local
-providers, shared Favorites, command-server pairing or `ott` CLI protocol.
-Profiles and credentials are separate. The web player remains the complete
-multi-provider option. No performance number from upstream is claimed for our
-build or for an untested television.
+Global Favorites can mix providers and profiles. Their portable identities bind to the receiving player's own matching profiles, source aliases and paths; credentials are not copied through a Favorite. Missing or ambiguous bindings are reported instead of choosing an unrelated source. The legacy form of a portal embedded inside an M3U profile is retained in Favorites but is not a supported native binding.
+
+Older local Favorites that retained only a filename can have lost their parent folders. The native client cannot distinguish such a truncated path from a genuine root-level file with the same name. Recreate those Favorites from their full relative paths before transfer; compatibility with that legacy capture format is not yet complete.
+
+Command-server discovery and pairing use this installation's own device identity. The native command adapter implements profile and provider selection, global Favorites transfer, playback, validated individual settings and Standby. Async operations report completion after the relevant work; a queued command cannot silently act after its deadline or a change of source. Interface font scale is adjustable from 50 to 150 percent, with 100 percent as the default.
+
+The original native Plex library views remain available. Plex playback uses the existing server session and conversion path. Direct Local/HTTP playback uses the bundled FFmpeg probe and the television's decoder. Generic HLS currently supports ordinary unencrypted MPEG-TS H.264/AAC streams, VOD seeking and live refresh, with a 64 MiB limit per segment. Encrypted HLS, fMP4, byte ranges, LL-HLS, separate audio/video renditions and adaptive variant switching are not implemented in this path. Container recognition does not guarantee codec support: an AVI containing MPEG4/Xvid still needs a compatible conversion.
+
+The optional packaged companion runs as a separately supervised process on an authenticated loopback endpoint, with an ephemeral token, bounded sessions and bounded disk usage. Its configuration is separate from the native provider profiles. An absent helper or unsupported capability is reported explicitly. A companion-enabled package requires the helper's verified binary, linker evidence and corresponding source; a local-source-only receipt is insufficient for publication.
+
+Catalogues currently have explicit 50,000-entry and 32 MiB model limits. A limit produces a visible partial-catalogue error. Cancelling a scan stops subsequent work, but cannot interrupt a kernel filesystem call already blocked on an unavailable network mount.
+
+This remains an experimental target. Host and ARM checks do not establish physical-TV playback, video-plane composition or firmware compatibility. Device-specific acceptance and known limits must accompany each release; no performance result is inferred from the upstream application.
 
 ## Build on an Apple Silicon Mac or ARM Linux host
 
@@ -75,7 +79,9 @@ The stages can also be run individually, using the same `--work-dir` and
    digest and patched Git tree. `--local-upstream /path/to/clone` can avoid downloading an existing
    clone; the exact commit is still checked.
 2. `bootstrap` verifies/downloads the SDK and installs the pinned Rust target.
-3. `build` runs only `make RELEASE=1 FLAVOR=stable ipk`. It never contacts a TV.
+3. `build` normally runs `make RELEASE=1 FLAVOR=stable ipk`. With an explicit
+   `--companion-bundle`, it validates that bundle, runs `ipk-stage`, stages the
+   helper with private `--link-evidence`, then runs `ipk-pack`. It never contacts a TV.
 4. `package` checks the native ARM executable, storage service, demuxer and
    package identity and the successful source-build receipt, then copies the independently named artifact.
 5. `source` collects and verifies corresponding source, Cargo-vendored
@@ -86,7 +92,7 @@ linker evidence to the exact package:
 
 ```sh
 python3 scripts/webos-runtime-sources.py \
-  --metadata build/native-webos/dist/ottplay-native-webos-0.1.0.json \
+  --metadata build/native-webos/dist/ottplay-native-webos-0.2.0.json \
   --source build/native-webos/source \
   --sdk build/native-webos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot
 ```
@@ -99,11 +105,11 @@ archive; distribution requires this second step as well.
 
 Default results are in `build/native-webos/dist/`. Keep these together:
 
-- `ottplay-native-webos-0.1.0.ipk`
-- `ottplay-native-webos-0.1.0.json` and `.sha256`
-- `ottplay-native-webos-0.1.0-source.tar.gz` and its `.release.json` report
-- `ottplay-native-webos-0.1.0-runtime-source.tar.gz`
-- `ottplay-native-webos-0.1.0-source-set.json`
+- `ottplay-native-webos-0.2.0.ipk`
+- `ottplay-native-webos-0.2.0.json` and `.sha256`
+- `ottplay-native-webos-0.2.0-source.tar.gz` and its `.release.json` report
+- `ottplay-native-webos-0.2.0-runtime-source.tar.gz`
+- `ottplay-native-webos-0.2.0-source-set.json`
 - `ottplay-native-webos-icon.png`
 
 `verify` rechecks the IPK. Source-validation reports distinguish a verified
@@ -117,14 +123,121 @@ version and actual SDK compiler hash. Corresponding-source validation also
 requires physical archives for every bundled native dependency, Cargo crates
 and the Rust runtime; a list of download URLs alone does not pass.
 
+### Favorites compatibility check
+
+After `prepare` and installation of the repository's JavaScript development
+dependencies, compare the native interchange fixture with the actual browser
+codec and strict JSON parser:
+
+```sh
+node native/webos/test_favorites_conformance.cjs --check \
+  build/native-webos/source/rust-modules/data/src/ott/fixtures/favorites-conformance.json
+```
+
+Adjust the source path for a custom `--work-dir`. The native Rust tests consume
+the same fixture. A mismatch requires reviewing the format change and both
+implementations; regenerating the fixture alone does not establish compatibility.
+
+### Complete candidate build with companion
+
+The complete experimental `0.2` candidate must include the companion and its
+verified source closure. The native-only commands above remain useful for
+isolated development but do not produce that complete candidate. This procedure
+is not a record of a completed ARM build or TV test. Use the same pinned SDK and
+original SDK archive throughout. Install host libclang first. The
+[preparation step](companion/PREPARATION.md) installs the manifest-pinned Rust
+toolchain (currently `1.96.1`) and ARM target, fills an explicit Cargo cache and
+verifies the exact Rust source archive; it does not compile the player.
+All paths below are placeholders. Use fresh bundle/source outputs and a fresh
+native work directory; read versions from the manifests rather than reusing an
+older release's filenames. Run the stages in order and stop if any command fails.
+
+```sh
+native_sdk="/absolute/path/to/arm-webos-linux-gnueabi_sdk-buildroot"
+native_sdk_archive="/absolute/path/to/original-pinned-sdk.tar.bz2"
+native_libclang="/absolute/path/to/libclang-directory"
+native_companion_cache="/absolute/path/to/companion-cache"
+native_companion_target="/absolute/path/to/companion-target"
+native_companion_bundle="/absolute/path/to/new-companion-bundle"
+native_companion_sources="/absolute/path/to/new-companion-sources"
+native_preparation="$native_companion_cache/prepared.json"
+native_work="/absolute/path/to/new-native-build"
+native_version="$(python3 -c 'import json; print(json.load(open("native/webos/upstream.json"))["application"]["version"])')"
+
+python3 native/webos/companion/prepare.py \
+  --cache-dir "$native_companion_cache" \
+  --libclang "$native_libclang" --target-dir "$native_companion_target" \
+  --output "$native_preparation"
+
+python3 - "$native_preparation" "$native_sdk" "$native_sdk_archive" \
+  "$native_companion_bundle" "$native_companion_sources" <<'PY'
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+receipt, sdk, sdk_archive, bundle, sources = sys.argv[1:]
+prepared = json.loads(Path(receipt).read_text())
+environment = {**os.environ, **prepared["environment"]}
+subprocess.run([
+    sys.executable, "native/webos/companion/build.py", "build",
+    "--sdk", sdk, "--sdk-archive", sdk_archive,
+    "--libclang", prepared["libclang"], "--target-dir", prepared["target_dir"],
+    "--output", bundle, "--jobs", "2",
+], env=environment, check=True)
+subprocess.run([
+    sys.executable, "native/webos/companion/sources.py",
+    "--bundle", bundle, "--output", sources,
+    "--readelf", str(Path(sdk) / "bin/arm-webos-linux-gnueabi-readelf"),
+    "--rust-sysroot", prepared["rust_sysroot"],
+    "--rust-source-archive", prepared["rust_source_archive"],
+], env=environment, check=True)
+PY
+
+python3 native/webos/build.py all \
+  --companion-bundle "$native_companion_bundle" \
+  --work-dir "$native_work" --sdk "$native_sdk" --jobs 2
+
+python3 scripts/webos-runtime-sources.py \
+  --metadata "$native_work/dist/ottplay-native-webos-${native_version}.json" \
+  --source "$native_work/source" --sdk "$native_sdk" \
+  --sdk-archive "$native_sdk_archive" \
+  --companion-bundle "$native_companion_bundle" \
+  --companion-sources "$native_companion_sources"
+
+python3 scripts/verify-webos-native-release.py \
+  --metadata "$native_work/dist/ottplay-native-webos-${native_version}.json" \
+  --check-checkout
+```
+
+Pass the preparation receipt's **entire `environment` object to both helper
+subprocesses**, as above. This keeps the checked Cargo cache, pinned toolchain,
+libclang and offline dependency access identical for build and source collection.
+Use its exact `rust_sysroot` and `rust_source_archive` paths; do not substitute a
+different installed toolchain or source download. Keep the same checkout, cache
+and target directory through final SDK attestation. Preparation's `status: ready`
+only confirms inputs. Source collection still records SDK runtime coverage as
+`PENDING_ENCLOSING_RELEASE` until the enclosing runtime collector verifies the
+helper's final-link inputs against the pinned SDK and supplies their sources.
+
+Staging copies the helper manifest byte-for-byte and binds the packaged source
+summary to the build receipt's local-input digest. The runtime collector embeds
+`companion/companion-source.tar.gz` and its receipts inside the existing
+`-runtime-source.tar.gz`; the release still has two top-level source archives.
+Keep the helper bundle, source output and linker evidence until this collection
+and final verification succeed. Those checks do not establish an independent
+rebuild, real-device execution or functional parity.
+
 ## Install through LG Developer Mode
 
 ### Choose and verify the native package
 
 The initial experimental release is
 [native-webos-v0.1.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.1.0-beta.1).
+That release contains **0.1.0** assets, not the unreleased **0.2.0** candidate.
 Download `ottplay-native-webos-0.1.0.ipk`, its `.sha256` and `.json` files, and
-the matching source set described above. From the download directory, check:
+the matching source set from the same release. From the download directory, check:
 
 ```sh
 shasum -a 256 -c ottplay-native-webos-0.1.0.sha256
@@ -137,7 +250,7 @@ independent application; launching it through a TV remote-control shortcut does
 not launch OTTPlay Native. Main-player releases and here.now deployments do not
 update this native executable.
 
-The candidate passed loader-symbol checks against sampled webOS 3.4.0–11.2.0
+The initial 0.1.0 candidate passed loader-symbol checks against sampled webOS 3.4.0–11.2.0
 firmware images; sampled webOS 1.x/2.x images are unsupported. These checks do
 not establish decoding, permissions or compatibility on a particular TV. Record
 the actual model, webOS and firmware version before testing.
@@ -210,6 +323,10 @@ ares-launch --device YOUR_TV com.openottplay.player.native
 ares-launch --device YOUR_TV --running
 ```
 
+For a separately built and fully verified candidate, substitute its exact IPK
+filename and verify its matching checksum and source set first. The old release
+tag must not be used as a download location for a newer candidate.
+
 Find the native application ID and version in `--listfull`, then check the TV
 screen. An install or launch acknowledgement alone is not a playback test.
 Sign in to Plex, open a
@@ -228,6 +345,14 @@ on an **OLED65B4AUA.DUSQLJR**, webOS SDK **10.3.2**, firmware **33.31.75**.
 `--listfull` confirmed the application ID/version, and `--running` confirmed
 the launched process remained present. This is installation/startup evidence;
 Plex playback and decoder compatibility on that TV are not yet verified.
+
+The same released **0.1.0** package was also installed and launched on an
+**OLED77C5PUA.DUSQLJR**, webOS SDK **11.2.0**, firmware **43.21.96**. Developer
+connection and system information were verified, installation and launch
+completed successfully, and `--running` confirmed the native application ID.
+The IPK SHA256 matched the published release digest. This is installation and
+startup evidence only; playback and decoder compatibility remain unverified on
+this model as well. It does not qualify the unreleased **0.2.0** candidate.
 
 ### Connection and startup troubleshooting
 
@@ -354,12 +479,17 @@ also accepts an absolute file path in `OTTPLAY_PLEX_PROFILE`. Remove the
 transferred file to stop applying it on later starts; a saved session may
 still need to be signed out in the app.
 
-This is a managed server connection: while the file remains, it restores the
-connection on every cold launch. Sign-out revokes it for the running session;
-remove the file and restart to unlink it permanently. A Plex Media Server
-token does not grant Plex account or Home-user features. Account-scoped local
-resume positions and preferences are not promised in this mode; use normal
-Plex sign-in for a complete account profile.
+This is a managed server connection: before an explicit local-data reset, a
+valid file restores it on each cold launch. Sign-out revokes it for the running
+session; remove the file and restart to stop future startup imports. In native
+0.2, `Delete all local data` also clears app-owned provisioning and persistently
+blocks managed startup imports, including `OTTPLAY_PLEX_PROFILE`; replacing a
+file does not lift that block. See [local-data reset](../../docs/native-webos-delivery.md#delete-local-data-native-02)
+for what is cleared and how to configure the player again.
+
+A Plex Media Server token does not grant Plex account or Home-user features.
+Account-scoped local resume positions and preferences are not promised in this
+mode; use normal Plex sign-in for a complete account profile.
 
 ## Optional Homebrew Channel repository
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import io
 import json
 import os
@@ -294,11 +295,48 @@ def build(args, spec):
         fail("SDK is missing; run bootstrap or supply --sdk")
     # Source overlay removes upstream device-repair and automatic cleanup entry
     # points. No make target accepting a TV address is ever invoked here.
-    run(["make", "-j" + str(args.jobs), "RELEASE=1", "FLAVOR=stable", "ipk"], cwd=source, env=build_env(args))
+    make = ["make", "-j" + str(args.jobs), "RELEASE=1", "FLAVOR=stable"]
+    environment = build_env(args)
+    companion = getattr(args, "companion_bundle", None)
+    expected_companion = None
+    if companion is not None:
+        companion = companion.resolve(strict=True)
+        module = companion_builder()
+        # Fail before native compilation if the supplied helper or its inputs
+        # changed. The stage command repeats this check after compilation.
+        module.checked_bundle(companion, args.sdk / "bin/arm-webos-linux-gnueabi-readelf")
+        expected_companion = sha256(companion / "receipt.json")
+        run(make + ["ipk-stage"], cwd=source, env=environment)
+        stage = source / "ipkroot/data/usr/palm/applications" / spec["application"]["id"]
+        if not stage.is_dir() or stage.is_symlink():
+            fail("Native application staging directory is missing or unsafe")
+        run(
+            [
+                sys.executable,
+                HERE / "companion/build.py",
+                "stage",
+                "--bundle",
+                companion,
+                "--readelf",
+                args.sdk / "bin/arm-webos-linux-gnueabi-readelf",
+                "--destination",
+                stage,
+                "--link-evidence",
+                source / "pkg/link-evidence/stable",
+            ],
+            cwd=ROOT,
+            env=environment,
+        )
+        run(make + ["ipk-pack"], cwd=source, env=environment)
+    else:
+        run(make + ["ipk"], cwd=source, env=environment)
     check_source(args, spec)
     app = spec["application"]
     binary = source / "pkg" / (app["id"] + "_" + app["version"] + "_arm.ipk")
-    verify_ipk(binary, spec)
+    verified = verify_ipk(binary, spec)
+    actual_companion = verified.get("companion", {}).get("receipt_sha256")
+    if actual_companion != expected_companion:
+        fail("Packaged companion does not match the explicitly selected bundle")
     receipt = json.loads(source_receipt(args).read_text())
     receipt.update(
         {
@@ -308,7 +346,77 @@ def build(args, spec):
             "configuration": {"RELEASE": "1", "FLAVOR": "stable", "target": TARGET},
         }
     )
+    if "companion" in verified:
+        receipt["companion"] = verified["companion"]
     write_json(args.work_dir / "built.json", receipt)
+
+
+def companion_builder():
+    spec = importlib.util.spec_from_file_location("native_companion_build", HERE / "companion/build.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def verify_companion(files, prefix, data_archive):
+    binary_name = prefix + "bin/ottplay-companion"
+    metadata_prefix = prefix + "companion/"
+    if binary_name not in files and not any(name.startswith(metadata_prefix) for name in files):
+        return None
+    required = [binary_name] + [metadata_prefix + name for name in ("manifest.json", "receipt.json", "source.json")]
+    if any(name not in files for name in required):
+        fail("Incomplete native companion payload")
+    binary = files[binary_name]
+    manifest = json.loads(files[metadata_prefix + "manifest.json"])
+    receipt = json.loads(files[metadata_prefix + "receipt.json"])
+    source = json.loads(files[metadata_prefix + "source.json"])
+    if (
+        not elf_arm(binary)
+        or manifest.get("schema") != 1
+        or receipt.get("schema") != 1
+        or manifest.get("package") != "ottplay-companion"
+        or manifest.get("target") != TARGET
+        or manifest.get("install_path") != "bin/ottplay-companion"
+        or receipt.get("package") != manifest["package"]
+        or receipt.get("target") != TARGET
+        or receipt.get("elf", {}).get("sha256") != hashlib.sha256(binary).hexdigest()
+        or receipt.get("elf", {}).get("bytes") != len(binary)
+        or receipt.get("manifest_sha256") != hashlib.sha256(files[metadata_prefix + "manifest.json"]).hexdigest()
+    ):
+        fail("Native companion identity or binary receipt mismatch")
+    if (
+        source.get("schema") != 1
+        or source.get("local_source_archive_sha256") != receipt.get("local_source_archive_sha256")
+        or source.get("complete_corresponding_source") is not False
+        or source.get("release_source_requirements") != manifest.get("release_source_requirements")
+        or receipt.get("device_executed") is not False
+        or source.get("local_inputs_sha256") != receipt.get("local_inputs_sha256")
+    ):
+        fail("Native companion source or validation receipt mismatch")
+    for value in (
+        receipt.get("manifest_sha256"),
+        receipt.get("source_receipt_sha256"),
+        receipt.get("local_source_archive_sha256"),
+        source.get("local_inputs_sha256"),
+        receipt.get("local_inputs_sha256"),
+        receipt.get("link_map_sha256"),
+        receipt.get("link_trace_sha256"),
+        receipt.get("link_receipt_sha256"),
+    ):
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            fail("Native companion receipt is missing a source or linker digest")
+    with tarfile.open(fileobj=io.BytesIO(data_archive), mode="r:gz") as archive:
+        member = next(item for item in archive if item.name.removeprefix("./") == binary_name)
+        if member.mode != 0o755:
+            fail("Native companion must be executable with mode 0755")
+    return {
+        "elf_sha256": hashlib.sha256(binary).hexdigest(),
+        "receipt_sha256": hashlib.sha256(files[metadata_prefix + "receipt.json"]).hexdigest(),
+        "manifest_sha256": receipt["manifest_sha256"],
+        "source_receipt_sha256": receipt["source_receipt_sha256"],
+        "local_source_archive_sha256": receipt["local_source_archive_sha256"],
+        "local_inputs_sha256": source["local_inputs_sha256"],
+    }
 
 
 def safe_name(value: str) -> str:
@@ -446,7 +554,7 @@ def verify_ipk(path: Path, spec) -> dict:
         fail("Bundled native demuxer missing")
     if any(name.startswith("usr/palm/applications/") and not name.startswith(prefix) for name in files):
         fail("Package would install another application")
-    return {
+    result = {
         "application": app,
         "size": path.stat().st_size,
         "sha256": sha256(path),
@@ -455,6 +563,10 @@ def verify_ipk(path: Path, spec) -> dict:
         "rootRequired": False,
         "payload_bytes": sum(len(data) for data in files.values()),
     }
+    companion = verify_companion(files, prefix, members["data.tar.gz"])
+    if companion is not None:
+        result["companion"] = companion
+    return result
 
 
 def output_name(spec) -> str:
@@ -474,6 +586,7 @@ def package(args, spec):
     if (
         any(receipt.get(key) != value for key, value in prepared.items())
         or receipt.get("ipk_sha256") != verified["sha256"]
+        or receipt.get("companion") != verified.get("companion")
     ):
         fail("Native binary does not match its recorded source build")
     args.output.mkdir(parents=True, exist_ok=True)
@@ -519,7 +632,7 @@ def feed(args, spec, verified, filename):
         "version": app["version"],
         "type": "native",
         "title": app["title"],
-        "appDescription": "Experimental native Plex client. Separate from OTT-play web profiles.",
+        "appDescription": "Experimental native OTTPlay for TV channels, local videos and Plex. Separate installation.",
         "iconUri": base + "/ottplay-native-webos-icon.png",
         "ipkUrl": downloads + "/" + filename,
         "ipkHash": {"sha256": verified["sha256"]},
@@ -643,6 +756,9 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--local-upstream", type=Path, help="Optional local clone containing the exact upstream pin")
     parser.add_argument(
+        "--companion-bundle", type=Path, help="Explicit verified companion bundle to stage before IPK creation"
+    )
+    parser.add_argument(
         "--base-url", help="Exact HTTPS publication directory; emits Homebrew metadata without publishing"
     )
     parser.add_argument(
@@ -652,6 +768,8 @@ def main():
     args = parser.parse_args()
     args.work_dir = args.work_dir.expanduser().resolve()
     args.output = (args.output or args.work_dir / "dist").expanduser().resolve()
+    if args.companion_bundle is not None:
+        args.companion_bundle = args.companion_bundle.expanduser().resolve(strict=True)
     spec = manifest()
     args.sdk = (args.sdk or args.work_dir / "toolchain" / spec["sdk"]["directory"]).expanduser().resolve()
     if args.jobs < 1 or args.jobs > 32:

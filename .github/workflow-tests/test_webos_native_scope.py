@@ -1,10 +1,13 @@
 """The optional native build must never fall outside the required CI gate."""
 
 import importlib.util
-from pathlib import Path
+import json
+import os
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 import yaml
 
@@ -21,11 +24,19 @@ class NativeScopeTests(unittest.TestCase):
                      "scripts/webos-runtime-sources.json", "scripts/webos-runtime-sources.py",
                      "scripts/verify-webos-native-release.py", "tests/test_webos_native_release.py"):
             with self.subTest(path=path):
-                self.assertTrue(SCOPE.requires_build("pull_request", BASE, HEAD, lambda *_: [path]))
+                self.assertTrue(SCOPE.requires_build("pull_request", BASE, HEAD, lambda *_, path=path: [path]))
 
     def test_unrelated_pr_keeps_only_fast_contracts(self):
         self.assertFalse(SCOPE.requires_build("pull_request", BASE, HEAD,
                          lambda *_: ["README.md", "src/plugins/plex.ts", ""]))
+
+    def test_all_companion_source_roots_require_build(self):
+        manifest = json.loads((ROOT / "native/webos/companion/manifest.json").read_text())
+        for path in manifest["source_roots"]:
+            candidate = path + "/example.rs" if (ROOT / path).is_dir() else path
+            with self.subTest(path=candidate):
+                self.assertTrue(SCOPE.requires_build("pull_request", BASE, HEAD,
+                                                    lambda *_, candidate=candidate: [candidate]))
 
     def test_non_pr_builds_without_git_metadata(self):
         for event in ("workflow_dispatch", "push", "merge_group"):
@@ -106,6 +117,62 @@ class NativeScopeTests(unittest.TestCase):
         )}
         expected.add("build/native-webos/dist/ottplay-native-webos-icon.png")
         self.assertEqual(set(steps[upload]["with"]["path"].splitlines()), expected)
+
+    def test_complete_candidate_requires_companion_before_packaging(self):
+        workflow = yaml.load((ROOT / ".github/workflows/webos-native.yml").read_text(),
+                             Loader=yaml.BaseLoader)
+        contracts = workflow["jobs"]["contracts"]["steps"]
+        self.assertTrue(any("-s native/webos/companion" in step.get("run", "")
+                            for step in contracts))
+        steps = workflow["jobs"]["native-candidate"]["steps"]
+        commands = [step.get("run", "") for step in steps]
+        indexes = [next(i for i, command in enumerate(commands) if marker in command)
+                   for marker in ("native/webos/build.py bootstrap",
+                                  "native/webos/companion/prepare.py",
+                                  '"native/webos/companion/build.py", "build"',
+                                  "native/webos/build.py all",
+                                  "scripts/webos-runtime-sources.py")]
+        self.assertEqual(indexes, sorted(set(indexes)))
+        for index in indexes:
+            self.assertNotIn("if", steps[index])
+            self.assertNotIn("continue-on-error", steps[index])
+        self.assertIn('--companion-bundle "$RUNNER_TEMP/companion-bundle"', commands[indexes[3]])
+        self.assertIn('--companion-bundle "$RUNNER_TEMP/companion-bundle"', commands[indexes[4]])
+        self.assertIn('--companion-sources "$RUNNER_TEMP/companion-source"', commands[indexes[4]])
+        self.assertIn('--sdk-archive "$WEBOS_SDK_ARCHIVE"', commands[indexes[4]])
+
+    def test_helper_build_and_sources_share_prepared_offline_environment(self):
+        workflow = yaml.load((ROOT / ".github/workflows/webos-native.yml").read_text(),
+                             Loader=yaml.BaseLoader)
+        run = next(step["run"] for step in workflow["jobs"]["native-candidate"]["steps"]
+                   if '"native/webos/companion/build.py", "build"' in step.get("run", ""))
+        code = run.split("python3 - <<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+        with tempfile.TemporaryDirectory(prefix="companion workflow ") as directory:
+            prepared = {
+                "environment": {"CARGO_HOME": directory + "/cargo", "CARGO_NET_OFFLINE": "true",
+                                "RUSTUP_TOOLCHAIN": "pinned-fixture"},
+                "target_dir": directory + "/target", "libclang": directory + "/clang",
+                "rust_sysroot": directory + "/rust", "rust_source_archive": directory + "/rust.tar.xz",
+            }
+            (Path(directory) / "companion-prepared.json").write_text(json.dumps(prepared))
+            with mock.patch.dict(os.environ, {"RUNNER_TEMP": directory, "WEBOS_SDK": "/sdk fixture",
+                                              "WEBOS_SDK_ARCHIVE": "/sdk fixture.tar.bz2"}), \
+                    mock.patch("subprocess.run") as execute:
+                # Execute only the checked-in workflow body with process launches mocked.
+                exec(compile(code, "webos-native.yml companion", "exec"), {})  # noqa: S102
+            self.assertEqual(execute.call_count, 2)
+            build, source = execute.call_args_list
+            self.assertEqual(build.kwargs["env"], source.kwargs["env"])
+            for call in (build, source):
+                self.assertIs(call.kwargs["check"], True)
+                for key, value in prepared["environment"].items():
+                    self.assertEqual(call.kwargs["env"][key], value)
+            build_args, source_args = build.args[0], source.args[0]
+            self.assertEqual(build_args[build_args.index("--output") + 1],
+                             source_args[source_args.index("--bundle") + 1])
+            self.assertEqual(build_args[build_args.index("--sdk-archive") + 1], "/sdk fixture.tar.bz2")
+            self.assertEqual(source_args[source_args.index("--rust-source-archive") + 1],
+                             prepared["rust_source_archive"])
 
 
 if __name__ == "__main__":

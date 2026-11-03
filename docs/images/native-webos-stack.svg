@@ -83,9 +83,7 @@
         y="120"
     />
     <text class="heading" fill="#edf4ff" x="66" y="160">Hosted OTT-play</text>
-    <text class="heading" fill="#edf4ff" x="576" y="160">
-        OTTPlay Native • Plex target
-    </text>
+    <text class="heading" fill="#edf4ff" x="576" y="160">OTTPlay Native</text>
     <text class="muted" fill="#edf4ff" x="66" y="188">
         com.openottplay.player
     </text>
@@ -137,7 +135,7 @@
     />
     <rect fill="#18423e" height="62" rx="10" width="458" x="576" y="315" />
     <text class="label" fill="#edf4ff" x="595" y="342">
-        Native Plex client + FFmpeg demux
+        Providers + native FFmpeg playback
     </text>
     <text class="muted" fill="#edf4ff" x="595" y="365">
         Media selection, resume, tracks and subtitles
@@ -162,10 +160,10 @@
         y="531"
     />
     <text class="label" fill="#edf4ff" text-anchor="middle" x="550" y="558">
-        Plex server
+        Media sources
     </text>
     <text class="muted" fill="#edf4ff" text-anchor="middle" x="550" y="582">
-        Library, original media or server transcoding
+        Plex, playlists, portal services and local files
     </text>
     <path
         class="line"
