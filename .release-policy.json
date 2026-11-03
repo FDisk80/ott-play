@@ -230,7 +230,7 @@
         "field": "buildNumber"
       }
     ],
-    "toolkit_revision": "e209548e66577e456f116f4486113932e1598b1a"
+    "toolkit_revision": "d441b3c364087fdadb346fc412092e1f55d00d81"
   },
   "asset_restrictions": [
     {
@@ -260,7 +260,7 @@
   },
   "release_notes": "CHANGELOG.md",
   "fuzzing": {
-    "toolkit_ref": "a1068073ef4b60b52542cd48954a99b4bc0be008"
+    "toolkit_ref": "d441b3c364087fdadb346fc412092e1f55d00d81"
   },
-  "toolkit_revision": "e209548e66577e456f116f4486113932e1598b1a"
+  "toolkit_revision": "d441b3c364087fdadb346fc412092e1f55d00d81"
 }
