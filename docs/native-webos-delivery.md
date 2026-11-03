@@ -212,6 +212,17 @@ python3 scripts/update-webos-native.py \
   --work-dir /absolute/path/to/private/native-update --preflight
 ```
 
+The device check requires LG's [device-specific identifier](https://webostv.developer.lge.com/develop/references/device-unique-id)
+through the existing authorized connection; an IP address, alias and model alone are insufficient.
+Run this local LGUDID check with the device owner's agreement.
+Only its hash contributes to the saved identity. The raw identifier is not
+retained in journals, receipts or logs; the command transport temporarily
+buffers its response in a private file. If the TV denies or cannot provide this
+information, the helper stops before updating. This local identity check does
+not grant extra permissions or authenticate the SSH peer. A journal created with
+the older alias-and-model identity cannot authorize restoration to a newly
+identified TV.
+
 Review the detected native application and version, then apply the same update:
 
 ```sh
@@ -224,8 +235,8 @@ The helper validates the official release and local package before installation.
 It closes the native app and verifies both the application manager and native
 process state before capturing the known private files. It then performs one
 same-ID installation, reads back the installed identity/version and payload
-hashes, preserves the captured state and verifies launch. A close or launch acknowledgement alone
-does not complete those checks. Missing access, ambiguous identity, a newer
+hashes, preserves the captured state and verifies launch. A close or launch
+acknowledgement alone does not complete those checks. Missing access, ambiguous identity, a newer
 installed version or an unsafe state operation stops the update.
 
 The snapshot covers the known application-directory files described above,
@@ -234,7 +245,11 @@ backup**. Preserve the snapshot privately on the same computer; it is not a
 profile export for another television. Existing files with conflicting contents
 must not be overwritten merely to make a restore succeed. Owner, group and mode
 are part of this check; an alias unable to restore the original ownership must
-not proceed with installation.
+not proceed with installation. Missing files are transferred to private staging
+files, hash-checked and published without replacing an existing destination.
+An interrupted transfer cannot leave a partial file at its final name. A new
+file or directory appearing at that name makes restoration stop instead of
+overwriting it.
 
 Private recovery files are stored under
 `WORK_DIR/YOUR_TV/native-webos-v0.2.0-beta.1/`: `update.json` is the journal,
@@ -245,6 +260,15 @@ and intact until the update and playback checks are complete. A per-device lock
 prevents another apply or reconciliation in this work directory from running
 concurrently. `update_in_progress` means that operation is still active; do not
 choose a different work directory to bypass the lock.
+
+The journal records `install_started: false` before preparation and durably
+changes it to `true` immediately before invoking the installer. After a failure
+that is provably before installation, repeat `--apply` with the same arguments:
+the helper requires the same release, device identity and previously installed
+version, retains earlier local artifacts under `prior-attempt-*`, and prepares a
+fresh snapshot. It does not automatically repeat an installer call. A missing
+marker, a `true` marker or an ambiguous journal stays blocked and requires the
+recovery checks below. Do not edit these markers to force a retry.
 
 An installer timeout produces `install-indeterminate`, even if readback already
 shows the target version. The helper records that observation without retrying
@@ -264,7 +288,11 @@ python3 scripts/update-webos-native.py \
 
 `--reconcile` verifies the saved release, device identity and installed payload,
 stops the native app, checks the private snapshot, restores missing state and
-verifies launch. It **never installs an IPK**. It refuses an old or different installed
+verifies launch. It requires a durable `install_started: true` marker; a manual
+installation cannot authorize restoring a snapshot from an earlier pre-install
+failure. A close timeout requires successful stopped-state readback
+before restoration; a still-running process prevents it. It **never installs an
+IPK**. It refuses an old or different installed
 build, a missing or changed snapshot, and conflicting state. Resolve those
 conditions while retaining the journal and both state versions; do not bypass
 them by retrying `--apply` in a new directory. A completed journal cannot be
@@ -294,6 +322,7 @@ any TV request; it is not an installation result:
   "release_id": 432694668,
   "transport": "existing-ares-developer-mode",
   "outcome": "dry-run",
+  "install_started": false,
   "protected_store_backup": "not_performed",
   "playback_validation": "not_performed"
 }

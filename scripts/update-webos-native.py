@@ -23,6 +23,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import uuid
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
@@ -30,11 +31,20 @@ ROOT = Path(__file__).resolve().parents[1]
 APP_ID = "com.openottplay.player.native"
 APP_DIR = "/media/developer/apps/usr/palm/applications/" + APP_ID
 REPOSITORY = "open-ott-play/ottplay-foss"
+DEVICE_ID_COMMAND = '/usr/bin/luna-send-pub -n 1 luna://com.webos.service.sm/deviceid/getIDs \'{"idType":["LGUDID"]}\''
 STATE_ROOTS = ("ottplay-profile.json", "ottplay-control.json", "ott-state")
 STATE_LIMIT = 32 * 1024 * 1024
 OUTPUT_LIMIT = 64 * 1024 * 1024
 VERSION = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
+RELEASE_BINDINGS = (
+    "tag",
+    "version",
+    "sha256",
+    "source_sha",
+    "release_id",
+    "source_set_sha256",
+)
 
 
 class UpdateError(ValueError):
@@ -61,6 +71,16 @@ def load_module(filename):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def require_device_binding(identity):
+    check(
+        isinstance(identity, dict)
+        and identity.get("binding") == "lgudid-v1"
+        and isinstance(identity.get("device_id_sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", identity["device_id_sha256"]),
+        "journal_device_binding_missing",
+    )
 
 
 def version_tuple(value):
@@ -566,17 +586,54 @@ class Ares:
         system = parse_system_info(
             self.device("ares-device", "--system-info").decode("utf-8")
         )
-        # The TV API exposes model/firmware, not a serial. This is deliberately not a hardware attestation.
+        try:
+            response = json_bytes(
+                "\n".join(
+                    cli_lines(self.remote(DEVICE_ID_COMMAND).decode("utf-8"))
+                ).encode()
+            )
+            check(
+                isinstance(response, dict) and response.get("returnValue") is True,
+                "device_identity_unavailable",
+            )
+            rows = response.get("idList")
+            check(
+                isinstance(rows, list) and len(rows) == 1, "device_identity_unavailable"
+            )
+            row = rows[0]
+            check(
+                isinstance(row, dict) and row.get("idType") == "LGUDID",
+                "device_identity_unavailable",
+            )
+            raw_id = row.get("idValue")
+            check(
+                isinstance(raw_id, str)
+                and re.fullmatch(
+                    r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", raw_id
+                ),
+                "device_identity_unavailable",
+            )
+            device_id = uuid.UUID(raw_id)
+            check(device_id.int != 0, "device_identity_unavailable")
+            device_hash = digest(
+                b"ottplay-lgudid-v1\0" + str(device_id).encode("ascii")
+            )
+        except (UpdateError, ValueError, UnicodeError):
+            raise UpdateError("device_identity_unavailable") from None
+        # The read-only device ID binds recovery to the TV; this is not SSH peer attestation.
         bound = {
             "alias": self.alias,
             "endpoint": {key: info.get(key) for key in ("ip", "port", "user", "uid")},
             "system": system,
+            "device_id_sha256": device_hash,
         }
         return {
             "alias": self.alias,
             "fingerprint": digest(json.dumps(bound, sort_keys=True).encode()),
             "model": system["modelName"],
-            "scope": "alias-endpoint-and-model",
+            "scope": "lgudid-with-alias-endpoint-and-model",
+            "binding": "lgudid-v1",
+            "device_id_sha256": device_hash,
         }
 
     def installed(self):
@@ -777,10 +834,50 @@ class Ares:
                 + " || exit 74; "
             )
             if row["directory"]:
-                command += "umask 077; mkdir " + shlex.quote(target)
+                command += "if test -g " + shlex.quote(parent) + "; then "
+                command += (
+                    "group=$(stat -c '%g' " + shlex.quote(parent) + ") || exit 75; "
+                )
+                command += (
+                    '[ "$group" = '
+                    + shlex.quote(str(row["gid"]))
+                    + " ] || exit 75; fi; "
+                )
+                command += (
+                    "umask 077; mkdir -m "
+                    + oct(row["mode"])[2:]
+                    + " "
+                    + shlex.quote(target)
+                )
             else:
-                command += "umask 077; set -C; cat > " + shlex.quote(target)
-            command += " && chmod " + oct(row["mode"])[2:] + " " + shlex.quote(target)
+                # Publish only complete verified bytes. A failed transfer must
+                # never leave a truncated destination that blocks reconciliation.
+                # Keep any SIGKILL orphan outside the managed state roots.
+                # A cross-filesystem destination fails safely at publication.
+                command += (
+                    "umask 077; tmp=$(mktemp "
+                    + shlex.quote(APP_DIR + "/.ott-restore.XXXXXX")
+                    + ") || exit 75; "
+                )
+                command += "trap 'rm -f -- \"$tmp\"' 0; trap 'exit 76' 1 2 15; "
+                command += (
+                    'cat > "$tmp" || exit 75; actual=$(sha256sum < "$tmp") || exit 75; '
+                )
+                command += (
+                    '[ "${actual%% *}" = '
+                    + shlex.quote(row["sha256"])
+                    + " ] || exit 75; "
+                )
+                command += "owner=$(stat -c '%u:%g' \"$tmp\") || exit 75; "
+                command += (
+                    '[ "$owner" = '
+                    + shlex.quote(str(row["uid"]) + ":" + str(row["gid"]))
+                    + " ] || exit 75; "
+                )
+                command += "chmod " + oct(row["mode"])[2:] + ' "$tmp" || exit 75; '
+                # -T rejects a racing directory; no -f means an existing file,
+                # including a symlink, can never be replaced.
+                command += 'ln -T "$tmp" ' + shlex.quote(target) + " || exit 75"
             self.remote(command, data=None if row["directory"] else content[name])
         restored, _, _ = self.capture()
         check(
@@ -799,9 +896,24 @@ def wait_for(predicate, *, attempts, poll_interval, code):
 
 
 def save_journal(path, receipt):
-    temporary = path.with_name("update.next.json")
-    write_private(temporary, json.dumps(receipt, sort_keys=True).encode())
-    os.replace(temporary, path)
+    fd, name = tempfile.mkstemp(prefix=".update-", suffix=".json", dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(json.dumps(receipt, sort_keys=True).encode())
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        if os.name == "posix":
+            directory_fd = os.open(
+                path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+            )
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def reconcile_device(ares, release, state_dir, *, attempts=3, poll_interval=1):
@@ -811,17 +923,7 @@ def reconcile_device(ares, release, state_dir, *, attempts=3, poll_interval=1):
     check(journal.is_file() and not journal.is_symlink(), "missing_update_journal")
     receipt = json_bytes(journal.read_bytes())
     check(
-        all(
-            receipt.get(key) == release.get(key)
-            for key in (
-                "tag",
-                "version",
-                "sha256",
-                "source_sha",
-                "release_id",
-                "source_set_sha256",
-            )
-        ),
+        all(receipt.get(key) == release.get(key) for key in RELEASE_BINDINGS),
         "journal_release_mismatch",
     )
     check(
@@ -835,10 +937,12 @@ def reconcile_device(ares, release, state_dir, *, attempts=3, poll_interval=1):
         },
         "no_pending_update",
     )
+    check(receipt.get("install_started") is True, "installation_not_started")
     check(
         receipt.get("application_id") == APP_ID and receipt.get("snapshot"),
         "recovery_snapshot_unavailable",
     )
+    require_device_binding(receipt.get("device"))
     check(ares.identity() == receipt.get("device"), "device_identity_changed")
     current = ares.installed()
     check(
@@ -860,13 +964,18 @@ def reconcile_device(ares, release, state_dir, *, attempts=3, poll_interval=1):
     )
     try:
         if APP_ID in ares.running() or ares.native_process():
-            ares.close()
+            try:
+                ares.close()
+            except UpdateError as error:
+                if error.code != "close_timeout":
+                    raise
         wait_for(
             lambda: APP_ID not in ares.running() and not ares.native_process(),
             attempts=attempts,
             poll_interval=poll_interval,
             code="native_app_did_not_stop",
         )
+        check(ares.identity() == receipt["device"], "device_identity_changed")
         ares.restore(snapshot)
         ares.launch()
         wait_for(
@@ -934,23 +1043,42 @@ def _update_device(
         "protected_store_backup": "not_performed",
         "playback_validation": "not_performed",
         "outcome": "dry-run",
+        "install_started": False,
     }
     if not apply and not preflight:
         return receipt
     directory = private_directory(state_dir) if apply else Path(state_dir)
     journal = directory / "update.json"
     previous = None
+    retry_preinstall = False
     if journal.exists() or journal.is_symlink():
         check(not journal.is_symlink(), "unsafe_private_journal")
         previous = json_bytes(journal.read_bytes())
         if apply:
+            retry_preinstall = previous.get(
+                "install_started"
+            ) is False and previous.get("outcome") in {"closing", "needs-review"}
             check(
-                previous.get("outcome") in {"complete", "already-current"},
+                previous.get("outcome") in {"complete", "already-current"}
+                or retry_preinstall,
                 "pending_update",
             )
+            if retry_preinstall:
+                check(
+                    previous.get("application_id") == APP_ID
+                    and all(
+                        previous.get(key) == release.get(key)
+                        for key in RELEASE_BINDINGS
+                    ),
+                    "journal_release_mismatch",
+                )
+                require_device_binding(previous.get("device"))
         else:
             receipt["pending_outcome"] = previous.get("outcome")
     identity = ares.identity()
+    require_device_binding(identity)
+    if retry_preinstall:
+        check(identity == previous.get("device"), "device_identity_changed")
     before = ares.installed()
     check(before is not None, "native_app_not_installed")
     check(
@@ -963,6 +1091,11 @@ def _update_device(
         version_tuple(before["version"]) <= version_tuple(release["version"]),
         "downgrade_not_supported",
     )
+    if retry_preinstall:
+        check(
+            before["version"] == previous.get("previous_version"),
+            "preinstall_target_changed",
+        )
     receipt.update(device=identity, previous_version=before["version"])
     active = APP_ID in ares.running()
     process = ares.native_process()
@@ -974,12 +1107,13 @@ def _update_device(
         check(ares.payload_matches(release["payload"]), "same_version_different_build")
         receipt["outcome"] = "already-current"
         return receipt
-    check(previous is None, "completed_update_changed")
-    check(
-        not (directory / "verified-update.ipk").exists()
-        and not (directory / "snapshot").exists(),
-        "existing_update_artifacts",
-    )
+    check(previous is None or retry_preinstall, "completed_update_changed")
+    if not retry_preinstall:
+        check(
+            not (directory / "verified-update.ipk").exists()
+            and not (directory / "snapshot").exists(),
+            "existing_update_artifacts",
+        )
 
     def save(outcome):
         receipt["outcome"] = outcome
@@ -987,6 +1121,21 @@ def _update_device(
 
     save("closing")
     try:
+        if retry_preinstall:
+            # No installation call can precede a durable true marker. Retain
+            # interrupted local work, then take a fresh snapshot of current state.
+            remnants = [
+                directory / name for name in ("snapshot", "verified-update.ipk")
+            ]
+            for path in remnants:
+                check(not path.is_symlink(), "unsafe_preinstall_artifact")
+            remnants = [path for path in remnants if path.exists()]
+            if remnants:
+                retained = Path(
+                    tempfile.mkdtemp(prefix="prior-attempt-", dir=directory)
+                )
+                for path in remnants:
+                    path.rename(retained / path.name)
         if active or process:
             try:
                 ares.close()
@@ -1005,7 +1154,6 @@ def _update_device(
             "sha256": snapshot["sha256"],
             "entries": len(snapshot["files"]),
         }
-        save("installing")
         try:
             ipk = Path(release["ipk"])
             check(
@@ -1024,6 +1172,9 @@ def _update_device(
                     == release["sha256"],
                     "release_file_changed",
                 )
+            check(ares.identity() == identity, "device_identity_changed")
+            receipt["install_started"] = True
+            save("installing")
             ares.install(local_ipk)
         except UpdateError as error:
             if error.code != "install_timeout":
@@ -1054,6 +1205,7 @@ def _update_device(
             "unexpected_running_app_after_install",
         )
         save("restoring")
+        check(ares.identity() == identity, "device_identity_changed")
         ares.restore(snapshot)
         save("launching")
         ares.launch()

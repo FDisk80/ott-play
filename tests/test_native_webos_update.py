@@ -6,6 +6,7 @@ import io
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -319,8 +320,7 @@ class PrivateStateTests(unittest.TestCase):
             self.ares.restore(self.snapshot)
         writes = [(command, data) for command, data in calls if data is not None]
         self.assertEqual({data for _, data in writes}, {value for value in self.entries.values() if value is not None})
-        self.assertTrue(all("set -C" in command for command, _ in writes))
-        self.assertTrue(all("rm " not in command for command, _ in calls))
+        self.assertEqual(len(writes), len(self.content) - 1)
 
     def test_modified_private_backup_fails_before_any_device_request(self):
         Path(self.snapshot["path"]).write_bytes(self.archive + b"changed")
@@ -364,6 +364,167 @@ class PrivateStateTests(unittest.TestCase):
         self.assertFalse((destination / "state.tar").exists())
 
 
+@unittest.skipUnless(os.name == "posix" and shutil.which("sha256sum"),
+                     "Local shell fixtures require POSIX and sha256sum")
+class LocalRestoreAndPayloadTests(unittest.TestCase):
+    """Run emitted shell only against isolated local files, never a device."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.application = self.root / "application"
+        self.service = self.root / "service"
+        self.application.mkdir()
+        self.service.mkdir()
+        self.ares = update.Ares("fixture-tv", runner=lambda *args, **kwargs: self.fail("device request"))
+        self.ares.remote = self.local_remote
+        self.shell_prefix = ""
+        self.transfer = lambda data: data
+        self.before_transfer = lambda: None
+        self.profile = b"private-profile-with-complete-contents"
+        archive = private_tar({"ottplay-profile.json": self.profile}, uid=os.getuid(), gid=os.getgid())
+        path = self.root / "state.tar"
+        path.write_bytes(archive)
+        rows, _ = update.state_archive(archive)
+        self.snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+
+    def local_remote(self, command, *, data=None):
+        service_dir = "/media/developer/apps/usr/palm/services/" + APP_ID + ".storage"
+        self.assertTrue(APP_DIR in command or service_dir in command or command == "id -u; id -g")
+        local = command.replace(APP_DIR, str(self.application)).replace(service_dir, str(self.service))
+        self.assertNotIn("/media/developer/", local)
+        local = self.shell_prefix + "\n" + local
+        if data is not None:
+            self.before_transfer()
+            data = self.transfer(data)
+            data = data.replace(APP_DIR.encode(), str(self.application).encode())
+            data = data.replace(service_dir.encode(), str(self.service).encode())
+        result = subprocess.run(
+            ["sh", "-c", local], input=data, capture_output=True, timeout=5, check=False,
+            env={**os.environ, "COPYFILE_DISABLE": "1"},
+        )
+        if result.returncode:
+            raise update.UpdateError("private_state_failed")
+        return result.stdout
+
+    def test_complete_transfer_publishes_exact_bytes_with_private_mode(self):
+        self.ares.restore(self.snapshot)
+        target = self.application / "ottplay-profile.json"
+        self.assertEqual(target.read_bytes(), self.profile)
+        self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(list(self.application.iterdir()), [target])
+
+    def test_interrupted_transfer_does_not_publish_partial_file_and_can_retry(self):
+        self.transfer = lambda data: data[:5]
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertFalse((self.application / "ottplay-profile.json").exists())
+        self.assertEqual(list(self.application.iterdir()), [])
+        self.transfer = lambda data: data
+        self.ares.restore(self.snapshot)
+        self.assertEqual((self.application / "ottplay-profile.json").read_bytes(), self.profile)
+
+    def test_destination_created_during_transfer_is_never_overwritten(self):
+        target = self.application / "ottplay-profile.json"
+        self.before_transfer = lambda: target.write_bytes(b"newer-private-configuration")
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertEqual(target.read_bytes(), b"newer-private-configuration")
+        self.assertEqual(list(self.application.iterdir()), [target])
+
+    def test_directory_at_destination_does_not_receive_staged_file(self):
+        target = self.application / "ottplay-profile.json"
+        self.before_transfer = lambda: target.mkdir()
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertTrue(target.is_dir())
+        self.assertEqual(list(target.iterdir()), [])
+        self.assertEqual(list(self.application.iterdir()), [target])
+
+    def test_wrong_or_unreadable_staged_owner_prevents_publication(self):
+        for prefix in ("stat() { printf '999999:999999\\n'; }", "stat() { return 1; }"):
+            with self.subTest(prefix=prefix):
+                self.shell_prefix = prefix
+                with self.assertRaises(update.UpdateError):
+                    self.ares.restore(self.snapshot)
+                self.assertEqual(list(self.application.iterdir()), [])
+
+    def test_setgid_parent_with_wrong_group_prevents_directory_creation(self):
+        self.application.chmod(0o2700)
+        self.assertTrue(self.application.stat().st_mode & 0o2000)
+        self.shell_prefix = "stat() { printf '999999\\n'; }"
+        archive = private_tar({"ott-state": None}, uid=os.getuid(), gid=os.getgid())
+        path = Path(self.snapshot["path"])
+        path.write_bytes(archive)
+        rows, _ = update.state_archive(archive)
+        self.snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertFalse((self.application / "ott-state").exists())
+        self.assertEqual(list(self.application.iterdir()), [])
+
+    def payload_fixture(self):
+        files = {"app/plxnative": b"native-program", "app/appinfo.json": b"package-identity",
+                 "service/plxnative-storage": b"storage-program"}
+        for name, data in files.items():
+            kind, relative = name.split("/", 1)
+            root = self.application if kind == "app" else self.service
+            (root / relative).write_bytes(data)
+        return {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
+
+    def test_real_payload_match_and_changed_service_hash(self):
+        payload = self.payload_fixture()
+        self.assertTrue(self.ares.payload_matches(payload))
+        (self.service / "plxnative-storage").write_bytes(b"different-storage-program")
+        self.assertFalse(self.ares.payload_matches(payload))
+
+    def test_missing_or_symlink_payload_is_not_accepted(self):
+        payload = self.payload_fixture()
+        target = self.application / "plxnative"
+        target.unlink()
+        self.assertFalse(self.ares.payload_matches(payload))
+        outside = self.root / "same-bytes-elsewhere"
+        outside.write_bytes(b"native-program")
+        target.symlink_to(outside)
+        self.assertFalse(self.ares.payload_matches(payload))
+
+    def test_ambiguous_payload_readback_is_not_success(self):
+        payload = self.payload_fixture()
+        for reply in (b"", b"OTT_PAYLOAD_MATCH\nOTT_PAYLOAD_MATCH\n",
+                      b"OTT_PAYLOAD_MATCH\nOTT_PAYLOAD_MISMATCH\n", b"unknown-output\n"):
+            with self.subTest(reply=reply), patch.object(self.ares, "remote", return_value=reply), \
+                    self.assertRaises(update.UpdateError) as caught:
+                self.ares.payload_matches(payload)
+            self.assertEqual(caught.exception.code, "invalid_payload_readback")
+
+
+class JournalRecoveryTests(unittest.TestCase):
+    def test_stale_temporary_file_does_not_block_future_durable_receipts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stale = root / "update.next.json"
+            stale.write_text("interrupted-legacy-receipt")
+            journal = root / "update.json"
+            update.save_journal(journal, {"outcome": "closing"})
+            update.save_journal(journal, {"outcome": "needs-review"})
+            self.assertEqual(json.loads(journal.read_text()), {"outcome": "needs-review"})
+            self.assertEqual(stale.read_text(), "interrupted-legacy-receipt")
+
+    def test_failed_atomic_replace_keeps_prior_receipt_and_retry_succeeds(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            journal = root / "update.json"
+            update.save_journal(journal, {"outcome": "closing"})
+            with patch.object(update.os, "replace", side_effect=OSError("fixture replace failure")), \
+                    self.assertRaises((OSError, update.UpdateError)):
+                update.save_journal(journal, {"outcome": "installing"})
+            self.assertEqual(json.loads(journal.read_text()), {"outcome": "closing"})
+            self.assertEqual(list(root.iterdir()), [journal])
+            update.save_journal(journal, {"outcome": "installing"})
+            self.assertEqual(json.loads(journal.read_text()), {"outcome": "installing"})
+
+
 class AccessFailureTests(unittest.TestCase):
     def test_error_categories_do_not_expose_credentials_or_infer_expiry_from_auth(self):
         sentinel = b" secret-token https://private.invalid/?secret=fixture"
@@ -394,6 +555,66 @@ class AccessFailureTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertEqual(calls[0][-1], "--listfull")
             self.assertFalse({"--getkey", "--add", "--remove", "--modify"}.intersection(calls[0]))
+
+
+@unittest.skipUnless(os.name == "posix", "Ares transport requires macOS or Linux")
+class DeviceIdentityTests(unittest.TestCase):
+    UUID = "abcdef01-2345-4678-9abc-def012345678"
+
+    def identity(self, response=None, error=None):
+        ares = update.Ares("fixture-tv", runner=lambda *args, **kwargs: self.fail("device request"))
+        inventory = [{"name": "fixture-tv", "profile": "tv", "deviceinfo": {
+            "user": "prisoner", "port": 9922, "ip": "fixture.invalid", "uid": "fixture-alias-id",
+        }}]
+        system = b"modelName : FIXTURE_MODEL\nsdkVersion : 6.1.0\nfirmwareVersion : 00.00.00\n"
+        if response is None:
+            response = {"returnValue": True, "idList": [{"idType": "LGUDID", "idValue": self.UUID}]}
+        encoded = response if isinstance(response, bytes) else json.dumps(response).encode()
+        with patch.object(ares, "command", return_value=json.dumps(inventory).encode()) as command, \
+                patch.object(ares, "device", return_value=system) as device, \
+                patch.object(ares, "remote", return_value=encoded, side_effect=error) as remote:
+            result = ares.identity()
+            command.assert_called_once_with("ares-setup-device", "--listfull")
+            device.assert_called_once_with("ares-device", "--system-info")
+            remote.assert_called_once_with(update.DEVICE_ID_COMMAND)
+        return result
+
+    def test_identifier_is_hashed_and_not_retained_in_returned_identity(self):
+        result = self.identity()
+        self.assertEqual(result["binding"], "lgudid-v1")
+        self.assertRegex(result["device_id_sha256"], r"^[0-9a-f]{64}$")
+        self.assertNotIn(self.UUID, json.dumps(result))
+        upper = {"returnValue": True, "idList": [{"idType": "LGUDID", "idValue": self.UUID.upper()}]}
+        self.assertEqual(result, self.identity(upper))
+
+    def test_different_device_cannot_match_same_model_alias_and_endpoint(self):
+        first = self.identity()
+        second = self.identity({"returnValue": True, "idList": [
+            {"idType": "LGUDID", "idValue": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"},
+        ]})
+        self.assertNotEqual(first["fingerprint"], second["fingerprint"])
+        self.assertNotEqual(first["device_id_sha256"], second["device_id_sha256"])
+
+    def test_missing_malformed_or_ambiguous_identifier_never_falls_back_to_model(self):
+        valid = {"idType": "LGUDID", "idValue": self.UUID}
+        for response in (
+            {"returnValue": False, "idList": [valid]},
+            {"returnValue": True}, {"returnValue": True, "idList": []},
+            {"returnValue": True, "idList": [valid, valid]},
+            {"returnValue": True, "idList": [{"idType": "OTHER", "idValue": self.UUID}]},
+            {"returnValue": True, "idList": [{"idType": "LGUDID", "idValue": ""}]},
+            {"returnValue": True, "idList": [{"idType": "LGUDID", "idValue": "00000000-0000-0000-0000-000000000000"}]},
+            {"returnValue": True, "idList": [{"idType": "LGUDID", "idValue": self.UUID.replace("-", "")}]},
+            b'{"returnValue":true,"returnValue":false}', b"invalid response", b"\xff",
+        ):
+            with self.subTest(response=response), self.assertRaises(update.UpdateError) as caught:
+                self.identity(response)
+            self.assertEqual(caught.exception.code, "device_identity_unavailable")
+
+    def test_identity_query_error_does_not_expose_sensitive_output(self):
+        with self.assertRaises(update.UpdateError) as caught:
+            self.identity(error=update.UpdateError("fixture-sensitive-output"))
+        self.assertEqual(str(caught.exception), "device_identity_unavailable")
 
 
 @unittest.skipUnless(os.name == "posix", "Real Ares subprocess transport requires POSIX")
@@ -483,7 +704,8 @@ class FakeAres:
 
     def identity(self):
         self.calls.append("identity")
-        return {"alias": "fixture-tv", "fingerprint": "f" * 64, "model": "fixture-model"}
+        return {"alias": "fixture-tv", "fingerprint": "f" * 64, "model": "fixture-model",
+                "binding": "lgudid-v1", "device_id_sha256": "d" * 64}
 
     def installed(self):
         self.calls.append("installed")
@@ -636,6 +858,8 @@ class UpdateSequenceTests(unittest.TestCase):
         self.assertEqual(ares.calls.count("install"), 1)
         self.assertEqual(ares.calls.count("snapshot"), 1)
         self.assertEqual(ares.calls.count("restore"), 1)
+        self.assertEqual(ares.calls.count("launch"), 1)
+        self.assertTrue(ares.process_active)
         self.assertEqual(ares.files, ares.initial_files)
 
     def test_same_version_with_different_payload_is_not_treated_as_current(self):
@@ -692,6 +916,83 @@ class UpdateSequenceTests(unittest.TestCase):
         self.assertNotIn("install", ares.calls)
         self.assertNotIn("restore", ares.calls)
         self.assertEqual(ares.files, ares.initial_files)
+
+    def test_proven_preinstall_failure_can_retry_without_discarding_state(self):
+        ares = FakeAres()
+        with patch.object(ares, "snapshot", side_effect=update.UpdateError("snapshot_unavailable")), \
+                self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        journal = json.loads((self.root / "state/update.json").read_text())
+        self.assertIs(journal["install_started"], False)
+        self.assertNotIn("install", ares.calls)
+        result = self.perform(ares, apply=True)
+        self.assertEqual(result["outcome"], "complete")
+        self.assertEqual(ares.calls.count("install"), 1)
+        self.assertEqual(ares.files, ares.initial_files)
+
+    def test_preinstall_retry_retains_prior_local_snapshot_and_rechecks_package(self):
+        original = self.ipk.read_bytes()
+        ares = FakeAres()
+        original_snapshot = ares.snapshot
+
+        def changed_package(destination):
+            result = original_snapshot(destination)
+            self.ipk.write_bytes(b"changed-before-install")
+            return result
+
+        with patch.object(ares, "snapshot", side_effect=changed_package), self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        old_snapshot = (self.root / "state/snapshot/state.tar").read_bytes()
+        journal = json.loads((self.root / "state/update.json").read_text())
+        self.assertIs(journal["install_started"], False)
+        self.assertNotIn("install", ares.calls)
+        self.ipk.write_bytes(original)
+        self.assertEqual(self.perform(ares, apply=True)["outcome"], "complete")
+        retained = list((self.root / "state").glob("prior-attempt-*/snapshot/state.tar"))
+        self.assertEqual(len(retained), 1)
+        self.assertEqual(retained[0].read_bytes(), old_snapshot)
+        self.assertEqual(ares.calls.count("install"), 1)
+
+    def test_preinstall_retry_refuses_changed_release_or_device(self):
+        ares = FakeAres()
+        with patch.object(ares, "snapshot", side_effect=update.UpdateError("snapshot_unavailable")), \
+                self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        for field, changed in (("sha256", "f" * 64), ("source_sha", "f" * 40),
+                               ("source_set_sha256", "f" * 64), ("release_id", 999)):
+            with self.subTest(field=field):
+                original = self.release[field]
+                self.release[field] = changed
+                before = list(ares.calls)
+                try:
+                    with self.assertRaises(update.UpdateError):
+                        self.perform(ares, apply=True)
+                    self.assertEqual(ares.calls, before)
+                finally:
+                    self.release[field] = original
+        with patch.object(ares, "identity", return_value={"alias": "other", "fingerprint": "e" * 64}), \
+                self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        self.assertNotIn("install", ares.calls)
+
+    def test_missing_or_started_install_marker_never_allows_automatic_retry(self):
+        ares = self.timed_out(completed=False)
+        self.perform(ares, apply=True)
+        path = self.root / "state/update.json"
+        journal = json.loads(path.read_text())
+        self.assertIs(journal["install_started"], True)
+        for marker in (None, True):
+            with self.subTest(marker=marker):
+                modified = {**journal, "outcome": "needs-review"}
+                if marker is None:
+                    modified.pop("install_started")
+                path.write_text(json.dumps(modified))
+                before = list(ares.calls)
+                with self.assertRaises(update.UpdateError) as caught:
+                    self.perform(ares, apply=True)
+                self.assertEqual(caught.exception.code, "pending_update")
+                self.assertEqual(ares.calls, before)
+        self.assertEqual(ares.calls.count("install"), 1)
 
     def test_package_changed_after_verification_cannot_be_installed(self):
         ipk = self.ipk
@@ -823,6 +1124,68 @@ class UpdateSequenceTests(unittest.TestCase):
         self.assertEqual(ares.calls.count("install"), 1)
         self.assertEqual(ares.calls.count("restore"), 1)
 
+    def test_reconcile_rechecks_device_after_close_before_restoring(self):
+        ares = self.timed_out(completed=True)
+        self.perform(ares, apply=True)
+        original_identity = ares.identity()
+        with patch.object(ares, "identity", side_effect=[original_identity, {"fingerprint": "changed-device"}]), \
+                self.assertRaises(update.UpdateError) as caught:
+            self.perform(ares, reconcile=True)
+        self.assertEqual(caught.exception.code, "device_identity_changed")
+        self.assertNotIn("restore", ares.calls)
+        self.assertNotIn("launch", ares.calls)
+
+    def test_update_rechecks_device_after_install_before_restoring(self):
+        class ChangedAfterInstall(FakeAres):
+            changed = False
+
+            def install(self, ipk):
+                super().install(ipk)
+                self.changed = True
+
+            def identity(self):
+                result = super().identity()
+                if self.changed:
+                    result["fingerprint"] = "e" * 64
+                return result
+
+        ares = ChangedAfterInstall()
+        with self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        self.assertNotIn("restore", ares.calls)
+        self.assertNotIn("launch", ares.calls)
+        self.assertEqual(ares.calls.count("install"), 1)
+
+    def test_reconcile_close_timeout_continues_only_after_confirmed_stop(self):
+        ares = self.timed_out(completed=True)
+        self.perform(ares, apply=True)
+        ares.active.add(APP_ID)
+        ares.process_active = True
+        original_close = ares.close
+
+        def closed_but_timed_out():
+            original_close()
+            raise update.UpdateError("close_timeout")
+
+        with patch.object(ares, "close", side_effect=closed_but_timed_out):
+            result = self.perform(ares, reconcile=True)
+        self.assertEqual(result["outcome"], "complete")
+        self.assertEqual(ares.calls.count("install"), 1)
+        self.assertEqual(ares.files, ares.initial_files)
+
+    def test_reconcile_close_timeout_with_live_process_does_not_restore_or_launch(self):
+        ares = self.timed_out(completed=True)
+        self.perform(ares, apply=True)
+        ares.active.add(APP_ID)
+        ares.process_active = True
+        with patch.object(ares, "close", side_effect=update.UpdateError("close_timeout")), \
+                self.assertRaises(update.UpdateError) as caught:
+            self.perform(ares, reconcile=True)
+        self.assertEqual(caught.exception.code, "native_app_did_not_stop")
+        self.assertNotIn("restore", ares.calls)
+        self.assertNotIn("launch", ares.calls)
+        self.assertEqual(ares.calls.count("install"), 1)
+
     def test_completed_journal_cannot_restore_stale_state_again(self):
         ares = self.timed_out(completed=True)
         self.perform(ares, apply=True)
@@ -866,6 +1229,52 @@ class UpdateSequenceTests(unittest.TestCase):
             self.perform(ares, reconcile=True)
         self.assertEqual(caught.exception.code, "missing_update_journal")
         self.assertEqual(ares.calls, [])
+
+    def test_reconcile_cannot_adopt_a_manual_install_after_preinstall_failure(self):
+        ares = FakeAres()
+        original_snapshot = ares.snapshot
+
+        def change_package_after_snapshot(destination):
+            snapshot = original_snapshot(destination)
+            self.ipk.write_bytes(b"invalid-before-install")
+            return snapshot
+
+        with patch.object(ares, "snapshot", side_effect=change_package_after_snapshot), \
+                self.assertRaises(update.UpdateError):
+            self.perform(ares, apply=True)
+        path = self.root / "state/update.json"
+        saved = json.loads(path.read_text())
+        self.assertTrue(saved["snapshot"])
+        self.assertEqual(saved["outcome"], "needs-review")
+        self.assertIs(saved["install_started"], False)
+        self.assertNotIn("install", ares.calls)
+        ares.app["version"] = "0.2.0"  # A separate manual install cannot authorize old-state restoration.
+        for marker in (False, None):
+            with self.subTest(marker=marker):
+                journal = dict(saved)
+                if marker is None:
+                    journal.pop("install_started")
+                path.write_text(json.dumps(journal))
+                before = list(ares.calls)
+                with self.assertRaises(update.UpdateError) as caught:
+                    self.perform(ares, reconcile=True)
+                self.assertEqual(caught.exception.code, "installation_not_started")
+                self.assertEqual(ares.calls, before)
+                self.assertEqual(ares.files, ares.initial_files)
+
+    def test_legacy_alias_only_journal_cannot_authorize_recovery(self):
+        ares = self.timed_out(completed=True)
+        self.perform(ares, apply=True)
+        path = self.root / "state/update.json"
+        journal = json.loads(path.read_text())
+        journal["device"].pop("binding")
+        journal["device"].pop("device_id_sha256")
+        path.write_text(json.dumps(journal))
+        before = list(ares.calls)
+        with self.assertRaises(update.UpdateError) as caught:
+            self.perform(ares, reconcile=True)
+        self.assertEqual(caught.exception.code, "journal_device_binding_missing")
+        self.assertEqual(ares.calls, before)
 
     def test_reconcile_different_release_cannot_reuse_the_saved_snapshot(self):
         ares = self.timed_out(completed=True)
