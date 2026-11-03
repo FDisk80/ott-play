@@ -48,13 +48,16 @@ their installed repository snapshots continue to work. There is no moving
 
 After publication, request the repository with an explicit `Origin: null` and
 verify a successful response, JSON content type and
-`Access-Control-Allow-Origin: *`. Follow its `manifestUrl`, `fullDescriptionUrl`
-and `iconUri`; compare each response's SHA-256 with the corresponding original
-GitHub release asset. Download the manifest's IPK URL and verify `ipkHash.sha256`.
+`Access-Control-Allow-Origin: *`. Follow its `manifestUrl` and `iconUri`, and
+`fullDescriptionUrl` when present; compare each response's SHA-256 with the
+corresponding original GitHub release asset. Download the manifest's IPK URL
+and verify `ipkHash.sha256`.
 Check that its app ID, numeric package version and release sidecar agree.
 
 Run `npm run test:webos` before deploying a code change. A successful HTTP check
 proves metadata delivery, not installation or decoding on a real LG television.
-If the metadata endpoint is unavailable, an already installed player continues
-to use the canonical player site; a new installation can use the Developer Mode
-IPK route. Do not point Homebrew directly at the non-CORS GitHub JSON as a fallback.
+If the metadata endpoint is unavailable, the installed hosted player still
+loads the canonical player site, while the separate native application runs its
+installed code. Media sources must still be reachable. New installations can
+use the Developer Mode IPK route. Do not point Homebrew directly at the non-CORS
+GitHub JSON as a fallback.

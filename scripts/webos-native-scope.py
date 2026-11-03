@@ -14,6 +14,8 @@ PATHS = {
     ".github/workflow-tests/test_webos_native_scope.py",
     "scripts/webos-native-scope.py",
     "tests/test_webos_runtime_sources.py",
+    "scripts/verify-webos-native-release.py",
+    "tests/test_webos_native_release.py",
 }
 
 

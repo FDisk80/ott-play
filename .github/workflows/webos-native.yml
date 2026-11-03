@@ -34,6 +34,7 @@ jobs:
         run: python3 scripts/webos-native-scope.py
       - run: python3 -m unittest discover -s native/webos -p 'test_*.py' -v
       - run: python3 -m unittest discover -s tests -p test_webos_runtime_sources.py -v
+      - run: python3 -m unittest discover -s tests -p test_webos_native_release.py -v
 
   native-candidate:
     needs: contracts
@@ -61,10 +62,26 @@ jobs:
             --metadata "build/native-webos/dist/ottplay-native-webos-${native_version}.json" \
             --source build/native-webos/source \
             --sdk build/native-webos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot
+      - name: Verify the complete distributable bundle
+        id: bundle
+        run: |
+          native_version=$(python3 -c 'import json; print(json.load(open("native/webos/upstream.json"))["application"]["version"])')
+          python3 scripts/verify-webos-native-release.py \
+            --metadata "build/native-webos/dist/ottplay-native-webos-${native_version}.json" \
+            --check-checkout
+          printf 'version=%s\n' "$native_version" >> "$GITHUB_OUTPUT"
       - name: Preserve the binary and matching source as one candidate
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ottplay-native-webos-candidate
-          path: build/native-webos/dist/
+          path: |
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}.ipk
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}.json
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}.sha256
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-source.tar.gz
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-source.tar.gz.release.json
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-runtime-source.tar.gz
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-source-set.json
+            build/native-webos/dist/ottplay-native-webos-icon.png
           if-no-files-found: error
           retention-days: 30

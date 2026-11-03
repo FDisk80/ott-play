@@ -163,6 +163,21 @@ class NativePackageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unexpected package path"):
             self.verify(self.changed(lambda files: files.update({"usr/palm/services/other/runtime": b"fixture"})))
 
+    def test_private_profiles_and_state_are_rejected(self):
+        prefix = "usr/palm/applications/" + build.manifest()["application"]["id"] + "/"
+        for path in (
+            "ottplay-profile.json",
+            "ottplay-control.json",
+            "ott-state.json",
+            "nested/ott-state.json",
+            "ott-state/OttControl",
+            "ott-state/OttState",
+            "nested/ottplay-control.json",
+            "nested/ott-state/record",
+        ):
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "Private profiles"):
+                self.verify(self.changed(lambda files, path=path: files.update({prefix + path: b"private fixture"})))
+
     def test_installer_hook_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "Unexpected package path"):
             self.verify(self.changed(lambda files: files.update({"postinst": b"fixture"}), control=True))

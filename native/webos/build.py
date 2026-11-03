@@ -413,8 +413,9 @@ def verify_ipk(path: Path, spec) -> dict:
         fail("Complete native GPL license text missing")
     if prefix + "THIRD-PARTY-NOTICES.md" not in files:
         fail("Native dependency notices missing")
-    if any(name.endswith("/ottplay-profile.json") for name in files):
-        fail("A private Plex profile must never be distributed in the IPK")
+    private_names = {"ottplay-profile.json", "ottplay-control.json", "ott-state", "ott-state.json"}
+    if any(private_names.intersection(name.split("/")) for name in files):
+        fail("Private profiles, control credentials and state must never be distributed in the IPK")
     if descriptor.get("main") != "plxnative":
         fail("Unexpected native application entry point")
     binary = files[prefix + descriptor["main"]]

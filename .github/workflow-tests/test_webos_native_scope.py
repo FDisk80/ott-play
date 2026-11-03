@@ -18,7 +18,8 @@ BASE, HEAD = "a" * 40, "b" * 40
 class NativeScopeTests(unittest.TestCase):
     def test_native_inputs_require_build(self):
         for path in (*SCOPE.PATHS, "native/webos/build.py", "native/webos/patches/fix.patch",
-                     "scripts/webos-runtime-sources.json", "scripts/webos-runtime-sources.py"):
+                     "scripts/webos-runtime-sources.json", "scripts/webos-runtime-sources.py",
+                     "scripts/verify-webos-native-release.py", "tests/test_webos_native_release.py"):
             with self.subTest(path=path):
                 self.assertTrue(SCOPE.requires_build("pull_request", BASE, HEAD, lambda *_: [path]))
 
@@ -75,6 +76,36 @@ class NativeScopeTests(unittest.TestCase):
         self.assertEqual(native["jobs"]["native-candidate"]["needs"], "contracts")
         self.assertEqual(native["jobs"]["native-candidate"]["if"],
                          "${{ needs.contracts.outputs.build == 'true' }}")
+
+    def test_complete_bundle_is_verified_before_upload(self):
+        workflow = yaml.load((ROOT / ".github/workflows/webos-native.yml").read_text(),
+                             Loader=yaml.BaseLoader)
+        contracts = workflow["jobs"]["contracts"]["steps"]
+        self.assertTrue(any("test_webos_native_release.py" in step.get("run", "")
+                            for step in contracts))
+        steps = workflow["jobs"]["native-candidate"]["steps"]
+        collector = next(i for i, step in enumerate(steps)
+                         if "scripts/webos-runtime-sources.py" in step.get("run", ""))
+        verifier = next(i for i, step in enumerate(steps)
+                        if "scripts/verify-webos-native-release.py" in step.get("run", ""))
+        upload = next(i for i, step in enumerate(steps)
+                      if step.get("uses", "").startswith("actions/upload-artifact@"))
+        self.assertLess(collector, verifier)
+        self.assertLess(verifier, upload)
+        self.assertNotIn("continue-on-error", steps[verifier])
+        self.assertNotIn("if", steps[verifier])
+        self.assertIn('--metadata "build/native-webos/dist/ottplay-native-webos-${native_version}.json"',
+                      steps[verifier]["run"])
+        self.assertIn("--check-checkout", steps[verifier]["run"])
+        self.assertEqual(steps[verifier]["id"], "bundle")
+        self.assertIn('"$GITHUB_OUTPUT"', steps[verifier]["run"])
+        stem = "build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}"
+        expected = {stem + suffix for suffix in (
+            ".ipk", ".json", ".sha256", "-source.tar.gz", "-source.tar.gz.release.json",
+            "-runtime-source.tar.gz", "-source-set.json",
+        )}
+        expected.add("build/native-webos/dist/ottplay-native-webos-icon.png")
+        self.assertEqual(set(steps[upload]["with"]["path"].splitlines()), expected)
 
 
 if __name__ == "__main__":
