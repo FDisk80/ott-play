@@ -146,7 +146,7 @@
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
 
-## [1.1.63] - 2026-11-02
+## [1.1.63] - 2026-11-03
 
 ### Changes
 
