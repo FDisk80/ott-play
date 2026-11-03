@@ -28,7 +28,7 @@ async fn route(State(data): State<FixtureData>, uri: axum::http::Uri) -> Respons
             .split('&')
             .find_map(|p| p.strip_prefix("info_hash="))
             .map(|v| urlencoding::decode_binary(v.as_bytes()));
-        if !hash.is_some_and(|h| h.as_ref() == data.hash) {
+        if hash.is_none_or(|h| h.as_ref() != data.hash) {
             return StatusCode::BAD_REQUEST.into_response();
         }
         let mut body = b"d8:completei1e10:incompletei0e8:intervali30e5:peers6:".to_vec();

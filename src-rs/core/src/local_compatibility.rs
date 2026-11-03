@@ -1361,7 +1361,9 @@ mod tests {
         assert!(c.get("two/video/0").is_none());
         c.remove_prefix("one");
         assert!(c.get("three/video/0").is_some());
-        assert!(CACHE_BYTES <= 256 * 1024 * 1024);
+        const {
+            assert!(CACHE_BYTES <= 256 * 1024 * 1024);
+        }
     }
     #[tokio::test]
     async fn failed_gate_cleanup_does_not_exhaust_eight_keys() {

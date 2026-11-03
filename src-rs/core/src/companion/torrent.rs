@@ -78,7 +78,7 @@ fn test_tracker_allowed(source: &Source, allowed: Option<&str>) -> bool {
     };
     if url.scheme() != "http"
         || url.host_str() != Some("127.0.0.1")
-        || !url.port().is_some_and(|port| port > 0)
+        || url.port().is_none_or(|port| port == 0)
         || url.path() != "/announce"
         || !url.username().is_empty()
         || url.password().is_some()
