@@ -264,6 +264,27 @@ class GitHubDiagnosticsTests(unittest.TestCase):
             with self.subTest(stderr=stderr[:40]):
                 self.failure(stderr=stderr, allow_not_found=True)
 
+    def test_bare_gh_http_status_is_diagnostic_only(self):
+        for code in (403, 404, 415):
+            with self.subTest(code=code):
+                message = self.failure(stderr=f"gh: HTTP {code}\n".encode(), allow_not_found=True)
+                self.assertEqual(message, f"GitHub request failed [candidate-run; HTTP {code}]; no publication precondition inferred")
+
+    def test_multiple_http_markers_never_establish_absence(self):
+        variants = (
+            "gh: denied (HTTP 403) (HTTP 404)",
+            "gh: HTTP 403 (HTTP 404)",
+            "gh: denied (HTTP 404) (HTTP 404)",
+            "HTTP 403: denied (HTTP 404)",
+            f"gh: {self.SECRET} https://signed.invalid/?token={self.SECRET} HTTP 415 (HTTP 404)",
+            "gh: denied (HTTP 403)\n(HTTP 404)",
+        )
+        for raw in variants:
+            with self.subTest(raw=raw):
+                message = self.failure(stderr=raw.encode(), allow_not_found=True)
+                self.assertEqual(message, "GitHub request failed [candidate-run; class=ambiguous-http-status]; no publication precondition inferred")
+                self.assertNotIn("signed.invalid", message)
+
     def test_known_transport_failures_are_static_classes(self):
         cases = (
             ("dial tcp: lookup private.invalid: no such host", "dns"),

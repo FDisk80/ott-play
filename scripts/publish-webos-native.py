@@ -201,8 +201,11 @@ def gh_failure_reason(error):
     if len(error) > 8192:
         return "class=stderr-limit", None
     line = error.strip()
+    if len(re.findall(rb"\bHTTP[ \t]+[0-9]{3}\b", line)) > 1:
+        return "class=ambiguous-http-status", None
     status = (re.fullmatch(rb"gh: [^\r\n]* \(HTTP ([1-5][0-9]{2})\)", line)
-              or re.fullmatch(rb"HTTP ([1-5][0-9]{2}): [^\r\n]+", line))
+              or re.fullmatch(rb"HTTP ([1-5][0-9]{2}): [^\r\n]+", line)
+              or re.fullmatch(rb"gh: HTTP ([1-5][0-9]{2})", line))
     if status:
         code = int(status[1])
         return "HTTP " + str(code), code
