@@ -5200,23 +5200,24 @@ mod tests {
             "46-item selected source with delayed filesystem completed in {:?}",
             started.elapsed()
         );
-        let checks = library.scan_entries.lock().unwrap();
-        assert_eq!(
-            checks
-                .iter()
-                .filter(|path| *path != &small.path && path.starts_with(&small.path))
-                .count(),
-            46,
-            "each selected file is inspected once during traversal"
-        );
-        assert_eq!(
-            checks
-                .iter()
-                .filter(|path| *path != &large.path && path.starts_with(&large.path))
-                .count(),
-            SOURCE_PROBE_CONCURRENCY
-        );
-        drop(checks);
+        {
+            let checks = library.scan_entries.lock().unwrap();
+            assert_eq!(
+                checks
+                    .iter()
+                    .filter(|path| *path != &small.path && path.starts_with(&small.path))
+                    .count(),
+                46,
+                "each selected file is inspected once during traversal"
+            );
+            assert_eq!(
+                checks
+                    .iter()
+                    .filter(|path| *path != &large.path && path.starts_with(&large.path))
+                    .count(),
+                SOURCE_PROBE_CONCURRENCY
+            );
+        }
         library.background.set_standby(true);
         assert!(
             library.background.status().pending > 0,

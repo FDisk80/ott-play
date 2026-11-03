@@ -32,6 +32,7 @@ fn config() -> Config {
 fn search() -> Search {
     Search {
         source_id: "local".into(),
+        indexer_id: None,
         query: "legal & public".into(),
         category_ids: vec![2000],
         offset: 0,
@@ -410,7 +411,7 @@ async fn changed_source_cancels_pending_lookup_and_old_handles() {
     let (base, task, seen) = indexer().await;
     let dir = Temp::new();
     let service = configured(&dir.0, &base).await;
-    service.caps("local").await.unwrap();
+    service.caps("local", None).await.unwrap();
     let old = service.search(search()).await.unwrap();
     let pending_service = service.clone();
     let pending = tokio::spawn(async move {
@@ -453,7 +454,7 @@ async fn dropping_pending_search_releases_admission_without_publishing() {
     let (base, task, seen) = indexer().await;
     let dir = Temp::new();
     let service = configured(&dir.0, &base).await;
-    service.caps("local").await.unwrap();
+    service.caps("local", None).await.unwrap();
     let mut jobs = Vec::new();
     for _ in 0..2 {
         let client = service.clone();
