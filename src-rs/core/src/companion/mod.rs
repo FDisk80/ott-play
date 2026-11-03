@@ -30,12 +30,48 @@ mod webseed;
 
 #[derive(Clone)]
 pub struct Companion(Arc<Inner>);
+
+/// Per-instance limits. Desktop callers retain the established defaults;
+/// constrained native hosts may lower them before starting the service.
+#[derive(Clone, Copy, Debug)]
+pub struct ResourceLimits {
+    pub cache_bytes: u64,
+    pub max_sessions: usize,
+    pub max_streams: usize,
+}
+impl Default for ResourceLimits {
+    fn default() -> Self {
+        Self {
+            cache_bytes: torrent::CACHE_LIMIT,
+            max_sessions: torrent::MAX_SESSIONS,
+            max_streams: 4,
+        }
+    }
+}
+impl ResourceLimits {
+    pub fn validate(self) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            (64 * 1024 * 1024..=torrent::CACHE_LIMIT).contains(&self.cache_bytes),
+            "Companion cache limit must be between 64 MiB and 2 GiB"
+        );
+        anyhow::ensure!(
+            (1..=torrent::MAX_SESSIONS).contains(&self.max_sessions),
+            "Companion session limit must be 1 or 2"
+        );
+        anyhow::ensure!(
+            (1..=4).contains(&self.max_streams),
+            "Companion stream limit must be between 1 and 4"
+        );
+        Ok(self)
+    }
+}
 struct Inner {
     token: String,
     torrent: Arc<torrent::TorrentManager>,
     torznab: torznab::Torznab,
     plugins: plugins::PluginService,
     cancel: CancellationToken,
+    limits: ResourceLimits,
 }
 impl Companion {
     pub async fn new(
@@ -43,6 +79,15 @@ impl Companion {
         token: String,
         plugin_dir: Option<PathBuf>,
     ) -> anyhow::Result<Self> {
+        Self::with_limits(root, token, plugin_dir, ResourceLimits::default()).await
+    }
+    pub async fn with_limits(
+        root: PathBuf,
+        token: String,
+        plugin_dir: Option<PathBuf>,
+        limits: ResourceLimits,
+    ) -> anyhow::Result<Self> {
+        let limits = limits.validate()?;
         anyhow::ensure!(
             (32..=128).contains(&token.len())
                 && token
@@ -54,7 +99,8 @@ impl Companion {
         let plugins = plugins::PluginService::load(plugin_dir.as_deref())
             .map_err(|error| anyhow::anyhow!(error.code()))?;
         let torrent =
-            torrent::TorrentManager::new(root.join("torrent-cache"), cancel.clone()).await?;
+            torrent::TorrentManager::new(root.join("torrent-cache"), cancel.clone(), limits)
+                .await?;
         let torznab = torznab::Torznab::new(root.join("torznab-private"), cancel.clone())
             .await
             .map_err(anyhow::Error::msg)?;
@@ -64,6 +110,7 @@ impl Companion {
             torznab,
             plugins,
             cancel,
+            limits,
         })))
     }
     pub fn endpoint(&self) -> String {
@@ -224,10 +271,35 @@ fn failure(code: &'static str) -> Response {
 async fn preflight() -> StatusCode {
     StatusCode::NO_CONTENT
 }
-async fn capabilities() -> Json<Value> {
+async fn capabilities(State(c): State<Companion>) -> Json<Value> {
     Json(
-        json!({"schema":1,"torrent":true,"plugins":true,"localTorznab":true,"torrentSources":["magnet","http","https","local-reference"],"fileSelection":true,"maxSessions":torrent::MAX_SESSIONS,"cacheBytes":torrent::CACHE_LIMIT,"inboundPeerListener":false,"pluginNetwork":true,"pluginNetworkDefault":false}),
+        json!({"schema":1,"torrent":true,"plugins":true,"localTorznab":true,"torrentSources":["magnet","http","https","local-reference"],"fileSelection":true,"maxSessions":c.0.limits.max_sessions,"maxStreams":c.0.limits.max_streams,"cacheBytes":c.0.limits.cache_bytes,"inboundPeerListener":false,"pluginNetwork":true,"pluginNetworkDefault":false}),
     )
+}
+
+#[cfg(test)]
+mod resource_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn capabilities_publish_the_actual_instance_limits() {
+        let root = std::env::temp_dir().join(format!("ott-limits-{}", uuid::Uuid::new_v4()));
+        let limits = ResourceLimits {
+            cache_bytes: 64 * 1024 * 1024,
+            max_sessions: 1,
+            max_streams: 2,
+        };
+        let companion = Companion::with_limits(root.clone(), "z".repeat(48), None, limits)
+            .await
+            .unwrap();
+        let Json(caps) = capabilities(State(companion.clone())).await;
+        assert_eq!(caps["cacheBytes"], limits.cache_bytes);
+        assert_eq!(caps["maxSessions"], 1);
+        assert_eq!(caps["maxStreams"], 2);
+        companion.shutdown().await;
+        drop(companion);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

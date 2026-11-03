@@ -1,5 +1,7 @@
 //! A torrent file name never becomes a local path. Only selected pieces are stored.
-use super::torrent::{lock, MediaFile, CACHE_LIMIT};
+#[cfg(test)]
+use super::torrent::CACHE_LIMIT;
+use super::torrent::{lock, MediaFile};
 use librqbit::storage::{BoxStorageFactory, StorageFactory, StorageFactoryExt, TorrentStorage};
 use std::{
     fs::{File, OpenOptions},
@@ -139,10 +141,18 @@ pub struct Reservation {
     bytes: u64,
 }
 impl Reservation {
+    #[cfg(test)]
     pub fn new(budget: Arc<AtomicU64>, bytes: u64) -> Result<Self, &'static str> {
+        Self::with_limit(budget, bytes, CACHE_LIMIT)
+    }
+    pub fn with_limit(
+        budget: Arc<AtomicU64>,
+        bytes: u64,
+        limit: u64,
+    ) -> Result<Self, &'static str> {
         budget
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |value| {
-                value.checked_add(bytes).filter(|v| *v <= CACHE_LIMIT)
+                value.checked_add(bytes).filter(|v| *v <= limit)
             })
             .map_err(|_| "cache_limit")?;
         Ok(Self { budget, bytes })
@@ -322,6 +332,21 @@ impl TorrentStorage for WindowStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn constrained_reservations_refuse_overflow_and_release_for_next_session() {
+        let budget = Arc::new(AtomicU64::new(0));
+        let first = Reservation::with_limit(budget.clone(), 60, 100).unwrap();
+        assert!(Reservation::with_limit(budget.clone(), 41, 100).is_err());
+        assert_eq!(budget.load(Ordering::SeqCst), 60);
+        let second = Reservation::with_limit(budget.clone(), 40, 100).unwrap();
+        assert!(Reservation::with_limit(budget.clone(), u64::MAX, 100).is_err());
+        drop(first);
+        drop(second);
+        assert_eq!(budget.load(Ordering::SeqCst), 0);
+        let next = Reservation::with_limit(budget.clone(), 100, 100).unwrap();
+        drop(next);
+        assert_eq!(budget.load(Ordering::SeqCst), 0);
+    }
     #[test]
     fn cache_window_prevents_outside_writes_and_retires_with_its_lease() {
         let dir =

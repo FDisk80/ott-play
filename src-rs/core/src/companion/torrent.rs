@@ -24,6 +24,82 @@ enum Source {
     Url(String),
     Metainfo(Vec<u8>),
 }
+async fn resolve_source(source: Source) -> Result<(Source, bool), &'static str> {
+    let source = match source {
+        Source::Url(url) if !url.starts_with("magnet:") => {
+            Source::Metainfo(super::source::fetch(&url).await?)
+        }
+        source => source,
+    };
+    let private = match &source {
+        Source::Metainfo(bytes) => {
+            super::source::validate_metainfo(bytes)?;
+            librqbit::torrent_from_bytes(bytes)
+                .map_err(|_| "invalid_metadata")?
+                .info
+                .data
+                .private
+        }
+        Source::Url(_) => false,
+    };
+    Ok((source, private))
+}
+fn session_options(token: CancellationToken, private: bool) -> SessionOptions {
+    SessionOptions {
+        cancellation_token: Some(token),
+        persistence: None,
+        dht: if private {
+            None
+        } else {
+            Some(librqbit::DhtSessionConfig {
+                persistence: None,
+                ..Default::default()
+            })
+        },
+        listen: None,
+        disable_local_service_discovery: true,
+        peer_limit: Some(16),
+        concurrent_init_limit: Some(1),
+        runtime_worker_threads: Some(2),
+        ..Default::default()
+    }
+}
+#[cfg(test)]
+mod private_policy_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn private_metainfo_never_constructs_public_discovery() {
+        let bytes = b"d8:announce28:http://127.0.0.1:90/announce4:infod6:lengthi1e4:name1:x12:piece lengthi1e6:pieces20:000000000000000000007:privatei1eee".to_vec();
+        let (_, private) = resolve_source(Source::Metainfo(bytes)).await.unwrap();
+        assert!(private);
+        let options = session_options(CancellationToken::new(), private);
+        assert!(options.dht.is_none());
+        assert!(
+            !options.disable_trackers,
+            "Private torrents still use their declared tracker"
+        );
+        assert!(options.listen.is_none());
+        assert!(options.disable_local_service_discovery);
+    }
+
+    #[tokio::test]
+    async fn unresolved_magnets_keep_discovery_and_bad_metadata_fails_before_engine() {
+        for magnet in [
+            "magnet:?xt=urn:btih:0123456789012345678901234567890123456789",
+            "magnet:?xt=urn:btih:0123456789012345678901234567890123456789&tr=http%3A%2F%2F127.0.0.1%3A90%2Fannounce",
+        ] {
+            let (_, private) = resolve_source(Source::Url(magnet.into())).await.unwrap();
+            assert!(!private, "a magnet does not carry the metainfo private flag");
+            assert!(session_options(CancellationToken::new(), private)
+                .dht
+                .is_some(), "a declared tracker does not disable magnet DHT discovery");
+        }
+        assert!(resolve_source(Source::Metainfo(b"not metainfo".to_vec()))
+            .await
+            .is_err());
+    }
+}
 const MAX_FILES: usize = 4096;
 const METADATA_LIMIT: usize = 1024 * 1024;
 const IDLE: Duration = Duration::from_secs(120);
@@ -159,11 +235,16 @@ pub struct TorrentManager {
     pub(super) reserved: Arc<AtomicU64>,
     pub cancel: CancellationToken,
     streams: Arc<Semaphore>,
+    limits: super::ResourceLimits,
     #[cfg(test)]
     pub initial_peers: Mutex<Vec<std::net::SocketAddr>>,
 }
 impl TorrentManager {
-    pub async fn new(root: PathBuf, cancel: CancellationToken) -> anyhow::Result<Arc<Self>> {
+    pub async fn new(
+        root: PathBuf,
+        cancel: CancellationToken,
+        limits: super::ResourceLimits,
+    ) -> anyhow::Result<Arc<Self>> {
         let owner = super::storage::prepare_root(&root).await?;
         let manager = Arc::new(Self {
             owner: Mutex::new(Some(owner)),
@@ -171,7 +252,8 @@ impl TorrentManager {
             sessions: Mutex::new(HashMap::new()),
             reserved: Arc::new(AtomicU64::new(0)),
             cancel,
-            streams: Arc::new(Semaphore::new(4)),
+            streams: Arc::new(Semaphore::new(limits.max_streams)),
+            limits,
             #[cfg(test)]
             initial_peers: Mutex::new(Vec::new()),
         });
@@ -249,7 +331,7 @@ impl TorrentManager {
             if self.cancel.is_cancelled() {
                 return Err("service_stopped");
             }
-            if sessions.len() >= MAX_SESSIONS {
+            if sessions.len() >= self.limits.max_sessions {
                 return Err("session_limit");
             }
             sessions.insert(id, lease.clone());
@@ -295,25 +377,24 @@ impl TorrentManager {
     }
     async fn run(self: Arc<Self>, lease: Arc<Lease>, source: Source) {
         let token = lease.cancel.clone();
-        let options = SessionOptions {
-            cancellation_token: Some(token.clone()),
-            persistence: None,
-            dht: if cfg!(test) {
-                None
-            } else {
-                Some(librqbit::DhtSessionConfig {
-                    persistence: None,
-                    ..Default::default()
-                })
-            },
-            disable_trackers: cfg!(test),
-            listen: None,
-            disable_local_service_discovery: true,
-            peer_limit: Some(16),
-            concurrent_init_limit: Some(1),
-            runtime_worker_threads: Some(2),
-            ..Default::default()
+        // Read the private bit BEFORE constructing the engine: constructing a
+        // DHT session already starts public bootstrap traffic even if adding a
+        // private torrent would later suppress its lookups.
+        let (source, private) = tokio::select! {
+            _ = token.cancelled() => return,
+            result = tokio::time::timeout(Duration::from_secs(45), resolve_source(source)) => match result {
+                Ok(Ok(source)) => source,
+                Ok(Err(code)) => { lease.fail(code); return; },
+                Err(_) => { lease.fail("metadata_timeout"); return; },
+            }
         };
+        #[allow(unused_mut)]
+        let mut options = session_options(token.clone(), private);
+        #[cfg(test)]
+        {
+            options.dht = None;
+            options.disable_trackers = true;
+        }
         // No incoming TCP listener, UPnP or service discovery is enabled.
         let engine = tokio::select! {
             _ = token.cancelled() => return,
@@ -345,11 +426,7 @@ impl TorrentManager {
                 Source::Url(source) if source.starts_with("magnet:") => {
                     AddTorrent::from_url(source)
                 }
-                Source::Url(source) => {
-                    let bytes = super::source::fetch(&source).await?;
-                    super::source::validate_metainfo(&bytes)?;
-                    AddTorrent::from_bytes(bytes)
-                }
+                Source::Url(_) => return Err("invalid_source"),
             };
             #[allow(unused_mut)]
             let mut options = AddTorrentOptions {
@@ -435,7 +512,8 @@ impl TorrentManager {
             .checked_mul(piece)
             .ok_or("metadata_limit")?
             .min(total);
-        let reservation = Reservation::new(self.reserved.clone(), end - start)?;
+        let reservation =
+            Reservation::with_limit(self.reserved.clone(), end - start, self.limits.cache_bytes)?;
         let path = self
             .root
             .join(format!("lease-{}.bin", lock(&lease.data).view.id));

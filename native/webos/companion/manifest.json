@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "package": "ottplay-companion",
+  "target": "armv7-unknown-linux-gnueabi",
+  "rust_toolchain": "1.96.1",
+  "rust_commit": "31fca3adb283cc9dfd56b49cdee9a96eb9c96ffd",
+  "features": ["webos-legacy-glibc"],
+  "install_path": "bin/ottplay-companion",
+  "receipt_path": "companion/receipt.json",
+  "protocol": {
+    "version": 1,
+    "bind": "127.0.0.1",
+    "base_path": "/companion/<per-launch-token>/v1"
+  },
+  "elf": {
+    "class": 32,
+    "machine": 40,
+    "eabi": 5,
+    "float_abi": "soft",
+    "interpreter": "/lib/ld-linux.so.3",
+    "max_glibc": "2.12",
+    "max_gcc": "4.3.0",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ]
+  },
+  "source_roots": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "LICENSE",
+    ".cargo",
+    "src-rs/core",
+    "src-rs/companion",
+    "src-rs/server",
+    "src-tauri",
+    "vendor",
+    "plugins/examples",
+    "licenses",
+    "js/licenses/media-companion-native.txt",
+    "js/licenses/media-companion-native-sources.json",
+    "native/webos/upstream.json",
+    "native/webos/companion"
+  ],
+  "required_source_files": [
+    "Cargo.lock",
+    "src-rs/companion/src/main.rs",
+    "src-rs/companion/src/legacy_auxv.rs",
+    "src-rs/core/src/companion/mod.rs",
+    "vendor/ottplay-core.js",
+    "vendor/ottplay-core.manifest.json",
+    "vendor/ottplay-core.LICENSE.txt",
+    "plugins/examples/direct-url.js"
+  ],
+  "notice_files": [
+    "LICENSE",
+    "licenses/native/rquickjs-LICENSE.txt",
+    "licenses/native/QuickJS-NG-LICENSE.txt",
+    "js/licenses/media-companion-native.txt",
+    "js/licenses/media-companion-native-sources.json",
+    "vendor/ottplay-core.LICENSE.txt"
+  ],
+  "release_source_requirements": [
+    "local_source_archive",
+    "locked_registry_and_git_dependencies",
+    "rust_standard_library_sources",
+    "linked_sdk_runtime_sources"
+  ],
+  "device_execution_verified": false
+}
