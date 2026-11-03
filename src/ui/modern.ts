@@ -89,10 +89,12 @@ function createModernInterface(w: any) {
         shell: HTMLElement | null = null,
         shellParent: HTMLElement | null = null,
         actions: any[] = [],
+        actionContext: any = {},
         railFocus = -1,
         shellFormatter: any = null,
         view = "home",
         heroActions: any[] = [],
+        heroContext: any = {},
         heroFocus = -1;
     function supported(): boolean {
         if (w.CSS && typeof w.CSS.supports === "function")
@@ -243,6 +245,8 @@ function createModernInterface(w: any) {
         heroFocus = -1;
         actions = [];
         heroActions = [];
+        actionContext = {};
+        heroContext = {};
         if (shell && shell.parentNode) shell.parentNode.removeChild(shell);
         if (shellParent)
             shellParent.classList.remove(
@@ -260,6 +264,16 @@ function createModernInterface(w: any) {
         shell = shellParent = null;
         shellFormatter = null;
     }
+    function syncRailFocus(): void {
+        if (!shell) return;
+        var buttons = shell.querySelectorAll(".modern-rail-action");
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i] as HTMLElement;
+            button.classList.toggle("modern-rail-selected", i === railFocus);
+            button.tabIndex = i === Math.max(0, railFocus) ? 0 : -1;
+            if (i === railFocus) button.focus();
+        }
+    }
     function focusRail(index: number): void {
         if (!shell || !actions.length || locked()) return;
         var direction = index < railFocus ? -1 : 1;
@@ -271,25 +285,13 @@ function createModernInterface(w: any) {
         railFocus = target;
         heroFocus = -1;
         shellParent?.classList.add("modern-rail-focused");
-        var buttons = shell.querySelectorAll(".modern-rail-action");
-        for (var i = 0; i < buttons.length; i++) {
-            var button = buttons[i] as HTMLElement;
-            button.classList.toggle("modern-rail-selected", i === railFocus);
-            button.tabIndex = i === railFocus ? 0 : -1;
-            if (i === railFocus) button.focus();
-        }
+        syncRailFocus();
     }
     function focusContent(): void {
         railFocus = -1;
         heroFocus = -1;
         shellParent?.classList.remove("modern-rail-focused");
-        if (shell) {
-            var buttons = shell.querySelectorAll(".modern-rail-action");
-            for (var i = 0; i < buttons.length; i++) {
-                buttons[i].classList.remove("modern-rail-selected");
-                (buttons[i] as HTMLElement).tabIndex = i === 0 ? 0 : -1;
-            }
-        }
+        syncRailFocus();
         var selected = w.document.getElementById("it" + w.selIndex);
         if (selected) selected.focus();
     }
@@ -329,6 +331,133 @@ function createModernInterface(w: any) {
         }
         parent.classList.add("modern-screen");
         return true;
+    }
+    function actionButton(
+        action: any,
+        retained: any,
+        hero: boolean
+    ): HTMLButtonElement {
+        var button = retained || w.document.createElement("button");
+        if (!retained) {
+            button.type = "button";
+            button.className = "modern-" + (hero ? "hero" : "rail") + "-action";
+            button.setAttribute(
+                "data-modern-" + (hero ? "hero-" : "") + "action",
+                action.id
+            );
+            button.innerHTML =
+                (hero
+                    ? ""
+                    : '<span class="modern-rail-icon" aria-hidden="true">') +
+                icon(action.id) +
+                (hero ? "" : "</span>") +
+                (hero
+                    ? "<span></span>"
+                    : '<span class="modern-rail-label"></span>');
+        }
+        button.setAttribute("aria-label", action.label);
+        if (!hero) {
+            button.title = action.label;
+            if (action.active) button.setAttribute("aria-current", "page");
+            else button.removeAttribute("aria-current");
+            button.disabled = !!action.disabled || locked();
+            var image = button.firstElementChild;
+            if (!icon(action.id) && image.textContent !== (action.icon || "•"))
+                image.textContent = action.icon || "•";
+        }
+        var caption = button.lastElementChild;
+        if (caption.textContent !== action.label)
+            caption.textContent = action.label;
+        return button;
+    }
+    function bindAction(
+        button: HTMLButtonElement,
+        action: any,
+        index: number,
+        owner: any,
+        hero?: boolean,
+        item?: any
+    ): void {
+        function activate(event: Event): void {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            if (
+                (hero ? heroActions : actions)[index] !== action ||
+                foreground() !== owner ||
+                !shell?.contains(button)
+            )
+                return;
+            if (!hero) invokeAction(index, event);
+            else if (
+                enabled() &&
+                !locked() &&
+                owner &&
+                owner.model.render === formatter &&
+                rows[Number(w.selIndex)] === item
+            ) {
+                heroFocus = -1;
+                if (typeof action.run === "function") action.run();
+                else if (action.key && typeof w._doKey === "function")
+                    w._doKey(action.key, event);
+            }
+        }
+        button.onclick = activate;
+        button.onkeydown = function (event) {
+            if (event.key === "Enter" || event.key === " ") activate(event);
+        };
+        button.onfocus = function () {
+            if (hero) {
+                railFocus = -1;
+                heroFocus = index;
+            } else if (actions[index] === action && railFocus !== index)
+                focusRail(index);
+        };
+    }
+    function region(action: any): number {
+        return action.id === "categories"
+            ? 2
+            : action.id === "providers" || action.id === "settings"
+              ? 1
+              : 0;
+    }
+    function renderActionButtons(
+        next: any[],
+        context: any,
+        owner: any,
+        roots: any[],
+        hero = false,
+        item?: any
+    ): void {
+        var previous = hero ? heroActions : actions;
+        var retained = shell!.querySelectorAll(
+            hero ? ".modern-hero-action" : ".modern-rail-action"
+        );
+        var reuse =
+            context.owner === owner &&
+            context.renderer === formatter &&
+            context.item === item &&
+            previous.length === next.length &&
+            retained.length === next.length &&
+            next.every(function (action, index) {
+                return previous[index].id === action.id;
+            });
+        context.owner = owner;
+        context.renderer = formatter;
+        context.item = item;
+        if (hero) heroActions = next;
+        else actions = next;
+        if (!reuse)
+            roots.forEach(function (root) {
+                root.textContent = "";
+            });
+        if (hero) roots[0].hidden = !next.length;
+        next.forEach(function (action, index) {
+            var button = actionButton(action, reuse && retained[index], hero);
+            if (!hero) button.tabIndex = index === 0 ? 0 : -1;
+            bindAction(button, action, index, owner, hero, item);
+            if (!reuse) roots[hero ? 0 : region(action)].appendChild(button);
+        });
     }
     function syncActions(): void {
         if (!shell) return;
@@ -409,78 +538,23 @@ function createModernInterface(w: any) {
                         label: title,
                     });
             }
-        function region(action: any): number {
-            return action.id === "categories"
-                ? 2
-                : action.id === "providers" || action.id === "settings"
-                  ? 1
-                  : 0;
-        }
         // The focus order follows the rendered groups, including controls moved
         // out of the capsule. Stable action IDs keep host routes authoritative.
-        next = next
-            .filter(function (action) {
-                return region(action) === 0;
-            })
-            .concat(
-                next.filter(function (action) {
-                    return region(action) === 1;
-                })
-            )
-            .concat(
-                next.filter(function (action) {
-                    return region(action) === 2;
-                })
-            );
+        var groups: any[][] = [[], [], []];
+        next.forEach(function (action) {
+            groups[region(action)].push(action);
+        });
+        next = groups[0].concat(groups[1], groups[2]);
         var focusedId =
             railFocus >= 0 && actions[railFocus] && actions[railFocus].id;
-        actions = next;
         var roots = [
             shell.querySelector(".modern-rail-actions")!,
             shell.querySelector(".modern-account-actions")!,
             shell.querySelector(".modern-library-actions")!,
         ];
         var controlOwner = foreground();
-        roots.forEach(function (root) {
-            root.textContent = "";
-        });
-        next.forEach(function (action, index) {
-            var button = w.document.createElement("button");
-            button.type = "button";
-            button.className = "modern-rail-action";
-            button.tabIndex = index === 0 ? 0 : -1;
-            button.setAttribute("data-modern-action", action.id);
-            button.setAttribute("aria-label", action.label);
-            button.setAttribute("title", action.label);
-            if (action.active) button.setAttribute("aria-current", "page");
-            button.disabled = !!action.disabled || locked();
-            var image = button.appendChild(w.document.createElement("span"));
-            image.className = "modern-rail-icon";
-            image.setAttribute("aria-hidden", "true");
-            var graphic = icon(action.id);
-            if (graphic) image.innerHTML = graphic;
-            else image.textContent = action.icon || "•";
-            var caption = button.appendChild(w.document.createElement("span"));
-            caption.className = "modern-rail-label";
-            caption.textContent = action.label;
-            function activate(event: Event): void {
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-                if (actions[index] !== action || foreground() !== controlOwner)
-                    return;
-                invokeAction(index, event);
-            }
-            button.onclick = activate;
-            button.onkeydown = function (event) {
-                if (event.key === "Enter" || event.key === " ") activate(event);
-            };
-            button.onfocus = function () {
-                if (actions[index] === action && railFocus !== index)
-                    focusRail(index);
-            };
-            roots[region(action)].appendChild(button);
-        });
+        // IDs determine the region; unchanged screens retain pointer targets.
+        renderActionButtons(next, actionContext, controlOwner, roots);
         if (focusedId)
             railFocus = actions
                 .map(function (action) {
@@ -488,6 +562,7 @@ function createModernInterface(w: any) {
                 })
                 .indexOf(focusedId);
         if (railFocus >= 0 && actions.length) focusRail(railFocus);
+        else syncRailFocus();
     }
     function syncControls(): void {
         if (!shellParent) return;
@@ -628,7 +703,7 @@ function createModernInterface(w: any) {
                     ? w.__ottModernSelectedActions()
                     : defaultSelectedActions()
                 : [];
-        heroActions = Array.isArray(supplied)
+        var next = Array.isArray(supplied)
             ? supplied.filter(function (action) {
                   return (
                       action &&
@@ -638,46 +713,7 @@ function createModernInterface(w: any) {
                   );
               })
             : [];
-        root.textContent = "";
-        root.hidden = !heroActions.length;
-        heroActions.forEach(function (action, index) {
-            var button = w.document.createElement("button");
-            button.type = "button";
-            button.className = "modern-hero-action";
-            button.setAttribute("data-modern-hero-action", action.id);
-            button.setAttribute("aria-label", action.label);
-            button.innerHTML = icon(action.id);
-            var caption = button.appendChild(w.document.createElement("span"));
-            caption.textContent = action.label;
-            function activate(event: Event): void {
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-                if (
-                    !enabled() ||
-                    locked() ||
-                    !owner ||
-                    foreground() !== owner ||
-                    owner.model.render !== formatter ||
-                    rows[Number(w.selIndex)] !== item ||
-                    heroActions[index] !== action
-                )
-                    return;
-                heroFocus = -1;
-                if (typeof action.run === "function") action.run();
-                else if (action.key && typeof w._doKey === "function")
-                    w._doKey(action.key, event);
-            }
-            button.onclick = activate;
-            button.onkeydown = function (event) {
-                if (event.key === "Enter" || event.key === " ") activate(event);
-            };
-            button.onfocus = function () {
-                railFocus = -1;
-                heroFocus = index;
-            };
-            root.appendChild(button);
-        });
+        renderActionButtons(next, heroContext, owner, [root], true, item);
         if (heroFocus >= 0 && heroActions.length) focusHero(heroFocus);
         else heroFocus = -1;
     }

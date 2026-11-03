@@ -19,6 +19,7 @@ let {
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
     MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+    MODERN_REPAINT_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     MEDIA_COMPANION_ENTRY_ALLOWANCE,
     MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
@@ -113,7 +114,7 @@ function capsWithoutAllowances(names) {
     for (const initializer of initializers.sort((a, b) => b.pos - a.pos))
         source =
             source.slice(0, initializer.getStart(parsed)) +
-            "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})" +
+            "Object.freeze({bytes:0,gzipBytes:0,entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})" +
             source.slice(initializer.end);
     const Module = require("node:module");
     const baseline = new Module(filename, module);
@@ -136,6 +137,7 @@ const historicalIncomingCaps = capsWithoutAllowances([
     "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
     "LOCAL_FAVORITES_PATH_ALLOWANCE",
     "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
+    "MODERN_REPAINT_OPTIONAL_ALLOWANCE",
 ]);
 ({
     BASE_TOTAL_BUDGET,
@@ -492,6 +494,51 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const repaint = require("../docs/evidence/modern-repaint-size-20261103.json");
+    assert.deepEqual(MODERN_REPAINT_OPTIONAL_ALLOWANCE, repaint.allowance);
+    assert(Object.isFrozen(MODERN_REPAINT_OPTIONAL_ALLOWANCE));
+    assert.equal(repaint.delta.bytes, -83);
+    assert.equal(repaint.delta.gzipBytes, 196);
+    const actualCaps = require("../scripts/classic-size.cjs");
+    for (const [name, before] of Object.entries(repaint.budgets.before)) {
+        const after = structuredClone(before);
+        if (name === "OPTIONAL_BUDGETS")
+            after["modern-interface"].gzipBytes += 193;
+        assert.deepEqual(repaint.budgets.after[name], after);
+    }
+    for (const [stage, measured] of [
+        ["before", repaint.baseline],
+        ["after", repaint.candidate],
+    ])
+        assert.equal(
+            repaint.budgets[stage].OPTIONAL_BUDGETS["modern-interface"]
+                .gzipBytes - measured.output.gzipBytes,
+            repaint.gzipHeadroom[stage]
+        );
+    assert.deepEqual(repaint.gzipHeadroom, { before: 121, after: 118 });
+    assert.equal(
+        repaint.candidate.output.gzipBytes - repaint.baseline.output.gzipBytes,
+        repaint.delta.gzipBytes
+    );
+    const withoutRepaint = capsWithoutAllowances([
+        "MODERN_REPAINT_OPTIONAL_ALLOWANCE",
+    ]);
+    for (const name of Object.keys(repaint.budgets.before)) {
+        const expected = structuredClone(withoutRepaint[name]);
+        if (name === "OPTIONAL_BUDGETS")
+            expected["modern-interface"].gzipBytes += 193;
+        assert.deepEqual(actualCaps[name], expected);
+    }
+    for (const variant of repaint.historicalOptimizerComparison.variants) {
+        assert.equal(
+            variant.sha256,
+            repaint.historicalOptimizerComparison.output.sha256
+        );
+        assert.equal(
+            variant.gzipBytes,
+            repaint.historicalOptimizerComparison.output.gzipBytes
+        );
+    }
     const writeRecoveryEvidence = require("../docs/evidence/local-favorite-write-recovery-size-20261102.json");
     assert.deepEqual(
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
@@ -4216,6 +4263,69 @@ try {
         "dist/remote-provider-fields.js"
     );
     const crypto = require("node:crypto");
+    const modernPath = path.join(root, "dist/modern-interface.js");
+    const denseModern = Buffer.concat(
+        Array.from(
+            {
+                length:
+                    Math.ceil(
+                        latestCaps.OPTIONAL_BUDGETS["modern-interface"]
+                            .gzipBytes / 32
+                    ) + 30,
+            },
+            (_, index) =>
+                crypto
+                    .createHash("sha256")
+                    .update("modern" + index)
+                    .digest()
+        )
+    ).toString("base64");
+    assert(
+        denseModern.length <
+            latestCaps.OPTIONAL_BUDGETS["modern-interface"].bytes
+    );
+    function modernBoundary(target) {
+        const size = (length) =>
+            collectBundleMeasurement(
+                denseModern.slice(0, length),
+                "modern-boundary"
+            ).gzipBytes;
+        let low = 1;
+        let high = denseModern.length;
+        assert(size(high) > target);
+        while (low < high) {
+            const middle = Math.floor((low + high) / 2);
+            if (size(middle) < target) low = middle + 1;
+            else high = middle;
+        }
+        // Deflate size can fluctuate locally; find the exact boundary using
+        // the active zlib instead of pinning compressed bytes from one host.
+        for (
+            let length = Math.max(1, low - 256);
+            length <= Math.min(denseModern.length, low + 256);
+            length++
+        )
+            if (size(length) === target) return denseModern.slice(0, length);
+        assert.fail("No exact gzip boundary fixture for " + target);
+    }
+    const modernCap = latestCaps.OPTIONAL_BUDGETS["modern-interface"].gzipBytes;
+    const admittedModern = modernBoundary(modernCap);
+    const oversizedModern = modernBoundary(modernCap + 1);
+    assert.equal(
+        collectBundleMeasurement(oversizedModern, "modern-boundary").gzipBytes,
+        modernCap + 1
+    );
+    fs.writeFileSync(modernPath, admittedModern);
+    assert.doesNotThrow(() => inspectBundleSets(root));
+    fs.writeFileSync(modernPath, oversizedModern);
+    assert.throws(
+        () => inspectBundleSets(root),
+        new RegExp(
+            "modern-interface\\.js: gzipBytes .* exceeds budget " +
+                latestCaps.OPTIONAL_BUDGETS["modern-interface"].gzipBytes
+        )
+    );
+    fs.writeFileSync(modernPath, source);
     const denseFields = Buffer.concat(
         Array.from({ length: 288 }, (_, index) =>
             crypto.createHash("sha256").update(String(index)).digest()

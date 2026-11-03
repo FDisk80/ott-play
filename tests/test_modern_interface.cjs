@@ -647,7 +647,10 @@ test("Home and Library reuse the catalogue, selection and decoder with distinct 
         assert.equal(layout.home, true);
         assert.equal(layout.pageSize, layout.columns);
         const originalIds = f.ids.slice();
-        f.doc.querySelector('[data-modern-action="library"]').click();
+        const library = f.doc.querySelector('[data-modern-action="library"]');
+        library.focus();
+        assert(library.classList.contains("modern-rail-selected"));
+        library.click();
         assert(f.list.classList.contains("modern-view-library"));
         assert(!f.list.classList.contains("modern-view-home"));
         assert.equal(layout.home, false);
@@ -661,6 +664,25 @@ test("Home and Library reuse the catalogue, selection and decoder with distinct 
         assert.equal(f.w.selIndex, 3450);
         assert.deepEqual(f.ids, originalIds);
         assert.equal(f.owner.model.render, f.formatter);
+        const row = f.container.appendChild(f.doc.createElement("button"));
+        row.id = "it" + f.w.selIndex;
+        row.focus();
+        assert.equal(f.doc.activeElement, row);
+        assert.equal(
+            f.doc
+                .querySelector('[data-modern-action="home"]')
+                .getAttribute("aria-current"),
+            "page"
+        );
+        assert.equal(library.hasAttribute("aria-current"), false);
+        assert.deepEqual(
+            Array.from(
+                f.doc.querySelectorAll(".modern-rail-selected"),
+                (button) => button.getAttribute("data-modern-action")
+            ),
+            [],
+            "switching views must not retain the previous rail focus highlight"
+        );
     } finally {
         f.dom.window.close();
     }
@@ -985,8 +1007,13 @@ test("rail buttons reject stale renderers, covered screens and kiosk restriction
     try {
         f.api.prepare(f.ids, f.formatter, f.container);
         const old = f.doc.querySelector('[data-modern-action="settings"]');
+        const staleHandler = old.onclick;
         f.api.syncScreen();
-        old.click();
+        assert.equal(
+            f.doc.querySelector('[data-modern-action="settings"]'),
+            old
+        );
+        staleHandler(new f.w.MouseEvent("click"));
         assert.deepEqual(f.effects, []);
         const current = () =>
             f.doc.querySelector('[data-modern-action="settings"]');
@@ -1003,6 +1030,124 @@ test("rail buttons reject stale renderers, covered screens and kiosk restriction
         f.owner.model.render = () => "Other";
         current().click();
         assert.deepEqual(f.effects, ["settings"]);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("rail repaint preserves nested targets and refreshes descriptors but replaces changed owners and routes", () => {
+    const f = shellFixture();
+    try {
+        let revision = 0;
+        let disabled = false;
+        let active = false;
+        let ids = ["settings", "providers"];
+        f.w.__ottModernActions = () =>
+            ids.map((id) => ({
+                active,
+                disabled,
+                id,
+                label: id + revision,
+                run: () => f.effects.push(id + revision),
+            }));
+        f.api.prepare(f.ids, f.formatter, f.container);
+        const selector = '[data-modern-action="settings"]';
+        const old = f.doc.querySelector(selector);
+        const image = old.firstElementChild;
+        const caption = old.lastElementChild;
+        const graphic = image.firstElementChild;
+        old.focus();
+        f.api.syncScreen();
+        assert.equal(f.doc.querySelector(selector), old);
+        assert.equal(old.firstElementChild, image);
+        assert.equal(image.firstElementChild, graphic);
+        assert.equal(old.lastElementChild, caption);
+        assert.equal(f.doc.activeElement, old);
+        revision++;
+        disabled = active = true;
+        f.api.syncScreen();
+        assert.equal(f.doc.querySelector(selector), old);
+        assert.equal(old.getAttribute("aria-label"), "settings1");
+        assert.equal(old.title, "settings1");
+        assert.equal(caption.textContent, "settings1");
+        assert.equal(old.getAttribute("aria-current"), "page");
+        assert.equal(old.disabled, true);
+        old.click();
+        assert.deepEqual(f.effects, []);
+        disabled = active = false;
+        f.api.syncScreen();
+        assert.equal(old.hasAttribute("aria-current"), false);
+        old.click();
+        assert.deepEqual(f.effects, ["settings1"]);
+        ids.reverse();
+        f.api.syncScreen();
+        assert.equal(old.isConnected, false);
+        old.click();
+        assert.deepEqual(f.effects, ["settings1"]);
+        const beforeOwner = f.doc.querySelector(selector);
+        const nextOwner = {
+            foreground: () => true,
+            model: { render: f.formatter },
+        };
+        f.w.__ottClassicScreenPort.listOwner = () => nextOwner;
+        f.api.syncScreen();
+        assert.equal(beforeOwner.isConnected, false);
+        beforeOwner.click();
+        assert.deepEqual(f.effects, ["settings1"]);
+        const removed = f.doc.querySelector(selector);
+        ids = ["providers"];
+        f.api.syncScreen();
+        assert.equal(f.doc.querySelector(selector), null);
+        removed.click();
+        assert.deepEqual(f.effects, ["settings1"]);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("hero repaint preserves nested targets only for the same selected item and renderer", () => {
+    const f = shellFixture();
+    try {
+        let label = "Play";
+        f.w.__ottModernSelectedActions = () => [
+            {
+                id: "play",
+                label,
+                run: () => f.effects.push(label),
+            },
+        ];
+        f.api.prepare(f.ids, f.formatter, f.container);
+        const selector = '[data-modern-hero-action="play"]';
+        const old = f.doc.querySelector(selector);
+        const image = old.firstElementChild;
+        const caption = old.lastElementChild;
+        old.focus();
+        f.api.detail();
+        assert.equal(f.doc.querySelector(selector), old);
+        assert.equal(old.firstElementChild, image);
+        assert.equal(old.lastElementChild, caption);
+        assert.equal(f.doc.activeElement, old);
+        label = "Open";
+        f.api.detail();
+        assert.equal(f.doc.querySelector(selector), old);
+        assert.equal(old.getAttribute("aria-label"), label);
+        assert.equal(caption.textContent, label);
+        old.click();
+        assert.deepEqual(f.effects, ["Open"]);
+        f.w.selIndex++;
+        f.api.detail();
+        assert.equal(old.isConnected, false);
+        old.click();
+        assert.deepEqual(f.effects, ["Open"]);
+        const beforeRender = f.doc.querySelector(selector);
+        const render = Object.assign(() => "item", {
+            __ottCatalog: f.formatter.__ottCatalog,
+        });
+        f.owner.model.render = render;
+        f.api.prepare(f.ids, render, f.container);
+        assert.equal(beforeRender.isConnected, false);
+        beforeRender.click();
+        assert.deepEqual(f.effects, ["Open"]);
     } finally {
         f.dom.window.close();
     }
