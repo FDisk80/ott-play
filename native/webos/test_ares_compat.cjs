@@ -497,9 +497,15 @@ function launchContract(command, args) {
     return { actual: Session.prototype, original };
 }
 
-test("drain activates only for explicit novacom --run and leaves other commands unchanged", () => {
+test("drain activates for novacom run spellings and leaves other commands unchanged", () => {
     for (const [command, args, active] of [
         ["ares-novacom", ["--device", "TV", "--run", "fixed command"], true],
+        ["ares-novacom", ["--device", "TV", "-r", "fixed command"], true],
+        ["ares-novacom", ["--device", "TV", "--run=fixed command"], true],
+        ["ares-novacom", ["--device", "TV", "-r=fixed command"], true],
+        ["ares-novacom", ["--", "--run", "literal argument"], false],
+        ["ares-novacom", ["--", "-r", "literal argument"], false],
+        ["ares-novacom", ["--running"], false],
         ["ares-novacom", ["--device", "TV", "--forward", "1234"], false],
         ["ares-install", ["--run", "literal argument"], false],
         ["ares-launch", ["--running"], false],

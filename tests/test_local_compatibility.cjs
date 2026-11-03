@@ -250,6 +250,87 @@ test("failed diagnostic asset warmup does not reject direct Local playback", asy
     assert.equal(await f.api.preparePlayback(direct), direct);
     assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
 });
+
+function startDirectCore(f, url) {
+    const started = [],
+        w = f.w;
+    Object.assign(w, {
+        _corePauseRevision: 0,
+        _coreSeekRevision: 0,
+        _coreShakaTeardown: null,
+        _playSession: 0,
+        cancelCoreAutoPlayback() {},
+        cancelCoreCompat() {},
+        cancelCoreNativeHls() {},
+        cancelCoreSeek() {},
+        cancelCoreSourcePreparation() {},
+        cancelCoreStreamAttempt() {},
+        clearPlayTimeInterval() {},
+        clearTimeout() {},
+        coreDeviceEffects: {},
+        coreNormalizedTimeout: () => 0,
+        corePlexPlaybackHint: () => "",
+        createCoreStreamAttempt: () => null,
+        destroyCoreShaka() {},
+        hlsInstance: null,
+        releaseCoreCompanion() {},
+        setCoreDemoMute() {},
+        setTimeout: () => 1,
+        startCorePlayback: (...args) => started.push(args),
+        video: {
+            addEventListener() {},
+            currentTime: 0,
+            removeEventListener() {},
+        },
+    });
+    w.window = w;
+    vm.createContext(w);
+    vm.runInContext(
+        compile("src/core/index.ts", [
+            "startCoreEngine",
+            "coreCompat",
+            "coreCall",
+        ]),
+        w
+    );
+    w.startCoreEngine(url);
+    return started;
+}
+
+test("actual core direct Local path starts immediately and warms its diagnostic observer", async () => {
+    let finish;
+    const f = fixture({
+        loadFeature: (_w, kind, done, implementation) => {
+            assert.equal(kind, "local-compatibility");
+            finish = () => {
+                implementation(kind);
+                done();
+            };
+        },
+    });
+    await f.api.list();
+    const direct = f.catalog.items[0].url;
+    const started = startDirectCore(f, direct);
+    assert.equal(started.length, 1);
+    assert.equal(started[0][0], direct);
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+    assert.equal(typeof finish, "function");
+    finish();
+    assert.equal(typeof f.w.__ottLocalSourceDiagnostics, "function");
+    assert.equal(started.length, 1);
+});
+
+test("actual core direct Local playback survives failed diagnostic loading", async () => {
+    const f = fixture({
+        loadFeature: (_w, _kind, done) => done("unavailable"),
+    });
+    await f.api.list();
+    const direct = f.catalog.items[0].url;
+    assert.equal(startDirectCore(f, direct)[0][0], direct);
+    await flush();
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+});
+
 test("registered diagnostics prove cached direct and compatibility identities without storage reads", async () => {
     const f = fixture();
     const sourceId = "b".repeat(32);

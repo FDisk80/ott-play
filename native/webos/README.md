@@ -401,10 +401,27 @@ prove that a large `ares-novacom --run` response is complete.
 
 The optional [`ares-compat.cjs`](ares-compat.cjs) launcher guards that probe's
 completion once, only for the exact reviewed CLI version and source hash.
-For explicit `ares-novacom --run` commands, it also waits for both output
+For explicit `ares-novacom --run` commands (including `-r` and `--run=...`), it also waits for both output
 channels to end and close and for destination writes to flush, preserving
 nonzero exits and transport/write errors. Other commands keep the TCP-only
-workaround. A channel that never closes remains subject to the caller timeout.
+workaround. The launcher has no built-in deadline: a direct invocation can wait
+indefinitely if a channel never closes. The native updater supplies its own
+bounded subprocess timeout. For a direct diagnostic command, use a caller that
+sets a timeout, for example this portable Python invocation (which terminates
+and waits for its local launcher on timeout):
+
+```sh
+python3 - <<'PY'
+import subprocess
+subprocess.run([
+    "node", "native/webos/ares-compat.cjs", "/path/to/node_modules/@webos-tools/cli",
+    "ares-novacom", "--device", "YOUR_TV", "--run", "id",
+], stdin=subprocess.DEVNULL, timeout=30, check=True)
+PY
+```
+
+Ending the local launcher does not prove that a remote command has stopped;
+use only bounded, read-only commands for this diagnostic.
 It retains SSH authentication and original command options; it changes neither
 the installed CLI files nor global `NODE_OPTIONS`. From the repository root:
 
@@ -423,6 +440,13 @@ another CLI version through it. Normal CLI commands remain the first choice
 when neither of these failures is present. The native updater opts in with
 both `--ares-root /path/to/node_modules/@webos-tools/cli` and `--ares-compat`;
 these options never modify the installed SDK or enable the workaround globally.
+
+The updater verifies downloaded release assets against their expected size and
+SHA-256 before publishing the final cache filename. It uses a same-filesystem
+hard link that refuses to overwrite an existing file; use a local cache filesystem
+with hard-link support. An abruptly killed download may leave a private
+`.native-asset-*.part` staging directory, but a retry does not reuse it. Existing
+cache files still undergo release verification and are never silently replaced.
 
 ### Updates and Developer Mode expiry
 

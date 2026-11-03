@@ -547,35 +547,53 @@ class PublicRedirect(HTTPRedirectHandler):
         return redirected
 
 
-def fetch_public_asset(url, destination, limit):
-    """Download as an anonymous user, independently of gh's authentication."""
+def fetch_public_asset(url, destination, limit, *, expected_sha256, expected_size):
+    """Verify an anonymous download before atomically publishing its new path."""
     validate_public_url(url)
     require(urlsplit(url).hostname == "github.com", "Public asset must begin at the release download URL")
+    require(isinstance(expected_sha256, str) and re.fullmatch(r"[0-9a-f]{64}", expected_sha256),
+            "Public asset lacks an expected SHA-256 digest")
+    require(type(expected_size) is int and 0 < expected_size <= limit,
+            "Public asset expected size exceeds bound")
+    destination = Path(destination)
+    if os.path.lexists(destination):
+        raise FileExistsError("Public asset destination already exists", str(destination))
     request = Request(url, headers={"Accept-Encoding": "identity", "User-Agent": "OTTPlay-native-release-check"})
     deadline = time.monotonic() + TRANSFER_SECONDS
-    owned = None
+    # A killed process can leave only this private staging directory, never a
+    # partial final asset that a later updater would mistake for a cached file.
+    staging = tempfile.TemporaryDirectory(prefix=".native-asset-", suffix=".part", dir=destination.parent)
+    temporary = Path(staging.name) / "asset"
     try:
         with build_opener(PublicRedirect()).open(request, timeout=10) as response:
             require(response.status == 200, "Public asset request failed")
-            with destination.open("xb") as target:
-                created = os.fstat(target.fileno())
-                owned = (created.st_dev, created.st_ino)
+            with temporary.open("xb") as target:
                 count = 0
+                checksum = hashlib.sha256()
                 while chunk := response.read1(1024 * 1024):
                     count += len(chunk)
-                    require(count <= limit and time.monotonic() < deadline, "Public asset response exceeds bound")
+                    require(count <= expected_size and time.monotonic() < deadline, "Public asset response exceeds bound")
                     target.write(chunk)
+                    checksum.update(chunk)
+                require(count == expected_size and checksum.hexdigest() == expected_sha256,
+                        "Public asset bytes differ from expected size or SHA-256")
+                target.flush()
+                os.fsync(target.fileno())
+                created = os.fstat(target.fileno())
+        current = temporary.lstat()
+        require(stat.S_ISREG(current.st_mode) and current.st_size == expected_size
+                and (current.st_dev, current.st_ino) == (created.st_dev, created.st_ino),
+                "Public asset staging file changed")
+        # Same-filesystem hard linking is atomic and refuses an existing final
+        # path, including a replacement or symlink created during the download.
+        os.link(temporary, destination, follow_symlinks=False)
     except BaseException as error:
-        if owned is not None:
-            try:
-                current = destination.lstat()
-                if stat.S_ISREG(current.st_mode) and (current.st_dev, current.st_ino) == owned:
-                    destination.unlink()
-            except FileNotFoundError:
-                pass
-            except OSError:
-                error.add_note("Failed to remove this download's incomplete asset")
+        try:
+            staging.cleanup()
+        except OSError:
+            error.add_note("Failed to remove this download's incomplete asset staging directory")
         raise
+    staging.cleanup()
 
 
 def fetch_worker(url, limit):
@@ -608,7 +626,8 @@ def verify_public(args):
         for row in assets_for(positive(release.get("id")), receipt):
             name = row["name"]
             fetch_public_asset(f"https://github.com/{REPOSITORY}/releases/download/{inputs['tag']}/{name}",
-                               downloaded / name, file_limit(name))
+                               downloaded / name, file_limit(name),
+                               expected_sha256=receipt["files"][name]["sha256"], expected_size=row["size"])
             require(file_digest(downloaded / name) == receipt["files"][name], "Public asset bytes differ: " + name)
         verify_bundle(downloaded, inputs["version"])
     for name in ("ottplay-native-webos-repository.json", "ottplay-native-webos-manifest.json", "ottplay-native-webos-icon.png"):

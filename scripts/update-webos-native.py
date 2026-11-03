@@ -387,10 +387,19 @@ def official_release(tag, directory):
             destination = directory / name
             check(not destination.is_symlink(), "unsafe_release_file")
             if not destination.exists():
+                assets = release.get("assets")
+                check(isinstance(assets, list), "invalid_release_assets")
+                matches = [asset for asset in assets if isinstance(asset, dict) and asset.get("name") == name]
+                check(len(matches) == 1, "missing_or_duplicate_release_asset")
+                expected = matches[0].get("digest", "")
+                check(isinstance(expected, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", expected),
+                      "missing_official_asset_digest")
                 publisher.fetch_public_asset(
                     f"https://github.com/{REPOSITORY}/releases/download/{tag}/{name}",
                     destination,
                     128 * 1024 * 1024 if suffix == ".ipk" else 8 * 1024 * 1024,
+                    expected_sha256=expected.removeprefix("sha256:"),
+                    expected_size=matches[0].get("size"),
                 )
         result = verify_release_files(directory, tag, release, ref)
         check(

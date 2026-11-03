@@ -241,7 +241,20 @@ function run(args) {
     // Keep the first probe result, including errors. The separate begin() method
     // still establishes the SSH session and authenticates with the original key.
     prototype.checkConnection = completeOnce(prototype.checkConnection);
-    if (args[1] === "ares-novacom" && args.slice(2).includes("--run")) {
+    const commandArgs = args.slice(2);
+    const optionEnd = commandArgs.indexOf("--");
+    const options =
+        optionEnd < 0 ? commandArgs : commandArgs.slice(0, optionEnd);
+    if (
+        args[1] === "ares-novacom" &&
+        options.some(
+            (arg) =>
+                arg === "-r" ||
+                arg === "--run" ||
+                arg.startsWith("--run=") ||
+                arg.startsWith("-r=")
+        )
+    ) {
         if (
             typeof prototype.begin !== "function" ||
             typeof prototype.run_ssh !== "function"
