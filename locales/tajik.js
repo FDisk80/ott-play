@@ -567,6 +567,7 @@ var keyStrings = {
     "Hide providers?": "Таъминкунандагон пинҳон карда шаванд?",
     "History in Media Library": "Таърих дар китобхонаи медиа",
     "History of watched movies": "Таърихи тамошо",
+    Home: "Асосӣ",
     "HTTP port": "Порти HTTP",
     "HTTP remote control is unavailable on this device.":
         "Идоракунии дурдасти HTTP дар ин дастгоҳ дастрас нест.",

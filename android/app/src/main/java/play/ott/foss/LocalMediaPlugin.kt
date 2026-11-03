@@ -213,6 +213,7 @@ class LocalMediaPlugin : Plugin() {
             JSObject().apply {
                 put("id", item.getString("id")); put("name", item.getString("name")); put("mime", item.getString("mime"))
                 put("directory", item.optString("directory"))
+                put("relativePath", item.opt("relativePath") ?: JSONObject.NULL)
                 put("size", size); put("sourceId", sourceId(item)); put("source", if (item.has("uri")) "linked" else "imported")
                 put("available", available)
                 if (!available) put("sourceUnavailable", "Original file missing, inaccessible or not seekable; reconnect the folder or file")
@@ -266,6 +267,7 @@ class LocalMediaPlugin : Plugin() {
                 catch (_: Exception) { checkWork(); false }
             return JSObject().put("id", item.getString("id")).put("name", item.getString("name"))
                 .put("mime", item.getString("mime")).put("directory", item.optString("directory"))
+                .put("relativePath", item.opt("relativePath") ?: JSONObject.NULL)
                 .put("size", size).put("sourceId", sourceId(item))
                 .put("source", if (item.has("uri")) "linked" else "imported")
                 .put("available", available)
@@ -459,7 +461,7 @@ class LocalMediaPlugin : Plugin() {
 
     private class UnavailableDocument(cause: Exception) : IOException(cause)
 
-    private fun link(uri: Uri, grantUri: Uri, known: MutableSet<String>, knownName: String? = null, knownMime: String? = null, folderLabel: String = "", existing: JSONObject? = null, onRecord: ((JSONObject) -> Unit)? = null): Boolean {
+    private fun link(uri: Uri, grantUri: Uri, known: MutableSet<String>, knownName: String? = null, knownMime: String? = null, folderLabel: String = "", relativePath: String? = null, existing: JSONObject? = null, onRecord: ((JSONObject) -> Unit)? = null): Boolean {
         checkWork()
         var name = knownName ?: "Local media"
         if (knownName == null) query(uri, arrayOf(OpenableColumns.DISPLAY_NAME))?.use {
@@ -471,8 +473,12 @@ class LocalMediaPlugin : Plugin() {
         if (uri.toString() in known) {
             // Normal tree refresh already visits this parent. Upgrade legacy metadata
             // without copying media or starting a separate footer scan.
-            if (existing != null && folderLabel.isNotEmpty() && existing.optString("directory") != folderLabel) {
+            var current = existing
+            if (existing != null && existing.optString("grantUri") == grantUri.toString() &&
+                (existing.optString("directory") != folderLabel ||
+                    !existing.has("relativePath") || existing.opt("relativePath") != (relativePath ?: JSONObject.NULL))) {
                 val updated = JSONObject(existing.toString()).put("directory", folderLabel)
+                    .put("relativePath", relativePath ?: JSONObject.NULL)
                 val id = updated.getString("id")
                 val partial = File(this.directory, "$id.json.part")
                 try {
@@ -480,12 +486,14 @@ class LocalMediaPlugin : Plugin() {
                     val publish = { check(partial.renameTo(File(this.directory, "$id.json"))) }
                     currentWork.get()?.commit(publish) ?: publish()
                 } finally { partial.delete() }
+                current = updated
             }
-            if (existing != null) onRecord?.invoke(existing)
+            if (current != null) onRecord?.invoke(current)
             return false
         }
         val id = UUID.randomUUID().toString()
         val item = JSONObject().put("id", id).put("name", name).put("mime", mime).put("directory", folderLabel)
+            .put("relativePath", relativePath ?: JSONObject.NULL)
             .put("uri", uri.toString()).put("grantUri", grantUri.toString()).put("sourceId", sourceId(grantUri))
         try { openSource(item).use { item.put("size", it.size) } }
         catch (error: IOException) { throw UnavailableDocument(error) }
@@ -534,6 +542,12 @@ class LocalMediaPlugin : Plugin() {
         }
     }
 
+    private fun relativeChildPath(parent: String?, name: String): String? {
+        if (parent == null || name.isEmpty() || name == "." || name == ".." ||
+            name.any { it == '/' || it == '\\' || it < ' ' || it == '\u007f' }) return null
+        return (parent + name).takeIf { it.length <= 8192 }
+    }
+
     private fun scanTree(tree: Uri, onRecord: ((JSONObject) -> Unit)? = null) {
         val root = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
         var folderName = "Local folder"
@@ -546,6 +560,7 @@ class LocalMediaPlugin : Plugin() {
         val pending = java.util.ArrayDeque<String>()
         val seen = mutableSetOf<String>()
         val directoryNames = mutableMapOf(DocumentsContract.getTreeDocumentId(tree) to folderName)
+        val directoryPaths = mutableMapOf<String, String?>(DocumentsContract.getTreeDocumentId(tree) to "")
         pending.add(DocumentsContract.getTreeDocumentId(tree))
         var count = 0
         while (!pending.isEmpty()) {
@@ -561,15 +576,18 @@ class LocalMediaPlugin : Plugin() {
                     checkWork()
                     require(++count <= 20000) { "Too many documents" }
                     val document = cursor.getString(0)
-                    val name = cursor.getString(1).orEmpty().take(256)
+                    val fullName = cursor.getString(1).orEmpty()
+                    val name = fullName.take(256)
+                    val relativePath = relativeChildPath(directoryPaths[parent], fullName)
                     val mime = cursor.getString(2).orEmpty()
                     if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
                         pending.add(document)
                         directoryNames[document] = name
+                        directoryPaths[document] = relativePath?.plus("/")
                     }
                     else try {
                         val uri = DocumentsContract.buildDocumentUriUsingTree(tree, document)
-                        link(uri, tree, known, name, mime, directoryNames[parent].orEmpty(), existing[uri.toString()], onRecord)
+                        link(uri, tree, known, name, mime, directoryNames[parent].orEmpty(), relativePath, existing[uri.toString()], onRecord)
                     } catch (_: UnavailableDocument) {
                         // A revoked/non-seekable document must not hide readable siblings.
                     }

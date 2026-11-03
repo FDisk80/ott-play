@@ -88,6 +88,31 @@ OS privacy prompts, file moves and removed drives can invalidate access;
 reconnect through the native picker when necessary. This desktop path capability
 does not transfer to Android/iOS or grant browser filesystem access.
 
+Folder items from the shared Tauri/server library include `relativePath`, such
+as `Family/Season 1/Episode.mp4`, alongside the existing display `name`.
+Favorites use this path and the source's saved name to distinguish identical
+filenames in different subfolders. Neither the absolute mount path nor the
+temporary playback URL is exported. A receiving player needs the equivalent
+folder connected under the same source name. Older catalogs without
+`relativePath` can still supply complete nested paths in `name`; a basename
+alone does not reliably identify the original file. New catalogs return
+`relativePath: null` for items without a portable folder path, rather than
+allowing a basename to be mistaken for that path.
+Version 1 Favorites and saved selections may contain only a basename for a
+nested file. An imported `Clip.mp4` must not silently select a different
+`Clip.mp4` in the connected folder's root, even if it is the only matching name.
+These entries remain stored but require the original file to be selected again.
+An existing local profile can retain its selection when its private binding
+still identifies the exact file, source and library.
+
+Explicitly adding a root-level file to Favorites stores a private confirmation
+of that exact local file. This confirmation is not exported with Favorites or
+settings. The unchanged version 1 format cannot distinguish an old truncated
+name from a newly captured root-level path, so receiving players must also
+reselect root-level files. Complete nested paths remain portable between
+equivalent connected folders; separately granted file sources retain their
+own source-bound profile selection.
+
 ## Native rollout and verification
 
 Updated Tauri builds publish cumulative native snapshots during background

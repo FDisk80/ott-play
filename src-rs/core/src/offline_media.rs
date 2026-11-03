@@ -332,6 +332,10 @@ pub struct Item {
     pub id: String,
     pub name: String,
     pub directory: String,
+    /// Portable path beneath the bound folder, never a physical mount path.
+    /// Explicit null distinguishes an unportable item from a legacy catalog.
+    #[serde(rename = "relativePath")]
+    pub relative_path: Option<String>,
     pub size: u64,
     pub mime: String,
     pub url: String,
@@ -342,6 +346,70 @@ pub struct Item {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub playback: Option<crate::local_compatibility::Playback>,
 }
+// Source IDs bind paths to their selected root. An ambiguous ID must not
+// acquire a portable path merely because one of its roots happened to be last.
+fn catalog_source_roots(sources: &[SourceRecord]) -> HashMap<&str, Option<&FsPath>> {
+    let mut roots = HashMap::new();
+    for source in sources {
+        roots
+            .entry(source.id.as_str())
+            .and_modify(|root| *root = None)
+            .or_insert_with(|| (source.kind == "folder").then_some(source.path.as_path()));
+    }
+    roots
+}
+
+fn linked_relative_path(record: &Record, roots: &HashMap<&str, Option<&FsPath>>) -> Option<String> {
+    use std::path::Component;
+    let root = roots.get(record.source_id.as_deref()?)?.as_ref()?;
+    let path = record.linked_path.as_deref()?;
+    // Scanning already validates originals for playback. This projection is
+    // purely lexical, so catalog polling adds no per-file filesystem requests.
+    // Reject malformed metadata instead of repairing it or exporting lossy text.
+    root.to_str()?;
+    path.to_str()?;
+    if !root.is_absolute()
+        || !path.is_absolute()
+        || root
+            .components()
+            .any(|part| matches!(part, Component::ParentDir))
+    {
+        return None;
+    }
+    let mut segments = Vec::new();
+    for part in path.strip_prefix(root).ok()?.components() {
+        let Component::Normal(segment) = part else {
+            return None;
+        };
+        let segment = segment.to_str()?;
+        if segment.contains('\\')
+            || segment
+                .chars()
+                .any(|c| matches!(c, '\u{0}'..='\u{1f}' | '\u{7f}'))
+        {
+            return None;
+        }
+        segments.push(segment);
+    }
+    let relative = segments.join("/");
+    let bytes = relative.as_bytes();
+    // Match the portable Favorites codec's ECMAScript whitespace boundaries.
+    let edge_whitespace = |c: char| {
+        matches!(c,
+        '\u{9}'..='\u{d}' | '\u{20}' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}'
+        | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}')
+    };
+    if relative.is_empty()
+        || relative.encode_utf16().count() > 8192
+        || relative.starts_with(edge_whitespace)
+        || relative.ends_with(edge_whitespace)
+        || (bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
+    {
+        return None;
+    }
+    Some(relative)
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Catalog {
@@ -2942,6 +3010,8 @@ impl Library {
         };
         // Normalize each name once, rather than allocating on every comparison.
         records.sort_by_cached_key(|(record, _)| (record.name.to_lowercase(), record.id.clone()));
+        let source_records = self.read_source_records(Some(work)).await?;
+        let source_roots = catalog_source_roots(&source_records);
         let mut items = Vec::new();
         for (r, available) in records {
             // Availability is checked when metadata enters a scan snapshot.
@@ -2966,6 +3036,7 @@ impl Library {
                         self.compatibility.is_some(),
                     )
                 }),
+                relative_path: linked_relative_path(&r, &source_roots),
                 name: r.name,
                 size,
                 mime: r.mime,
@@ -2983,8 +3054,9 @@ impl Library {
                 source_id: r.source_id.unwrap_or(r.id),
             });
         }
+        drop(source_roots);
         let mut sources = Vec::new();
-        for source in self.read_source_records(Some(work)).await? {
+        for source in source_records {
             let known = source_scans
                 .iter()
                 .find(|state| state.source_id == source.id);
@@ -3487,6 +3559,174 @@ async fn media(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn relative_path_record(source: &SourceRecord, path: PathBuf) -> Record {
+        Record {
+            id: "b".repeat(32),
+            name: "Episode.mp4".into(),
+            size: 5,
+            mime: "video/mp4".into(),
+            extension: "mp4".into(),
+            linked_path: Some(path),
+            source_id: Some(source.id.clone()),
+        }
+    }
+
+    #[test]
+    fn portable_relative_path_rejects_unbound_and_unsafe_metadata() {
+        let root = std::env::temp_dir().join("portable-source");
+        let source = SourceRecord {
+            id: "a".repeat(32),
+            name: "Movies".into(),
+            kind: "folder".into(),
+            path: root.clone(),
+        };
+        let sources = vec![source.clone()];
+        let roots = catalog_source_roots(&sources);
+        let record = relative_path_record(&source, root.join("Family/Season 1/Episode.mp4"));
+        assert_eq!(
+            linked_relative_path(&record, &roots).as_deref(),
+            Some("Family/Season 1/Episode.mp4")
+        );
+        for path in [
+            root.clone(),
+            root.join("../outside.mp4"),
+            root.join("Family/../../outside.mp4"),
+            root.with_file_name("portable-source-other")
+                .join("Episode.mp4"),
+            PathBuf::from("relative/Episode.mp4"),
+            root.join("C:drive-relative.mp4"),
+            root.join("line\nbreak.mp4"),
+        ] {
+            assert!(linked_relative_path(&relative_path_record(&source, path), &roots).is_none());
+        }
+        let mut unbound = record.clone();
+        unbound.source_id = None;
+        assert!(linked_relative_path(&unbound, &roots).is_none());
+        unbound.source_id = Some("c".repeat(32));
+        assert!(linked_relative_path(&unbound, &roots).is_none());
+        unbound = record.clone();
+        unbound.linked_path = None;
+        assert!(linked_relative_path(&unbound, &roots).is_none());
+        let mut individual = source.clone();
+        individual.kind = "file".into();
+        assert!(linked_relative_path(&record, &catalog_source_roots(&[individual])).is_none());
+        let mut ambiguous = source.clone();
+        ambiguous.path = root.with_file_name("other-root");
+        assert!(
+            linked_relative_path(&record, &catalog_source_roots(&[source, ambiguous])).is_none()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn portable_relative_path_never_exports_lossy_names_or_backslashes() {
+        use std::os::unix::ffi::OsStringExt;
+        let root = std::env::temp_dir().join("portable-source");
+        let source = SourceRecord {
+            id: "a".repeat(32),
+            name: "Movies".into(),
+            kind: "folder".into(),
+            path: root.clone(),
+        };
+        let sources = vec![source.clone()];
+        let roots = catalog_source_roots(&sources);
+        let bad_name = std::ffi::OsString::from_vec(b"invalid-\xff.mp4".to_vec());
+        for path in [root.join(bad_name), root.join("Family\\Episode.mp4")] {
+            assert!(linked_relative_path(&relative_path_record(&source, path), &roots).is_none());
+        }
+        let mut bad_root = source.clone();
+        bad_root.path = root.join(std::ffi::OsString::from_vec(b"invalid-\xff".to_vec()));
+        let record = relative_path_record(&bad_root, bad_root.path.join("Episode.mp4"));
+        assert!(linked_relative_path(&record, &catalog_source_roots(&[bad_root])).is_none());
+    }
+
+    #[tokio::test]
+    async fn catalog_portable_relative_paths_match_shared_fixture_across_mounts() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/local-favorites-relative-path.json"
+        ))
+        .unwrap();
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let library = Library::new(base.join("state"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let source_name = fixture["source"]["name"].as_str().unwrap();
+        let mut folders = Vec::new();
+        for mount in ["mount-one", "mount-two"] {
+            let folder = base.join(mount).join(source_name);
+            for item in fixture["items"].as_array().unwrap() {
+                let path = folder.join(item["relativePath"].as_str().unwrap());
+                fs::create_dir_all(path.parent().unwrap()).await.unwrap();
+                fs::write(path, b"video").await.unwrap();
+            }
+            folders.push(folder);
+        }
+        library.link_paths(folders, true).await.unwrap();
+        let catalog = library.catalog().await.unwrap();
+        assert_eq!(catalog.sources.len(), 2);
+        assert_ne!(catalog.sources[0].id, catalog.sources[1].id);
+        assert_eq!(
+            catalog.items.len(),
+            fixture["items"].as_array().unwrap().len() * 2
+        );
+        let by_relative_path =
+            |row: &serde_json::Value| row["relativePath"].as_str().unwrap().to_string();
+        let mut expected = fixture["items"].as_array().unwrap().clone();
+        expected.sort_by_key(by_relative_path);
+        for source in &catalog.sources {
+            assert_eq!(source.name, source_name);
+            assert_eq!(source.kind, fixture["source"]["kind"].as_str().unwrap());
+            let mut actual: Vec<_> = catalog.items.iter().filter(|item| item.source_id == source.id)
+                .map(|item| serde_json::json!({"name":item.name,"directory":item.directory,"relativePath":item.relative_path}))
+                .collect();
+            actual.sort_by_key(by_relative_path);
+            assert_eq!(actual, expected);
+        }
+        let body = serde_json::to_string(&catalog).unwrap();
+        assert!(!body.contains("linked_path"));
+        assert!(!body.contains("relative_path"));
+        for source in library.source_records().await.unwrap() {
+            assert!(!body.contains(source.path.to_str().unwrap()));
+        }
+        // Repeated cached reads must project the same paths without probing media.
+        library.scan.lock().await.cached = true;
+        library.original_checks.lock().unwrap().clear();
+        let cached = library.catalog().await.unwrap();
+        assert_eq!(
+            serde_json::to_value(cached.items).unwrap(),
+            serde_json::to_value(&catalog.items).unwrap()
+        );
+        assert!(library.original_checks.lock().unwrap().is_empty());
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn catalog_marks_imports_and_individual_files_as_unportable() {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let token = "t".repeat(32);
+        let library = Library::new(base.join("state"), token.clone(), "device")
+            .await
+            .unwrap();
+        let individual = base.join("individual.mp4");
+        fs::write(&individual, b"video").await.unwrap();
+        library.link_paths(vec![individual], false).await.unwrap();
+        let catalog = import_inner(&library, &token, "imported.mp4", Body::from("video"))
+            .await
+            .unwrap();
+        assert_eq!(catalog.items.len(), 2);
+        assert!(catalog
+            .items
+            .iter()
+            .all(|item| item.relative_path.is_none()));
+        let value = serde_json::to_value(&catalog).unwrap();
+        assert!(value["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|item| item.get("relativePath") == Some(&serde_json::Value::Null)));
+        fs::remove_dir_all(base).await.unwrap();
+    }
 
     #[test]
     fn stale_job_cleanup_preserves_new_epoch_source_and_counter() {

@@ -551,6 +551,7 @@ var keyStrings = {
     "Hide providers?": "ദാതാക്കളെ മറയ്ക്കണോ?",
     "History in Media Library": "മീഡിയ ലൈബ്രറിയിലെ ചരിത്രം",
     "History of watched movies": "ചരിത്രം കാണുക",
+    Home: "പൂമുഖം",
     "HTTP port": "HTTP പോർട്ട്",
     "HTTP remote control is unavailable on this device.":
         "HTTP റിമോട്ട് കൺട്രോൾ ഈ ഉപകരണത്തിൽ ലഭ്യമല്ല.",

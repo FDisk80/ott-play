@@ -914,6 +914,12 @@ function moduleOf(file, requireFn, window) {
                 const profiles = moduleOf(
                     "src/offline/profiles.ts",
                     (name) => {
+                        if (name === "./local-item-path")
+                            return moduleOf(
+                                "src/offline/local-item-path.ts",
+                                () => {},
+                                host
+                            );
                         assert.equal(name, "../settings/store");
                         return moduleOf(
                             "src/settings/store.ts",

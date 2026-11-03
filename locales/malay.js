@@ -560,6 +560,7 @@ var keyStrings = {
     "Hide providers?": "Sembunyikan penyedia?",
     "History in Media Library": "Sejarah dalam pustaka media",
     "History of watched movies": "Sejarah tontonan",
+    Home: "Utama",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Kawalan jauh HTTP tidak tersedia pada peranti ini.",

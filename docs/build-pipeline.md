@@ -141,10 +141,10 @@ manifest hash together cannot authorize another import or a removed guard.
 The loader recipe lives in the already-fingerprinted builder. Both runtime and
 worker remain staged together, with their licenses, in every web/native root.
 
-Each final classic entry bundle is limited to 1,136,586 UTF-8 bytes and 347,622
-bytes compressed with gzip level 9. The entry plus all eight provider families
-must fit within 1,281,422 bytes and 400,312 gzip bytes. Including all optional
-bundles, the complete total is limited to 1,642,440 bytes and 506,146 gzip bytes,
+Each final classic entry bundle is limited to 1,184,448 UTF-8 bytes and 361,805
+bytes compressed with gzip level 9. The entry plus all nine provider families
+must fit within 1,429,504 bytes and 446,060 gzip bytes. Including all optional
+bundles, the complete total is limited to 1,850,873 bytes and 571,000 gzip bytes,
 summed per file. These limits apply independently to server, Tauri and
 Capacitor artifacts. The complete-total limit includes the measured
 [308-byte / 70-gzip-byte Plex selected-metadata allowance](evidence/plex-queue-step-size-20261029.json);

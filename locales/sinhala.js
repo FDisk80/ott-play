@@ -549,6 +549,7 @@ var keyStrings = {
     "Hide providers?": "සපයන්නන් සඟවන්නද?",
     "History in Media Library": "මාධ්‍ය පුස්තකාලයේ ඉතිහාසය",
     "History of watched movies": "ඉතිහාසය නැරඹීම",
+    Home: "මුල් පිටුව",
     "HTTP port": "HTTP වරාය",
     "HTTP remote control is unavailable on this device.":
         "HTTP දුරස්ථ පාලකය මෙම උපාංගයේ නොමැත.",

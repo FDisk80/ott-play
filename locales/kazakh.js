@@ -562,6 +562,7 @@ var keyStrings = {
     "Hide providers?": "Провайдерлер жасырылсын ба?",
     "History in Media Library": "Медиа кітапханасындағы тарих",
     "History of watched movies": "Көру тарихы",
+    Home: "Басты бет",
     "HTTP port": "HTTP порты",
     "HTTP remote control is unavailable on this device.":
         "Бұл құрылғыда HTTP қашықтан басқару қолжетімсіз.",

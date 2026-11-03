@@ -559,6 +559,7 @@ var keyStrings = {
     "Hide providers?": "Üpçün edijiler gizlensinmi?",
     "History in Media Library": "Media kitaphanasyndaky taryh",
     "History of watched movies": "Görlenleriň taryhy",
+    Home: "Baş sahypa",
     "HTTP port": "HTTP porty",
     "HTTP remote control is unavailable on this device.":
         "Bu enjamda HTTP arkaly uzakdan dolandyrmak elýeterli däl.",

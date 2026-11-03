@@ -1,6 +1,87 @@
+/** Selected-item buttons use the same owned commands as the current list. */
+function createModernSelectedActions(host: any) {
+    return function () {
+        var owner = host.__ottClassicScreenPort?.listOwner(),
+            model = owner?.model,
+            render = model?.render,
+            rows = model?.rows?.length ? model.rows : model?.items,
+            index = model?.focus,
+            item = rows && rows[index];
+        function admitted(): boolean {
+            var current = owner?.model;
+            return !!(
+                owner &&
+                owner === host.__ottClassicScreenPort?.listOwner() &&
+                owner.foreground() &&
+                !host.__ottKiosk?.locked() &&
+                !host.__ottKiosk?.enabled?.() &&
+                current?.render === render &&
+                current?.focus === index &&
+                (current?.rows?.length ? current.rows : current?.items) ===
+                    rows &&
+                rows[index] === item &&
+                typeof host._doKey === "function"
+            );
+        }
+        if (
+            !(render?.__ottCatalog || render?.__ottMediaRows) ||
+            !Array.isArray(rows) ||
+            typeof index !== "number" ||
+            index < 0 ||
+            index >= rows.length ||
+            index % 1 ||
+            item == null ||
+            !admitted()
+        )
+            return [];
+        var media = render.__ottMediaRows
+            ? item
+            : render.__ottCatalog?.row?.(item)?.__ottMediaItem;
+        var actions: any[] = [];
+        function add(id: string, label: string, key: number) {
+            if (!key) return;
+            actions.push({
+                id: id,
+                label:
+                    label === "Play"
+                        ? host._("Play")
+                        : label === "Open"
+                          ? host._("Open")
+                          : host._("Description"),
+                run: function () {
+                    if (
+                        admitted() &&
+                        (id !== "details" ||
+                            host.document
+                                ?.getElementById("listPodval")
+                                ?.querySelector('[data-ott-key="' + key + '"]'))
+                    )
+                        host._doKey(key);
+                },
+            });
+        }
+        add(
+            "play",
+            media?.playlist_url || media?.__ottMediaNext ? "Open" : "Play",
+            host.keys?.ENTER
+        );
+        var footer = host.document?.getElementById("listPodval");
+        var detailKeys = [host.keys?.INFO, host.keys?.N2];
+        for (var i = 0; footer && i < detailKeys.length; i++) {
+            var key = Number(detailKeys[i]);
+            if (key && footer.querySelector('[data-ott-key="' + key + '"]')) {
+                add("details", "Description", key);
+                break;
+            }
+        }
+        return actions;
+    };
+}
+
 /** Optional presentation adapter. Catalogues, actions and playback stay owned by the host. */
 function createModernInterface(w: any) {
-    var rows: any[] = [],
+    var defaultSelectedActions = createModernSelectedActions(w),
+        rows: any[] = [],
         formatter: any = null,
         layout: any = null,
         shapeFormatter: any = null,
@@ -9,7 +90,10 @@ function createModernInterface(w: any) {
         shellParent: HTMLElement | null = null,
         actions: any[] = [],
         railFocus = -1,
-        shellFormatter: any = null;
+        shellFormatter: any = null,
+        view = "home",
+        heroActions: any[] = [],
+        heroFocus = -1;
     function supported(): boolean {
         if (w.CSS && typeof w.CSS.supports === "function")
             return w.CSS.supports("display", "grid");
@@ -67,6 +151,14 @@ function createModernInterface(w: any) {
         if (!channel && !media) return null;
         var mixed = catalog && catalog.kind === "mixed";
         return {
+            backdrop: artwork(
+                (media &&
+                    (media.backdrop ||
+                        media.poster ||
+                        media.art ||
+                        media.thumb)) ||
+                    (channel && (channel.backdrop || channel.art))
+            ),
             channel: channel,
             id: item,
             image: artwork(
@@ -103,7 +195,41 @@ function createModernInterface(w: any) {
         if (value === "Media Library") return w._("Media Library");
         if (value === "Channels") return w._("Channels");
         if (value === "Favorites") return w._("Favorites");
+        if (value === "Home") return w._("Home");
         return value;
+    }
+    function homeView(): boolean {
+        return shapeGrid && view === "home";
+    }
+    function icon(id: string): string {
+        var paths: any = {
+            browse: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+            categories: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+            details:
+                '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/>',
+            favorites:
+                '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/>',
+            home: '<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3z"/>',
+            library:
+                '<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>',
+            play: '<path d="m8 4 12 8-12 8z"/>',
+            providers:
+                '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m9 9 6 3-6 3z"/>',
+            search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
+            settings:
+                '<circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z"/>',
+        };
+        return paths[id]
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                  paths[id] +
+                  "</svg>"
+            : "";
+    }
+    function changeView(next: string): void {
+        if (next === view) return;
+        view = next;
+        railFocus = heroFocus = -1;
+        refresh();
     }
     function foreground(): any {
         var owner = w.__ottClassicScreenPort?.listOwner?.();
@@ -114,7 +240,9 @@ function createModernInterface(w: any) {
     }
     function removeShell(): void {
         railFocus = -1;
+        heroFocus = -1;
         actions = [];
+        heroActions = [];
         if (shell && shell.parentNode) shell.parentNode.removeChild(shell);
         if (shellParent)
             shellParent.classList.remove(
@@ -125,7 +253,9 @@ function createModernInterface(w: any) {
                 "modern-screen-menu",
                 "modern-empty",
                 "modern-rail-focused",
-                "modern-has-controls"
+                "modern-has-controls",
+                "modern-view-home",
+                "modern-view-library"
             );
         shell = shellParent = null;
         shellFormatter = null;
@@ -139,6 +269,7 @@ function createModernInterface(w: any) {
             if (target < 0 || target >= actions.length) return;
         }
         railFocus = target;
+        heroFocus = -1;
         shellParent?.classList.add("modern-rail-focused");
         var buttons = shell.querySelectorAll(".modern-rail-action");
         for (var i = 0; i < buttons.length; i++) {
@@ -150,12 +281,13 @@ function createModernInterface(w: any) {
     }
     function focusContent(): void {
         railFocus = -1;
+        heroFocus = -1;
         shellParent?.classList.remove("modern-rail-focused");
         if (shell) {
             var buttons = shell.querySelectorAll(".modern-rail-action");
             for (var i = 0; i < buttons.length; i++) {
                 buttons[i].classList.remove("modern-rail-selected");
-                (buttons[i] as HTMLElement).tabIndex = 0;
+                (buttons[i] as HTMLElement).tabIndex = i === 0 ? 0 : -1;
             }
         }
         var selected = w.document.getElementById("it" + w.selIndex);
@@ -186,9 +318,10 @@ function createModernInterface(w: any) {
             shell = w.document.createElement("div") as HTMLElement;
             shell.id = "modernShell";
             shell.innerHTML =
-                '<nav id="modernRail"><div class="modern-brand">OTT<span>PLAY</span></div><div class="modern-rail-actions"></div></nav>' +
-                '<section id="modernHero"><div class="modern-hero-art"></div><div class="modern-hero-copy"><span class="modern-eyebrow"></span><h1 class="modern-hero-title"></h1><div class="modern-hero-meta"></div><p class="modern-hero-summary"></p></div></section>' +
-                '<header id="modernLibraryHeading"><span class="modern-library-title"></span><span class="modern-library-count"></span></header>';
+                '<nav id="modernRail"><div class="modern-rail-actions"></div></nav>' +
+                '<nav class="modern-account-actions"></nav>' +
+                '<section id="modernHero"><div class="modern-hero-art"></div><div class="modern-hero-copy"><span class="modern-eyebrow"></span><h1 class="modern-hero-title"></h1><div class="modern-hero-meta"></div><p class="modern-hero-summary"></p><div class="modern-hero-actions"></div></div></section>' +
+                '<header id="modernLibraryHeading"><span class="modern-library-title"></span><div class="modern-library-actions"></div><span class="modern-library-count"></span></header>';
             shell
                 .querySelector("#modernRail")!
                 .setAttribute("aria-label", label("Menu"));
@@ -220,16 +353,45 @@ function createModernInterface(w: any) {
         var library = supplied.filter(function (action) {
             return action?.id === "library";
         })[0];
-        add(
-            browse ||
-                library || {
-                    icon: "▦",
-                    id: "browse",
-                    label: label("Channel list"),
-                    run: focusContent,
-                }
+        var catalog = !!(
+            formatter &&
+            (formatter.__ottCatalog || formatter.__ottMediaRows)
         );
-        supplied.slice(0, 10).forEach(add);
+        if (catalog) {
+            if (shapeGrid)
+                add({
+                    active: homeView(),
+                    id: "home",
+                    label: label("Home"),
+                    run: function () {
+                        changeView("home");
+                    },
+                });
+            add({
+                active: !homeView(),
+                id: "library",
+                label: shapeGrid ? label("Media Library") : label("Channels"),
+                run: function () {
+                    changeView("library");
+                },
+            });
+            used.browse = true;
+        } else
+            add(
+                browse ||
+                    library || {
+                        icon: "▦",
+                        id: "browse",
+                        label: label("Channel list"),
+                        run: focusContent,
+                    }
+            );
+        supplied.slice(0, 10).forEach(function (action) {
+            // The contextual heading is absent on option pages; it must not
+            // leave an invisible but keyboard-active category control behind.
+            if (!catalog && action?.id === "categories") return;
+            add(action);
+        });
         var footer = w.document.getElementById("listPodval");
         var buttons = footer && footer.querySelectorAll("[data-ott-key]");
         if (typeof w.__ottModernActions !== "function" && buttons)
@@ -247,23 +409,57 @@ function createModernInterface(w: any) {
                         label: title,
                     });
             }
+        function region(action: any): number {
+            return action.id === "categories"
+                ? 2
+                : action.id === "providers" || action.id === "settings"
+                  ? 1
+                  : 0;
+        }
+        // The focus order follows the rendered groups, including controls moved
+        // out of the capsule. Stable action IDs keep host routes authoritative.
+        next = next
+            .filter(function (action) {
+                return region(action) === 0;
+            })
+            .concat(
+                next.filter(function (action) {
+                    return region(action) === 1;
+                })
+            )
+            .concat(
+                next.filter(function (action) {
+                    return region(action) === 2;
+                })
+            );
+        var focusedId =
+            railFocus >= 0 && actions[railFocus] && actions[railFocus].id;
         actions = next;
-        var root = shell.querySelector(".modern-rail-actions")!;
+        var roots = [
+            shell.querySelector(".modern-rail-actions")!,
+            shell.querySelector(".modern-account-actions")!,
+            shell.querySelector(".modern-library-actions")!,
+        ];
         var controlOwner = foreground();
-        root.textContent = "";
+        roots.forEach(function (root) {
+            root.textContent = "";
+        });
         next.forEach(function (action, index) {
             var button = w.document.createElement("button");
             button.type = "button";
             button.className = "modern-rail-action";
+            button.tabIndex = index === 0 ? 0 : -1;
             button.setAttribute("data-modern-action", action.id);
             button.setAttribute("aria-label", action.label);
             button.setAttribute("title", action.label);
             if (action.active) button.setAttribute("aria-current", "page");
             button.disabled = !!action.disabled || locked();
-            var icon = button.appendChild(w.document.createElement("span"));
-            icon.className = "modern-rail-icon";
-            icon.setAttribute("aria-hidden", "true");
-            icon.textContent = action.icon || "•";
+            var image = button.appendChild(w.document.createElement("span"));
+            image.className = "modern-rail-icon";
+            image.setAttribute("aria-hidden", "true");
+            var graphic = icon(action.id);
+            if (graphic) image.innerHTML = graphic;
+            else image.textContent = action.icon || "•";
             var caption = button.appendChild(w.document.createElement("span"));
             caption.className = "modern-rail-label";
             caption.textContent = action.label;
@@ -283,8 +479,14 @@ function createModernInterface(w: any) {
                 if (actions[index] === action && railFocus !== index)
                     focusRail(index);
             };
-            root.appendChild(button);
+            roots[region(action)].appendChild(button);
         });
+        if (focusedId)
+            railFocus = actions
+                .map(function (action) {
+                    return action.id;
+                })
+                .indexOf(focusedId);
         if (railFocus >= 0 && actions.length) focusRail(railFocus);
     }
     function syncControls(): void {
@@ -310,6 +512,14 @@ function createModernInterface(w: any) {
         );
         shellParent!.classList.toggle("modern-screen-catalog", isCatalog);
         shellParent!.classList.toggle("modern-screen-menu", !isCatalog);
+        shellParent!.classList.toggle(
+            "modern-view-home",
+            isCatalog && homeView()
+        );
+        shellParent!.classList.toggle(
+            "modern-view-library",
+            isCatalog && !homeView()
+        );
         shellParent!.classList.toggle(
             "modern-screen-grid",
             isCatalog && shapeGrid
@@ -365,6 +575,7 @@ function createModernInterface(w: any) {
         shellParent!.classList.toggle("modern-empty", catalog && !row);
         var hero = shell.querySelector("#modernHero") as HTMLElement;
         hero.hidden = !row;
+        updateHeroActions(row);
         if (!row) return;
         shell.querySelector(".modern-library-count")!.textContent =
             Math.max(0, Number(w.selIndex) || 0) + 1 + " / " + rows.length;
@@ -379,22 +590,96 @@ function createModernInterface(w: any) {
         shell.querySelector(".modern-hero-summary")!.textContent = row.summary;
         var art = shell.querySelector(".modern-hero-art")!;
         var existing = art.querySelector("img");
+        var heroImage = row.backdrop || row.image;
         if (
-            (existing && existing.getAttribute("src")) !== (row.image || null)
+            (existing && existing.getAttribute("src")) !== (heroImage || null)
         ) {
             art.textContent = "";
-            if (row.image) {
+            if (heroImage) {
                 var image = w.document.createElement("img");
                 image.alt = "";
                 image.decoding = "async";
-                image.src = row.image;
+                image.src = heroImage;
                 image.onerror = function () {
                     image.hidden = true;
                 };
                 art.appendChild(image);
             }
         }
-        hero.classList.toggle("modern-hero-with-art", !!row.image);
+        hero.classList.toggle("modern-hero-with-art", !!heroImage);
+    }
+    function focusHero(index: number): void {
+        if (!shell || !heroActions.length || locked()) return;
+        var buttons = shell.querySelectorAll(".modern-hero-action");
+        index = Math.max(0, Math.min(buttons.length - 1, index));
+        railFocus = -1;
+        heroFocus = index;
+        shellParent?.classList.remove("modern-rail-focused");
+        (buttons[index] as HTMLElement).focus();
+    }
+    function updateHeroActions(row: any): void {
+        if (!shell) return;
+        var root = shell.querySelector(".modern-hero-actions") as HTMLElement;
+        var owner = foreground();
+        var item = rows[Number(w.selIndex)];
+        var supplied =
+            row && (homeView() || !shapeGrid) && owner
+                ? typeof w.__ottModernSelectedActions === "function"
+                    ? w.__ottModernSelectedActions()
+                    : defaultSelectedActions()
+                : [];
+        heroActions = Array.isArray(supplied)
+            ? supplied.filter(function (action) {
+                  return (
+                      action &&
+                      (action.id === "play" || action.id === "details") &&
+                      action.label &&
+                      !action.disabled
+                  );
+              })
+            : [];
+        root.textContent = "";
+        root.hidden = !heroActions.length;
+        heroActions.forEach(function (action, index) {
+            var button = w.document.createElement("button");
+            button.type = "button";
+            button.className = "modern-hero-action";
+            button.setAttribute("data-modern-hero-action", action.id);
+            button.setAttribute("aria-label", action.label);
+            button.innerHTML = icon(action.id);
+            var caption = button.appendChild(w.document.createElement("span"));
+            caption.textContent = action.label;
+            function activate(event: Event): void {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                if (
+                    !enabled() ||
+                    locked() ||
+                    !owner ||
+                    foreground() !== owner ||
+                    owner.model.render !== formatter ||
+                    rows[Number(w.selIndex)] !== item ||
+                    heroActions[index] !== action
+                )
+                    return;
+                heroFocus = -1;
+                if (typeof action.run === "function") action.run();
+                else if (action.key && typeof w._doKey === "function")
+                    w._doKey(action.key, event);
+            }
+            button.onclick = activate;
+            button.onkeydown = function (event) {
+                if (event.key === "Enter" || event.key === " ") activate(event);
+            };
+            button.onfocus = function () {
+                railFocus = -1;
+                heroFocus = index;
+            };
+            root.appendChild(button);
+        });
+        if (heroFocus >= 0 && heroActions.length) focusHero(heroFocus);
+        else heroFocus = -1;
     }
     function clearDetail(): void {
         var detail = w.document.getElementById("listDetail");
@@ -478,24 +763,45 @@ function createModernInterface(w: any) {
                 inset("paddingTop") -
                 inset("paddingBottom")
         );
-        var gap = Math.max(8, Math.round((w.innerWidth / 1280) * 12));
+        var gap = Math.max(8, Math.round((w.innerWidth / 1920) * 30));
+        var cardWidth = Math.max(128, (w.innerWidth / 1920) * 250) * scale;
         var columns = grid
             ? Math.max(
                   1,
-                  Math.min(8, Math.floor((width + gap) / (150 * scale + gap)))
+                  Math.min(8, Math.floor((width + gap) / (cardWidth + gap)))
               )
             : 1;
         var cellWidth = Math.max(
             1,
             Math.floor((width - gap * (columns - 1) - 2) / columns)
         );
+        // Home keeps one landscape shelf below the hero. Library is a poster
+        // grid; neither presentation changes the catalogue or current selection.
+        var home = grid && homeView();
+        // The caption occupies two text lines plus its existing padding.
+        // Reserve that natural height rather than stretching a single poster
+        // row over the entire remaining viewport.
+        var captionHeight =
+            grid && !home
+                ? Math.max(52 * scale, (parseFloat(style?.fontSize) || 0) * 3.2)
+                : 52 * scale;
         var preferredHeight = grid
-            ? cellWidth * 1.32 + 48 * scale
+            ? (cellWidth - (home ? 0 : 2)) * (home ? 0.5625 : 1.5) +
+              captionHeight +
+              (home ? 0 : 2)
             : (menu ? 50 : 66) * Math.max(0.75, w.innerHeight / 720) * scale;
+        while (grid && !home && preferredHeight > height && columns < 8) {
+            columns++;
+            cellWidth = Math.max(
+                1,
+                Math.floor((width - gap * (columns - 1) - 2) / columns)
+            );
+            preferredHeight = (cellWidth - 2) * 1.5 + captionHeight + 2;
+        }
         var count = Math.max(
             1,
             Math.min(
-                grid ? 3 : 12,
+                home ? 1 : grid ? 2 : 12,
                 Math.floor((height + gap) / (preferredHeight + gap))
             )
         );
@@ -503,12 +809,15 @@ function createModernInterface(w: any) {
             1,
             Math.floor((height - gap * (count - 1) - 2) / count)
         );
+        if (grid && !home)
+            cellHeight = Math.min(cellHeight, Math.ceil(preferredHeight));
         layout = {
             cellHeight: cellHeight,
             cellWidth: cellWidth,
             columns: columns,
             gap: gap,
             grid: grid,
+            home: home,
             menu: menu,
             pageSize: columns * count,
         };
@@ -715,12 +1024,39 @@ function createModernInterface(w: any) {
             !owner ||
             !owner.foreground() ||
             !w.isListVisible ||
-            owner.model.render !== formatter
+            owner.model.render !== formatter ||
+            locked()
         )
             return false;
+        if (heroFocus >= 0 && shell) {
+            if (command.id === "left" || command.id === "right") {
+                focusHero(heroFocus + (command.id === "left" ? -1 : 1));
+                return true;
+            }
+            if (command.id === "accept") {
+                (
+                    shell.querySelectorAll(".modern-hero-action")[
+                        heroFocus
+                    ] as HTMLElement
+                )?.click();
+                return true;
+            }
+            if (command.id === "up") {
+                focusRail(0);
+                return true;
+            }
+            if (
+                command.id === "down" ||
+                command.id === "back" ||
+                command.id === "exit"
+            ) {
+                focusContent();
+                return true;
+            }
+        }
         if (railFocus >= 0 && shell) {
-            if (command.id === "up" || command.id === "down") {
-                focusRail(railFocus + (command.id === "up" ? -1 : 1));
+            if (command.id === "left" || command.id === "right") {
+                focusRail(railFocus + (command.id === "left" ? -1 : 1));
                 return true;
             }
             if (command.id === "accept") {
@@ -728,25 +1064,38 @@ function createModernInterface(w: any) {
                 return true;
             }
             if (
-                command.id === "right" ||
+                command.id === "down" ||
                 command.id === "back" ||
                 command.id === "exit"
             ) {
-                focusContent();
+                if (command.id === "down" && homeView() && heroActions.length)
+                    focusHero(0);
+                else focusContent();
                 return true;
             }
-            return command.id === "left";
+            return command.id === "up";
         }
-        if (
-            shell &&
-            actions.length &&
-            command.id === "left" &&
-            !locked() &&
-            (!layout ||
-                !layout.grid ||
-                (Number(w.selIndex) || 0) % layout.columns === 0)
-        ) {
-            focusRail(0);
+        var selected = Math.max(0, Number(w.selIndex) || 0);
+        var pageSize = Math.max(
+            1,
+            layout?.pageSize || Number(w.listPageSize) || 1
+        );
+        var pageStart = Math.floor(selected / pageSize) * pageSize;
+        var firstVisibleRow = selected - pageStart < (layout?.columns || 1);
+        // Linear lists must traverse page boundaries before entering navigation.
+        var navigationEdge = activeGrid(owner)
+            ? firstVisibleRow
+            : selected === 0;
+        if (shell && actions.length && command.id === "up" && navigationEdge) {
+            if (homeView() && heroActions.length) focusHero(0);
+            else {
+                var active = actions
+                    .map(function (action) {
+                        return !!action.active;
+                    })
+                    .indexOf(true);
+                focusRail(active >= 0 ? active : 0);
+            }
             return true;
         }
         if (!activeGrid(owner)) return false;
@@ -789,6 +1138,7 @@ function createModernInterface(w: any) {
         detail: detail,
         hide: function (): void {
             railFocus = -1;
+            heroFocus = -1;
             shellParent?.classList.remove("modern-rail-focused");
         },
         navigation: navigation,

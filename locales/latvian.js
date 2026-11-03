@@ -566,6 +566,7 @@ var keyStrings = {
     "Hide providers?": "Slēpt pakalpojuma sniedzējus?",
     "History in Media Library": "Vēsture multivides bibliotēkā",
     "History of watched movies": "Skatīšanās vēsture",
+    Home: "Sākums",
     "HTTP port": "HTTP ports",
     "HTTP remote control is unavailable on this device.":
         "HTTP tālvadība šajā ierīcē nav pieejama.",

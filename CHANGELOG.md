@@ -146,6 +146,34 @@
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
 
+## [1.1.63] - 2026-11-03
+
+### Changes
+
+- Expand the optional Modern interface with Home and Library views, bounded
+  media grids, selected-item actions, and shared provider, category and
+  Favorites navigation. Classic remains the default.
+- Keep fullscreen playback controls consistent across browser, desktop and
+  mobile clients, including audio, subtitles, keyboard focus and narrow screens.
+- Fix previous-row navigation across list pages, zero-position progress, and
+  unavailable playback durations. Preserve focused playback status during updates.
+- Correct provider shortcut boundaries and retain measured size limits for
+  the main player and optional interface modules.
+
+### Upgrade
+
+- Install the matching desktop or mobile package, or reload the updated web
+  player. Existing profiles, Favorites and playback settings are retained.
+- Select Modern in Settings → Interface settings → Interface mode to use the
+  new layout. Classic remains available through the same setting.
+
+### Security
+
+- Modern actions retain existing kiosk and screen-ownership checks, and
+  source descriptions continue to be rendered as text.
+- This update preserves provider credentials and does not change remote-control
+  authorization or enable automatic native package installation.
+
 ## [1.1.62] - 2026-10-30
 
 ### Changes

@@ -544,6 +544,7 @@ var keyStrings = {
     "Hide providers?": "ဝန်ဆောင်မှုပေးသူများကို ဝှက်မလား။",
     "History in Media Library": "မီဒီယာစာကြည့်တိုက်ရှိ သမိုင်း",
     "History of watched movies": "ကြည့်ရှုမှုမှတ်တမ်း",
+    Home: "ပင်မ",
     "HTTP port": "HTTP ဆိပ်ကမ်း",
     "HTTP remote control is unavailable on this device.":
         "HTTP အဝေးထိန်းခလုတ်ကို ဤစက်ပစ္စည်းတွင် မရရှိနိုင်ပါ။",

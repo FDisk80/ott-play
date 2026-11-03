@@ -556,6 +556,7 @@ var keyStrings = {
     "Hide providers?": "Skrýt poskytovatele?",
     "History in Media Library": "Historie v knihovně médií",
     "History of watched movies": "Historie sledování",
+    Home: "Domů",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Ovládání HTTP není na tomto zařízení dostupné.",

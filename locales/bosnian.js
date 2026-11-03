@@ -564,6 +564,7 @@ var keyStrings = {
     "Hide providers?": "Sakriti pružatelje usluga?",
     "History in Media Library": "Historija u medijskoj biblioteci",
     "History of watched movies": "Historija gledanja",
+    Home: "Početna",
     "HTTP port": "HTTP priključak",
     "HTTP remote control is unavailable on this device.":
         "HTTP daljinski upravljač nije dostupan na ovom uređaju.",

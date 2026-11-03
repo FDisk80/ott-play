@@ -6,6 +6,8 @@ const vm = require("node:vm");
 const ts = require("typescript");
 let {
     FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
+    LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
+    LOCAL_FAVORITES_PATH_ALLOWANCE,
     COMPANION_DIAGNOSTICS_ALLOWANCE,
     TORRENT_DISCOVERY_ALLOWANCE,
     TORRENT_STREAMS_ALLOWANCE,
@@ -16,6 +18,7 @@ let {
     MODERN_INTERFACE_ENTRY_ALLOWANCE,
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
+    MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     MEDIA_COMPANION_ENTRY_ALLOWANCE,
     MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
@@ -37,6 +40,7 @@ let {
     SHAKA_TRACKS_ENTRY_ALLOWANCE,
     ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,
+    PLEX_ARTWORK_ALLOWANCE,
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
     PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
@@ -121,14 +125,26 @@ function capsWithoutAllowances(names) {
 const favoritesCategoryPersistenceBaseline = capsWithoutAllowances([
     "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
 ]);
+const localFavoritesPathCaps = latestCaps;
+const localFavoritesPathBaseline = capsWithoutAllowances([
+    "LOCAL_FAVORITES_PATH_ALLOWANCE",
+]);
+const localFavoriteWriteRecoveryBaseline = capsWithoutAllowances([
+    "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
+]);
+const historicalIncomingCaps = capsWithoutAllowances([
+    "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
+    "LOCAL_FAVORITES_PATH_ALLOWANCE",
+    "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
+]);
 ({
     BASE_TOTAL_BUDGET,
     BUDGET,
     LEGACY_TOTAL_BUDGET,
     OPTIONAL_BUDGETS,
     TOTAL_BUDGET,
-} = favoritesCategoryPersistenceBaseline);
-const archiveRelativeSeekCaps = {
+} = historicalIncomingCaps);
+const plexArtworkCaps = {
     BASE_TOTAL_BUDGET,
     BUDGET,
     LEGACY_TOTAL_BUDGET,
@@ -158,6 +174,34 @@ const subtract = (budget, delta) =>
             ])
         )
     );
+const modernNativeShellCaps = Object.fromEntries(
+    Object.entries(plexArtworkCaps).map(([name, budget]) => [
+        name,
+        ["LEGACY_TOTAL_BUDGET", "BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(
+            name
+        )
+            ? subtract(budget, PLEX_ARTWORK_ALLOWANCE)
+            : budget,
+    ])
+);
+// The newer optional shell changes only its asset and the complete payload.
+// Remove that measured increment before replaying immutable older receipts.
+const archiveRelativeSeekCaps = Object.fromEntries(
+    Object.entries(modernNativeShellCaps).map(([name, budget]) => [
+        name,
+        name === "OPTIONAL_BUDGETS"
+            ? Object.freeze({
+                  ...budget,
+                  "modern-interface": subtract(
+                      budget["modern-interface"],
+                      MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE
+                  ),
+              })
+            : name === "BASE_TOTAL_BUDGET" || name === "TOTAL_BUDGET"
+              ? subtract(budget, MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE)
+              : budget,
+    ])
+);
 // Replay historical receipts without charging this newer archive feature twice.
 const modernInfoInteractionCaps = Object.fromEntries(
     Object.entries(archiveRelativeSeekCaps).map(([name, budget]) => [
@@ -448,6 +492,102 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const writeRecoveryEvidence = require("../docs/evidence/local-favorite-write-recovery-size-20261102.json");
+    assert.deepEqual(
+        LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
+        writeRecoveryEvidence.allowance
+    );
+    assert(Object.isFrozen(LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE));
+    for (const cap of Object.values(LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE))
+        assert(Object.isFrozen(cap));
+    assert.equal(writeRecoveryEvidence.measurements.length, 3);
+    assert.equal(
+        new Set(writeRecoveryEvidence.measurements.map((row) => row.variant))
+            .size,
+        3
+    );
+    const recoveryCapNames = {
+        entry: "BUDGET",
+        favorites: "favorites-transfer",
+        legacy: "LEGACY_TOTAL_BUDGET",
+        total: "TOTAL_BUDGET",
+    };
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const entry = LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry[metric],
+            favorites =
+                LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites[metric];
+        assert(Number.isInteger(entry) && entry >= 0);
+        assert(Number.isInteger(favorites) && favorites >= 0);
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                latestCaps[name][metric] -
+                    localFavoriteWriteRecoveryBaseline[name][metric],
+                entry +
+                    (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
+                        ? favorites
+                        : 0),
+                name + " counts each write-recovery component once"
+            );
+        for (const name of Object.keys(latestCaps.OPTIONAL_BUDGETS))
+            assert.equal(
+                latestCaps.OPTIONAL_BUDGETS[name][metric] -
+                    localFavoriteWriteRecoveryBaseline.OPTIONAL_BUDGETS[name][
+                        metric
+                    ],
+                name === "favorites-transfer" ? favorites : 0,
+                name + " retains unrelated optional caps"
+            );
+        for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+            assert.equal(
+                require("../scripts/classic-size.cjs")[name][metric],
+                localFavoriteWriteRecoveryBaseline[name][metric]
+            );
+        for (const row of writeRecoveryEvidence.measurements) {
+            const delta = {};
+            for (const name of Object.keys(recoveryCapNames)) {
+                const before = row.baseline[name][metric],
+                    after = row.candidate[name][metric],
+                    allocated =
+                        name === "favorites"
+                            ? favorites
+                            : entry + (name === "total" ? favorites : 0),
+                    previousHeadroom =
+                        writeRecoveryEvidence.previousCaps[name][metric] -
+                        before;
+                assert(Number.isInteger(before) && before >= 0);
+                assert(Number.isInteger(after) && after >= 0);
+                assert(
+                    Number.isInteger(
+                        writeRecoveryEvidence.previousCaps[name][metric]
+                    )
+                );
+                delta[name] = after - before;
+                assert.equal(row.delta[name][metric], delta[name]);
+                assert(
+                    delta[name] <= allocated,
+                    row.variant + " " + name + " measured recovery growth fits"
+                );
+                assert(
+                    previousHeadroom >= 0,
+                    row.variant + " " + name + " baseline fits"
+                );
+                assert(
+                    writeRecoveryEvidence.previousCaps[name][metric] +
+                        allocated -
+                        after >=
+                        previousHeadroom,
+                    row.variant + " " + name + " retains previous headroom"
+                );
+            }
+            assert.equal(delta.legacy, delta.entry);
+            assert.equal(delta.total, delta.entry + delta.favorites);
+        }
+    }
     const categoryPersistenceEvidence = require("../docs/evidence/favorites-category-persistence-size-20261102.json");
     assert.deepEqual(
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
@@ -550,6 +690,202 @@ try {
             assert.equal(deltas.total, deltas.entry + deltas.favorites);
         }
     }
+    const pathEvidence = require("../docs/evidence/local-favorites-path-size-20261102.json");
+    assert.deepEqual(LOCAL_FAVORITES_PATH_ALLOWANCE, pathEvidence.allowance);
+    assert(Object.isFrozen(LOCAL_FAVORITES_PATH_ALLOWANCE));
+    for (const cap of Object.values(LOCAL_FAVORITES_PATH_ALLOWANCE))
+        assert(Object.isFrozen(cap));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const entry = LOCAL_FAVORITES_PATH_ALLOWANCE.entry[metric];
+        const favorites = LOCAL_FAVORITES_PATH_ALLOWANCE.favorites[metric];
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                localFavoritesPathCaps[name][metric] -
+                    localFavoritesPathBaseline[name][metric],
+                entry +
+                    (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
+                        ? favorites
+                        : 0),
+                name + " counts each applicable Local Favorites allowance once"
+            );
+        assert.equal(
+            localFavoritesPathCaps.OPTIONAL_BUDGETS["favorites-transfer"][
+                metric
+            ] -
+                localFavoritesPathBaseline.OPTIONAL_BUDGETS[
+                    "favorites-transfer"
+                ][metric],
+            favorites
+        );
+        for (const name of Object.keys(OPTIONAL_BUDGETS))
+            if (name !== "favorites-transfer")
+                assert.equal(
+                    localFavoritesPathCaps.OPTIONAL_BUDGETS[name][metric],
+                    localFavoritesPathBaseline.OPTIONAL_BUDGETS[name][metric]
+                );
+        for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+            assert.equal(
+                require("../scripts/classic-size.cjs")[name][metric],
+                localFavoritesPathBaseline[name][metric]
+            );
+        for (const row of pathEvidence.measurements) {
+            const deltas = Object.fromEntries(
+                ["entry", "favorites", "legacy", "total"].map((name) => [
+                    name,
+                    row.candidate[name][metric] - row.baseline[name][metric],
+                ])
+            );
+            assert.equal(deltas.entry, row.delta.entry[metric]);
+            assert.equal(deltas.favorites, row.delta.favorites[metric]);
+            assert.equal(deltas.legacy, deltas.entry);
+            assert.equal(deltas.total, deltas.entry + deltas.favorites);
+            assert.equal(
+                row.featureHeadroom.entry[metric],
+                entry - deltas.entry
+            );
+            assert.equal(
+                row.featureHeadroom.favorites[metric],
+                favorites - deltas.favorites
+            );
+            for (const name of ["entry", "favorites", "legacy", "total"]) {
+                const allocated =
+                    name === "favorites"
+                        ? favorites
+                        : entry + (name === "total" ? favorites : 0);
+                const headroom =
+                    pathEvidence.previousCaps[name][metric] +
+                    allocated -
+                    row.candidate[name][metric];
+                assert.equal(row.resultingHeadroom[name][metric], headroom);
+                assert(
+                    headroom >= 0,
+                    row.variant +
+                        " " +
+                        name +
+                        " recorded candidate fits approved caps"
+                );
+            }
+        }
+    }
+    assert.equal(
+        pathEvidence.measurementContext.gitSourceIdentityBytesExcluded,
+        40
+    );
+    assert.equal(pathEvidence.measurementContext.betaSuffixIncluded, false);
+    assert.deepEqual(pathEvidence.comparison.candidateInputErrors, []);
+    const shellEvidence = require("../docs/evidence/modern-native-shell-size-20261102.json");
+    const artworkEvidence = require("../docs/evidence/plex-artwork-size-20261102.json");
+    assert.deepEqual(PLEX_ARTWORK_ALLOWANCE, artworkEvidence.allowance);
+    assert(Object.isFrozen(PLEX_ARTWORK_ALLOWANCE));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert.equal(
+            PLEX_ARTWORK_ALLOWANCE[metric],
+            artworkEvidence.candidate.output[metric] -
+                artworkEvidence.baseline.output[metric]
+        );
+        for (const name of [
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                plexArtworkCaps[name][metric] -
+                    modernNativeShellCaps[name][metric],
+                PLEX_ARTWORK_ALLOWANCE[metric]
+            );
+    }
+    for (const [stage, caps] of Object.entries({
+        after: plexArtworkCaps,
+        before: modernNativeShellCaps,
+    }))
+        assert.deepEqual(artworkEvidence.budgets[stage], {
+            // Replay the immutable Plex receipt before later Modern fixes.
+            baseTotal: subtract(
+                caps.BASE_TOTAL_BUDGET,
+                shellEvidence.finalization.delta
+            ),
+            legacy: caps.LEGACY_TOTAL_BUDGET,
+            total: subtract(
+                caps.TOTAL_BUDGET,
+                shellEvidence.finalization.delta
+            ),
+        });
+    assert.deepEqual(artworkEvidence.protectedCaps, {
+        entry: BUDGET,
+        provider: PROVIDER_BUDGET,
+    });
+    assert.strictEqual(plexArtworkCaps.BUDGET, modernNativeShellCaps.BUDGET);
+    assert.strictEqual(
+        plexArtworkCaps.OPTIONAL_BUDGETS,
+        modernNativeShellCaps.OPTIONAL_BUDGETS
+    );
+    assert.deepEqual(
+        MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+        shellEvidence.allowance
+    );
+    assert(Object.isFrozen(MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE));
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert.equal(
+            shellEvidence.finalization.delta[metric],
+            shellEvidence.candidate.output[metric] -
+                shellEvidence.previousCandidate.output[metric]
+        );
+        assert.equal(
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE[metric],
+            shellEvidence.previousCandidate.allowance[metric] +
+                shellEvidence.finalization.delta[metric],
+            "finalization adds only the measured optional cost"
+        );
+        assert.equal(
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE[metric],
+            shellEvidence.candidate.output[metric] -
+                shellEvidence.baseline.output[metric]
+        );
+        for (const name of ["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"])
+            assert.equal(
+                modernNativeShellCaps[name][metric] -
+                    archiveRelativeSeekCaps[name][metric],
+                MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE[metric]
+            );
+        assert.equal(
+            modernNativeShellCaps.OPTIONAL_BUDGETS["modern-interface"][metric] -
+                shellEvidence.candidate.output[metric],
+            archiveRelativeSeekCaps.OPTIONAL_BUDGETS["modern-interface"][
+                metric
+            ] - shellEvidence.baseline.output[metric],
+            "the optional feature preserves its previous measured headroom"
+        );
+    }
+    for (const [stage, caps] of Object.entries({
+        after: modernNativeShellCaps,
+        before: archiveRelativeSeekCaps,
+    }))
+        assert.deepEqual(shellEvidence.budgets[stage], {
+            baseTotal: caps.BASE_TOTAL_BUDGET,
+            modern: caps.OPTIONAL_BUDGETS["modern-interface"],
+            total: caps.TOTAL_BUDGET,
+        });
+    assert.deepEqual(shellEvidence.protectedCaps, {
+        entry: modernNativeShellCaps.BUDGET,
+        legacy: modernNativeShellCaps.LEGACY_TOTAL_BUDGET,
+        provider: PROVIDER_BUDGET,
+    });
+    for (const name of ["BUDGET", "LEGACY_TOTAL_BUDGET"])
+        assert.strictEqual(
+            modernNativeShellCaps[name],
+            archiveRelativeSeekCaps[name]
+        );
+    for (const name of Object.keys(OPTIONAL_BUDGETS))
+        if (name !== "modern-interface")
+            assert.strictEqual(
+                modernNativeShellCaps.OPTIONAL_BUDGETS[name],
+                archiveRelativeSeekCaps.OPTIONAL_BUDGETS[name]
+            );
     const archiveEvidence = require("../docs/evidence/archive-relative-seek-size-20261102.json");
     assert.deepEqual(
         ARCHIVE_RELATIVE_SEEK_ALLOWANCE,
@@ -4235,6 +4571,9 @@ try {
     for (const [key, allowance] of Object.entries({
         favoritesCategoryPersistenceAllowance:
             FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
+        localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
+        localFavoriteWriteRecoveryAllowance:
+            LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
         mediaCompanionEntryAllowance: MEDIA_COMPANION_ENTRY_ALLOWANCE,
         mediaCompanionOptionalAllowance: MEDIA_COMPANION_OPTIONAL_ALLOWANCE,
         mediaCompanionPreparationAllowance:
@@ -4242,6 +4581,9 @@ try {
         mediaCompanionSettingsAllowance: MEDIA_COMPANION_SETTINGS_ALLOWANCE,
         mediaCompanionTransportAllowance: MEDIA_COMPANION_TRANSPORT_ALLOWANCE,
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+        modernNativeShellOptionalAllowance:
+            MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+        plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
     })) {
         assert.deepEqual(strictReport[key], allowance);
         assert.deepEqual(failed[key], strictReport[key]);

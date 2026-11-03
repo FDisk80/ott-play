@@ -571,6 +571,7 @@ var keyStrings = {
     "Hide providers?": "Ukryć dostawców?",
     "History in Media Library": "Historia w bibliotece multimediów",
     "History of watched movies": "Historia oglądania",
+    Home: "Główna",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Sterowanie HTTP jest niedostępne na tym urządzeniu.",

@@ -19,6 +19,11 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
         isProviderAllowed = ports.isProviderAllowed,
         selectProviderByIndex = ports.selectProviderByIndex;
     var read = w.stbGetItem;
+    function localItemRelativePath(item: any): string | null {
+        return typeof ports.localItemRelativePath === "function"
+            ? ports.localItemRelativePath(item)
+            : null;
+    }
     function allowed(): boolean {
         return (
             read === w.stbGetItem &&
@@ -659,19 +664,49 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
                         !local
                     )
                         return null;
+                    var localProof =
+                        locator.relativePath.indexOf("/") < 0
+                            ? await ports.localFavoriteProof?.(
+                                  target.selector,
+                                  locator
+                              )
+                            : null;
+                    if (
+                        (locator.relativePath.indexOf("/") < 0 &&
+                            !localProof) ||
+                        !same() ||
+                        !guard()
+                    )
+                        return null;
+                    var localCurrent = function (): boolean {
+                        return (
+                            same() &&
+                            guard() &&
+                            (!localProof || localProof.current())
+                        );
+                    };
+                    var localMatches = function (item: any): boolean {
+                        return (
+                            item.sourceId === root.id &&
+                            localItemRelativePath(item) ===
+                                locator.relativePath &&
+                            item.available !== false &&
+                            (!localProof ||
+                                (item.id === localProof.itemId &&
+                                    item.sourceId === localProof.sourceId &&
+                                    item.relativePath ===
+                                        localProof.relativePath))
+                        );
+                    };
+                    if (!localCurrent()) return null;
                     var pending = local.remoteCatalog(
-                        function () {
-                            return same() && guard();
-                        },
+                        localCurrent,
                         root.id,
                         function (catalog: any) {
-                            return catalog.items.some(function (item: any) {
-                                return (
-                                    item.sourceId === root.id &&
-                                    item.name === locator.relativePath &&
-                                    item.available !== false
-                                );
-                            });
+                            return (
+                                localCurrent() &&
+                                catalog.items.some(localMatches)
+                            );
                         }
                     );
                     if (typeof pending.cancel === "function")
@@ -679,17 +714,13 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
                             pending.cancel();
                         });
                     var catalog = await pending;
-                    if (!same() || !guard() || catalog.cancelled) return null;
-                    var rows = catalog.items.filter(function (item: any) {
-                        return (
-                            item.sourceId === root.id &&
-                            item.name === locator.relativePath &&
-                            item.available !== false
-                        );
-                    });
-                    return rows.length === 1
-                        ? channel("local-" + rows[0].id, locator)
-                        : null;
+                    if (!localCurrent() || catalog.cancelled) return null;
+                    var rows = catalog.items.filter(localMatches);
+                    if (rows.length !== 1) return null;
+                    var resolved = channel("local-" + rows[0].id, locator);
+                    if (resolved && localProof)
+                        resolved.localProof = localProof;
+                    return resolved;
                 }
                 // Stalker keys include the whole folder route, so a published leaf
                 // can resolve immediately while unrelated branches keep loading.
@@ -868,7 +899,12 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
                 guard: () => boolean,
                 preserveInfo = false
             ): Promise<boolean> {
-                if (!same() || !guard()) return Promise.resolve(false);
+                if (
+                    !same() ||
+                    !guard() ||
+                    (item.localProof && !item.localProof.current())
+                )
+                    return Promise.resolve(false);
                 expectedDispatch = playbackItem = item;
                 if (item.items)
                     return new Promise(function (done) {
@@ -960,6 +996,7 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
                 var expectedId = playbackItem.id,
                     hasItems = !!playbackItem.items;
                 var locator = JSON.parse(JSON.stringify(playbackItem.locator));
+                var localProof = playbackItem.localProof;
                 var catalogPayload =
                     !hasItems && w.channels[expectedId]?.__ottMediaItem;
                 var catalogRef = catalogPayload?.__ottMediaRef;
@@ -1046,12 +1083,22 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
                                 !!view &&
                                 view.current() &&
                                 rootAlias === locator.rootAlias &&
+                                (locator.relativePath.indexOf("/") >= 0 ||
+                                    !!localProof) &&
+                                (!localProof || localProof.current()) &&
                                 view.catalog.items.some(function (item: any) {
                                     return (
                                         "local-" + item.id ===
                                             String(expectedId) &&
                                         item.sourceId === rootId &&
-                                        item.name === locator.relativePath &&
+                                        (!localProof ||
+                                            (item.id === localProof.itemId &&
+                                                item.sourceId ===
+                                                    localProof.sourceId &&
+                                                item.relativePath ===
+                                                    localProof.relativePath)) &&
+                                        localItemRelativePath(item) ===
+                                            locator.relativePath &&
                                         item.available !== false
                                     );
                                 })
@@ -1364,6 +1411,7 @@ export function createGlobalFavoritesPlayer(w: any, ports: any): any {
         captureSelector: captureSelector,
         choices: choices,
         choiceTarget: choiceTarget,
+        localItemRelativePath: localItemRelativePath,
         selected: selected,
         targets: targets,
     };

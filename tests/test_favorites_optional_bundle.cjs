@@ -85,6 +85,7 @@ const modules = [
     "plugins/favorites-transfer-runtime",
     "settings/global-favorites-portable",
     "settings/global-favorites",
+    "settings/local-favorite-proofs",
     "settings/global-favorites-facade",
     "settings/global-favorites-receipt-codec",
     "settings/global-favorites-receipts",
@@ -106,7 +107,7 @@ test("production registration keeps exact optional graph and main-owned dispatch
         CLASSIC_OPTIONAL_BUNDLES["favorites-transfer"],
         modules.map((name) => "build/" + name + ".js")
     );
-    assert.equal(CLASSIC_OPTIONAL_BUNDLES["favorites-transfer"].length, 31);
+    assert.equal(CLASSIC_OPTIONAL_BUNDLES["favorites-transfer"].length, 32);
     assert(
         CLASSIC_MAIN_MODULES.includes(
             "build/commands/remote-favorites-transfer.js"
@@ -115,6 +116,7 @@ test("production registration keeps exact optional graph and main-owned dispatch
     for (const name of modules)
         assert(!CLASSIC_MAIN_MODULES.includes("build/" + name + ".js"));
     for (const name of [
+        "build/offline/local-item-path.js",
         "build/storage/index.js",
         "build/storage/favorites-physical-storage.js",
         "build/utils/lzstring.js",

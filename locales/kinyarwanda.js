@@ -577,6 +577,7 @@ var keyStrings = {
     "Hide providers?": "Guhisha abatanga serivisi?",
     "History in Media Library": "Amateka mu isomero ry'ibitangazamakuru",
     "History of watched movies": "Amateka yo kureba",
+    Home: "Ahabanza",
     "HTTP port": "Icyambu cya HTTP",
     "HTTP remote control is unavailable on this device.":
         "Igenzura ryo kure rya HTTP ntiriboneka kuri iki gikoresho.",

@@ -18,6 +18,8 @@ function moduleAt(file, deps = {}) {
         {
             exports,
             require: (id) => {
+                if (id === "../offline/local-item-path")
+                    return actualModule("src/offline/local-item-path.ts", {});
                 assert(deps[id], id);
                 return deps[id];
             },

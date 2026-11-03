@@ -570,6 +570,7 @@ var keyStrings = {
     "Hide providers?": "Skrij ponudnike?",
     "History in Media Library": "Zgodovina v predstavnostni knjižnici",
     "History of watched movies": "Zgodovina ogledov",
+    Home: "Domov",
     "HTTP port": "HTTP vrata",
     "HTTP remote control is unavailable on this device.":
         "Daljinski upravljalnik HTTP v tej napravi ni na voljo.",

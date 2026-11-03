@@ -562,6 +562,7 @@ var keyStrings = {
     "Hide providers?": "Թաքցնե՞լ մատակարարներին։",
     "History in Media Library": "Պատմություն մեդիա գրադարանում",
     "History of watched movies": "Դիտումների պատմություն",
+    Home: "Գլխավոր",
     "HTTP port": "HTTP պորտ",
     "HTTP remote control is unavailable on this device.":
         "HTTP հեռակառավարումն այս սարքում հասանելի չէ։",

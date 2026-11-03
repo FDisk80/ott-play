@@ -81,12 +81,14 @@ function moduleAt(file, deps) {
             Object,
             Promise,
             require: (name) =>
-                name === "./global-favorites-providers"
-                    ? actualModule(
-                          "src/media/global-favorites-providers.ts",
-                          {}
-                      )
-                    : deps[name],
+                name === "../offline/local-item-path"
+                    ? actualModule("src/offline/local-item-path.ts", {})
+                    : name === "./global-favorites-providers"
+                      ? actualModule(
+                            "src/media/global-favorites-providers.ts",
+                            {}
+                        )
+                      : deps[name],
             String,
             window: {},
         }

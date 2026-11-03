@@ -346,7 +346,8 @@ function createArchiveController(core: any, ports: ArchivePorts) {
         // requested instant inside retention and strictly behind live TV.
         var earliest = Math.max(1, Math.ceil(now - context.retention));
         var latest = Math.floor(now) - 1;
-        return earliest <= from && from <= latest && latest >= earliest
+        // A paused position can age out; clamp and revalidate its destination.
+        return from > 0 && from <= latest && latest >= earliest
             ? {
                   context: context,
                   earliest: earliest,

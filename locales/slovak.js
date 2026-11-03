@@ -570,6 +570,7 @@ var keyStrings = {
     "Hide providers?": "Skryť poskytovateľov?",
     "History in Media Library": "História v knižnici médií",
     "History of watched movies": "História sledovania",
+    Home: "Domov",
     "HTTP port": "Port HTTP",
     "HTTP remote control is unavailable on this device.":
         "Diaľkové ovládanie HTTP nie je na tomto zariadení k dispozícii.",

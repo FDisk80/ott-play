@@ -4,12 +4,12 @@ import {
 } from "../commands/favorites-document-json";
 
 export interface GlobalFavoritesFacadePorts {
+    /** Explicit current-item addition may require installation-private evidence. */
+    addCurrent?(admission?: () => boolean): Promise<any>;
     capture(): Promise<{ value: any; current(): boolean }>;
     captureLegacy(): Promise<{ entry: any; value?: any; current(): boolean }>;
     caselessKey(value: string): string;
-    codec: any;
     current(): boolean;
-    locatorKinds: string[];
     playEntry(
         id: string,
         current: () => boolean
@@ -19,7 +19,6 @@ export interface GlobalFavoritesFacadePorts {
         current: () => boolean
     ): { result: Promise<any>; cancel(): void };
     qualify?(): Promise<boolean>;
-    sha256(text: string): Promise<string>;
     store: any;
     uuid(): string;
 }
@@ -107,6 +106,7 @@ export function createGlobalFavoritesFacade(ports: GlobalFavoritesFacadePorts) {
         return page();
     }
     async function add(admission?: () => boolean) {
+        if (ports.addCurrent) return ports.addCurrent(admission);
         if (ports.qualify) await ports.qualify();
         var captured = await ports.capture();
         if (!current(admission) || !captured.current())
