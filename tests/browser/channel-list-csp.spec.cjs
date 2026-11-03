@@ -4874,14 +4874,14 @@ test("Modern long media details stay within the hero through selection and mode 
 
 async function expectVisibleControlsWithinViewport(page, selector) {
     const controls = page.locator(selector);
-    expect(
-        await controls.count(),
-        "The surface must expose its controls"
-    ).toBeGreaterThan(0);
-    const rectangles = [];
-    for (const control of await controls.all()) {
+    const count = await controls.count();
+    expect(count, "The surface must expose its controls").toBeGreaterThan(0);
+    for (const control of await controls.all())
         await expect(control).toBeVisible();
-        const bounds = await control.evaluate((element) => {
+    // Resize handlers can move controls between protocol calls. Compare all
+    // rectangles and hit targets from one synchronous layout snapshot.
+    const snapshots = await controls.evaluateAll((elements) =>
+        elements.map((element) => {
             const rect = element.getBoundingClientRect();
             const target = document.elementFromPoint(
                 rect.left + rect.width / 2,
@@ -4901,7 +4901,11 @@ async function expectVisibleControlsWithinViewport(page, selector) {
                 viewportWidth: innerWidth,
                 width: rect.width,
             };
-        });
+        })
+    );
+    expect(snapshots.length).toBe(count);
+    const rectangles = [];
+    for (const bounds of snapshots) {
         expect(bounds.width).toBeGreaterThan(0);
         expect(bounds.height).toBeGreaterThan(0);
         expect(bounds.left).toBeGreaterThanOrEqual(-1);
