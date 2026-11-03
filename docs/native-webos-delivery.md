@@ -5,6 +5,13 @@ The [native build guide](../native/webos/README.md) describes source preparation
 SDK setup and first-time Developer Mode access. The [hosted installation
 guide](lg-webos-installation.md) describes the separate web application.
 
+Native package **0.2.0** is published as
+[native-webos-v0.2.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1).
+Use its existing release assets; updating a television does not require a new
+build or publication. The package metadata records
+`device_validation: not_performed`. Publication and package verification are
+not proof of playback or state retention on the receiving television.
+
 ## Identify the application first
 
 **OTTPlay Native** uses application ID `com.openottplay.player.native` and a
@@ -116,8 +123,10 @@ An installation managed through private files needs particular care:
   or include them in a release artifact.
 - Retain the native application's existing Plex sign-in and preferences. They
   are separate from a managed profile file and must not be replaced with the
-  hosted player's browser storage. Copying an application directory alone is
-  not proof that every protected store has been backed up.
+  hosted player's browser storage. The storage service uses protected DB8 data
+  and keymanager keys outside the application directory. Copying that directory
+  alone does not back up the complete protected store or make it portable to
+  another television.
 
 Use the actual installed application directory and the already authorized
 device connection. Homebrew and Developer Mode layouts can differ. Restrict
@@ -161,6 +170,189 @@ profiles and pairing cannot reload while their reset is incomplete. For ordinary
 package updates, preserve provisioning files and the entire `ott-state`
 directory, including the reset marker, as described above.
 
+## Checked update helper with an existing Ares connection
+
+`scripts/update-webos-native.py` updates the existing
+`com.openottplay.player.native` application through an already configured Ares
+device alias. It does not create an alias, obtain a key, uninstall an application
+or switch between native and hosted players. Keep the same private work directory
+for planning, installation and any later diagnosis of that update.
+
+The following paths and alias are placeholders. First prepare and verify the
+published package without contacting the television:
+
+```sh
+python3 scripts/update-webos-native.py \
+  --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
+  --work-dir /absolute/path/to/private/native-update
+```
+
+This is the default dry-run. Release verification may contact GitHub; no Ares
+device requests are made. Use `--bundle-dir /absolute/path/to/downloaded-release`
+to reuse local release files while still checking their official release
+identity and hashes. No source compilation or release publication is needed.
+The helper checks four official assets: the IPK, package metadata, checksum
+and source-set receipt. It verifies their published hashes and package identity;
+it does not download or rebuild both source archives. Use the complete bundle
+verifier above for the broader source and catalog checks.
+
+Device operations require macOS or Linux and an existing Developer Mode alias.
+If Ares is not on `PATH`, add
+`--ares-root /absolute/path/to/node_modules/@webos-tools/cli` to select the
+supported CLI version `3.2.6`. Add `--ares-compat` only when using the existing
+repository compatibility wrapper; it requires that explicit `--ares-root`.
+These options reuse the alias and credentials already configured on the
+computer. They do not enable Developer Mode, start Key Server or acquire keys.
+Private state transfer also verifies the supported CLI source before installing
+an update that needs a state backup. It supplies the saved bytes through a
+dedicated private file descriptor after the remote stream is ready. This avoids
+the CLI's early standard-input listener and control messages; file contents are
+not embedded in command arguments or logs. If that transport cannot be
+validated, the update stops before installation.
+
+When the intended television is available, explicitly request read-only checks:
+
+```sh
+python3 scripts/update-webos-native.py \
+  --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
+  --work-dir /absolute/path/to/private/native-update --preflight
+```
+
+The device check requires LG's [device-specific identifier](https://webostv.developer.lge.com/develop/references/device-unique-id)
+through the existing authorized connection; an IP address, alias and model alone are insufficient.
+Run this local LGUDID check with the device owner's agreement.
+Only its hash contributes to the saved identity. The raw identifier is not
+retained in journals, receipts or logs; the command transport temporarily
+buffers its response in a private file. If the TV denies or cannot provide this
+information, the helper stops before updating. This local identity check does
+not grant extra permissions or authenticate the SSH peer. A journal created with
+the older alias-and-model identity cannot authorize restoration to a newly
+identified TV.
+
+Review the detected native application and version, then apply the same update:
+
+```sh
+python3 scripts/update-webos-native.py \
+  --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
+  --work-dir /absolute/path/to/private/native-update --apply
+```
+
+The helper validates the official release and local package before installation.
+It closes the native app and verifies both the application manager and native
+process state before capturing the known private files. It then performs one
+same-ID installation, reads back the installed identity/version and payload
+hashes, preserves the captured state and verifies launch. A close or launch
+acknowledgement alone does not complete those checks. Missing access, ambiguous identity, a newer
+installed version or an unsafe state operation stops the update.
+Payload verification reads the device's SHA-256 output directly and requires
+every expected file exactly once. Missing, duplicate or malformed rows cannot
+turn a failed verification into success; this check does not depend on sending
+a checksum manifest through standard input.
+
+The snapshot covers the known application-directory files described above,
+including the entire `ott-state` directory. It is **not a complete DB8/keymanager
+backup**. Preserve the snapshot privately on the same computer; it is not a
+profile export for another television. Existing files with conflicting contents
+must not be overwritten merely to make a restore succeed. Owner, group and mode
+are part of this check; an alias unable to restore the original ownership must
+not proceed with installation. Missing files are transferred to private staging
+files, hash-checked and published without replacing an existing destination.
+An interrupted transfer cannot leave a partial file at its final name. A new
+file or directory appearing at that name makes restoration stop instead of
+overwriting it.
+
+Private recovery files are stored under
+`WORK_DIR/YOUR_TV/native-webos-v0.2.0-beta.1/`: `update.json` is the journal,
+`snapshot/state.tar` contains the captured private data, and
+`snapshot/manifest.json` records its hashes and permissions. The install uses a
+verified private copy named `verified-update.ipk`. Keep this directory private
+and intact until the update and playback checks are complete. A per-device lock
+prevents another apply or reconciliation in this work directory from running
+concurrently. `update_in_progress` means that operation is still active; do not
+choose a different work directory to bypass the lock.
+
+The journal records `install_started: false` before preparation and durably
+changes it to `true` immediately before invoking the installer. After a failure
+that is provably before installation, repeat `--apply` with the same arguments:
+the helper requires the same release, device identity and previously installed
+version, retains earlier local artifacts under `prior-attempt-*`, and prepares a
+fresh snapshot. It does not automatically repeat an installer call. A missing
+marker, a `true` marker or an ambiguous journal stays blocked and requires the
+recovery checks below. Do not edit these markers to force a retry.
+
+An installer timeout produces `install-indeterminate`, even if readback already
+shows the target version. The helper records that observation without retrying
+the install, restoring over possibly active state or launching the player.
+Retain the pending journal and snapshot. A subsequent invocation must handle that
+pending update before treating a matching version as an unchanged installation;
+do not delete the journal or choose a fresh work directory to bypass recovery.
+Use `--preflight` with the same arguments to obtain read-only status even while
+recovery is pending. If the target version and exact payload are installed,
+request the separate recovery operation:
+
+```sh
+python3 scripts/update-webos-native.py \
+  --device YOUR_TV --tag native-webos-v0.2.0-beta.1 \
+  --work-dir /absolute/path/to/private/native-update --reconcile
+```
+
+`--reconcile` verifies the saved release, device identity and installed payload,
+stops the native app, checks the private snapshot, restores missing state and
+verifies launch. It requires a durable `install_started: true` marker; a manual
+installation cannot authorize restoring a snapshot from an earlier pre-install
+failure. A close timeout requires successful stopped-state readback
+before restoration; a still-running process prevents it. It **never installs an
+IPK**. It refuses an old or different installed
+build, a missing or changed snapshot, and conflicting state. Resolve those
+conditions while retaining the journal and both state versions; do not bypass
+them by retrying `--apply` in a new directory. A completed journal cannot be
+reconciled again: `no_pending_update` prevents restoration of an old snapshot
+over settings changed after the successful update.
+
+After a completed update, repeating it is a no-op when the installed version is
+already current, its payload hashes match, and no recovery is pending. The same
+numeric version with different binaries is an error, not an update or a verified
+no-op. Package, state-file and process
+checks do not establish correct playback: separately verify moving video, sound,
+the existing Plex connection, profiles, Favorites and behavior after reopening.
+Keep those observations with the exact package SHA-256 in the update record.
+
+For example, the published package produces this **planning receipt** before
+any TV request; it is not an installation result:
+
+```json
+{
+  "schema": 1,
+  "application_id": "com.openottplay.player.native",
+  "tag": "native-webos-v0.2.0-beta.1",
+  "version": "0.2.0",
+  "sha256": "7ce2b7af3bfe2fb895a40c8524dde56475563f3e911645fbe9b801aba0d76528",
+  "source_sha": "181162cea1f103f212cdc4bd59b32340ead96c62",
+  "source_set_sha256": "02694c69cf31f061265c03ea98c976135ad8725844a2cd569d8af583c3d00e24",
+  "release_id": 432694668,
+  "transport": "existing-ares-developer-mode",
+  "outcome": "dry-run",
+  "install_started": false,
+  "protected_store_backup": "not_performed",
+  "playback_validation": "not_performed"
+}
+```
+
+An `outcome` of `complete` means installation or reconciliation passed the
+package, private-file and process checks; `already-current` means no installation
+was needed. `install-indeterminate` requires recovery and returns exit code `2`.
+Other failures return `1`; after a mutation, consult the retained `needs-review`
+journal and its safe error code. Even a successful result leaves
+`playback_validation` and `protected_store_backup` as `not_performed`.
+
+This helper is an Ares connection workflow, not a Homebrew Channel controller.
+Having Homebrew Channel installed does not create an Ares alias or grant its
+user access to another installation's private directory. If the existing Ares
+connection cannot safely capture and restore that installation's files, stop
+and use the appropriately authorized Homebrew update procedure below. A
+Homebrew update also does not remove Developer Mode's expiry rules from an
+application originally installed under that mode.
+
 ## Update through Developer Mode
 
 The existing connection must pass the native guide's read-only device and
@@ -198,6 +390,9 @@ treat reinstalling after expiry as a state-preserving update. See
 [LG's Developer Mode guide](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app).
 Use the [native build guide](../native/webos/README.md) for CLI troubleshooting;
 do not reset the TV or delete its credentials to address a CLI defect.
+An SSH, Key Server or authentication error alone does not prove that the
+Developer Mode session expired. Diagnose the existing connection without
+automatically requesting a new key, changing the device alias or clearing state.
 
 ## Update through an existing Homebrew Channel
 
