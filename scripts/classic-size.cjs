@@ -633,6 +633,13 @@ const MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE = Object.freeze({
     bytes: 6607,
     gzipBytes: 1897,
 });
+// Allocate 193 optional gzip bytes for pointer-safe Modern repaints.
+// The final Node 22 delta is 196: three bytes use the prior reserve; totals stay fixed.
+// Evidence: docs/evidence/modern-repaint-size-20261103.json.
+const MODERN_REPAINT_OPTIONAL_ALLOWANCE = Object.freeze({
+    bytes: 0,
+    gzipBytes: 193,
+});
 // Authenticated poster/backdrop getters stay in the lazy Plex provider.
 // Count its measured delta only in legacy/complete totals, preserving the
 // existing entry, generic per-provider and optional limits.
@@ -1144,6 +1151,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.bytes +
             MODERN_EXPERIENCE_ALLOWANCE.renderer.bytes,
         gzipBytes:
+            MODERN_REPAINT_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.gzipBytes +
             MODERN_INTERFACE_OPTIONAL_ALLOWANCE.gzipBytes +
@@ -2043,6 +2051,7 @@ module.exports = {
     MODERN_INTERFACE_RELATED_ALLOWANCES,
     MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
+    MODERN_REPAINT_OPTIONAL_ALLOWANCE,
     measureBundle,
     OPTIONAL_BUDGET,
     OPTIONAL_BUDGETS,

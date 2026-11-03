@@ -4874,14 +4874,14 @@ test("Modern long media details stay within the hero through selection and mode 
 
 async function expectVisibleControlsWithinViewport(page, selector) {
     const controls = page.locator(selector);
-    expect(
-        await controls.count(),
-        "The surface must expose its controls"
-    ).toBeGreaterThan(0);
-    const rectangles = [];
-    for (const control of await controls.all()) {
+    const count = await controls.count();
+    expect(count, "The surface must expose its controls").toBeGreaterThan(0);
+    for (const control of await controls.all())
         await expect(control).toBeVisible();
-        const bounds = await control.evaluate((element) => {
+    // Resize handlers can move controls between protocol calls. Compare all
+    // rectangles and hit targets from one synchronous layout snapshot.
+    const snapshots = await controls.evaluateAll((elements) =>
+        elements.map((element) => {
             const rect = element.getBoundingClientRect();
             const target = document.elementFromPoint(
                 rect.left + rect.width / 2,
@@ -4901,7 +4901,11 @@ async function expectVisibleControlsWithinViewport(page, selector) {
                 viewportWidth: innerWidth,
                 width: rect.width,
             };
-        });
+        })
+    );
+    expect(snapshots.length).toBe(count);
+    const rectangles = [];
+    for (const bounds of snapshots) {
         expect(bounds.width).toBeGreaterThan(0);
         expect(bounds.height).toBeGreaterThan(0);
         expect(bounds.left).toBeGreaterThanOrEqual(-1);
@@ -4928,6 +4932,18 @@ async function expectVisibleControlsWithinViewport(page, selector) {
     }
 }
 
+async function attachModernRuntimeIdentity(page, browser) {
+    await test.info().attach("loaded runtime identity", {
+        body: JSON.stringify({
+            browser: browser.version(),
+            build: await page.evaluate(
+                () => __ottRemoteInspect.snapshot().build
+            ),
+        }),
+        contentType: "application/json",
+    });
+}
+
 for (const profile of ["server", "tauri", "capacitor"]) {
     test(`Modern Home and Library share selection with horizontal navigation (${profile})`, async ({
         browser,
@@ -4938,6 +4954,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
         const { page } = fixture;
         try {
             await seedModernMovies(page, 10000, 0);
+            await attachModernRuntimeIdentity(page, browser);
             const rail = page.locator('#modernRail[aria-label="Menu"]');
             await expect(rail).toBeVisible();
             await expect(page.locator("#list")).toHaveClass(/modern-view-home/);
@@ -5009,10 +5026,15 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     () => !!document.activeElement.closest("#modernRail")
                 )
             ).toBe(true);
+            await expect(page.locator(".modern-rail-selected")).toHaveCount(1);
             await page.keyboard.press("ArrowDown");
             await expect(
                 page.locator('#modernHero [data-modern-hero-action="play"]')
             ).toBeFocused();
+            await expect(page.locator(".modern-rail-selected")).toHaveCount(0);
+            await expect(page.locator("#list")).not.toHaveClass(
+                /modern-rail-focused/
+            );
             await page.keyboard.press("ArrowDown");
             await expect(page.locator("#it0")).toBeFocused();
             expect(await page.evaluate(() => listArray[selIndex])).toBe(
@@ -5080,6 +5102,12 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 "movie-0"
             );
             await page.evaluate(() => document.getElementById("it0").focus());
+            await expect(
+                page.locator('[data-modern-action="home"]')
+            ).toHaveAttribute("aria-current", "page");
+            await expect(
+                page.locator("#modernRail .modern-rail-selected")
+            ).toHaveCount(0);
             await page.screenshot({
                 path: test.info().outputPath("modern-library-shell.png"),
             });
@@ -5100,6 +5128,108 @@ for (const profile of ["server", "tauri", "capacitor"]) {
 }
 
 for (const profile of ["server", "tauri", "capacitor"]) {
+    test(`Modern pointer activation survives a same-screen repaint (${profile})`, async ({
+        browser,
+    }) => {
+        const fixture = await fixturePage(browser, profile, {
+            interfaceTheme: 2,
+        });
+        const { page } = fixture;
+        try {
+            await seedModernMovies(page, 80, 5);
+            await attachModernRuntimeIdentity(page, browser);
+            await page.evaluate(() => {
+                window.__repaintPlays = [];
+                window.__repaintClicks = [];
+                document.addEventListener(
+                    "click",
+                    (event) => {
+                        const target = event.target.closest("button");
+                        const action =
+                            target?.getAttribute("data-modern-action") ||
+                            target?.getAttribute("data-modern-hero-action");
+                        if (action) __repaintClicks.push(action);
+                    },
+                    true
+                );
+                window.playChannel = (category, index) =>
+                    __repaintPlays.push([category, listArray[index]]);
+            });
+            await page.locator('[data-modern-action="library"]').click();
+            await expect(page.locator("#list")).toHaveClass(
+                /modern-view-library/
+            );
+            await page.evaluate(() => {
+                __repaintClicks.length = 0;
+            });
+            for (const selector of [
+                '[data-modern-action="home"]',
+                '[data-modern-hero-action="play"]',
+            ]) {
+                const button = page.locator(selector);
+                const pressed = await button.elementHandle();
+                const caption = await button
+                    .locator("span")
+                    .last()
+                    .elementHandle();
+                const box = await caption.boundingBox();
+                await page.mouse.move(
+                    box.x + box.width / 2,
+                    box.y + box.height / 2
+                );
+                await page.mouse.down();
+                // Exercise the actual resize repaint path inside a real press,
+                // without relying on a particular browser's debounce timing.
+                const retained = await pressed.evaluate((element) => {
+                    window.showPage(true);
+                    return element.isConnected;
+                });
+                const captionRetained = await caption.evaluate(
+                    (element) => element.isConnected
+                );
+                await page.mouse.up();
+                const state = await page.evaluate(() => ({
+                    clicks: __repaintClicks.slice(),
+                    home: document
+                        .getElementById("list")
+                        .classList.contains("modern-view-home"),
+                    plays: __repaintPlays.slice(),
+                }));
+                await test.info().attach("repaint pointer result", {
+                    body: JSON.stringify({
+                        captionRetained,
+                        retained,
+                        selector,
+                        state,
+                    }),
+                    contentType: "application/json",
+                });
+                if (selector.includes("modern-action")) {
+                    expect({ captionRetained, retained, ...state }).toEqual({
+                        captionRetained: true,
+                        clicks: ["home"],
+                        home: true,
+                        plays: [],
+                        retained: true,
+                    });
+                } else {
+                    expect(retained && captionRetained).toBe(true);
+                    expect(state.clicks).toEqual(["home", "play"]);
+                    expect(state.plays).toEqual([[0, "movie-5"]]);
+                    await expect(page.locator("#list")).toBeHidden();
+                }
+                await pressed.dispose();
+                await caption.dispose();
+            }
+            expect(fixture.errors).toEqual([]);
+            expect(fixture.unexpectedRequests).toEqual([]);
+        } finally {
+            await fixture.close();
+        }
+    });
+}
+
+for (const profile of ["server", "tauri", "capacitor"]) {
     test(`Modern hero uses the selected item's shared Play and Description commands (${profile})`, async ({
         browser,
     }) => {
@@ -5109,6 +5239,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
         const { page } = fixture;
         try {
             await seedModernMovies(page, 80, 5);
+            await attachModernRuntimeIdentity(page, browser);
             await page.evaluate(() => {
                 stbBindKeyHandler();
                 window.__heroPlays = [];

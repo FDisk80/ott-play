@@ -1881,21 +1881,14 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn fixture_shutdown_preserves_another_gateways_existing_lease() {
-        use std::os::unix::fs::PermissionsExt;
         use tower::ServiceExt;
 
         let root =
             std::env::temp_dir().join(format!("ott-shutdown-scope-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir(&root).unwrap();
-        for name in ["ffmpeg", "ffprobe"] {
-            let executable = root.join(name);
-            std::fs::write(
-                &executable,
-                format!("#!/bin/sh\nprintf '{name} version test\\n'\n"),
-            )
-            .unwrap();
-            std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
-        }
+        // Never open these executable fixtures for writing during parallel tests.
+        let executables =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/normalization");
         let owned_root = root.join("owned");
         // A textual prefix is not ownership: this sibling must remain available.
         let other_root = root.join("owned-sibling");
@@ -1905,8 +1898,8 @@ mod tests {
             source.url = "http://127.0.0.1:9/source.m3u8".into();
             source.allowed_origins = vec!["http://127.0.0.1:9".into()];
             let mut settings = sample_settings(source);
-            settings.ffmpeg = root.join("ffmpeg");
-            settings.ffprobe = root.join("ffprobe");
+            settings.ffmpeg = executables.join("ffmpeg");
+            settings.ffprobe = executables.join("ffprobe");
             settings.directory = directory.join("state");
             let app = configured_routes(settings).await.unwrap();
             let gateway = registered_gateways()

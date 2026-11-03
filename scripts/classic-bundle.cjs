@@ -192,7 +192,6 @@ const CLASSIC_MODULES = [
     "build/plugins/command-server.js",
     "build/plugins/diagnostic-buffer.js",
     "build/plugins/remote-diagnostics.js",
-    "build/plugins/diagnostics-permission.js",
     "build/plugins/diagnostics-controller.js",
 
     "build/plugins/strict-kiosk-input.js",

@@ -1,0 +1,308 @@
+{
+  "schema": 1,
+  "scope": "Pointer-safe Modern button repaint lifecycle. Only the optional Modern gzip cap changes; all complete, legacy, entry, provider and other optional limits remain fixed. Full source-bound build qualification is separate.",
+  "reproduction": "node scripts/measure-modern-shell.cjs 1cba9723b30a822572037c6774dc99efeece93d5 /tmp/modern-repaint-measurement",
+  "toolchain": {
+    "gzipLevel": 9,
+    "node": "22.23.4",
+    "terser": "5.51.2",
+    "typescript": "5.9.3",
+    "zlib": "1.3.1-e00f703"
+  },
+  "packageLock": "afc03fb61a5615a5b5e8c29ad140b43211a2f4af0d67b8ed1fd989dda73c7cdc",
+  "base": "1cba9723b30a822572037c6774dc99efeece93d5",
+  "baseline": {
+    "input": {
+      "src/ui/modern-player.ts": {
+        "compiled": {
+          "bytes": 41060,
+          "gzipBytes": 8088,
+          "sha256": "131f94b1adbe952c872c0746bee6ed660997ad250efbdd87458c86e3c7b7b173"
+        },
+        "source": {
+          "bytes": 43012,
+          "gzipBytes": 8936,
+          "sha256": "2d5d97bc36ca3b0f1fa2c281252dd48f487fe7d7b69decb6f432d11797687891"
+        }
+      },
+      "src/ui/modern.ts": {
+        "compiled": {
+          "bytes": 43185,
+          "gzipBytes": 8961,
+          "sha256": "0b5d2cd37fc96ff301f79db950983b3f3c5102f6c3007726287a93ec9f918e29"
+        },
+        "source": {
+          "bytes": 45615,
+          "gzipBytes": 10054,
+          "sha256": "4655661b5e6625a766aa02d603c96b85233028a6d4a29e3d9b4c4d332ff28232"
+        }
+      }
+    },
+    "output": {
+      "bytes": 38240,
+      "gzipBytes": 11953,
+      "sha256": "615f4827db7b11090926a21c472da140a5091146da6986e85b0a4548baa4e968"
+    }
+  },
+  "candidate": {
+    "input": {
+      "src/ui/modern-player.ts": {
+        "compiled": {
+          "bytes": 41060,
+          "gzipBytes": 8088,
+          "sha256": "131f94b1adbe952c872c0746bee6ed660997ad250efbdd87458c86e3c7b7b173"
+        },
+        "source": {
+          "bytes": 43012,
+          "gzipBytes": 8936,
+          "sha256": "2d5d97bc36ca3b0f1fa2c281252dd48f487fe7d7b69decb6f432d11797687891"
+        }
+      },
+      "src/ui/modern.ts": {
+        "compiled": {
+          "bytes": 43662,
+          "gzipBytes": 9352,
+          "sha256": "7df2904ca8dd6303aaa8a955066d1ad0bc3d6c1fc6b41ceade1c8f952967c47a"
+        },
+        "source": {
+          "bytes": 46270,
+          "gzipBytes": 10512,
+          "sha256": "26910d3ed2247d948961c28b67dd1cc11f08d7a43e4177d04ac729cb205860f5"
+        }
+      }
+    },
+    "output": {
+      "bytes": 38157,
+      "gzipBytes": 12149,
+      "sha256": "06a7a08cab9f1eaa5ffe072ba435c44c00c316750b40473b9d755c9baf2cf4f8"
+    }
+  },
+  "delta": {
+    "bytes": -83,
+    "gzipBytes": 196
+  },
+  "allowance": {
+    "bytes": 0,
+    "gzipBytes": 193
+  },
+  "budgets": {
+    "before": {
+      "BUDGET": {
+        "bytes": 1188352,
+        "gzipBytes": 363165
+      },
+      "PROVIDER_BUDGET": {
+        "bytes": 863400,
+        "gzipBytes": 268490
+      },
+      "OPTIONAL_BUDGET": {
+        "bytes": 7800,
+        "gzipBytes": 3300
+      },
+      "OPTIONAL_BUDGETS": {
+        "control-transport": {
+          "bytes": 6027,
+          "gzipBytes": 2010
+        },
+        "favorites-transfer": {
+          "bytes": 258069,
+          "gzipBytes": 66730
+        },
+        "local-compatibility": {
+          "bytes": 4800,
+          "gzipBytes": 1900
+        },
+        "local-media-ui": {
+          "bytes": 8500,
+          "gzipBytes": 3400
+        },
+        "media-companion": {
+          "bytes": 11681,
+          "gzipBytes": 4110
+        },
+        "modern-interface": {
+          "bytes": 38337,
+          "gzipBytes": 12074
+        },
+        "perf-capture": {
+          "bytes": 22200,
+          "gzipBytes": 8528
+        },
+        "remote-local-runner": {
+          "bytes": 2700,
+          "gzipBytes": 1300
+        },
+        "remote-provider-fields": {
+          "bytes": 18000,
+          "gzipBytes": 6200
+        },
+        "remote-settings": {
+          "bytes": 17500,
+          "gzipBytes": 5800
+        },
+        "remote-settings-extras": {
+          "bytes": 7000,
+          "gzipBytes": 2800
+        },
+        "remote-settings-lifecycle": {
+          "bytes": 32884,
+          "gzipBytes": 10640
+        },
+        "runtime-debug-details": {
+          "bytes": 3800,
+          "gzipBytes": 1900
+        },
+        "shaka-tracks": {
+          "bytes": 1200,
+          "gzipBytes": 640
+        },
+        "subtitle-appearance": {
+          "bytes": 8196,
+          "gzipBytes": 3432
+        }
+      },
+      "LEGACY_TOTAL_BUDGET": {
+        "bytes": 1433408,
+        "gzipBytes": 447420
+      },
+      "BASE_TOTAL_BUDGET": {
+        "bytes": 1858873,
+        "gzipBytes": 572456
+      },
+      "TOTAL_BUDGET": {
+        "bytes": 1863353,
+        "gzipBytes": 574760
+      }
+    },
+    "after": {
+      "BUDGET": {
+        "bytes": 1188352,
+        "gzipBytes": 363165
+      },
+      "PROVIDER_BUDGET": {
+        "bytes": 863400,
+        "gzipBytes": 268490
+      },
+      "OPTIONAL_BUDGET": {
+        "bytes": 7800,
+        "gzipBytes": 3300
+      },
+      "OPTIONAL_BUDGETS": {
+        "control-transport": {
+          "bytes": 6027,
+          "gzipBytes": 2010
+        },
+        "favorites-transfer": {
+          "bytes": 258069,
+          "gzipBytes": 66730
+        },
+        "local-compatibility": {
+          "bytes": 4800,
+          "gzipBytes": 1900
+        },
+        "local-media-ui": {
+          "bytes": 8500,
+          "gzipBytes": 3400
+        },
+        "media-companion": {
+          "bytes": 11681,
+          "gzipBytes": 4110
+        },
+        "modern-interface": {
+          "bytes": 38337,
+          "gzipBytes": 12267
+        },
+        "perf-capture": {
+          "bytes": 22200,
+          "gzipBytes": 8528
+        },
+        "remote-local-runner": {
+          "bytes": 2700,
+          "gzipBytes": 1300
+        },
+        "remote-provider-fields": {
+          "bytes": 18000,
+          "gzipBytes": 6200
+        },
+        "remote-settings": {
+          "bytes": 17500,
+          "gzipBytes": 5800
+        },
+        "remote-settings-extras": {
+          "bytes": 7000,
+          "gzipBytes": 2800
+        },
+        "remote-settings-lifecycle": {
+          "bytes": 32884,
+          "gzipBytes": 10640
+        },
+        "runtime-debug-details": {
+          "bytes": 3800,
+          "gzipBytes": 1900
+        },
+        "shaka-tracks": {
+          "bytes": 1200,
+          "gzipBytes": 640
+        },
+        "subtitle-appearance": {
+          "bytes": 8196,
+          "gzipBytes": 3432
+        }
+      },
+      "LEGACY_TOTAL_BUDGET": {
+        "bytes": 1433408,
+        "gzipBytes": 447420
+      },
+      "BASE_TOTAL_BUDGET": {
+        "bytes": 1858873,
+        "gzipBytes": 572456
+      },
+      "TOTAL_BUDGET": {
+        "bytes": 1863353,
+        "gzipBytes": 574760
+      }
+    }
+  },
+  "gzipHeadroom": {
+    "before": 121,
+    "after": 118
+  },
+  "historicalOptimizerComparison": {
+    "scope": "Historical source-neutral comparison on aa10 before the final stale-focus reset; not a measurement of the current candidate.",
+    "node": "v22.23.4",
+    "zlib": "1.3.1-e00f703",
+    "terser": "5.51.2",
+    "inputSha256": "029f7a9a453513e0abac18e6b3649c0717712510776d9bb15e804a77e4548c35",
+    "variants": [
+      {
+        "passes": 3,
+        "bytes": 38154,
+        "gzipBytes": 12146,
+        "sha256": "5dbe00ef3a0c074289a1c11c8f8b148dc6255d385d8a7d85d819c39c389458f0",
+        "elapsedMs": 194
+      },
+      {
+        "passes": 5,
+        "bytes": 38154,
+        "gzipBytes": 12146,
+        "sha256": "5dbe00ef3a0c074289a1c11c8f8b148dc6255d385d8a7d85d819c39c389458f0",
+        "elapsedMs": 278
+      },
+      {
+        "passes": 10,
+        "bytes": 38154,
+        "gzipBytes": 12146,
+        "sha256": "5dbe00ef3a0c074289a1c11c8f8b148dc6255d385d8a7d85d819c39c389458f0",
+        "elapsedMs": 212
+      }
+    ],
+    "sourceRevision": "aa10c1e66a7b10a84fc7ac58b6f5fcb22ed48c60",
+    "modernSourceSha256": "47499bb4e32292c5dda5983af7353aedaeb921f0429332ae535d62d0d4db5b3a",
+    "output": {
+      "bytes": 38154,
+      "gzipBytes": 12146,
+      "sha256": "5dbe00ef3a0c074289a1c11c8f8b148dc6255d385d8a7d85d819c39c389458f0"
+    }
+  },
+  "allocationNote": "The approved 193-byte optional gzip allocation is unchanged. The final measured delta is 196 bytes; clearing stale focus uses three bytes of the prior 121-byte reserve, leaving 118 bytes."
+}

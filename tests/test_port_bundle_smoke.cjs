@@ -84,6 +84,14 @@ function collectGlobals(node) {
     }
 }
 collectGlobals(acorn.parse(bundle, { ecmaVersion: 5 }));
+assert.ok(
+    !globalNames.has("createDiagnosticsPermissionStore"),
+    "Unused legacy permission storage must not be emitted in the player"
+);
+assert.ok(
+    globalNames.has("installDiagnosticsController"),
+    "Connection-authorized diagnostics must remain in the player"
+);
 for (const name of [
     "installTextEncoder",
     "installPerformanceNow",

@@ -238,6 +238,9 @@ deadline.unref();
             "one click restores all shared grants without parallel prompts"
         );
         assert.deepEqual(resume.recovered, ["granted", "granted"]);
+        // Isolate the following profile tests from the completed source context.
+        checkpoint("close source context");
+        await context.close();
         checkpoint("profile context");
         const profileContext = await browser.newContext();
         // Keep real OPFS handles, IndexedDB, and page closure. Only model the
