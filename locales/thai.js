@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "อนุญาตให้เซิร์ฟเวอร์นี้ขอรูปภาพเป็นเวลา 10 นาที รูปภาพอาจมีข้อมูลส่วนบุคคล ในเบราว์เซอร์ ให้เลือกแท็บเครื่องเล่นหรือหน้าต่าง การอนุญาตจะสิ้นสุดลงเมื่อโหลดซ้ำหรือตัดการเชื่อมต่อ",
     "Allowlist this Device ID": "อนุญาตอุปกรณ์นี้ ID",
+    "Always on top": "อยู่ด้านบนเสมอ",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "เครื่องเล่น HTTPS ไม่สามารถดาวน์โหลดซอร์ส HTTP EPG ได้ ใช้แหล่งที่มา HTTPS",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -529,6 +530,7 @@ var keyStrings = {
     "Fox-TV settings": "การตั้งค่า Fox-TV",
     "Full history, sources and license terms":
         "ประวัติทั้งหมด แหล่งที่มา และเงื่อนไขการอนุญาต",
+    "Full screen": "เต็มหน้าจอ",
     FXML: "FXML",
     "FXML settings": "การตั้งค่า FXML",
     Genre: "ประเภท",

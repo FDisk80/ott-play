@@ -75,6 +75,7 @@ var keyStrings = {
         "Bada wannan uwar garken damar neman hotuna na tsawon mintuna 10. Hotuna na iya ƙunsar bayanan sirri. A cikin mai lilo, zaɓi shafin mai kunnawa ko taga. Izinin yana ƙarewa a sake saukewa ko cire haɗin.",
     "Allowlist this Device ID":
         "Ƙara ID na wannan na'ura zuwa jerin waɗanda aka yarda",
+    "Always on top": "Koyaushe a saman",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Manhajar kunnawa ta HTTPS ba za ta iya sauke tushen EPG na HTTP ba. Yi amfani da tushen HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -548,6 +549,7 @@ var keyStrings = {
     "Fox-TV settings": "Saitunan Fox-TV",
     "Full history, sources and license terms":
         "Cikakken tarihi, tushe da sharuɗɗan lasisi",
+    "Full screen": "Cikakken allo",
     FXML: "FXML",
     "FXML settings": "Saitunan FXML",
     Genre: "Nau'i",

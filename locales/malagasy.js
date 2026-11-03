@@ -75,6 +75,7 @@ var keyStrings = {
         "Avelao ity mpizara ity hangataka sary mandritra ny 10 minitra. Mety ahitana fampahalalana manokana ny sary. Ao amin’ny navigateur, fidio ny kiheba na varavarankelin’ny mpamaky haino aman-jery. Mifarana ny alalana rehefa averina ampidirina ny pejy na tapaka ny fifandraisana.",
     "Allowlist this Device ID":
         "Ampio amin'ny lisitra ekena ity ID fitaovana ity",
+    "Always on top": "Eo ambony hatrany",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Tsy afaka maka loharano EPG HTTP ny mpamaky HTTPS. Mampiasà loharano HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -571,6 +572,7 @@ var keyStrings = {
     "Fox-TV settings": "Fikirakirana Fox-TV",
     "Full history, sources and license terms":
         "Tantara feno, loharano ary fepetra momba ny lisansa",
+    "Full screen": "Efijery manontolo",
     FXML: "FXML",
     "FXML settings": "Fikirakirana FXML",
     Genre: "Karazana",

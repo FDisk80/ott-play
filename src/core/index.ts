@@ -795,10 +795,15 @@ function publishTauriFullscreen(next: boolean): void {
     } catch (_) {}
 }
 
-/** Toggle uses core, then internals, then the older probe/set window contract. */
+/** Select an available path before dispatch; never replay an attempted native mutation. */
 export function stbToggleTauriNativeFullscreen(): Promise<void> {
     var w = window as any,
         error: any = null;
+    // Menu, L and Escape share an epoch: older replies cannot publish over a newer request.
+    var epoch = (w.__ottTauriFsEpoch = (w.__ottTauriFsEpoch || 0) + 1);
+    function isCurrentRequest(): boolean {
+        return w.__ottTauriFsEpoch === epoch;
+    }
     function fallback(): Promise<boolean | null> {
         return runTauriFullscreenCall(function () {
             var api = w.__TAURI__,
@@ -817,6 +822,7 @@ export function stbToggleTauriNativeFullscreen(): Promise<void> {
             }
             var cached = !!w.__ottTauriNativeFs;
             function set(probed: any): any {
+                if (!isCurrentRequest()) return null;
                 var want = !(typeof probed === "boolean" ? probed : cached);
                 var latest = w.__TAURI__,
                     core = latest && latest.core;
@@ -825,8 +831,14 @@ export function stbToggleTauriNativeFullscreen(): Promise<void> {
                         return core.invoke("set_fullscreen", {
                             fullscreen: want,
                         });
-                    }).then(function () {
-                        return want;
+                    }).then(function (result) {
+                        if (
+                            !result ||
+                            result.ok === false ||
+                            typeof result.fullscreen !== "boolean"
+                        )
+                            throw new Error("Unconfirmed fullscreen state");
+                        return result.fullscreen;
                     });
                 if (current && typeof current.setFullscreen === "function")
                     return runTauriFullscreenCall(function () {
@@ -855,6 +867,7 @@ export function stbToggleTauriNativeFullscreen(): Promise<void> {
         });
     }
     function request(index: number): Promise<boolean | null> {
+        if (!isCurrentRequest()) return Promise.resolve(null);
         if (index === 2) return fallback();
         var api: any;
         try {
@@ -870,17 +883,25 @@ export function stbToggleTauriNativeFullscreen(): Promise<void> {
             return api.invoke("toggle_fullscreen");
         })
             .then(function (result) {
-                return result && typeof result.fullscreen === "boolean"
-                    ? result.fullscreen
-                    : !w.__ottTauriNativeFs;
+                if (
+                    !result ||
+                    result.ok === false ||
+                    typeof result.fullscreen !== "boolean"
+                )
+                    throw new Error("Unconfirmed fullscreen state");
+                return result.fullscreen;
             })
             .then(undefined, function (caught) {
+                // Even a synchronous throw may follow native dispatch. A failed
+                // readback can mean the toggle applied: retrying would undo it.
+                // Only the pre-dispatch API selection above may try another path.
                 error = caught;
-                return request(index + 1);
+                return null;
             });
     }
     return request(0)
         .then(function (next) {
+            if (!isCurrentRequest()) return;
             if (next === null)
                 reportTauriFullscreenError(
                     "[Tauri] toggle_fullscreen failed:",
@@ -900,6 +921,7 @@ export function stbToggleTauriNativeFullscreen(): Promise<void> {
 export function stbSetTauriNativeFullscreen(want: boolean): Promise<void> {
     var w = window as any,
         api: any = null;
+    var epoch = (w.__ottTauriFsEpoch = (w.__ottTauriFsEpoch || 0) + 1);
     try {
         var tauri = w.__TAURI__,
             core = tauri && tauri.core;
@@ -920,11 +942,14 @@ export function stbSetTauriNativeFullscreen(want: boolean): Promise<void> {
         return api.invoke("set_fullscreen", { fullscreen: !!want });
     })
         .then(function (result) {
-            publishTauriFullscreen(
-                result && typeof result.fullscreen === "boolean"
-                    ? result.fullscreen
-                    : !!want
-            );
+            if (w.__ottTauriFsEpoch !== epoch) return;
+            if (
+                !result ||
+                result.ok === false ||
+                typeof result.fullscreen !== "boolean"
+            )
+                throw new Error("Unconfirmed fullscreen state");
+            publishTauriFullscreen(result.fullscreen);
         })
         .then(undefined, function (caught) {
             reportTauriFullscreenError(

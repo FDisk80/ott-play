@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "ይህ አገልጋይ ለ10 ደቂቃ ምስሎችን እንዲጠይቅ ይፍቀዱለት። ምስሎች የግል መረጃ ሊይዙ ይችላሉ። በአሳሽ ውስጥ የማጫወቻ ትርን ወይም መስኮቱን ይምረጡ. ፍቃድ እንደገና ሲጫን ወይም ሲቋረጥ ያበቃል።",
     "Allowlist this Device ID": "ይህን የመሣሪያ ID ወደ የተፈቀዱ ዝርዝር ያክሉ",
+    "Always on top": "ሁልጊዜ ከላይ",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "የHTTPS ሚዲያ ማጫወቻ የHTTP EPG ምንጭ ማውረድ አይችልም። የHTTPS ምንጭ ተጠቀም።",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -520,6 +521,7 @@ var keyStrings = {
     "Fox-TV": "Fox-TV",
     "Fox-TV settings": "የFox-TV ቅንብሮች",
     "Full history, sources and license terms": "ሙሉ ታሪክ፣ ምንጮች እና የፈቃድ ውሎች",
+    "Full screen": "ሙሉ ማያ ገጽ",
     FXML: "FXML",
     "FXML settings": "የFXML ቅንብሮች",
     Genre: "ዘውግ",

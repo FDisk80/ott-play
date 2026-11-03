@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Leisti šiam serveriui 10 minučių prašyti vaizdų. Nuotraukose gali būti asmeninės informacijos. Naršyklėje pasirinkite grotuvo skirtuką arba langą. Leidimas baigiasi įkėlus iš naujo arba atsijungus.",
     "Allowlist this Device ID": "Įtraukti šį įrenginio ID į leidžiamųjų sąrašą",
+    "Always on top": "Visada viršuje",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS grotuvas negali atsisiųsti HTTP EPG šaltinio. Naudokite HTTPS šaltinį.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -549,6 +550,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV nustatymai",
     "Full history, sources and license terms":
         "Visa istorija, šaltiniai ir licencijų sąlygos",
+    "Full screen": "Visas ekranas",
     FXML: "FXML",
     "FXML settings": "FXML nustatymai",
     Genre: "Žanras",

@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Permite acestui server să solicite imagini timp de 10 minute. Imaginile pot conține informații personale. Într-un browser, selectați fila sau fereastra playerului. Permisiunea se termină la reîncărcare sau deconectare.",
     "Allowlist this Device ID": "Permite acest ID de dispozitiv",
+    "Always on top": "Întotdeauna deasupra",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Un player HTTPS nu poate descărca o sursă HTTP EPG. Utilizați o sursă HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -561,6 +562,7 @@ var keyStrings = {
     "Fox-TV settings": "Setări Fox-TV",
     "Full history, sources and license terms":
         "Istoric complet, surse și condiții de licență",
+    "Full screen": "Ecran complet",
     FXML: "FXML",
     "FXML settings": "Setări FXML",
     Genre: "Gen",

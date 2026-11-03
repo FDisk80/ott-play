@@ -75,6 +75,7 @@ var keyStrings = {
         "Бул серверге 10 мүнөткө сүрөттөрдү суроого уруксат бериңиз. Сүрөттөр жеке маалыматты камтышы мүмкүн. Браузерден ойноткучтун өтмөгүн же терезени тандаңыз. Уруксат кайра жүктөлгөндө же ажыратылганда бүтөт.",
     "Allowlist this Device ID":
         "Бул түзмөктүн ID-син уруксат берилген тизмеге кошуу",
+    "Always on top": "Дайыма үстүндө",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS ойноткуч HTTP EPG булагын жүктөй албайт. HTTPS булагын колдонуңуз.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -557,6 +558,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV жөндөөлөрү",
     "Full history, sources and license terms":
         "Толук тарых, булактар жана лицензия шарттары",
+    "Full screen": "Толук экран",
     FXML: "FXML",
     "FXML settings": "FXML жөндөөлөрү",
     Genre: "Жанр",

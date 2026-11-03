@@ -73,6 +73,7 @@ var keyStrings = {
         "Umožnite tomuto serveru požadovať obrázky na 10 minút. Obrázky môžu obsahovať osobné informácie. V prehliadači vyberte kartu alebo okno prehrávača. Povolenie končí opätovným načítaním alebo odpojením.",
     "Allowlist this Device ID":
         "Pridať ID tohto zariadenia do zoznamu povolených",
+    "Always on top": "Vždy navrchu",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Prehrávač médií HTTPS nemôže stiahnuť zdroj HTTP EPG. Použite zdroj HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -555,6 +556,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV nastavenia",
     "Full history, sources and license terms":
         "Úplná história, zdroje a licenčné podmienky",
+    "Full screen": "Celá obrazovka",
     FXML: "FXML",
     "FXML settings": "FXML nastavenia",
     Genre: "Žáner",

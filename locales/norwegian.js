@@ -73,6 +73,7 @@ var keyStrings = {
         "La denne serveren be om bilder i 10 minutter. Bilder kan inneholde personlig informasjon. I en nettleser velger du spillerfanen eller vinduet. Tillatelsen slutter ved omlasting eller frakobling.",
     "Allowlist this Device ID":
         "Legg til denne enhetens ID i tillatelseslisten",
+    "Always on top": "Alltid øverst",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "En HTTPS mediespiller kan ikke laste ned en HTTP EPG kilde. Bruk en HTTPS-kilde.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -546,6 +547,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV innstillinger",
     "Full history, sources and license terms":
         "Full historie, kilder og lisensvilkår",
+    "Full screen": "Fullskjerm",
     FXML: "FXML",
     "FXML settings": "FXML innstillinger",
     Genre: "Sjanger",

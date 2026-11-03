@@ -73,6 +73,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Izinkan server ini meminta gambar selama 10 menit. Gambar dapat berisi informasi pribadi. Di browser, pilih tab atau jendela pemutar. Izin berakhir saat memuat ulang atau memutuskan sambungan.",
     "Allowlist this Device ID": "Izinkan ID perangkat ini",
+    "Always on top": "Selalu di atas",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Pemutar HTTPS tidak dapat mengunduh sumber EPG melalui HTTP. Gunakan sumber HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -547,6 +548,7 @@ var keyStrings = {
     "Fox-TV settings": "Pengaturan Fox-TV",
     "Full history, sources and license terms":
         "Riwayat lengkap, sumber, dan ketentuan lisensi",
+    "Full screen": "Layar penuh",
     FXML: "FXML",
     "FXML settings": "Pengaturan FXML",
     Genre: "Genre",

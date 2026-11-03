@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Vumela le seva ukuthi icele izithombe imizuzu eyi-10. Izithombe zingaqukatha ulwazi lomuntu siqu. Kusiphequluli, khetha ithebhu yesidlali noma iwindi. Imvume iphela ngokulayisha kabusha noma ukunqamula.",
     "Allowlist this Device ID": "Faka le ID yedivayisi ohlwini lwabavunyelwe",
+    "Always on top": "Njalo phezulu",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Isidlali se-HTTPS asikwazi ukulanda umthombo we-EPG we-HTTP. Sebenzisa umthombo we-HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -563,6 +564,7 @@ var keyStrings = {
     "Fox-TV settings": "Izilungiselelo ze-Fox-TV",
     "Full history, sources and license terms":
         "Umlando ophelele, imithombo nemigomo yelayisensi",
+    "Full screen": "Isikrini esigcwele",
     FXML: "FXML",
     "FXML settings": "Izilungiselelo ze-FXML",
     Genre: "Uhlobo",

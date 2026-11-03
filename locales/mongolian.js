@@ -74,6 +74,7 @@ var keyStrings = {
         "Энэ серверт 10 минутын турш зураг авахыг зөвшөөрнө үү. Зураг нь хувийн мэдээллийг агуулж болно. Хөтөч дээр тоглуулагчийн таб эсвэл цонхыг сонгоно уу. Дахин ачаалах эсвэл салгаснаар зөвшөөрөл дуусна.",
     "Allowlist this Device ID":
         "Энэ төхөөрөмжийн ID-г зөвшөөрөгдсөн жагсаалтад нэмэх",
+    "Always on top": "Үргэлж дээр",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS тоглуулагч HTTP EPG эх сурвалжийг татаж чадахгүй. HTTPS эх сурвалж ашиглана уу.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -554,6 +555,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV-ийн тохиргоо",
     "Full history, sources and license terms":
         "Бүрэн түүх, эх сурвалж болон лицензийн нөхцөл",
+    "Full screen": "Бүтэн дэлгэц",
     FXML: "FXML",
     "FXML settings": "FXML-ийн тохиргоо",
     Genre: "Төрөл",

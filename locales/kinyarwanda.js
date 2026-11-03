@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Emerera iyi seriveri gusaba amafoto mu minota 10. Amafoto ashobora kubamo amakuru bwite. Muri mushakisha, hitamo tab cyangwa idirishya rya porogaramu ikina. Uruhushya rurangira iyo wongeye gupakira urupapuro cyangwa uhagaritse ihuza.",
     "Allowlist this Device ID": "Emera iyi ndangamuntu y'igikoresho",
+    "Always on top": "Buri gihe hejuru",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Porogaramu yo gukina ya HTTPS ntishobora gukuramo isoko ya EPG ikoresha HTTP. Koresha isoko ya HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -562,6 +563,7 @@ var keyStrings = {
     "Fox-TV settings": "Igenamiterere rya Fox-TV",
     "Full history, sources and license terms":
         "Amateka yose, inkomoko n'amabwiriza y'uruhushya",
+    "Full screen": "Ecran yose",
     FXML: "FXML",
     "FXML settings": "Igenamiterere rya FXML",
     Genre: "Icyiciro cya filimi",

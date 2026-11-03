@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "このサーバーが 10 分間画像をリクエストできるようにします。画像には個人情報が含まれる場合があります。ブラウザで、プレーヤーのタブまたはウィンドウを選択します。許可はリロードまたは切断時に終了します。",
     "Allowlist this Device ID": "このデバイスをホワイトリストに登録 ID",
+    "Always on top": "常に最前面に表示",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPSプレーヤーでは、HTTP EPGソースをダウンロードできません。 HTTPS ソースを使用します。",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -546,6 +547,7 @@ var keyStrings = {
     "Fox-TV": "Fox-TV",
     "Fox-TV settings": "Fox-TVの設定",
     "Full history, sources and license terms": "全歴史、出典、ライセンス条項",
+    "Full screen": "全画面表示",
     FXML: "FXML",
     "FXML settings": "FXMLの設定",
     Genre: "ジャンル",

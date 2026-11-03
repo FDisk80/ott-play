@@ -9,6 +9,162 @@ interface ScreenMenuRecord {
     sourceIndex: number;
     title: string;
 }
+
+/** Native window controls use confirmed IPC results, independently of video layout. */
+function createDesktopWindowControls(host: any) {
+    var pending = false;
+    function api(): any {
+        try {
+            var tauri = host.__TAURI__;
+            if (!tauri || host.Capacitor) return null;
+            var ua = String((host.navigator && host.navigator.userAgent) || "");
+            if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return null;
+            var windows = tauri.window;
+            var current =
+                windows && typeof windows.getCurrentWindow === "function"
+                    ? windows.getCurrentWindow()
+                    : null;
+            if (!current || current.label !== "main") return null;
+            var owner = tauri.core;
+            if (!owner || typeof owner.invoke !== "function")
+                owner = host.__TAURI_INTERNALS__;
+            if (!owner || typeof owner.invoke !== "function") return null;
+            return { current: current, owner: owner };
+        } catch (_) {
+            return null;
+        }
+    }
+    function admitted(context: any): boolean {
+        try {
+            return !!(
+                context.owner &&
+                host.__ottClassicScreenPort.listOwner() === context.owner &&
+                context.owner.foreground() &&
+                !(host.__ottKiosk && host.__ottKiosk.locked())
+            );
+        } catch (_) {
+            return false;
+        }
+    }
+    function title(kind: string): string {
+        return kind === "fullscreen"
+            ? host._
+                ? host._("Full screen")
+                : "Full screen"
+            : host._
+              ? host._("Always on top")
+              : "Always on top";
+    }
+    function notify(kind: string, state: boolean | null): void {
+        try {
+            var status =
+                state === null
+                    ? host._
+                        ? host._("ERROR!")
+                        : "Error!"
+                    : state
+                      ? host._
+                          ? host._("on")
+                          : "on"
+                      : host._
+                        ? host._("off")
+                        : "off";
+            if (typeof host.showPopup === "function")
+                host.showPopup(title(kind) + ": " + status);
+        } catch (_) {}
+    }
+    function run(kind: string, context: any): Promise<void> {
+        if (pending || !admitted(context)) return Promise.resolve();
+        var native = api();
+        if (!native) {
+            notify(kind, null);
+            return Promise.resolve();
+        }
+        pending = true;
+        var fullscreenEpoch = 0;
+        // One owner and one mutating call: rejected acknowledgements are never retried.
+        var task = Promise.resolve().then(function (): any {
+            if (!admitted(context)) return null;
+            if (kind === "fullscreen") {
+                fullscreenEpoch = host.__ottTauriFsEpoch =
+                    (host.__ottTauriFsEpoch || 0) + 1;
+                return Promise.resolve(
+                    native.owner.invoke("toggle_fullscreen")
+                ).then(function (result: any) {
+                    if (
+                        !result ||
+                        result.ok !== true ||
+                        typeof result.fullscreen !== "boolean"
+                    )
+                        throw new Error("Unconfirmed fullscreen state");
+                    return result.fullscreen;
+                });
+            }
+            if (typeof native.current.isAlwaysOnTop !== "function")
+                throw new Error("Always-on-top query unavailable");
+            return Promise.resolve(native.current.isAlwaysOnTop()).then(
+                function (current: any) {
+                    if (typeof current !== "boolean")
+                        throw new Error("Unconfirmed window state");
+                    if (!admitted(context)) return null;
+                    var desired = !current;
+                    return Promise.resolve(
+                        native.owner.invoke("set_always_on_top", {
+                            alwaysOnTop: desired,
+                        })
+                    ).then(function (result: any) {
+                        if (
+                            !result ||
+                            result.ok !== true ||
+                            result.alwaysOnTop !== desired
+                        )
+                            throw new Error("Unconfirmed always-on-top state");
+                        return result.alwaysOnTop;
+                    });
+                }
+            );
+        });
+        return task.then(
+            function (state: any) {
+                pending = false;
+                if (state === null) return;
+                if (kind === "fullscreen") {
+                    if (host.__ottTauriFsEpoch !== fullscreenEpoch) return;
+                    host.__ottTauriNativeFs = state;
+                }
+                // A reply may update known native state, but cannot close or repaint
+                // a newer screen. The row never displays an optimistic checked state.
+                if (!admitted(context)) return;
+                notify(kind, state);
+                try {
+                    if (typeof host.closeList === "function") host.closeList();
+                } catch (_) {}
+            },
+            function () {
+                pending = false;
+                if (
+                    admitted(context) &&
+                    (kind !== "fullscreen" ||
+                        !fullscreenEpoch ||
+                        host.__ottTauriFsEpoch === fullscreenEpoch)
+                )
+                    notify(kind, null);
+            }
+        );
+    }
+    return {
+        available: function (kind: string): boolean {
+            var native = api();
+            return !!(
+                native &&
+                (kind === "fullscreen" ||
+                    typeof native.current.isAlwaysOnTop === "function")
+            );
+        },
+        run: run,
+        title: title,
+    };
+}
 /** Stable command identities are independent of translated labels and function names. */
 var screenMenuDefinitions: Array<
     [string, string, string, string?, string?, string?, string?]
@@ -91,6 +247,17 @@ var screenMenuDefinitions: Array<
     ["favorites.open", "popFavLists", "Favorite lists"],
 ];
 function createScreenMenuRegistry() {
+    var nativeHosts: any[] = [];
+    var nativeControls: any[] = [];
+    function desktopControls(host: any): any {
+        var index = nativeHosts.indexOf(host);
+        if (index < 0) {
+            index = nativeHosts.length;
+            nativeHosts.push(host);
+            nativeControls.push(createDesktopWindowControls(host));
+        }
+        return nativeControls[index];
+    }
     var bindings: Array<[string, string]> = [
         ["ZOOM", "video.zoom"],
         ["ASPECT", "video.aspect"],
@@ -234,6 +401,22 @@ function createScreenMenuRegistry() {
             return typeof host._ === "function" ? host._(text) : text;
         }
         var records = importClassic(host);
+        var context: any = { owner: null };
+        var controls = desktopControls(host);
+        ["fullscreen", "alwaysOnTop"].forEach(function (kind, index) {
+            if (!controls.available(kind)) return;
+            records.push({
+                action: function () {
+                    return controls.run(kind, context);
+                },
+                detail: controls.title(kind),
+                hint: kind === "fullscreen" ? "L" : undefined,
+                id: "window." + kind,
+                legacyId: "window." + kind,
+                sourceIndex: -2 - index,
+                title: controls.title(kind),
+            });
+        });
         var hidden = host.sHideMenus || [];
         var focus = 0;
         var rows = records
@@ -282,6 +465,10 @@ function createScreenMenuRegistry() {
                 };
             });
         return {
+            bindOwner: function () {
+                var port = host.__ottClassicScreenPort;
+                context.owner = port && port.listOwner();
+            },
             command: function (code: number) {
                 var keys = host.keys;
 

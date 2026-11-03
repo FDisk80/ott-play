@@ -508,19 +508,24 @@ static MACOS_SAVED_OUTER: std::sync::Mutex<Option<SavedOuter>> =
 /// `set_simple_fullscreen` only enqueues from async command threads; a
 /// following getter round-trip waits until prior messages (including that
 /// setter) have been applied.
-fn sync_window_queue(window: &tauri::Window) {
-    let _ = window.is_fullscreen();
+fn sync_window_queue(window: &tauri::Window) -> Result<(), String> {
+    window
+        .is_fullscreen()
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 /// True when the window is in Spaces fullscreen or our macOS simple fullscreen.
 fn is_effectively_fullscreen(window: &tauri::Window) -> Result<bool, String> {
+    // Always perform the native round-trip, even while macOS simple fullscreen
+    // is tracked by its separate flag. That flag must not hide a getter failure.
+    let native = window.is_fullscreen().map_err(|e| e.to_string())?;
     #[cfg(target_os = "macos")]
     {
-        if MACOS_SIMPLE_FS.load(std::sync::atomic::Ordering::SeqCst) {
-            return Ok(true);
-        }
+        return Ok(native || MACOS_SIMPLE_FS.load(std::sync::atomic::Ordering::SeqCst));
     }
-    window.is_fullscreen().map_err(|e| e.to_string())
+    #[cfg(not(target_os = "macos"))]
+    Ok(native)
 }
 
 /// Apply fullscreen without registering any global letter shortcut.
@@ -545,7 +550,7 @@ pub fn apply_fullscreen(
                 // Already FS — do not overwrite saved outer geometry.
                 return Ok(());
             }
-            let native = window.is_fullscreen().unwrap_or(false);
+            let native = window.is_fullscreen().map_err(|e| e.to_string())?;
             if native {
                 // Already Spaces FS — leave as-is; JS cannot get keys there.
                 MACOS_SIMPLE_FS.store(false, Ordering::SeqCst);
@@ -565,13 +570,13 @@ pub fn apply_fullscreen(
             window
                 .set_simple_fullscreen(true)
                 .map_err(|e| e.to_string())?;
-            sync_window_queue(window);
+            sync_window_queue(window)?;
             MACOS_SIMPLE_FS.store(true, Ordering::SeqCst);
         } else {
             // Force-leave Spaces FS and simple FS regardless of which is active.
             let _ = window.set_fullscreen(false);
             let _ = window.set_simple_fullscreen(false);
-            sync_window_queue(window);
+            sync_window_queue(window)?;
             MACOS_SIMPLE_FS.store(false, Ordering::SeqCst);
             // Explicit geometry restore — tao exit can no-op or restore a
             // screen-sized frame on frameless windows, which looks like
@@ -584,7 +589,7 @@ pub fn apply_fullscreen(
                 if s.w > 0 && s.h > 0 {
                     let _ = window.set_size(tauri::PhysicalSize::new(s.w, s.h));
                     let _ = window.set_position(tauri::PhysicalPosition::new(s.x, s.y));
-                    sync_window_queue(window);
+                    sync_window_queue(window)?;
                 }
             }
         }
@@ -608,7 +613,7 @@ pub fn apply_fullscreen(
         // even in simple fullscreen. Apply this after the deferred style update
         // and restore the main window's normal shadow when returning windowed.
         window.set_shadow(!fullscreen).map_err(|e| e.to_string())?;
-        sync_window_queue(window);
+        sync_window_queue(window)?;
         return Ok(());
     }
     #[cfg(not(target_os = "macos"))]
@@ -620,6 +625,83 @@ pub fn apply_fullscreen(
     }
 }
 
+/// Apply once, then acknowledge only matching native readback. The wait policy
+/// is injected so queued macOS transitions and terminal failures can be tested
+/// without native windows, repeated setters or real waits in unit tests.
+async fn confirmed_fullscreen<W, F>(
+    requested: Option<bool>,
+    mut read: impl FnMut() -> Result<bool, String>,
+    set: impl FnOnce(bool) -> Result<(), String>,
+    mut wait_for_transition: W,
+    mut within_deadline: impl FnMut() -> bool,
+) -> Result<FullscreenResult, String>
+where
+    W: FnMut() -> F,
+    F: std::future::Future<Output = bool>,
+{
+    let timeout =
+        "The native window did not reach the requested fullscreen state within its settle bound";
+    if !within_deadline() {
+        return Err(timeout.into());
+    }
+    let desired = match requested {
+        Some(value) => value,
+        None => !read()?,
+    };
+    if !within_deadline() {
+        return Err(timeout.into());
+    }
+    set(desired)?;
+    loop {
+        // Recheck after wake: scheduling may resume beyond the deadline.
+        if !within_deadline() {
+            return Err(timeout.into());
+        }
+        let actual = read()?;
+        // The getter itself can cross the boundary. A late matching value must
+        // not turn an expired confirmation into success.
+        if !within_deadline() {
+            return Err(timeout.into());
+        }
+        if actual == desired {
+            return Ok(FullscreenResult {
+                ok: true,
+                fullscreen: Some(actual),
+            });
+        }
+        if !wait_for_transition().await {
+            return Err(timeout.into());
+        }
+    }
+}
+
+fn before_fullscreen_deadline(now: tokio::time::Instant, deadline: tokio::time::Instant) -> bool {
+    now < deadline
+}
+
+/// Spaces may defer a setter until did-enter/did-exit. Wait only on this
+/// command's mismatching readback, with a local deadline and no repeated set.
+async fn wait_fullscreen_transition(deadline: tokio::time::Instant) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        let now = tokio::time::Instant::now();
+        if !before_fullscreen_deadline(now, deadline) {
+            return false;
+        }
+        tokio::time::sleep_until(std::cmp::min(
+            now + std::time::Duration::from_millis(25),
+            deadline,
+        ))
+        .await;
+        before_fullscreen_deadline(tokio::time::Instant::now(), deadline)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = deadline;
+        false
+    }
+}
+
 /// `invoke('set_fullscreen', {fullscreen})` → set window fullscreen.
 #[tauri::command]
 pub async fn set_fullscreen(
@@ -627,30 +709,312 @@ pub async fn set_fullscreen(
     window: tauri::Window,
     fullscreen: bool,
 ) -> Result<FullscreenResult, String> {
-    apply_fullscreen(&app, &window, fullscreen)?;
-    let actual = is_effectively_fullscreen(&window).unwrap_or(fullscreen);
-    Ok(FullscreenResult {
-        ok: true,
-        fullscreen: Some(actual),
-    })
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
+    confirmed_fullscreen(
+        Some(fullscreen),
+        || is_effectively_fullscreen(&window),
+        |desired| apply_fullscreen(&app, &window, desired),
+        || wait_fullscreen_transition(deadline),
+        || {
+            !cfg!(target_os = "macos")
+                || before_fullscreen_deadline(tokio::time::Instant::now(), deadline)
+        },
+    )
+    .await
 }
 
 /// `invoke('toggle_fullscreen')` → flip effective fullscreen (simple FS on macOS).
-/// Single Rust source of truth — no JS cache / API naming guesswork.
 #[tauri::command]
 pub async fn toggle_fullscreen(
     app: tauri::AppHandle,
     window: tauri::Window,
 ) -> Result<FullscreenResult, String> {
-    let cur = is_effectively_fullscreen(&window)?;
-    let next = !cur;
-    apply_fullscreen(&app, &window, next)?;
-    // Report live effective state (flag + is_fullscreen), not the intent bit.
-    let actual = is_effectively_fullscreen(&window).unwrap_or(next);
-    Ok(FullscreenResult {
-        ok: true,
-        fullscreen: Some(actual),
-    })
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
+    confirmed_fullscreen(
+        None,
+        || is_effectively_fullscreen(&window),
+        |desired| apply_fullscreen(&app, &window, desired),
+        || wait_fullscreen_transition(deadline),
+        || {
+            !cfg!(target_os = "macos")
+                || before_fullscreen_deadline(tokio::time::Instant::now(), deadline)
+        },
+    )
+    .await
+}
+
+#[cfg(test)]
+mod fullscreen_confirmation_tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::collections::VecDeque;
+    use std::future::ready;
+
+    #[tokio::test]
+    async fn set_and_toggle_acknowledge_only_matching_readback() {
+        for requested in [Some(false), Some(true), None] {
+            let state = Cell::new(false);
+            let expected = requested.unwrap_or(true);
+            let result = confirmed_fullscreen(
+                requested,
+                || Ok(state.get()),
+                |next| {
+                    state.set(next);
+                    Ok(())
+                },
+                || ready(false),
+                || true,
+            )
+            .await
+            .unwrap();
+            assert_eq!(
+                serde_json::to_value(result).unwrap(),
+                serde_json::json!({"ok": true, "fullscreen": expected})
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn readback_errors_are_preserved_for_set_and_toggle() {
+        for requested in [Some(true), None] {
+            let mut reads = VecDeque::from([Ok(false), Err("readback failed".to_string())]);
+            if requested.is_some() {
+                reads.pop_front();
+            }
+            let called = Cell::new(false);
+            let result = confirmed_fullscreen(
+                requested,
+                || reads.pop_front().unwrap(),
+                |_| {
+                    called.set(true);
+                    Ok(())
+                },
+                || ready(false),
+                || true,
+            )
+            .await;
+            assert_eq!(result.err().as_deref(), Some("readback failed"));
+            assert!(
+                called.get(),
+                "setter may have applied; failure does not imply rollback"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn toggle_probe_failure_never_calls_the_setter() {
+        let result = confirmed_fullscreen(
+            None,
+            || Err("probe failed".into()),
+            |_| panic!("unreadable state must not be toggled"),
+            || ready(false),
+            || true,
+        )
+        .await;
+        assert_eq!(result.err().as_deref(), Some("probe failed"));
+    }
+
+    #[tokio::test]
+    async fn setter_failure_does_not_read_back_or_report_success() {
+        let result = confirmed_fullscreen(
+            Some(true),
+            || panic!("no read after failed set"),
+            |_| Err("setter failed".into()),
+            || ready(false),
+            || true,
+        )
+        .await;
+        assert_eq!(result.err().as_deref(), Some("setter failed"));
+    }
+
+    #[tokio::test]
+    async fn unchanged_native_state_is_rejected_for_set_and_toggle() {
+        for current in [false, true] {
+            for requested in [Some(!current), None] {
+                assert!(confirmed_fullscreen(
+                    requested,
+                    || Ok(current),
+                    |_| Ok(()),
+                    || ready(false),
+                    || true,
+                )
+                .await
+                .is_err());
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn queued_transition_settles_without_repeating_the_setter() {
+        for desired in [false, true] {
+            let mut reads = VecDeque::from([!desired, !desired, desired]);
+            let sets = Cell::new(0);
+            let waits = Cell::new(0);
+            let result = confirmed_fullscreen(
+                Some(desired),
+                || Ok(reads.pop_front().unwrap()),
+                |value| {
+                    assert_eq!(value, desired);
+                    sets.set(sets.get() + 1);
+                    Ok(())
+                },
+                || {
+                    waits.set(waits.get() + 1);
+                    ready(true)
+                },
+                || true,
+            )
+            .await
+            .unwrap();
+            assert_eq!(result.fullscreen, Some(desired));
+            assert_eq!(sets.get(), 1);
+            assert_eq!(waits.get(), 2);
+        }
+    }
+
+    #[tokio::test]
+    async fn pending_transition_deadline_fails_without_replaying() {
+        let sets = Cell::new(0);
+        let waits = Cell::new(0);
+        let reads = Cell::new(0);
+        let result = confirmed_fullscreen(
+            Some(true),
+            || {
+                reads.set(reads.get() + 1);
+                Ok(false)
+            },
+            |_| {
+                sets.set(sets.get() + 1);
+                Ok(())
+            },
+            || {
+                waits.set(waits.get() + 1);
+                ready(waits.get() < 3)
+            },
+            || true,
+        )
+        .await;
+        assert!(result.err().unwrap().contains("settle bound"));
+        assert_eq!((sets.get(), waits.get(), reads.get()), (1, 3, 3));
+    }
+
+    #[tokio::test]
+    async fn pending_transition_read_error_is_terminal() {
+        let mut reads = VecDeque::from([Ok(false), Err("window closed".to_string())]);
+        let sets = Cell::new(0);
+        let waits = Cell::new(0);
+        let result = confirmed_fullscreen(
+            Some(true),
+            || reads.pop_front().unwrap(),
+            |_| {
+                sets.set(sets.get() + 1);
+                Ok(())
+            },
+            || {
+                waits.set(waits.get() + 1);
+                ready(true)
+            },
+            || true,
+        )
+        .await;
+        assert_eq!(result.err().as_deref(), Some("window closed"));
+        assert_eq!((sets.get(), waits.get()), (1, 1));
+    }
+
+    #[test]
+    fn deadline_admission_is_strict_at_and_after_the_boundary() {
+        let start = tokio::time::Instant::now();
+        let deadline = start + std::time::Duration::from_secs(3);
+        assert!(before_fullscreen_deadline(
+            deadline - std::time::Duration::from_nanos(1),
+            deadline
+        ));
+        assert!(!before_fullscreen_deadline(deadline, deadline));
+        assert!(!before_fullscreen_deadline(
+            deadline + std::time::Duration::from_nanos(1),
+            deadline
+        ));
+    }
+
+    #[tokio::test]
+    async fn late_wake_cannot_start_another_read_or_confirmation() {
+        for delay in [
+            std::time::Duration::ZERO,
+            std::time::Duration::from_millis(1),
+        ] {
+            let start = tokio::time::Instant::now();
+            let deadline = start + std::time::Duration::from_secs(3);
+            let clock = Cell::new(start);
+            let reads = Cell::new(0);
+            let sets = Cell::new(0);
+            let result = confirmed_fullscreen(
+                Some(true),
+                || {
+                    reads.set(reads.get() + 1);
+                    Ok(reads.get() > 1)
+                },
+                |_| {
+                    sets.set(sets.get() + 1);
+                    Ok(())
+                },
+                || {
+                    // Even if an await resumed late with permission to continue,
+                    // admission must check the current clock before the next read.
+                    clock.set(deadline + delay);
+                    ready(true)
+                },
+                || before_fullscreen_deadline(clock.get(), deadline),
+            )
+            .await;
+            assert!(result.err().unwrap().contains("settle bound"));
+            assert_eq!((sets.get(), reads.get()), (1, 1));
+        }
+    }
+
+    #[tokio::test]
+    async fn matching_readback_at_or_after_deadline_is_not_success() {
+        for delay in [
+            std::time::Duration::ZERO,
+            std::time::Duration::from_millis(1),
+        ] {
+            let start = tokio::time::Instant::now();
+            let deadline = start + std::time::Duration::from_secs(3);
+            let clock = Cell::new(start);
+            let sets = Cell::new(0);
+            let result = confirmed_fullscreen(
+                Some(true),
+                || {
+                    clock.set(deadline + delay);
+                    Ok(true)
+                },
+                |_| {
+                    sets.set(sets.get() + 1);
+                    Ok(())
+                },
+                || ready(false),
+                || before_fullscreen_deadline(clock.get(), deadline),
+            )
+            .await;
+            assert!(result.err().unwrap().contains("settle bound"));
+            assert_eq!(sets.get(), 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn expired_admission_does_not_dispatch_a_setter() {
+        let now = tokio::time::Instant::now();
+        for requested in [Some(true), None] {
+            let result = confirmed_fullscreen(
+                requested,
+                || panic!("expired read"),
+                |_| panic!("expired mutation"),
+                || ready(false),
+                || before_fullscreen_deadline(now, now),
+            )
+            .await;
+            assert!(result.err().unwrap().contains("settle bound"));
+        }
+    }
 }
 
 /// `invoke('prevent_sleep', {})` → best-effort display sleep prevention.

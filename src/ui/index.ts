@@ -2658,6 +2658,7 @@ export function popupList(i?: any): void {
     $("#list_window").show();
     if (typeof w.stbSetWindow === "function") w.stbSetWindow();
     w.__ottClassicScreenPort.commitList();
+    if (menu.bindOwner) menu.bindOwner();
     showPage();
 }
 

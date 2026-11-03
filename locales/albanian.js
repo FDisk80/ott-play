@@ -73,6 +73,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Lejo që ky server të kërkojë imazhe për 10 minuta. Imazhet mund të përmbajnë informacione personale. Në një shfletues, zgjidhni skedën ose dritaren e luajtësit. Leja përfundon me ringarkimin ose shkëputjen.",
     "Allowlist this Device ID": "Shto këtë ID të pajisjes në listën e lejuar",
+    "Always on top": "Gjithmonë sipër",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Një luajtës HTTPS nuk mund të shkarkojë një burim HTTP EPG. Përdorni një burim HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -559,6 +560,7 @@ var keyStrings = {
     "Fox-TV settings": "Cilësimet Fox-TV",
     "Full history, sources and license terms":
         "Historia e plotë, burimet dhe kushtet e licencës",
+    "Full screen": "Ekran i plotë",
     FXML: "FXML",
     "FXML settings": "Cilësimet FXML",
     Genre: "Zhanri",

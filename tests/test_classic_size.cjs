@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 let {
+    NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
     FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
     LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
     LOCAL_FAVORITES_PATH_ALLOWANCE,
@@ -135,6 +136,7 @@ const localFavoriteWriteRecoveryBaseline = capsWithoutAllowances([
     "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
 ]);
 const historicalIncomingCaps = capsWithoutAllowances([
+    "NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE",
     "LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE",
     "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
     "LOCAL_FAVORITES_PATH_ALLOWANCE",
@@ -496,6 +498,62 @@ const historicalCaps = Object.fromEntries(
     ])
 );
 try {
+    const windowEvidence = require("../docs/evidence/native-window-controls-size-20261103.json");
+    const withoutWindowControls = capsWithoutAllowances([
+        "NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE",
+    ]);
+    assert.deepEqual(
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
+        windowEvidence.measured_allowance
+    );
+    assert(Object.isFrozen(NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE));
+    for (const metric of ["bytes", "gzipBytes"])
+        for (const name of [
+            "BUDGET",
+            "LEGACY_TOTAL_BUDGET",
+            "BASE_TOTAL_BUDGET",
+            "TOTAL_BUDGET",
+        ])
+            assert.equal(
+                latestCaps[name][metric] - withoutWindowControls[name][metric],
+                NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE[metric],
+                name + " counts the window-controls entry cost once"
+            );
+    for (const name of [
+        "PROVIDER_BUDGET",
+        "OPTIONAL_BUDGET",
+        "OPTIONAL_BUDGETS",
+    ])
+        assert.deepEqual(
+            require("../scripts/classic-size.cjs")[name],
+            withoutWindowControls[name],
+            name + " is unchanged by window controls"
+        );
+    for (const [evidenceName, budgetName] of Object.entries({
+        completeTotal: "TOTAL_BUDGET",
+        entry: "BUDGET",
+        legacyTotal: "LEGACY_TOTAL_BUDGET",
+    })) {
+        assert.deepEqual(
+            windowEvidence.budget_before[evidenceName],
+            withoutWindowControls[budgetName]
+        );
+        assert.deepEqual(
+            windowEvidence.budget_after[evidenceName],
+            latestCaps[budgetName]
+        );
+    }
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            Math.max(
+                ...windowEvidence.entries.map((row) => {
+                    const delta = row.candidate[metric] - row.base[metric];
+                    assert.equal(delta, row.delta[metric]);
+                    return delta;
+                })
+            ),
+            NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE[metric]
+        );
     const repaint = require("../docs/evidence/modern-repaint-size-20261103.json");
     assert.deepEqual(MODERN_REPAINT_OPTIONAL_ALLOWANCE, repaint.allowance);
     assert(Object.isFrozen(MODERN_REPAINT_OPTIONAL_ALLOWANCE));
@@ -4761,6 +4819,8 @@ try {
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
         modernNativeShellOptionalAllowance:
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+        nativeWindowControlsEntryAllowance:
+            NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
         plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
     })) {
         assert.deepEqual(strictReport[key], allowance);

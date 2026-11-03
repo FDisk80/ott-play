@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "ອະນຸຍາດໃຫ້ເຊີບເວີນີ້ຮ້ອງຂໍຮູບພາບເປັນເວລາ 10 ນາທີ. ຮູບພາບສາມາດປະກອບມີຂໍ້ມູນສ່ວນຕົວ. ໃນຕົວທ່ອງເວັບ, ເລືອກແຖບເຄື່ອງຫຼິ້ນຫຼືປ່ອງຢ້ຽມ. ການອະນຸຍາດສິ້ນສຸດເມື່ອໂຫຼດຄືນໃໝ່ ຫຼືຕັດການເຊື່ອມຕໍ່.",
     "Allowlist this Device ID": "ເພີ່ມ ID ອຸປະກອນນີ້ເຂົ້າລາຍການທີ່ອະນຸຍາດ",
+    "Always on top": "ຢູ່ເທິງສຸດສະເໝີ",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "ເຄື່ອງຫຼິ້ນ HTTPS ບໍ່ສາມາດດາວໂຫຼດແຫຼ່ງ EPG ແບບ HTTP. ໃຊ້ແຫຼ່ງ HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -518,6 +519,7 @@ var keyStrings = {
     "Fox-TV settings": "ການຕັ້ງຄ່າ Fox-TV",
     "Full history, sources and license terms":
         "ປະຫວັດຄົບຖ້ວນ, ແຫຼ່ງທີ່ມາ ແລະ ເງື່ອນໄຂໃບອະນຸຍາດ",
+    "Full screen": "ເຕັມໜ້າຈໍ",
     FXML: "FXML",
     "FXML settings": "ການຕັ້ງຄ່າ FXML",
     Genre: "ປະເພດ",

@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Lig don fhreastalaí seo íomhánna a iarraidh ar feadh 10 nóiméad. Is féidir faisnéis phearsanta a bheith in íomhánna. I mbrabhsálaí, roghnaigh cluaisín an tseinnteora nó an fhuinneog. Críochnaíonn cead ar athlódáil nó ar dhínascadh.",
     "Allowlist this Device ID": "Ceadaigh an t-aitheantas gléis seo",
+    "Always on top": "Ar barr i gcónaí",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Ní féidir le seinnteoir HTTPS foinse EPG HTTP a íoslódáil. Úsáid foinse HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -557,6 +558,7 @@ var keyStrings = {
     "Fox-TV settings": "Socruithe Fox-TV",
     "Full history, sources and license terms":
         "Stair iomlán, foinsí agus téarmaí ceadúnais",
+    "Full screen": "Lánscáileán",
     FXML: "FXML",
     "FXML settings": "Socruithe FXML",
     Genre: "Seánra",

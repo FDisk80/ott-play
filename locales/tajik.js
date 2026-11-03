@@ -75,6 +75,7 @@ var keyStrings = {
         "Ба ин сервер иҷозат диҳед, ки барои 10 дақиқа тасвирҳо дархост кунад. Тасвирҳо метавонанд маълумоти шахсӣ дошта бошанд. Дар браузер ҷадвал ё равзанаи плеерро интихоб кунед. Иҷозат ҳангоми аз нав боркунӣ ё қатъи пайвастшавӣ ба охир мерасад.",
     "Allowlist this Device ID":
         "Ин ID-и дастгоҳро ба рӯйхати иҷозатшуда илова кунед",
+    "Always on top": "Ҳамеша дар боло",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Плеери HTTPS манбаи HTTP-и EPG-ро бор карда наметавонад. Манбаи HTTPS-ро истифода баред.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -552,6 +553,7 @@ var keyStrings = {
     "Fox-TV settings": "Танзимоти Fox-TV",
     "Full history, sources and license terms":
         "Таърихи пурра, манбаъҳо ва шартҳои иҷозатнома",
+    "Full screen": "Экрани пурра",
     FXML: "FXML",
     "FXML settings": "Танзимоти FXML",
     Genre: "Жанр",

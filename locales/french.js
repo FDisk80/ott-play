@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Autorisez ce serveur à demander des images pendant 10 minutes. Les images peuvent contenir des informations personnelles. Dans un navigateur, sélectionnez l'onglet ou la fenêtre du lecteur. L'autorisation prend fin au rechargement ou à la déconnexion.",
     "Allowlist this Device ID": "Autoriser cet identifiant d'appareil",
+    "Always on top": "Toujours au premier plan",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Un lecteur HTTPS ne peut pas télécharger une source HTTP EPG. Utilisez une source HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -568,6 +569,7 @@ var keyStrings = {
     "Fox-TV settings": "Paramètres de Fox-TV",
     "Full history, sources and license terms":
         "Historique complet, sources et conditions de licence",
+    "Full screen": "Plein écran",
     FXML: "FXML",
     "FXML settings": "Paramètres de FXML",
     Genre: "Genre",

@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "10 நிமிடங்களுக்கு படங்களைக் கோர இந்தச் சேவையகத்தை அனுமதிக்கவும். படங்கள் தனிப்பட்ட தகவல்களைக் கொண்டிருக்கலாம். உலாவியில், பிளேயர் தாவல் அல்லது சாளரத்தைத் தேர்ந்தெடுக்கவும். மறுஏற்றம் அல்லது துண்டிக்கப்படும் போது அனுமதி முடிவடைகிறது.",
     "Allowlist this Device ID": "இந்தச் சாதனத்தை ID அனுமதிக்கவும்",
+    "Always on top": "எப்போதும் மேலே",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS பிளேயர் HTTP EPG மூலத்தைப் பதிவிறக்க முடியாது. HTTPS மூலத்தைப் பயன்படுத்தவும்.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -543,6 +544,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV அமைப்புகள்",
     "Full history, sources and license terms":
         "முழு வரலாறு, ஆதாரங்கள் மற்றும் உரிம விதிமுறைகள்",
+    "Full screen": "முழுத்திரை",
     FXML: "FXML",
     "FXML settings": "FXML அமைப்புகள்",
     Genre: "வகை",

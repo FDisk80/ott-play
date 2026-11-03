@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Ħalli dan is-server jitlob immaġini għal 10 minuti. L-immaġini jista' jkun fihom informazzjoni personali. Fil-brawżer, agħżel it-tab jew it-tieqa tal-plejer. Il-permess jintemm meta terġa' tgħabbi jew tiskonnettja.",
     "Allowlist this Device ID": "Ippermetti dan l-ID tal-apparat",
+    "Always on top": "Dejjem fuq nett",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Plejer HTTPS ma jistax iniżżel sors EPG b’HTTP. Uża sors HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -557,6 +558,7 @@ var keyStrings = {
     "Fox-TV settings": "Issettjar ta’ Fox-TV",
     "Full history, sources and license terms":
         "Storja sħiħa, sorsi u termini tal-liċenzja",
+    "Full screen": "Skrin sħiħ",
     FXML: "FXML",
     "FXML settings": "Issettjar ta’ FXML",
     Genre: "Ġeneru",

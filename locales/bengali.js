@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "এই সার্ভারকে 10 মিনিটের জন্য ছবি অনুরোধ করার অনুমতি দিন। ছবিতে ব্যক্তিগত তথ্য থাকতে পারে। একটি ব্রাউজারে, প্লেয়ার ট্যাব বা উইন্ডো নির্বাচন করুন। পুনরায় লোড বা সংযোগ বিচ্ছিন্ন হলে অনুমতি শেষ হয়।",
     "Allowlist this Device ID": "এই ডিভাইসটিকে অনুমতি দিন ID",
+    "Always on top": "সবসময় উপরে",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "একটি HTTPS প্লেয়ার একটি HTTP EPG উৎস ডাউনলোড করতে পারে না৷ একটি HTTPS উৎস ব্যবহার করুন।",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -531,6 +532,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV সেটিংস",
     "Full history, sources and license terms":
         "সম্পূর্ণ ইতিহাস, উৎস এবং লাইসেন্সের শর্তাবলী",
+    "Full screen": "পূর্ণ পর্দা",
     FXML: "FXML",
     "FXML settings": "FXML সেটিংস",
     Genre: "ধরণ",

@@ -74,6 +74,7 @@ var keyStrings = {
         "Destûrê bide vê serverê ku 10 hûrdeman wêneyan bixwaze. Wêne dikarin agahdariya kesane hebin. Di gerokek de, tabloya bernameya lîstina medyayê an pencereyê hilbijêrin. Destûr bi ji nû ve barkirin an veqetandinê bi dawî dibe.",
     "Allowlist this Device ID":
         "ID-ya vê amûrê li lîsteya destûrdar zêde bikin",
+    "Always on top": "Her tim li jor",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Lêdêreke medyayê HTTPS nikare çavkaniyek HTTP EPG dakêşîne. Çavkaniyek HTTPS bikar bînin.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -550,6 +551,7 @@ var keyStrings = {
     "Fox-TV settings": "Mîhengên Fox-TV",
     "Full history, sources and license terms":
         "Dîroka tevahî, çavkanî û şertên lîsansê",
+    "Full screen": "Dîmendera tevahî",
     FXML: "FXML",
     "FXML settings": "Mîhengên FXML",
     Genre: "Cure",

@@ -185,11 +185,16 @@ Run on **macOS / Windows / Linux** desktop window. Skip rows that need credentia
 - [ ] App launches without native crash; web UI paints
 - [ ] Settings open (F2 / equivalent)
 - [ ] Window title / size / position behave normally
+- [ ] In both Classic and Modern, Menu → Full screen enters/exits native window fullscreen; the confirmation reports the resulting on/off state
+- [ ] Menu → Always on top keeps the main window above other applications; selecting it again disables this behavior without changing PiP
+- [ ] Repeated clicks during a pending window change do not cause extra toggles; closing or replacing Menu before a reply does not reopen or close another screen
 - [ ] With menus closed, press `L` to enter fullscreen, then `L` again to restore the original window size without clicking or opening Menu
 - [ ] Repeat `L` → `Escape` several times; Escape exits fullscreen without opening the app-exit dialog, and the next key still reaches the player
 - [ ] Repeat after clicking the video and after opening/closing Menu; keyboard behavior must not depend on the overlay
 - [ ] On macOS Tahoe, enter fullscreen with dark video or black letterboxing: all four outer screen edges must be free of a gray 1px window rim, including after switching focus away and back
 - [ ] Exit fullscreen: the normal window shadow returns; repeat `L` → `L` and `L` → `Escape` without losing the original size or keyboard focus
+
+The two Menu actions belong to the main Tauri desktop window. They are not shown in browser, mobile or PiP players. A failed native request reports an error instead of confirming an unverified state. Always-on-top is a session action: the next app launch retains the normal window default. These controls do not change a provider or restart playback.
 
 On macOS, this checks native WebView focus as well as fullscreen geometry.
 Tao changes the window style when entering/exiting simple fullscreen and can
@@ -270,3 +275,62 @@ Record Mode A results separately. Tauri desktop smoke **passes** without Mode A.
 - Headless CI that runs a headed Tauri window (intentionally not required here — flaky without xvfb/headless GL)
 
 When the human checklist is done for your targets, the Mode B **desktop smoke** gap is closed for FOSS; DRM and Mag JsHttpRequest remain separate Remaining items in `tauri-updater-notarize.md`.
+
+
+### Isolated Windows window controls check
+
+The Windows native CI job builds `window_controls_smoke` and runs
+`scripts/check-window-controls.py`. It does not start an installed player or
+load any player profile. To repeat the check from the repository root on Windows:
+
+```powershell
+cargo test --locked -p ottplay-tauri window_controls::tests
+cargo test --locked -p ottplay-tauri fullscreen_confirmation_tests
+cargo build --locked -p ottplay-tauri --example window_controls_smoke
+python scripts/check-window-controls.py
+```
+
+The fixture registers the production commands and uses the same JavaScript IPC
+and event round-trip as the screenshot smoke. Its positive configuration uses
+production capabilities. A second configuration allows only fixture reply
+events: topmost, fullscreen set and fullscreen toggle must all fail through the
+actual ACL. The auxiliary `pip` window must be denied main-window topmost access.
+An IPC timeout is a failure, never evidence of an ACL denial.
+
+The positive run applies topmost on/on/off/off and compares the returned state,
+Tauri readback and Win32 `WS_EX_TOPMOST`. It then enters and exits fullscreen with
+topmost both off and on, checks the native monitor rectangle and restores the
+original window rectangle. It also exercises explicit fullscreen set (the Escape
+path), confirms that the auxiliary window is unchanged, and restores both flags.
+Geometry is polled for at most two seconds per transition because Windows may
+finish applying it after the API state changes. Commands are never retried to
+make the test pass.
+
+Each process has a hard 30-second internal deadline. The parent runner has a
+40-second process deadline and terminates only the PID tree it created. Normal
+completion destroys only its two fixture windows. Private WebView data is created
+in a fresh temporary directory and removed by the parent after exit. Evidence
+and bounded failure logs are saved under `build/windows-window-controls-report/`
+and uploaded even if the CI step fails. Compilation and runtime failures both
+fail CI; no hardware acceptance is implied by source checks alone.
+
+Menu, L and Escape share a request epoch. An older reply cannot overwrite a newer
+fullscreen request's state; an obsolete legacy fallback cannot issue another
+fullscreen mutation. Fullscreen native commands propagate getter/setter errors
+and reject readback mismatches instead of reporting the requested state as a
+confirmed result. On macOS, a mismatch can reflect an unfinished Spaces transition;
+the command reads again at 25 ms intervals for at most three seconds, without
+repeating its setter. Admission is checked against the actual clock after waking,
+before reading, and after reading: a matching result at or after the deadline is
+not accepted as success. Read errors are terminal. A failed readback does not imply
+that an earlier native setter rolled back.
+
+Keyboard helpers select an available bridge before dispatch. Once a mutating IPC
+has been attempted, any rejection (including a synchronous exception), malformed
+response or ambiguous transport error is terminal for that request. It must not
+try another bridge or the legacy window setter: the first mutation may already
+have applied. An unknown-command message is not classified by substring to permit
+a retry. Direct IPC acknowledgements must contain a boolean fullscreen state;
+missing state or explicit failure cannot be replaced with the requested value.
+The two Rust test groups run as separate Windows CI steps, so one successful exit
+code cannot hide another group's failure.

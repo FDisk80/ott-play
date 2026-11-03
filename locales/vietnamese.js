@@ -73,6 +73,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Cho phép máy chủ này yêu cầu hình ảnh trong 10 phút. Hình ảnh có thể chứa thông tin cá nhân. Trong trình duyệt, chọn tab hoặc cửa sổ trình phát. Quyền kết thúc khi tải lại hoặc ngắt kết nối.",
     "Allowlist this Device ID": "Cho phép ID thiết bị này",
+    "Always on top": "Luôn ở trên cùng",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Trình phát HTTPS không thể tải xuống nguồn HTTP EPG. Sử dụng nguồn HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -541,6 +542,7 @@ var keyStrings = {
     "Fox-TV settings": "Cài đặt Fox-TV",
     "Full history, sources and license terms":
         "Lịch sử đầy đủ, nguồn và điều khoản giấy phép",
+    "Full screen": "Toàn màn hình",
     FXML: "FXML",
     "FXML settings": "Cài đặt FXML",
     Genre: "Thể loại",

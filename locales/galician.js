@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Permitir que este servidor solicite imaxes durante 10 minutos. As imaxes poden conter información persoal. Nun navegador, selecciona a pestana ou xanela do reprodutor. O permiso remata ao recargar ou desconectar.",
     "Allowlist this Device ID": "Autorizar este ID de dispositivo",
+    "Always on top": "Sempre en primeiro plano",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Un reprodutor HTTPS non pode descargar unha fonte EPG HTTP. Usa unha fonte HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -565,6 +566,7 @@ var keyStrings = {
     "Fox-TV settings": "Configuración de Fox-TV",
     "Full history, sources and license terms":
         "Historial completo, fontes e condicións da licenza",
+    "Full screen": "Pantalla completa",
     FXML: "FXML",
     "FXML settings": "Configuración de FXML",
     Genre: "Xénero",

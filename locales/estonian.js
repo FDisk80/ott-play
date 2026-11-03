@@ -73,6 +73,7 @@ var keyStrings = {
         "Luba sellel serveril 10 minuti jooksul pilte taotleda. Pildid võivad sisaldada isiklikku teavet. Valige brauseris pleieri vahekaart või aken. Luba lõpeb uuesti laadimisel või ühenduse katkestamisel.",
     "Allowlist this Device ID":
         "Lisa selle seadme ID lubatud seadmete loendisse",
+    "Always on top": "Alati pealmine",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS meediapleier ei saa alla laadida HTTP EPG allikat. Kasutage allikat HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -544,6 +545,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV seaded",
     "Full history, sources and license terms":
         "Täielik ajalugu, allikad ja litsentsitingimused",
+    "Full screen": "Täisekraan",
     FXML: "FXML",
     "FXML settings": "FXML seaded",
     Genre: "Žanr",

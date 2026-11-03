@@ -74,6 +74,7 @@ var keyStrings = {
         "Ruhusu seva hii kuomba picha kwa dakika 10. Picha zinaweza kuwa na taarifa binafsi. Katika kivinjari, chagua kichupo au dirisha la kichezaji cha media. Ruhusa inaisha unapopakia upya au kukata muunganisho.",
     "Allowlist this Device ID":
         "Ongeza ID ya kifaa hiki kwenye orodha inayoruhusiwa",
+    "Always on top": "Daima juu",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Kicheza media HTTPS hakiwezi kupakua HTTP EPG chanzo. Tumia HTTPS chanzo.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -557,6 +558,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV mipangilio",
     "Full history, sources and license terms":
         "Historia kamili, vyanzo na masharti ya leseni",
+    "Full screen": "Skrini nzima",
     FXML: "FXML",
     "FXML settings": "FXML mipangilio",
     Genre: "Aina",

@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "이 서버가 10분 동안 이미지를 요청하도록 허용합니다. 이미지에는 개인정보가 포함될 수 있습니다. 브라우저에서 플레이어 탭이나 창을 선택합니다. 다시 로드하거나 연결을 끊으면 권한이 종료됩니다.",
     "Allowlist this Device ID": "이 장치를 허용 목록에 추가하세요 ID",
+    "Always on top": "항상 맨 위에",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS 플레이어는 HTTP EPG 소스를 다운로드할 수 없습니다. HTTPS 소스를 사용하세요.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -540,6 +541,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV 설정",
     "Full history, sources and license terms":
         "전체 기록, 소스 및 라이센스 조건",
+    "Full screen": "전체 화면",
     FXML: "FXML",
     "FXML settings": "FXML 설정",
     Genre: "장르",

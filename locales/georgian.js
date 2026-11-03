@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "ნება მიეცით ამ სერვერს, მოითხოვოს სურათები 10 წუთის განმავლობაში. სურათები შეიძლება შეიცავდეს პერსონალურ ინფორმაციას. ბრაუზერში აირჩიეთ პლეერის ჩანართი ან ფანჯარა. ნებართვა სრულდება გადატვირთვის ან გათიშვისას.",
     "Allowlist this Device ID": "დაამატეთ ამ მოწყობილობის ID დაშვებულთა სიაში",
+    "Always on top": "ყოველთვის ზემოთ",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS მედია ფლეერი ვერ ჩამოტვირთავს HTTP EPG წყაროს. გამოიყენეთ HTTPS წყარო.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -550,6 +551,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV პარამეტრები",
     "Full history, sources and license terms":
         "სრული ისტორია, წყაროები და ლიცენზიის პირობები",
+    "Full screen": "მთელ ეკრანზე",
     FXML: "FXML",
     "FXML settings": "FXML პარამეტრები",
     Genre: "ჟანრი",

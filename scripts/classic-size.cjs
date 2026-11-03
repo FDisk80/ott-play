@@ -749,8 +749,17 @@ const LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE = Object.freeze({
     entry: Object.freeze({ bytes: 32, gzipBytes: 16 }),
     favorites: Object.freeze({ bytes: 864, gzipBytes: 288 }),
 });
+// Shared desktop Full screen / Always on top controls add 3141 raw bytes
+// and at most 929 gzip bytes on Node 22.23.4 / zlib 1.3.1-e00f703.
+// Count this entry-only cost once in each payload, preserving prior headroom.
+// Evidence: docs/evidence/native-window-controls-size-20261103.json.
+const NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE = Object.freeze({
+    bytes: 3141,
+    gzipBytes: 929,
+});
 const BUDGET = Object.freeze({
     bytes:
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
@@ -783,6 +792,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
@@ -994,6 +1004,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
@@ -1039,6 +1050,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
@@ -1232,6 +1244,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
@@ -1313,6 +1326,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.gzipBytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
@@ -1604,6 +1618,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
         modernPlayerOptionalAllowance: MODERN_PLAYER_OPTIONAL_ALLOWANCE,
         modules,
+        nativeWindowControlsEntryAllowance:
+            NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
         optimizer,
         optionalBudget: OPTIONAL_BUDGET,
         optionalBudgets: OPTIONAL_BUDGETS,
@@ -1945,6 +1961,8 @@ function writeBuildBundleReport(
             modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
             modernNativeShellOptionalAllowance:
                 MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+            nativeWindowControlsEntryAllowance:
+                NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
             optimizerBinding: {
                 outputSha256: optimizer.outputSha256,
                 stagedExpectedSha256: expectedSha256,
@@ -2069,6 +2087,7 @@ module.exports = {
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     MODERN_REPAINT_OPTIONAL_ALLOWANCE,
     measureBundle,
+    NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
     OPTIONAL_BUDGET,
     OPTIONAL_BUDGETS,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,

@@ -73,6 +73,7 @@ var keyStrings = {
         "Anna tämän palvelimen pyytää kuvia 10 minuutin ajan. Kuvat voivat sisältää henkilökohtaisia ​​tietoja. Valitse selaimessa soittimen välilehti tai ikkuna. Lupa päättyy uudelleenlatauksen tai yhteyden katkaisun yhteydessä.",
     "Allowlist this Device ID":
         "Lisää tämän laitteen ID sallittujen luetteloon",
+    "Always on top": "Aina päällimmäisenä",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS-mediasoitin ei voi ladata HTTP EPG -lähdettä. Käytä lähdettä HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -548,6 +549,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV asetukset",
     "Full history, sources and license terms":
         "Koko historia, lähteet ja lisenssiehdot",
+    "Full screen": "Koko näyttö",
     FXML: "FXML",
     "FXML settings": "FXML asetukset",
     Genre: "Lajityyppi",

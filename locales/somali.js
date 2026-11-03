@@ -75,6 +75,7 @@ var keyStrings = {
         "U oggolow server-kan inuu codsado sawirro muddo 10 daqiiqo ah. Sawirradu waxay yeelan karaan xog gaar ah. Barowsarka dhexdiisa, dooro tabka ama daaqadda barnaamijka warbaahinta. Oggolaanshuhu wuxuu dhammaadaa marka bogga dib loo soo raro ama xiriirka la jaro.",
     "Allowlist this Device ID":
         "Aqoonsiga qalabkan ku dar liiska la oggol yahay",
+    "Always on top": "Had iyo jeer dusha sare",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Daaraha HTTPS ma soo dejisan karo il EPG ah oo HTTP adeegsata. Adeegso il HTTPS ah.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -558,6 +559,7 @@ var keyStrings = {
     "Fox-TV settings": "Dejinta Fox-TV",
     "Full history, sources and license terms":
         "Taariikhda oo dhan, ilaha iyo shuruudaha ruqsadda",
+    "Full screen": "Shaashad buuxda",
     FXML: "FXML",
     "FXML settings": "Dejinta FXML",
     Genre: "Nooca",

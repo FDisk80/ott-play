@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Дазволіць гэтаму серверу запытваць выявы на працягу 10 хвілін. Выявы могуць утрымліваць асабістую інфармацыю. У браўзеры абярыце ўкладку або акно прайгравальніка. Дазвол заканчваецца пасля перазагрузкі або адключэння.",
     "Allowlist this Device ID": "Дазвольце гэты ID прылады",
+    "Always on top": "Паверх усіх вокнаў",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Прайгравальнік, адкрыты праз HTTPS, не можа спампаваць EPG з крыніцы HTTP. Выкарыстоўвайце крыніцу HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -543,6 +544,7 @@ var keyStrings = {
     "Fox-TV settings": "Налады Fox-TV",
     "Full history, sources and license terms":
         "Поўная гісторыя, крыніцы і ўмовы ліцэнзій",
+    "Full screen": "На ўвесь экран",
     FXML: "FXML",
     "FXML settings": "Налады FXML",
     Genre: "Жанр",
