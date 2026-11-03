@@ -16,6 +16,7 @@
     ["tests/test_media_helper_installer.py"],
     ["tests/test_tizen_install.py"],
     ["tests/test_webos_native_release.py"],
+    ["tests/test_native_webos_publish.py"],
     ["tests/test_webos_runtime_sources.py"],
     ["tests/test_linux_playback_packaging.py"],
     ["tests/test_nas_configuration.py"],

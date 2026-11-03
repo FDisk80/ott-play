@@ -1,0 +1,125 @@
+name: Publish native webOS release
+run-name: "Native webOS ${{ inputs.tag }} from ${{ inputs.source_sha }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: Successful direct Native webOS candidate run ID
+        type: string
+        required: true
+      source_sha:
+        description: Full commit SHA of the candidate and current main
+        type: string
+        required: true
+      version:
+        description: Numeric native package version (X.Y.Z)
+        type: string
+        required: true
+      tag:
+        description: Unique native-webos-vX.Y.Z[-beta.N or -rc.N] release tag
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: native-webos-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      bundle-name: ${{ steps.bundle-identity.outputs.name }}
+    steps:
+      - name: Require the exact main commit
+        env:
+          NATIVE_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main || "$NATIVE_SOURCE_SHA" != "$GITHUB_SHA" ]]; then
+            echo 'Dispatch must target main and the exact candidate source SHA.' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Verify the candidate and prepare its release catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_RUN_ID: ${{ inputs.candidate_run_id }}
+          NATIVE_SOURCE_SHA: ${{ inputs.source_sha }}
+          NATIVE_VERSION: ${{ inputs.version }}
+          NATIVE_TAG: ${{ inputs.tag }}
+        run: |
+          python3 scripts/publish-webos-native.py prepare \
+            --run-id "$NATIVE_RUN_ID" --source-sha "$NATIVE_SOURCE_SHA" \
+            --version "$NATIVE_VERSION" --tag "$NATIVE_TAG" \
+            --output "$RUNNER_TEMP/native-release"
+      - name: Record the producing attempt's bundle identity
+        id: bundle-identity
+        run: echo "name=native-release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Preserve the verified promotion bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.bundle-identity.outputs.name }}
+          path: ${{ runner.temp }}/native-release
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: prepare
+    if: ${{ github.ref == 'refs/heads/main' && inputs.source_sha == github.sha }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.prepare.outputs.bundle-name }}
+          path: ${{ runner.temp }}/native-release
+      - name: Publish only after draft asset verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-webos-native.py publish --bundle "$RUNNER_TEMP/native-release"
+
+  verify-public:
+    needs: [ prepare, publish ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.prepare.outputs.bundle-name }}
+          path: ${{ runner.temp }}/native-release
+      - name: Verify public assets and the Homebrew catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-webos-native.py verify-public --bundle "$RUNNER_TEMP/native-release"
