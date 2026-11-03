@@ -261,6 +261,21 @@ An interrupted transfer cannot leave a partial file at its final name. A new
 file or directory appearing at that name makes restoration stop instead of
 overwriting it.
 
+Remote update commands require a fresh per-request completion frame after the
+command's output and successful exit status. A CLI exit code alone cannot prove
+that its SSH output was fully drained. Missing, duplicate or truncated frames
+stop the operation; an empty state inventory is accepted only inside a complete
+frame. Snapshots also require the tar end blocks after the last file. These
+checks establish completeness of the ordered output stream, not cryptographic
+device authentication. Running-app checks use complete, validated public-bus
+JSON responses, preserving the CLI's display-0 session selection and explicit
+legacy no-session fallback. No delay or automatic transfer retry is added.
+New snapshot manifests and journals record `capture_protocol: novacom-framed-v1`.
+Recovery refuses missing or unknown protocol markers before stopping, restoring
+or launching the app. Older backups remain intact, but cannot be automatically
+treated as complete; do not add the marker manually. A retry of a provably
+pre-install failure takes a fresh capture through the checked transport.
+
 Private recovery files are stored under
 `WORK_DIR/YOUR_TV/native-webos-v0.2.0-beta.1/`: `update.json` is the journal,
 `snapshot/state.tar` contains the captured private data, and
