@@ -1,6 +1,6 @@
-# Native Plex application for LG webOS
+# Native OTT application for LG webOS
 
-**OTTPlay Native** is an experimental, separately installed Plex application
+**OTTPlay Native** is an experimental, separately installed native application
 for LG televisions. It renders through SDL2/OpenGL ES and uses the TV's native
 decoder, without loading the LG browser or a WebView. The ordinary OTT-play
 webOS package continues to provide the full multi-provider web interface.
@@ -16,13 +16,16 @@ Plex library and media pipeline. It is packaged as
 `com.openottplay.player`. They can be installed independently. Their settings
 and update streams are separate.
 
-The current native scope is Plex. It does not claim parity with the main
-player's M3U, VPortal, Local media, Favorites or remote-control protocols.
-Do not expect an `ott` CLI command addressed to the hosted player to control
-this separate application. Codec support and hardware decoding must be
-checked on the intended TV model and firmware.
+The published **0.1.0** package is a Plex client. The working **0.2.0** source adds
+M3U, Xtream, Stalker, VPortal and local-folder profiles, shared Favorites and
+its own command-server registration. It is not yet a published release.
+The hosted and native applications retain separate identities: a command
+addressed to the hosted player does not control the native installation.
+See the [current feature scope and limits](../native/webos/README.md#what-this-target-provides).
+Codec support and hardware decoding must be checked on the intended TV model
+and firmware.
 
-The first ARM candidate was checked against pinned symbol inventories from
+The first 0.1.0 ARM candidate was checked against pinned symbol inventories from
 14 LG firmware images. Its main executable resolves on the 11 sampled
 versions from webOS 3.4.0 through 11.2.0; the sampled webOS 1.x and 2.x images
 lack required functions and are unsupported. The six bundled helper/library
@@ -66,10 +69,14 @@ After the primary `all` build, run the separate collector with the same SDK:
 
 ```sh
 python3 scripts/webos-runtime-sources.py \
-  --metadata build/native-webos/dist/ottplay-native-webos-0.1.0.json \
+  --metadata build/native-webos/dist/ottplay-native-webos-0.2.0.json \
   --source build/native-webos/source \
   --sdk build/native-webos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot
 ```
+
+This example follows the working 0.2.0 source. A package including the companion
+also needs its verified bundle and full source closure; use the
+[complete companion build sequence](../native/webos/README.md) for those inputs.
 
 The collector checks ELF, link-map and trace hashes before classifying runtime
 inputs; an unknown SDK archive or dynamic dependency fails the check. Each

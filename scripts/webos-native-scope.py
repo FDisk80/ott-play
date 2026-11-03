@@ -6,9 +6,13 @@ import re
 import subprocess
 from pathlib import Path
 
-
-PREFIXES = ("native/webos/", "scripts/webos-runtime-sources")
+PREFIXES = (
+    "native/webos/", "scripts/webos-runtime-sources", ".cargo/", "src-rs/",
+    "src-tauri/", "vendor/", "plugins/examples/", "licenses/",
+)
 PATHS = {
+    "Cargo.toml", "Cargo.lock", "LICENSE",
+    "js/licenses/media-companion-native.txt", "js/licenses/media-companion-native-sources.json",
     ".github/workflows/ci.yml",
     ".github/workflows/webos-native.yml",
     ".github/workflow-tests/test_webos_native_scope.py",
@@ -25,7 +29,11 @@ def requires_build(event, base, head, diff):
         return True
     if not all(re.fullmatch(r"[0-9a-f]{40}", sha or "") for sha in (base, head)):
         raise ValueError("Pull request base and head must be full commit SHAs")
-    return any(path in PATHS or path.startswith(PREFIXES) for path in diff(base, head))
+    return any(
+        path in PATHS
+        or any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PREFIXES)
+        for path in diff(base, head)
+    )
 
 
 def changed_paths(base, head, *, cwd=None):

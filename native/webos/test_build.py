@@ -1,8 +1,10 @@
 """Offline regression checks for identity and native-package validation."""
 
+import hashlib
 import importlib.util
 import io
 import json
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -15,12 +17,14 @@ build = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(build)
 
 
-def tar_bytes(files):
+def tar_bytes(files, *, modes=None):
     raw = io.BytesIO()
     with tarfile.open(fileobj=raw, mode="w:gz") as tar:
         for name, data in files.items():
             member = tarfile.TarInfo(name)
             member.size = len(data)
+            if modes and name in modes:
+                member.mode = modes[name]
             tar.addfile(member, io.BytesIO(data))
     return raw.getvalue()
 
@@ -73,6 +77,53 @@ def fixture(spec, *, kind="native", arm=True, service=True):
     return ar_bytes(
         {"debian-binary": b"2.0\n", "control.tar.gz": tar_bytes({"control": control}), "data.tar.gz": tar_bytes(files)}
     )
+
+
+def json_bytes(value):
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+
+
+def companion_fixture(spec, *, change=None, mode=0o755):
+    """Small real IPK; no cross compiler, SDK, device or external process."""
+    members = build.ar_members(fixture(spec))
+    files = build.tar_files(members["data.tar.gz"])
+    prefix = "usr/palm/applications/" + spec["application"]["id"] + "/"
+    binary_name = prefix + "bin/ottplay-companion"
+    binary = files[prefix + "plxnative"] + b"companion fixture"
+    manifest = (build.HERE / "companion/manifest.json").read_bytes()
+    source = {
+        "schema": 1,
+        "local_inputs_sha256": "1" * 64,
+        "local_source_archive_sha256": "2" * 64,
+        "release_source_requirements": json.loads(manifest)["release_source_requirements"],
+        "complete_corresponding_source": False,
+    }
+    receipt = {
+        "schema": 1,
+        "package": "ottplay-companion",
+        "target": build.TARGET,
+        "elf": {"sha256": hashlib.sha256(binary).hexdigest(), "bytes": len(binary)},
+        "manifest_sha256": hashlib.sha256(manifest).hexdigest(),
+        "source_receipt_sha256": "3" * 64,
+        "local_inputs_sha256": source["local_inputs_sha256"],
+        "local_source_archive_sha256": source["local_source_archive_sha256"],
+        "link_map_sha256": "4" * 64,
+        "link_trace_sha256": "5" * 64,
+        "link_receipt_sha256": "6" * 64,
+        "device_executed": False,
+    }
+    files.update(
+        {
+            binary_name: binary,
+            prefix + "companion/manifest.json": manifest,
+            prefix + "companion/receipt.json": json_bytes(receipt),
+            prefix + "companion/source.json": json_bytes(source),
+        }
+    )
+    if change:
+        change(files, prefix)
+    members["data.tar.gz"] = tar_bytes(files, modes={binary_name: mode})
+    return ar_bytes(members)
 
 
 class NativePackageTests(unittest.TestCase):
@@ -188,6 +239,262 @@ class NativePackageTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "duplicate IPK control"):
             self.verify(self.changed(change, control=True))
+
+
+class NativeCompanionTests(unittest.TestCase):
+    def verify(self, data):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.ipk"
+            path.write_bytes(data)
+            return build.verify_ipk(path, build.manifest())
+
+    def change_json(self, path, update):
+        def change(files, prefix):
+            name = prefix + "companion/" + path
+            value = json.loads(files[name])
+            update(value)
+            files[name] = json_bytes(value)
+
+        return change
+
+    def test_valid_companion_is_bound_to_packaged_bytes(self):
+        payload = companion_fixture(build.manifest())
+        files = build.tar_files(build.ar_members(payload)["data.tar.gz"])
+        prefix = "usr/palm/applications/" + build.manifest()["application"]["id"] + "/"
+        result = self.verify(payload)["companion"]
+        for key, path in (
+            ("elf_sha256", "bin/ottplay-companion"),
+            ("receipt_sha256", "companion/receipt.json"),
+            ("manifest_sha256", "companion/manifest.json"),
+        ):
+            self.assertEqual(result[key], hashlib.sha256(files[prefix + path]).hexdigest())
+        self.assertEqual(result["local_source_archive_sha256"], "2" * 64)
+        self.assertEqual(result["local_inputs_sha256"], "1" * 64)
+
+    def test_existing_package_without_companion_is_compatible(self):
+        self.assertNotIn("companion", self.verify(fixture(build.manifest())))
+
+    def test_altered_companion_binary_is_rejected(self):
+        def change(files, prefix):
+            files[prefix + "bin/ottplay-companion"] += b"tampered"
+
+        with self.assertRaisesRegex(ValueError, "companion"):
+            self.verify(companion_fixture(build.manifest(), change=change))
+
+    def test_manifest_bytes_must_match_recorded_hash(self):
+        change = self.change_json("manifest.json", lambda value: value.update(rust_toolchain="0.0.0"))
+        with self.assertRaisesRegex(ValueError, "companion"):
+            self.verify(companion_fixture(build.manifest(), change=change))
+
+    def test_companion_receipt_identity_and_size_cannot_change(self):
+        updates = (
+            lambda value: value.update(package="another-package"),
+            lambda value: value.update(target="x86_64-unknown-linux-gnu"),
+            lambda value: value["elf"].update(bytes=1),
+            lambda value: value.update(device_executed=True),
+        )
+        for index, update in enumerate(updates):
+            with self.subTest(case=index), self.assertRaisesRegex(ValueError, "companion"):
+                self.verify(companion_fixture(build.manifest(), change=self.change_json("receipt.json", update)))
+
+    def test_source_metadata_cannot_claim_different_source_or_validation(self):
+        for field, value in (
+            ("local_inputs_sha256", "e" * 64),
+            ("local_source_archive_sha256", "f" * 64),
+            ("complete_corresponding_source", True),
+            ("release_source_requirements", []),
+            ("schema", 2),
+        ):
+            change = self.change_json("source.json", lambda data, field=field, value=value: data.update({field: value}))
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "companion"):
+                self.verify(companion_fixture(build.manifest(), change=change))
+
+    def test_required_source_and_linker_hashes_cannot_be_omitted(self):
+        for field in (
+            "manifest_sha256",
+            "source_receipt_sha256",
+            "local_inputs_sha256",
+            "local_source_archive_sha256",
+            "link_map_sha256",
+            "link_trace_sha256",
+            "link_receipt_sha256",
+        ):
+            change = self.change_json("receipt.json", lambda value, field=field: value.pop(field))
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "companion"):
+                self.verify(companion_fixture(build.manifest(), change=change))
+
+    def test_partial_companion_payload_is_rejected(self):
+        paths = ("bin/ottplay-companion", "companion/manifest.json", "companion/receipt.json", "companion/source.json")
+        for path in paths:
+
+            def remove_one(files, prefix, path=path):
+                files.pop(prefix + path)
+
+            def keep_one(files, prefix, path=path):
+                for other in paths:
+                    if other != path:
+                        files.pop(prefix + other)
+
+            for change in (remove_one, keep_one):
+                with self.subTest(path=path, change=change.__name__), self.assertRaisesRegex(ValueError, "Incomplete"):
+                    self.verify(companion_fixture(build.manifest(), change=change))
+
+    def test_companion_requires_exact_executable_permissions(self):
+        for mode in (0o644, 0o700, 0o777, 0o4755):
+            with self.subTest(mode=oct(mode)), self.assertRaisesRegex(ValueError, "0755"):
+                self.verify(companion_fixture(build.manifest(), mode=mode))
+
+    def test_companion_does_not_allow_private_profile_or_state(self):
+        for path in ("ottplay-profile.json", "ottplay-control.json", "ott-state/OttState"):
+
+            def change(files, prefix, path=path):
+                files[prefix + "companion/" + path] = b"private fixture"
+
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "Private profiles"):
+                self.verify(companion_fixture(build.manifest(), change=change))
+
+
+class NativeCompanionBuildTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.spec = build.manifest()
+        self.source = self.root / "source"
+        (self.source / "rust-modules").mkdir(parents=True)
+        (self.source / "rust-modules/rust-toolchain.toml").write_text('[toolchain]\nchannel = "1.99.1"\n')
+        sdk = self.root / "sdk"
+        (sdk / "bin").mkdir(parents=True)
+        for name in ("arm-webos-linux-gnueabi-gcc", "arm-webos-linux-gnueabi-gcc.br_real"):
+            (sdk / "bin" / name).write_bytes(b"fixture compiler; never executed")
+        self.bundle = self.root / "companion-bundle"
+        self.bundle.mkdir()
+        self.payload = companion_fixture(self.spec)
+        self.prefix = "usr/palm/applications/" + self.spec["application"]["id"]
+        self.staging = self.source / "ipkroot/data" / self.prefix
+        files = build.tar_files(build.ar_members(self.payload)["data.tar.gz"])
+        (self.bundle / "receipt.json").write_bytes(files[self.prefix + "/companion/receipt.json"])
+        self.prepared = {"revision": self.spec["revision"], "integration_sha256": "a" * 64}
+        (self.root / "prepared.json").write_bytes(json_bytes(self.prepared))
+        self.args = SimpleNamespace(work_dir=self.root, sdk=sdk, jobs=2, companion_bundle=self.bundle)
+        app = self.spec["application"]
+        self.ipk = self.source / "pkg" / (app["id"] + "_" + app["version"] + "_arm.ipk")
+        self.steps = []
+        self.fail_at = None
+
+    def checked_bundle(self, bundle, readelf):
+        self.steps.append("validate")
+        self.assertEqual(bundle, self.bundle.resolve())
+        self.assertEqual(readelf, self.args.sdk / "bin/arm-webos-linux-gnueabi-readelf")
+        if self.fail_at == "validate":
+            raise ValueError("fixture bundle invalid")
+
+    def external_command(self, command, *, cwd=None, env=None):
+        if command[0] == "make":
+            step = command[-1]
+            self.assertEqual(command[:-1], ["make", "-j2", "RELEASE=1", "FLAVOR=stable"])
+            self.assertEqual(cwd, self.source)
+        else:
+            step = "companion-stage"
+            self.assertEqual(
+                command,
+                [
+                    build.sys.executable,
+                    build.HERE / "companion/build.py",
+                    "stage",
+                    "--bundle",
+                    self.bundle.resolve(),
+                    "--readelf",
+                    self.args.sdk / "bin/arm-webos-linux-gnueabi-readelf",
+                    "--destination",
+                    self.staging,
+                    "--link-evidence",
+                    self.source / "pkg/link-evidence/stable",
+                ],
+            )
+            self.assertEqual(cwd, build.ROOT)
+        self.assertEqual(env["RELEASE"], "1")
+        self.assertEqual(env["FLAVOR"], "stable")
+        self.steps.append(step)
+        if step == self.fail_at:
+            raise subprocess.CalledProcessError(1, command)
+        if step == "ipk-stage":
+            self.staging.mkdir(parents=True)
+        elif step in ("ipk-pack", "ipk"):
+            self.ipk.parent.mkdir(parents=True, exist_ok=True)
+            self.ipk.write_bytes(self.payload)
+        return ""
+
+    def build_candidate(self):
+        module = SimpleNamespace(checked_bundle=self.checked_bundle)
+        with (
+            patch.object(build, "check_source", return_value=self.source),
+            patch.object(build, "companion_builder", return_value=module),
+            patch.object(build, "run", side_effect=self.external_command),
+        ):
+            build.build(self.args, self.spec)
+
+    def test_stage_then_pack_records_exact_companion(self):
+        self.build_candidate()
+        self.assertEqual(self.steps, ["validate", "ipk-stage", "companion-stage", "ipk-pack"])
+        receipt = json.loads((self.root / "built.json").read_text())
+        self.assertEqual(receipt["companion"], build.verify_ipk(self.ipk, self.spec)["companion"])
+        self.assertEqual(receipt["companion"]["receipt_sha256"], build.sha256(self.bundle / "receipt.json"))
+        self.assertEqual(receipt["ipk_sha256"], build.sha256(self.ipk))
+        self.assertEqual(receipt["revision"], self.prepared["revision"])
+
+    def test_no_bundle_keeps_existing_single_make_target(self):
+        self.args.companion_bundle = None
+        self.payload = fixture(self.spec)
+        self.build_candidate()
+        self.assertEqual(self.steps, ["ipk"])
+        self.assertNotIn("companion", json.loads((self.root / "built.json").read_text()))
+
+    def test_invalid_bundle_prevents_native_compilation(self):
+        self.fail_at = "validate"
+        with self.assertRaisesRegex(ValueError, "fixture bundle invalid"):
+            self.build_candidate()
+        self.assertEqual(self.steps, ["validate"])
+        self.assertFalse(self.ipk.exists())
+        self.assertFalse((self.root / "built.json").exists())
+
+    def test_failed_companion_stage_never_packages_or_records_build(self):
+        self.fail_at = "companion-stage"
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.build_candidate()
+        self.assertEqual(self.steps, ["validate", "ipk-stage", "companion-stage"])
+        self.assertFalse(self.ipk.exists())
+        self.assertFalse((self.root / "built.json").exists())
+
+    def test_failed_native_stage_never_invokes_companion(self):
+        self.fail_at = "ipk-stage"
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.build_candidate()
+        self.assertEqual(self.steps, ["validate", "ipk-stage"])
+        self.assertFalse(self.ipk.exists())
+        self.assertFalse((self.root / "built.json").exists())
+
+    def test_different_companion_bundle_cannot_be_recorded(self):
+        receipt = json.loads((self.bundle / "receipt.json").read_text())
+        receipt["link_map_sha256"] = "f" * 64
+        (self.bundle / "receipt.json").write_bytes(json_bytes(receipt))
+        with self.assertRaisesRegex(ValueError, "explicitly selected bundle"):
+            self.build_candidate()
+        self.assertFalse((self.root / "built.json").exists())
+
+    def test_unrequested_companion_is_rejected(self):
+        self.args.companion_bundle = None
+        with self.assertRaisesRegex(ValueError, "explicitly selected bundle"):
+            self.build_candidate()
+        self.assertEqual(self.steps, ["ipk"])
+        self.assertFalse((self.root / "built.json").exists())
+
+    def test_selected_companion_must_reach_final_ipk(self):
+        self.payload = fixture(self.spec)
+        with self.assertRaisesRegex(ValueError, "explicitly selected bundle"):
+            self.build_candidate()
+        self.assertEqual(self.steps, ["validate", "ipk-stage", "companion-stage", "ipk-pack"])
+        self.assertFalse((self.root / "built.json").exists())
 
 
 class NativeSdkTests(unittest.TestCase):

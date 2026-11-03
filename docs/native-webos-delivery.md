@@ -140,6 +140,27 @@ use a matching pre-update backup when recovery requires one. Never work around
 an installer version refusal by changing the application ID; that creates a
 different installation and loses the intended state continuity.
 
+## Delete local data (native 0.2)
+
+`Delete all local data` is an explicit reset. It stops OTT playback, remote
+control and the local helper, then clears protected profiles, Favorites,
+playback positions, settings, pairing and app-owned helper data. It also removes
+`ottplay-profile.json` and `ottplay-control.json` from the installed application
+directory. Source video files and an external file selected by
+`OTTPLAY_PLEX_PROFILE` are not deleted.
+
+A durable reset marker prevents managed startup files from automatically
+restoring the deleted configuration, including an external
+`OTTPLAY_PLEX_PROFILE`. Restoring a provisioning file alone does not re-enable
+managed startup import; there is currently no supported command to lift this
+block. After a successful reset, configure the player again through its normal
+interface and pair remote control again as needed.
+
+Incomplete deletion is reported. Retry deletion if data remains; protected
+profiles and pairing cannot reload while their reset is incomplete. For ordinary
+package updates, preserve provisioning files and the entire `ott-state`
+directory, including the reset marker, as described above.
+
 ## Update through Developer Mode
 
 The existing connection must pass the native guide's read-only device and
@@ -241,6 +262,49 @@ the installed build answered those commands. If a companion is packaged, its
 executable and dependency sources must also be covered by the same runtime
 source and final-link checks. A helper's own local-source archive alone does
 not replace the complete corresponding source set.
+
+The complete experimental `0.2` candidate requires the companion and its verified
+source closure; a native-only build is for isolated development. Follow the
+[complete build and collection sequence](../native/webos/README.md#complete-candidate-build-with-companion).
+Run preparation first, then pass its complete `environment` object to both the
+helper build and source collection so they use the same checked cache and pinned
+toolchain offline. Pass the verified bundle to `--companion-bundle`; staging
+preserves its manifest bytes and checks the local-input digest. Collect the helper's locked dependencies
+and exact Rust sources before passing both `--companion-bundle` and
+`--companion-sources` to the enclosing runtime collector. The helper's SDK source
+coverage remains pending until that collector validates the final-link inputs
+against the pinned SDK. It also checks the GCC wrapper and its actual compiler
+backend against the original SDK archive, and binds the helper's Rust compiler
+and standard-library source to the exact commit in its archived manifest.
+Matching receipt hashes alone do not replace those checks.
+It embeds `companion/companion-source.tar.gz` and receipts
+inside the existing runtime-source archive, preserving the two top-level source
+archives. Finish with the release verifier's `--check-checkout`; this sequence
+does not itself claim a completed ARM build, independent rebuild or TV test.
+
+### Candidate plugin-resolution contract
+
+The upcoming `0.2` native source implements plugin resolution through the
+authenticated `native_companion` command. The native host tests compile and
+pass for the bounded request contract and proposal-only response, including
+exit cancellation. Live helper-command and TV acceptance are still pending;
+this is not a capability of the published `0.1.0` release. Record the
+exact-candidate result before advertising it as delivered.
+
+The parameters are `version: 1`, the current remote session's `runtime`,
+`op: "resolve_plugin"`, a plugin `id` and an `input` object. Obtain the runtime
+and advertised operations from the current installation; do not reuse an
+identifier across application restarts. `plugins` and `resolve_plugin` are
+advertised only when the helper is ready and reports plugin support. Resolution
+also requires the native application to be in the foreground and outside
+Standby. The existing bounded request encoder validates the plugin ID and input.
+
+A successful response contains `data.streams`, an array of `{url, title}`
+proposals. Resolution does not start playback or acquire a playback lease.
+The native adapter validates returned proposals and rejects the current
+helper's private token in URLs or titles, including percent-encoded forms.
+Request deadlines and cancellation cover queued work, in-flight work and late
+replies; a late response must not start playback or mutate the current source.
 
 The initial `0.1.0` native installation received a user confirmation that it
 worked. That observation does not verify every codec, a controlled retention

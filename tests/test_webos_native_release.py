@@ -1,6 +1,5 @@
 """Offline native release checks exercise real archives, never a toolchain or TV."""
 
-import base64
 import gzip
 import hashlib
 import importlib.util
@@ -11,6 +10,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -26,6 +26,21 @@ def encoded(value):
 
 def digest(value):
     return hashlib.sha256(value).hexdigest()
+
+
+def png_chunk(kind, data=b""):
+    return len(data).to_bytes(4, "big") + kind + data + zlib.crc32(kind + data).to_bytes(4, "big")
+
+
+def png_bytes(pixel=b"\x10\x20\x30"):
+    """A genuine 1x1 RGB PNG with one unfiltered, losslessly compressed row."""
+    header = (1).to_bytes(4, "big") * 2 + bytes((8, 2, 0, 0, 0))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + png_chunk(b"IHDR", header)
+        + png_chunk(b"IDAT", zlib.compress(b"\x00" + pixel))
+        + png_chunk(b"IEND")
+    )
 
 
 def tar_bytes(files, modes=None, extra=None):
@@ -64,6 +79,158 @@ def ar_bytes(files):
     return bytes(output)
 
 
+class PngArchiveTests(unittest.TestCase):
+    header = (1).to_bytes(4, "big") * 2 + bytes((8, 2, 0, 0, 0))
+    image = zlib.compress(b"\x00\x10\x20\x30")
+
+    def png(self, *chunks):
+        return b"\x89PNG\r\n\x1a\n" + b"".join(png_chunk(kind, data) for kind, data in chunks)
+
+    def accepted(self, data):
+        rows, content = release.index_archive(io.BytesIO(tar_bytes({"art.png": data})))
+        self.assertEqual(content, {})
+        return rows["art.png"]["png"]
+
+    def test_generated_fixture_has_real_compressed_pixel_and_crc(self):
+        data = png_bytes()
+        offset, pixels = 8, b""
+        while offset < len(data):
+            size = int.from_bytes(data[offset : offset + 4], "big")
+            kind, body = data[offset + 4 : offset + 8], data[offset + 8 : offset + 8 + size]
+            self.assertEqual(
+                int.from_bytes(data[offset + 8 + size : offset + 12 + size], "big"), zlib.crc32(kind + body)
+            )
+            if kind == b"IDAT":
+                pixels += body
+            offset += 12 + size
+        self.assertEqual(zlib.decompress(pixels), b"\x00\x10\x20\x30")
+        self.assertTrue(self.accepted(data))
+
+    def test_truncation_at_every_byte_is_rejected(self):
+        data = png_bytes()
+        for size in range(len(data)):
+            with self.subTest(size=size):
+                self.assertFalse(self.accepted(data[:size]))
+
+    def test_crc_is_checked_for_every_chunk(self):
+        for kind in (b"IHDR", b"IDAT", b"IEND"):
+            data = bytearray(png_bytes())
+            offset = data.index(kind) - 4
+            size = int.from_bytes(data[offset : offset + 4], "big")
+            data[offset + 8 + size] ^= 1
+            with self.subTest(kind=kind):
+                self.assertFalse(self.accepted(bytes(data)))
+        ancillary = bytearray(self.png((b"IHDR", self.header), (b"tEXt", b"key\0value")))
+        ancillary[-1] ^= 1
+        self.assertFalse(self.accepted(bytes(ancillary) + png_chunk(b"IDAT", self.image) + png_chunk(b"IEND")))
+
+    def test_declared_chunk_lengths_cannot_escape_member(self):
+        for size in (14, 2**31, 2**32 - 1):
+            data = bytearray(png_bytes())
+            data[8:12] = size.to_bytes(4, "big")
+            with self.subTest(size=size):
+                self.assertFalse(self.accepted(bytes(data)))
+
+    def test_ihdr_length_dimensions_and_pixel_format_are_checked(self):
+        headers = [self.header[:12], self.header + b"\x00"]
+        for field in (0, 4):
+            for dimension in (0, 16385):
+                header = bytearray(self.header)
+                header[field : field + 4] = dimension.to_bytes(4, "big")
+                headers.append(bytes(header))
+        for field, value in ((8, 1), (9, 1), (10, 1), (11, 1), (12, 2)):
+            header = bytearray(self.header)
+            header[field] = value
+            headers.append(bytes(header))
+        for header in headers:
+            with self.subTest(header=header):
+                self.assertFalse(self.accepted(self.png((b"IHDR", header), (b"IDAT", self.image), (b"IEND", b""))))
+
+    def test_critical_chunk_order_and_nonempty_image_are_required(self):
+        ihdr, idat, iend = (b"IHDR", self.header), (b"IDAT", self.image), (b"IEND", b"")
+        empty, text = (b"IDAT", b""), (b"tEXt", b"key\0value")
+        variants = (
+            (idat, ihdr, iend),
+            (ihdr, ihdr, idat, iend),
+            (ihdr, iend),
+            (ihdr, empty, iend),
+            (ihdr, idat),
+            (ihdr, idat, (b"IEND", b"x")),
+            (ihdr, idat, iend, iend),
+            (ihdr, idat, text, idat, iend),
+            (ihdr, empty, text, idat, iend),
+            (ihdr, (b"ABCD", b"unknown critical"), idat, iend),
+            (ihdr, (b"tExt", b"reserved bit"), idat, iend),
+            (ihdr, (b"1234", b"invalid type"), idat, iend),
+        )
+        for chunks in variants:
+            with self.subTest(kinds=[kind for kind, _ in chunks]):
+                self.assertFalse(self.accepted(self.png(*chunks)))
+        self.assertFalse(self.accepted(png_bytes() + b"garbage"))
+
+    def test_ancillary_chunks_and_consecutive_idat_are_supported(self):
+        self.assertTrue(
+            self.accepted(
+                self.png(
+                    (b"IHDR", self.header),
+                    (b"tEXt", b"key\0value"),
+                    (b"IDAT", b""),
+                    (b"IDAT", self.image[:4]),
+                    (b"IDAT", self.image[4:]),
+                    (b"IDAT", b""),
+                    (b"tEXt", b"after\0value"),
+                    (b"IEND", b""),
+                )
+            )
+        )
+
+    def test_palette_constraints_and_order_are_checked(self):
+        indexed = self.header[:8] + bytes((1, 3, 0, 0, 0))
+        ihdr, idat, iend = (b"IHDR", indexed), (b"IDAT", zlib.compress(b"\0\0")), (b"IEND", b"")
+        palette = (b"PLTE", b"\x10\x20\x30")
+        self.assertTrue(self.accepted(self.png(ihdr, palette, idat, iend)))
+        for chunks in (
+            (ihdr, idat, iend),
+            (ihdr, palette, palette, idat, iend),
+            (ihdr, (b"PLTE", b""), idat, iend),
+            (ihdr, (b"PLTE", b"xx"), idat, iend),
+            (ihdr, (b"PLTE", b"\0" * 9), idat, iend),
+            ((b"IHDR", self.header), (b"IDAT", b""), palette, idat, iend),
+            ((b"IHDR", self.header[:9] + b"\0" + self.header[10:]), palette, idat, iend),
+        ):
+            with self.subTest(chunks=chunks):
+                self.assertFalse(self.accepted(self.png(*chunks)))
+
+    def test_png_capture_and_spooling_preserve_gzip_and_plain_tar(self):
+        data = png_bytes()
+        files = {"art.png": data, "ordinary": b"x" * (1024 * 1024 + 17)}
+        gzip_data = tar_bytes(files)
+        for compression, archive in (("gz", gzip_data), ("", gzip.decompress(gzip_data))):
+            for captures in ((), ("art.png",)):
+                with self.subTest(compression=compression, captures=captures):
+                    sinks = {key: io.BytesIO() for key in files}
+                    rows, content = release.index_archive(
+                        io.BytesIO(archive), captures=captures, spools=sinks, compression=compression
+                    )
+                    self.assertEqual(content, {"art.png": data} if captures else {})
+                    self.assertTrue(rows["art.png"]["png"])
+                    self.assertFalse(rows["ordinary"]["png"])
+                    for key, value in files.items():
+                        self.assertEqual(rows[key]["sha256"], digest(value))
+                        self.assertEqual(sinks[key].getvalue(), value)
+
+    def test_oversized_png_is_not_collected_or_accepted(self):
+        data = png_bytes()
+        with (
+            patch.object(release, "JSON_LIMIT", len(data) - 1),
+            patch.object(
+                release, "png_container", side_effect=AssertionError("oversized PNG must not be collected")
+            ) as validator,
+        ):
+            self.assertFalse(self.accepted(data))
+            validator.assert_not_called()
+
+
 class Bundle:
     """Small internally coherent release, with real IPK/tar and hash receipts."""
 
@@ -86,9 +253,7 @@ class Bundle:
         binary = bytearray(52)
         binary[:6] = b"\x7fELF\x01\x01"
         binary[18:20] = (40).to_bytes(2, "little")
-        png = base64.b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII="
-        )
+        png = png_bytes()
         license_text = (release.ROOT / "native/webos/COPYING").read_bytes()
         self.package = {
             self.prefix + "appinfo.json": encoded(self.descriptor),
@@ -325,6 +490,349 @@ class Bundle:
         return manifest
 
 
+class CompanionBundle:
+    """A source-complete tiny helper using the real optional release schema."""
+
+    def __init__(self, bundle, registry_name="fixture", registry_version="1.0.0"):
+        self.bundle = bundle
+        self.prefix = bundle.prefix + "companion/"
+        self.spec = {
+            "schema": 1,
+            "package": "ottplay-companion",
+            "target": release.build.TARGET,
+            "rust_toolchain": "1.96.1",
+            "rust_commit": "31fca3adb283cc9dfd56b49cdee9a96eb9c96ffd",
+            "features": ["webos-legacy-glibc"],
+            "install_path": "bin/ottplay-companion",
+            "required_source_files": ["Cargo.lock", "src/main.rs"],
+            "notice_files": ["LICENSE"],
+            "release_source_requirements": [
+                "local_source_archive",
+                "locked_registry_and_git_dependencies",
+                "rust_standard_library_sources",
+                "linked_sdk_runtime_sources",
+            ],
+        }
+        self.packages = [
+            {
+                "name": registry_name,
+                "version": registry_version,
+                "source": "registry+https://example.test/registry",
+                "checksum": "1" * 64,
+            },
+            {"name": "fixture-git", "version": "2.0.0", "source": "git+https://example.test/dep#" + "2" * 40},
+        ]
+        self.local = {
+            "Cargo.lock": (
+                "version = 3\n"
+                + "".join(
+                    "\n[[package]]\n" + "".join(key + " = " + json.dumps(value) + "\n" for key, value in row.items())
+                    for row in self.packages
+                )
+            ).encode(),
+            "src/main.rs": b"fn main() {}\n",
+            "LICENSE": b"Companion license fixture",
+            "native/webos/companion/manifest.json": release.companion_canonical(self.spec),
+        }
+        self.source = {
+            "schema": 1,
+            "cargo_lock_dependencies": self.packages,
+            "dependency_scope": "Entire workspace lock, including dependencies not linked into this helper",
+            "release_source_requirements": self.spec["release_source_requirements"],
+            "complete_corresponding_source": False,
+        }
+        self.refresh_inventory()
+        self.vendor, self.components = {}, []
+        for row in self.packages:
+            directory = row["name"] + "-" + row["version"]
+            files = {
+                "Cargo.toml": (
+                    "[package]\nname="
+                    + json.dumps(row["name"])
+                    + "\nversion="
+                    + json.dumps(row["version"])
+                    + '\nlicense="MIT"\n'
+                ).encode(),
+                "src/lib.rs": b"pub fn fixture() {}\n",
+                "LICENSE": b"Fixture license",
+            }
+            sums = {"package": row.get("checksum"), "files": {path: digest(data) for path, data in files.items()}}
+            sums_bytes = release.companion_canonical(sums)
+            self.vendor.update({"cargo-vendor/" + directory + "/" + path: data for path, data in files.items()})
+            self.vendor["cargo-vendor/" + directory + "/.cargo-checksum.json"] = sums_bytes
+            self.components.append(
+                dict(
+                    row,
+                    directory=directory,
+                    checksum_manifest_sha256=digest(sums_bytes),
+                    files=len(files),
+                    license="MIT",
+                    license_file=None,
+                )
+            )
+        self.commit = self.spec["rust_commit"]
+        self.rust_path = "rust-src-1.96.1.tar.xz"
+        # Structural fixture only: it does not claim to compile a Rust library.
+        self.rust_files = {
+            "Cargo.lock": b"version = 4\n",
+            "Cargo.toml": b'[workspace]\nmembers = ["core", "alloc", "std"]\n',
+            "core/src/lib.rs": b"#![no_std]\n",
+            "alloc/src/lib.rs": b"#![no_std]\n",
+            "std/src/lib.rs": b"pub use core::*;\n",
+        }
+        self.refresh_rust_archive()
+        binary = bundle.package[bundle.prefix + "plxnative"] + b"helper"
+        bundle.package[bundle.prefix + "bin/ottplay-companion"] = binary
+        bundle.modes[bundle.prefix + "bin/ottplay-companion"] = 0o755
+        archive_inputs = [
+            {
+                "path": "/build/companion-target/release/deps/libfixture.rlib",
+                "sha256": "5" * 64,
+                "bytes": 100,
+                "observed_at_link": True,
+                "validation": "link_time_and_current",
+            },
+            {
+                "path": "/build/webos-sdk/lib/libgcc.a",
+                "sha256": "d" * 64,
+                "bytes": 100,
+                "observed_at_link": True,
+                "validation": "link_time_and_current",
+            },
+        ]
+        link_map = "".join("LOAD " + row["path"] + "\n" for row in archive_inputs).encode()
+        link_trace = "".join(row["path"] + "\n" for row in archive_inputs).encode()
+        self.receipt = {
+            "schema": 1,
+            "package": "ottplay-companion",
+            "target": release.build.TARGET,
+            "features": self.spec["features"],
+            "manifest_sha256": digest(release.companion_canonical(self.spec)),
+            "elf": {"sha256": digest(binary), "bytes": len(binary), "device_executed": False},
+            "device_executed": False,
+            "rustc": "rustc 1.96.1 ("
+            + self.commit[:9]
+            + " 2026-01-01)\ncommit-hash: "
+            + self.commit
+            + "\nrelease: 1.96.1",
+            "sdk": {
+                "archive_sha256": "b" * 64,
+                "executables": {"gcc": "f" * 64, "gcc_backend": "6" * 64},
+                "host": "test",
+                "version": "fixture-sdk",
+            },
+            "link_map_sha256": digest(link_map),
+            "link_trace_sha256": digest(link_trace),
+            "link_receipt_sha256": "4" * 64,
+        }
+        self.linkage = {
+            "elf_sha256": digest(binary),
+            "map_sha256": self.receipt["link_map_sha256"],
+            "trace_sha256": self.receipt["link_trace_sha256"],
+            "receipt_sha256": "4" * 64,
+            "trace_available": True,
+            "compiler_sha256": "f" * 64,
+            "compiler_backend_sha256": "6" * 64,
+        }
+        bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"] = {
+            "elf_sha256": digest(binary),
+            "archive_excluded": True,
+            "compiler_sha256": "f" * 64,
+            "compiler_backend_sha256": "6" * 64,
+            "map_sha256": self.receipt["link_map_sha256"],
+            "trace_sha256": self.receipt["link_trace_sha256"],
+            "link_receipt_sha256": self.receipt["link_receipt_sha256"],
+            "distributed_map_sha256": digest(link_map),
+            "distributed_trace_sha256": digest(link_trace),
+            "runtime_inputs": [{"source": "gcc-runtime", "sdk_path": "lib/libgcc.a"}],
+            "build_root": "/build/ottplay-companion",
+            "build_target": "/build/companion-target",
+            "rust_sysroot": "/build/companion-rust",
+            "archive_inputs_capture": "during-final-link",
+            "archive_inputs": archive_inputs,
+        }
+        bundle.runtime_manifest["sdk_attestation"]["companion_compiler"] = {
+            "compiler": {"sdk_path": "bin/toolchain-wrapper", "sha256": "f" * 64},
+            "backend": {"sdk_path": "bin/arm-webos-linux-gnueabi-gcc.br_real", "sha256": "6" * 64},
+            "archive_match": "PASS",
+        }
+        bundle.runtime.update(
+            {
+                "evidence/ottplay-companion.link.map": link_map,
+                "evidence/ottplay-companion.link.trace": link_trace,
+                "evidence/ottplay-companion.readelf.txt": b"Fixture ELF inspection",
+            }
+        )
+        self.local_override = None
+        self.write()
+
+    def refresh_rust_archive(self, *, extra=None):
+        output = io.BytesIO()
+        with tarfile.open(fileobj=output, mode="w:xz") as archive:
+            for path, data in self.rust_files.items():
+                member = tarfile.TarInfo("rust-src-1.96.1/rust-src/lib/rustlib/src/rust/library/" + path)
+                member.mode, member.size = 0o644, len(data)
+                archive.addfile(member, io.BytesIO(data))
+            if extra:
+                archive.addfile(extra)
+        self.rust_archive = output.getvalue()
+        self.channel = (
+            "\n".join(
+                "[pkg." + name + "]\nversion=" + json.dumps("1.96.1 (" + self.commit[:9] + " 2026-01-01)")
+                for name in ("rustc", "rust-src", "rust-std")
+            )
+            + '\n[pkg.rust-src.target."*"]\nhash="'
+            + digest(self.rust_archive)
+            + '"\n'
+        ).encode()
+        self.rust = {
+            "toolchain": "1.96.1",
+            "commit": self.commit,
+            "archive_sha256": digest(self.rust_archive),
+            "channel_manifest_sha256": digest(self.channel),
+            "source_archive_hash_verified": True,
+        }
+
+    def refresh_inventory(self):
+        self.source["local_inputs"] = [
+            {"path": path, "sha256": digest(data), "bytes": len(data), "mode": 0o644}
+            for path, data in sorted(self.local.items())
+        ]
+        self.source["local_inputs_sha256"] = digest(release.companion_canonical(self.source["local_inputs"]))
+
+    def refresh_policy(self):
+        policy = release.companion_canonical(self.spec)
+        self.local["native/webos/companion/manifest.json"] = policy
+        self.receipt["manifest_sha256"] = digest(policy)
+        self.refresh_inventory()
+
+    def write(self):
+        source_bytes = release.companion_canonical(self.source)
+        local = self.local_override or tar_bytes(
+            {**{"source/" + path: data for path, data in self.local.items()}, "source-receipt.json": source_bytes}
+        )
+        self.receipt.update(
+            local_source_archive_sha256=digest(local),
+            source_receipt_sha256=digest(source_bytes),
+            local_inputs_sha256=self.source["local_inputs_sha256"],
+        )
+        receipt_bytes = release.companion_canonical(self.receipt)
+        self.packaged = {
+            key: self.receipt[key]
+            for key in (
+                "manifest_sha256",
+                "source_receipt_sha256",
+                "local_source_archive_sha256",
+                "local_inputs_sha256",
+            )
+        }
+        self.packaged.update(elf_sha256=self.receipt["elf"]["sha256"], receipt_sha256=digest(receipt_bytes))
+        self.bundle.metadata["companion"] = self.packaged
+        self.bundle.metadata["build"]["companion"] = self.packaged
+        self.bundle.package.update(
+            {
+                self.prefix + "manifest.json": release.companion_canonical(self.spec),
+                self.prefix + "receipt.json": receipt_bytes,
+                self.prefix + "source.json": release.companion_canonical(
+                    {
+                        "schema": 1,
+                        "complete_corresponding_source": False,
+                        "local_source_archive_sha256": digest(local),
+                        "local_inputs_sha256": self.source["local_inputs_sha256"],
+                        "release_source_requirements": self.spec["release_source_requirements"],
+                    }
+                ),
+                self.prefix + "licenses/LICENSE": self.local["LICENSE"],
+            }
+        )
+        self.payload = {
+            "local-source.tar.gz": local,
+            "source-receipt.json": source_bytes,
+            "build-receipt.json": receipt_bytes,
+            "cargo-vendor.tar.gz": tar_bytes(self.vendor),
+            "cargo-components.json": release.companion_canonical(self.components),
+            "cargo-config.toml": (
+                b'[source."registry+https://example.test/registry"]\n'
+                b'registry="https://example.test/registry"\nreplace-with="vendored-sources"\n'
+                b'[source."git+https://example.test/dep"]\n'
+                b'git="https://example.test/dep"\nreplace-with="vendored-sources"\n'
+                b'[source.vendored-sources]\ndirectory="cargo-vendor"\n'
+            ),
+            "rust-notices.tar.gz": tar_bytes(
+                {
+                    "channel-manifest.toml": self.channel,
+                    "COPYRIGHT.html": b"Fixture copyright",
+                    "COPYRIGHT-library.html": b"Fixture copyright",
+                    "licenses/MIT.txt": b"Fixture license",
+                }
+            ),
+            self.rust_path: self.rust_archive,
+        }
+        self.manifest = {
+            "schema": 1,
+            "package": "ottplay-companion",
+            "target": release.build.TARGET,
+            "features": self.spec["features"],
+            "local_inputs_sha256": self.source["local_inputs_sha256"],
+            "cargo_lock_sha256": digest(self.local["Cargo.lock"]),
+            "dependency_scope": self.source["dependency_scope"],
+            "dependency_count": len(self.components),
+            "rust": self.rust,
+            "sdk_linkage": self.linkage,
+            "sdk_archive_sha256": "b" * 64,
+            "complete_corresponding_source": False,
+            "sdk_runtime_source_coverage": "PENDING_ENCLOSING_RELEASE",
+            "rebuild_validation": "NOT_RUN",
+            "bit_identical_rebuild": "NOT_PROVEN",
+        }
+        self.write_archive()
+
+    def write_archive(self, *, refresh_manifest=True):
+        if refresh_manifest:
+            self.manifest["files"] = {
+                path: {"sha256": digest(data), "bytes": len(data)} for path, data in self.payload.items()
+            }
+        manifest_bytes = release.companion_canonical(self.manifest)
+        archive = tar_bytes({**self.payload, "SOURCE-MANIFEST.json": manifest_bytes})
+        self.closure = {
+            key: self.manifest[key]
+            for key in (
+                "local_inputs_sha256",
+                "cargo_lock_sha256",
+                "dependency_count",
+                "rust",
+                "sdk_linkage",
+                "sdk_archive_sha256",
+                "complete_corresponding_source",
+                "sdk_runtime_source_coverage",
+                "rebuild_validation",
+            )
+        }
+        self.closure.update(
+            schema=1,
+            source_archive={"file": "companion-source.tar.gz", "sha256": digest(archive), "bytes": len(archive)},
+            source_manifest_sha256=digest(manifest_bytes),
+            locked_source_coverage="PASS",
+            elf_sha256=self.packaged["elf_sha256"],
+            source_receipt_sha256=self.packaged["source_receipt_sha256"],
+            local_source_archive_sha256=self.packaged["local_source_archive_sha256"],
+        )
+        self.bundle.runtime_manifest["companion"] = {
+            "archive": {"file": "companion/companion-source.tar.gz", "sha256": digest(archive), "bytes": len(archive)},
+            "source_closure": self.closure,
+            "packaged": self.packaged,
+            "sdk_runtime_source_coverage": "PASS",
+        }
+        self.bundle.runtime.update(
+            {
+                "companion/companion-source.tar.gz": archive,
+                "companion/SOURCE-MANIFEST.json": manifest_bytes,
+                "companion/source-closure.json": release.companion_canonical(self.closure),
+            }
+        )
+        self.bundle.write()
+
+
 class NativeReleaseTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -444,6 +952,11 @@ class NativeReleaseTests(unittest.TestCase):
 
     def test_invalid_artwork_is_rejected(self):
         self.bundle.package[self.bundle.prefix + "splash.png"] = b"not png"
+        self.bundle.write()
+        self.fails("PNG artwork")
+
+    def test_truncated_png_header_is_not_packaged_artwork(self):
+        self.bundle.package[self.bundle.prefix + "splash.png"] = png_bytes()[:24]
         self.bundle.write()
         self.fails("PNG artwork")
 
@@ -637,7 +1150,7 @@ class NativeReleaseTests(unittest.TestCase):
                 self.fails("Missing bundled dependency source")
 
     def test_package_artwork_must_match_distributed_source(self):
-        self.bundle.package[self.bundle.prefix + "largeIcon.png"] += b"modified"
+        self.bundle.package[self.bundle.prefix + "largeIcon.png"] = png_bytes(b"\x80\x90\xa0")
         self.bundle.write()
         self.fails("Source member digest mismatch: pkg/largeIcon.png")
 
@@ -726,6 +1239,419 @@ class NativeReleaseTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "current checkout"),
         ):
             self.verify(check_checkout=True)
+
+
+class CargoSourceConfigTests(unittest.TestCase):
+    def check(self, sources, origins):
+        release.check_companion_cargo_config({"source": sources}, [{"source": value} for value in origins])
+
+    def test_crates_io_default_vendor_output(self):
+        self.check(
+            {
+                "crates-io": {"replace-with": "vendored-sources"},
+                "vendored-sources": {"directory": "cargo-vendor"},
+            },
+            ["registry+https://github.com/rust-lang/crates.io-index", "sparse+https://index.crates.io/"],
+        )
+
+    def test_alternate_registry_and_git_vendor_output(self):
+        for registry in ("https://example.test/index", "sparse+https://example.test/index/"):
+            origin = registry if registry.startswith("sparse+") else "registry+" + registry
+            for query, reference in (
+                ("", {}),
+                ("?branch=release%2Fnext", {"branch": "release/next"}),
+                ("?tag=v1.2", {"tag": "v1.2"}),
+                ("?rev=abc123", {"rev": "abc123"}),
+            ):
+                with self.subTest(registry=registry, query=query):
+                    self.check(
+                        {
+                            origin: {"registry": registry, "replace-with": "vendored-sources"},
+                            "git+https://example.test/dep" + query: {
+                                "git": "https://example.test/dep",
+                                **reference,
+                                "replace-with": "vendored-sources",
+                            },
+                            "vendored-sources": {"directory": "cargo-vendor"},
+                        },
+                        [origin, "git+https://example.test/dep" + query + "#" + "a" * 40],
+                    )
+
+    def test_source_alias_is_not_the_source_identity(self):
+        self.check(
+            {
+                "original": {"registry": "https://example.test/index", "replace-with": "mirror"},
+                "mirror": {"registry": "https://mirror.test/index", "replace-with": "local"},
+                "local": {"directory": "cargo-vendor"},
+            },
+            ["registry+https://example.test/index"],
+        )
+
+    def test_unused_vendor_directory_does_not_cover_a_locked_origin(self):
+        with self.assertRaisesRegex(ValueError, "locked source mapping missing"):
+            self.check({"unused": {"directory": "cargo-vendor"}}, ["registry+https://example.test/index"])
+
+    def test_replacement_chain_must_reach_the_exported_directory(self):
+        for target, entry, message in (
+            ("missing", None, "target missing"),
+            ("crates-io", None, "replacement cycle"),
+            ("mirror", {"registry": "https://example.test/index"}, "does not end"),
+            ("mirror", {"git": "https://example.test/dep"}, "does not end"),
+            ("mirror", {"local-registry": "somewhere"}, "does not end"),
+            ("mirror", {"registry": "https://example.test/index", "replace-with": "crates-io"}, "cycle"),
+            ("mirror", {"directory": "../cargo-vendor"}, "path mismatch"),
+            ("mirror", {"directory": "/cargo-vendor"}, "path mismatch"),
+        ):
+            with self.subTest(target=target, entry=entry):
+                sources = {"crates-io": {"replace-with": target}, "unused": {"directory": "cargo-vendor"}}
+                if entry is not None:
+                    sources[target] = entry
+                with self.assertRaisesRegex(ValueError, message):
+                    self.check(sources, ["registry+https://github.com/rust-lang/crates.io-index"])
+
+    def test_malformed_or_ambiguous_source_definitions_are_rejected(self):
+        for sources, message in (
+            ([], "source mappings missing"),
+            ({"bad": "value"}, "must be a table"),
+            ({"bad": {"replace-with": "vendor"}}, "kind is missing"),
+            ({"bad": {"registry": "https://example.test", "directory": "cargo-vendor"}}, "ambiguous"),
+            ({"crates-io": {"replace-with": 42}}, "nonempty strings"),
+            ({"crates-io": {"replace-with": ""}}, "nonempty strings"),
+            ({"crates-io": {"registry": "https://example.test/index"}}, "identity mismatch"),
+            ({"bad": {"git": "https://example.test/dep", "branch": "a", "rev": "b"}}, "ambiguous"),
+            ({"bad": {"git": "https://example.test/dep?branch=next"}}, "embedded reference"),
+            ({"bad": {"registry": "https://example.test/index", "tag": "next"}}, "ambiguous"),
+            (
+                {"one": {"registry": "https://example.test/index"}, "two": {"registry": "https://example.test/index"}},
+                "identity is ambiguous",
+            ),
+        ):
+            with self.subTest(sources=sources), self.assertRaisesRegex(ValueError, message):
+                self.check(sources, ["registry+https://example.test/index"])
+
+    def test_git_url_and_reference_must_match_the_lock(self):
+        sources = {
+            "dep": {"git": "https://example.test/dep", "branch": "next", "replace-with": "vendor"},
+            "vendor": {"directory": "cargo-vendor"},
+        }
+        for locked in (
+            "https://other.test/dep?branch=next",
+            "https://example.test/dep",
+            "https://example.test/dep?tag=next",
+        ):
+            with self.subTest(locked=locked), self.assertRaisesRegex(ValueError, "locked source mapping missing"):
+                self.check(sources, ["git+" + locked + "#" + "a" * 40])
+        for query in ("branch=next&rev=abc", "branch=next&branch=other", "unknown=next", "branch="):
+            with self.subTest(query=query), self.assertRaisesRegex(ValueError, "Git reference is ambiguous"):
+                self.check(sources, ["git+https://example.test/dep?" + query + "#" + "a" * 40])
+
+
+class CompanionReleaseTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.bundle = Bundle(Path(temporary.name))
+        self.companion = CompanionBundle(self.bundle)
+
+    def verify(self):
+        return release.verify(self.bundle.metadata_path)
+
+    def fails(self, message):
+        with self.assertRaisesRegex((ValueError, KeyError), message):
+            self.verify()
+
+    def test_optional_companion_closure_passes_without_build_or_device_claim(self):
+        result = self.verify()
+        self.assertEqual(result["bundle_validation"], "PASS")
+        self.assertEqual(result["independent_rebuild"], "NOT_RUN")
+        self.assertEqual(result["device_validation"], "not_performed")
+
+    def test_cargo_vendor_semver_build_metadata_passes_full_bundle_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Bundle(Path(directory))
+            CompanionBundle(bundle, registry_name="ndk-sys", registry_version="0.6.0+11769913")
+            self.assertEqual(release.verify(bundle.metadata_path)["bundle_validation"], "PASS")
+
+    def test_cargo_vendor_directory_rejects_unsafe_components(self):
+        for directory in (
+            "",
+            ".",
+            "..",
+            "../crate",
+            "crate/child",
+            "crate\\child",
+            "/crate",
+            "crate name",
+            "crate\tname",
+            "crate\nname",
+            "crate\x00name",
+            "crate\x1fname",
+            "crate%2fchild",
+            "crate%2e%2e",
+            "crate:stream",
+            None,
+            7,
+        ):
+            with self.subTest(directory=directory), self.assertRaisesRegex(ValueError, "single safe component"):
+                release.cargo_vendor_directory(directory)
+
+    def test_cargo_build_metadata_does_not_relax_external_artifact_names(self):
+        with self.assertRaisesRegex(ValueError, "single safe filename"):
+            release.name("source-0.6.0+11769913.tar.gz")
+
+    def test_packaged_companion_requires_exported_metadata_binding(self):
+        del self.bundle.metadata["companion"]
+        self.bundle.save_metadata()
+        self.fails("Companion package/build metadata")
+
+    def test_packaged_companion_requires_nested_source(self):
+        del self.bundle.runtime["companion/companion-source.tar.gz"]
+        self.bundle.write()
+        self.fails("runtime source set is incomplete")
+
+    def test_unpaired_companion_source_is_rejected(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        plain = Bundle(Path(temporary.name))
+        plain.runtime["companion/source-closure.json"] = b"{}"
+        plain.write()
+        with self.assertRaisesRegex(ValueError, "Unexpected companion source"):
+            release.verify(plain.metadata_path)
+
+    def test_companion_binary_requires_executable_mode(self):
+        self.bundle.modes[self.bundle.prefix + "bin/ottplay-companion"] = 0o644
+        self.bundle.write()
+        self.fails("mode 0755")
+
+    def test_nested_manifest_hashes_are_checked_after_outer_hash_refresh(self):
+        self.companion.payload["cargo-config.toml"] += b"# changed\n"
+        self.companion.write_archive(refresh_manifest=False)
+        self.fails("manifest file set/hash")
+
+    def test_rehashed_cargo_config_must_map_every_locked_origin(self):
+        original = self.companion.payload["cargo-config.toml"]
+        for config in (
+            b'[source.unused]\ndirectory="cargo-vendor"\n',
+            original.replace(b'git="https://example.test/dep"', b'git="https://other.test/dep"'),
+        ):
+            with self.subTest(config=config):
+                self.companion.payload["cargo-config.toml"] = config
+                self.companion.write_archive()
+                self.fails("locked source mapping missing")
+
+    def test_local_source_inventory_rejects_missing_file(self):
+        del self.companion.local["src/main.rs"]
+        self.companion.write()
+        self.fails("local source inventory mismatch")
+
+    def test_local_source_inventory_rejects_changed_bytes(self):
+        self.companion.local["src/main.rs"] += b"// changed\n"
+        self.companion.write()
+        self.fails("Source member digest mismatch")
+
+    def test_private_file_in_nested_local_source_is_rejected(self):
+        self.companion.local["ottplay-control.json"] = b"private fixture"
+        self.companion.refresh_inventory()
+        self.companion.write()
+        self.fails("Private configuration/state")
+
+    def test_nested_traversal_and_symlink_are_rejected(self):
+        self.companion.local["../outside"] = b"fixture"
+        self.companion.write()
+        self.fails("Unsafe archive member")
+        link = tarfile.TarInfo("escape")
+        link.type, link.linkname = tarfile.SYMTYPE, "/etc/passwd"
+        self.companion.local_override = tar_bytes({}, extra=link)
+        self.companion.write()
+        self.fails("Nonregular archive")
+
+    def test_nested_sparse_parser_cannot_run(self):
+        self.companion.local_override = pax_bytes({"GNU.sparse.major": "1", "GNU.sparse.minor": "0"}, data=b"1\n")
+        self.companion.write()
+        with patch.object(
+            tarfile.TarInfo, "_proc_gnusparse_10", side_effect=AssertionError("must not parse")
+        ) as parser:
+            self.fails("Sparse archive")
+        parser.assert_not_called()
+
+    def test_cargo_lock_and_dependency_receipt_must_match(self):
+        self.companion.local["Cargo.lock"] = self.companion.local["Cargo.lock"].replace(
+            b'version = "1.0.0"', b'version = "9.0.0"'
+        )
+        self.companion.refresh_inventory()
+        self.companion.write()
+        self.fails("Cargo.lock dependency receipt")
+
+    def test_vendored_file_checksums_are_checked(self):
+        self.companion.vendor["cargo-vendor/fixture-1.0.0/src/lib.rs"] += b"// changed\n"
+        self.companion.write()
+        self.fails("Source member digest mismatch")
+
+    def test_vendored_package_cannot_be_missing(self):
+        self.companion.vendor = {
+            path: data for path, data in self.companion.vendor.items() if "fixture-git-" not in path
+        }
+        self.companion.write()
+        self.fails("vendor/lock component set")
+
+    def test_vendored_git_identity_must_match_locked_commit(self):
+        self.companion.components[1]["source"] = "git+https://example.test/dep#" + "9" * 40
+        self.companion.write()
+        self.fails("vendor component identity")
+
+    def test_rust_compiler_commit_is_checked(self):
+        self.companion.receipt["rustc"] = self.companion.receipt["rustc"].replace(self.companion.commit, "9" * 40)
+        self.companion.write()
+        self.fails("Rust compiler/source commit")
+
+    def test_rust_full_archived_policy_pin_is_required(self):
+        for pin in (None, self.companion.commit[:9], "g" * 40):
+            with self.subTest(pin=pin):
+                if pin is None:
+                    del self.companion.spec["rust_commit"]
+                else:
+                    self.companion.spec["rust_commit"] = pin
+                self.companion.refresh_policy()
+                self.companion.write()
+                self.fails("Rust policy requires a full commit pin")
+
+    def test_matching_rust_compiler_and_sources_cannot_override_archived_pin(self):
+        # Same nine-character version prefix is insufficient: the full pin matters.
+        self.companion.spec["rust_commit"] = self.companion.commit[:9] + "9" * 31
+        self.companion.refresh_policy()
+        self.companion.write()
+        self.fails("Rust compiler/source commit")
+
+    def test_rust_compiler_identity_cannot_have_duplicate_commit_or_release(self):
+        original = self.companion.receipt["rustc"]
+        for field, message in (("commit-hash: " + self.companion.commit, "commit"), ("release: 1.96.1", "version")):
+            with self.subTest(field=field):
+                self.companion.receipt["rustc"] = original + "\n" + field
+                self.companion.write()
+                self.fails("Rust compiler.*" + message)
+
+    def test_rust_source_checksum_is_checked(self):
+        self.companion.rust_archive += b"modified"
+        self.companion.write()
+        self.fails("Source member digest mismatch")
+
+    def test_rust_source_xz_dictionary_allocation_is_bounded(self):
+        with patch.object(release, "XZ_MEMORY_LIMIT", 1024), self.assertRaises(release.lzma.LZMAError):
+            self.verify()
+
+    def test_rehashed_rust_archive_with_only_lock_marker_is_rejected(self):
+        self.companion.rust_files = {"Cargo.lock": b"version = 4\n"}
+        self.companion.refresh_rust_archive()
+        self.companion.write()
+        self.fails("Rust library source missing or empty: Cargo.toml")
+
+    def test_rehashed_rust_archive_requires_nonempty_regular_library_inputs(self):
+        original = self.companion.rust_files.copy()
+        for path in original:
+            for kind in ("missing", "empty", "directory"):
+                with self.subTest(path=path, kind=kind):
+                    self.companion.rust_files = original.copy()
+                    del self.companion.rust_files[path]
+                    extra = None
+                    if kind == "empty":
+                        self.companion.rust_files[path] = b""
+                    elif kind == "directory":
+                        extra = tarfile.TarInfo("rust-src-1.96.1/rust-src/lib/rustlib/src/rust/library/" + path)
+                        extra.type = tarfile.DIRTYPE
+                    self.companion.refresh_rust_archive(extra=extra)
+                    self.companion.write()
+                    self.fails("Rust library source missing or empty")
+
+    def test_companion_sdk_linkage_cannot_point_to_another_receipt(self):
+        self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"]["link_receipt_sha256"] = "9" * 64
+        self.bundle.write()
+        self.fails("SDK/link evidence")
+
+    def test_companion_backend_hash_is_required_and_bound_at_each_stage(self):
+        stages = (
+            (self.companion.linkage, "compiler_backend_sha256"),
+            (self.companion.receipt["sdk"]["executables"], "gcc_backend"),
+            (self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"], "compiler_backend_sha256"),
+        )
+        for stage, key in stages:
+            original = stage[key]
+            for value in (None, "9" * 64):
+                with self.subTest(key=key, value=value):
+                    if value is None:
+                        stage.pop(key)
+                    else:
+                        stage[key] = value
+                    self.companion.write()
+                    self.fails("compiler SDK/link evidence mismatch: backend")
+            stage[key] = original
+
+    def test_companion_requires_compiler_attestation_against_pinned_sdk_archive(self):
+        sdk = self.bundle.runtime_manifest["sdk_attestation"]
+        original = sdk.pop("companion_compiler")
+        self.bundle.write()
+        self.fails("compiler SDK archive attestation")
+        sdk["companion_compiler"] = original
+        original["archive_match"] = "NOT_RUN"
+        self.bundle.write()
+        self.fails("compiler SDK archive attestation")
+
+    def test_companion_compiler_archive_hashes_bind_wrapper_and_backend(self):
+        compilers = self.bundle.runtime_manifest["sdk_attestation"]["companion_compiler"]
+        for name in ("compiler", "backend"):
+            with self.subTest(name=name):
+                original = compilers[name]["sha256"]
+                compilers[name]["sha256"] = "9" * 64
+                self.bundle.write()
+                self.fails("compiler SDK/link evidence mismatch: " + name)
+                compilers[name]["sha256"] = original
+
+    def test_companion_compiler_sdk_paths_are_safe_distinct_files(self):
+        compilers = self.bundle.runtime_manifest["sdk_attestation"]["companion_compiler"]
+        for path in ("/tmp/compiler", "../compiler", "./bin/compiler", ".", compilers["compiler"]["sdk_path"]):
+            with self.subTest(path=path):
+                compilers["backend"]["sdk_path"] = path
+                self.bundle.write()
+                self.fails("Unsafe archive member|compiler SDK paths")
+
+    def test_companion_backend_digest_must_be_valid_even_if_every_receipt_agrees(self):
+        self.companion.linkage["compiler_backend_sha256"] = "invalid"
+        self.companion.receipt["sdk"]["executables"]["gcc_backend"] = "invalid"
+        self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"]["compiler_backend_sha256"] = "invalid"
+        self.bundle.runtime_manifest["sdk_attestation"]["companion_compiler"]["backend"]["sha256"] = "invalid"
+        self.companion.write()
+        self.fails("Invalid SHA-256")
+
+    def test_companion_link_archive_inventory_is_required(self):
+        del self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"]["archive_inputs"]
+        self.bundle.write()
+        self.fails("archive inventory missing")
+
+    def test_companion_link_archive_inventory_matches_published_linker_inputs(self):
+        self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"]["archive_inputs"].pop(0)
+        self.bundle.write()
+        self.fails("differs from published linker inputs")
+
+    def test_companion_link_archive_inventory_does_not_claim_current_ephemeral_files(self):
+        row = self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"]["archive_inputs"][0]
+        row["validation"] = "link_time_only_ephemeral"
+        self.bundle.write()
+        self.fails("archive validation scope")
+
+    def test_companion_link_archive_inventory_sdk_hash_matches_attestation(self):
+        row = self.bundle.runtime_manifest["shipped_elfs"]["ottplay-companion"]["archive_inputs"][1]
+        row["sha256"] = "9" * 64
+        self.bundle.write()
+        self.fails("SDK archive digest")
+
+    def test_companion_rebuild_claim_cannot_be_promoted(self):
+        self.companion.manifest["bit_identical_rebuild"] = "PASS"
+        self.companion.write_archive()
+        self.fails("locked source or rebuild status")
+
+    def test_packaged_companion_notices_must_match_local_sources(self):
+        self.bundle.package[self.companion.prefix + "licenses/LICENSE"] += b"changed"
+        self.bundle.write()
+        self.fails("Source member digest mismatch")
 
 
 if __name__ == "__main__":

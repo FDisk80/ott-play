@@ -33,6 +33,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: python3 scripts/webos-native-scope.py
       - run: python3 -m unittest discover -s native/webos -p 'test_*.py' -v
+      - run: python3 -m unittest discover -s native/webos/companion -p 'test_*.py' -v
       - run: python3 -m unittest discover -s tests -p test_webos_runtime_sources.py -v
       - run: python3 -m unittest discover -s tests -p test_webos_native_release.py -v
 
@@ -52,16 +53,76 @@ jobs:
       - name: Install native build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build meson pkg-config autoconf automake libtool bzip2
+          sudo apt-get install -y build-essential cmake ninja-build meson pkg-config autoconf automake libtool bzip2 libclang-18-dev
+      - name: Prepare native source and verified SDK
+        run: |
+          python3 native/webos/build.py prepare
+          python3 native/webos/build.py bootstrap
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          spec = json.loads(Path("native/webos/upstream.json").read_text())
+          work = Path("build/native-webos").resolve()
+          expected = spec["sdk"]["assets"]["linux-aarch64"]["sha256"]
+          matches = []
+          for path in (work / "downloads").rglob("*.tar.bz2"):
+              with path.open("rb") as stream:
+                  if hashlib.file_digest(stream, "sha256").hexdigest() == expected:
+                      matches.append(path)
+          if len(matches) != 1:
+              raise SystemExit("Expected exactly one original, verified SDK archive")
+          with open(os.environ["GITHUB_ENV"], "a") as stream:
+              stream.write(f"WEBOS_SDK={work / 'toolchain' / spec['sdk']['directory']}\n")
+              stream.write(f"WEBOS_SDK_ARCHIVE={matches[0]}\n")
+          PY
+      - name: Prepare pinned companion inputs
+        run: |
+          python3 native/webos/companion/prepare.py \
+            --cache-dir "$RUNNER_TEMP/companion-cache" \
+            --target-dir "$RUNNER_TEMP/companion-target" \
+            --output "$RUNNER_TEMP/companion-prepared.json"
+      - name: Build companion and collect its locked source closure
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          temporary = Path(os.environ["RUNNER_TEMP"])
+          prepared = json.loads((temporary / "companion-prepared.json").read_text())
+          environment = {**os.environ, **prepared["environment"]}
+          bundle = temporary / "companion-bundle"
+          subprocess.run([
+              sys.executable, "native/webos/companion/build.py", "build",
+              "--sdk", os.environ["WEBOS_SDK"],
+              "--sdk-archive", os.environ["WEBOS_SDK_ARCHIVE"],
+              "--target-dir", prepared["target_dir"], "--libclang", prepared["libclang"],
+              "--jobs", "2", "--output", str(bundle),
+          ], env=environment, check=True)
+          subprocess.run([
+              sys.executable, "native/webos/companion/sources.py",
+              "--bundle", str(bundle), "--output", str(temporary / "companion-source"),
+              "--readelf", os.environ["WEBOS_SDK"] + "/bin/arm-webos-linux-gnueabi-readelf",
+              "--rust-sysroot", prepared["rust_sysroot"],
+              "--rust-source-archive", prepared["rust_source_archive"],
+          ], env=environment, check=True)
+          PY
       - name: Build and verify native binary with corresponding source
-        run: python3 native/webos/build.py all --jobs 2
+        run: python3 native/webos/build.py all --jobs 2 --companion-bundle "$RUNNER_TEMP/companion-bundle"
       - name: Bind runtime sources and final linker evidence
         run: |
           native_version=$(python3 -c 'import json; print(json.load(open("native/webos/upstream.json"))["application"]["version"])')
           python3 scripts/webos-runtime-sources.py \
             --metadata "build/native-webos/dist/ottplay-native-webos-${native_version}.json" \
             --source build/native-webos/source \
-            --sdk build/native-webos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot
+            --sdk "$WEBOS_SDK" --sdk-archive "$WEBOS_SDK_ARCHIVE" \
+            --companion-bundle "$RUNNER_TEMP/companion-bundle" \
+            --companion-sources "$RUNNER_TEMP/companion-source"
       - name: Verify the complete distributable bundle
         id: bundle
         run: |

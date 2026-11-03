@@ -29,6 +29,10 @@ RUNTIME = {
     "libstdc++.a": "gcc-runtime",
     "libatomic.a": "gcc-runtime",
 }
+COMPANION = "ottplay-companion"
+JSON_LIMIT = 16 * 1024 * 1024
+LINK_LIMIT = 256 * 1024 * 1024
+SOURCE_LIMIT = 4 * 1024 * 1024 * 1024
 
 
 def digest(path, algorithm="sha256"):
@@ -92,6 +96,221 @@ def safe_name(name):
     return path.as_posix()
 
 
+def regular(path, limit=SOURCE_LIMIT):
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > limit:
+        fail("Missing, nonregular or oversized companion input: " + path.name)
+    return path
+
+
+def load_json(path):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                fail("Duplicate companion JSON key")
+            result[key] = value
+        return result
+
+    return json.loads(regular(path, JSON_LIMIT).read_bytes(), object_pairs_hook=unique)
+
+
+class SourceTarInfo(tarfile.TarInfo):
+    def _reject_sparse(self, *_args):
+        fail("Sparse companion source entries are unsupported")
+
+    _proc_gnusparse_00 = _reject_sparse
+    _proc_gnusparse_01 = _reject_sparse
+    _proc_gnusparse_10 = _reject_sparse
+
+    def _apply_pax_info(self, pax_headers, encoding, errors):
+        if any(key.startswith("GNU.sparse.") for key in pax_headers):
+            self._reject_sparse()
+        return super()._apply_pax_info(pax_headers, encoding, errors)
+
+    def _proc_member(self, archive):
+        if self.type == tarfile.GNUTYPE_SPARSE:
+            self._reject_sparse()
+        if (
+            self.type
+            in (
+                tarfile.GNUTYPE_LONGNAME,
+                tarfile.GNUTYPE_LONGLINK,
+                tarfile.XHDTYPE,
+                tarfile.XGLTYPE,
+                tarfile.SOLARIS_XHDTYPE,
+            )
+            and not 0 <= self.size <= JSON_LIMIT
+        ):
+            fail("Oversized companion source header")
+        archive.source_headers = getattr(archive, "source_headers", 0) + 1
+        if archive.source_headers > 100_000:
+            fail("Too many companion source headers")
+        return super()._proc_member(archive)
+
+
+def check_companion_archive(path, manifest, manifest_bytes):
+    expected, seen, total = manifest["files"], set(), 0
+    with tarfile.open(path, "r|gz", tarinfo=SourceTarInfo) as archive:
+        for member in archive:
+            name = safe_name(member.name)
+            if name != member.name or name in seen or not member.isfile() or member.issparse():
+                fail("Invalid companion source archive member")
+            seen.add(name)
+            total += member.size
+            if not 0 <= member.size <= SOURCE_LIMIT or total > SOURCE_LIMIT or len(seen) > 100_000:
+                fail("Companion source archive exceeds limits")
+            row = (
+                {"sha256": hashlib.sha256(manifest_bytes).hexdigest(), "bytes": len(manifest_bytes)}
+                if name == "SOURCE-MANIFEST.json"
+                else expected.get(name)
+            )
+            if row is None or member.size != row["bytes"] or member.mode not in (0o644, 0o755):
+                fail("Companion source archive differs from manifest")
+            h = hashlib.sha256()
+            stream = archive.extractfile(member)
+            while block := stream.read(1024 * 1024):
+                h.update(block)
+            if h.hexdigest() != row["sha256"]:
+                fail("Companion source member digest mismatch: " + name)
+    if seen != set(expected) | {"SOURCE-MANIFEST.json"}:
+        fail("Incomplete companion source archive")
+
+
+def companion_compiler_inputs(sdk, record):
+    """Resolve the SDK dispatch alias and the backend selected by its basename."""
+    sdk = sdk.resolve(strict=True)
+    compiler = sdk / "bin/arm-webos-linux-gnueabi-gcc"
+    result = {}
+    for name, key, alias in (
+        ("compiler", "compiler_sha256", compiler),
+        ("backend", "compiler_backend_sha256", compiler.with_name(compiler.name + ".br_real")),
+    ):
+        path = alias.resolve(strict=True)
+        if not path.is_relative_to(sdk):
+            fail("Companion compiler executable escapes the pinned SDK")
+        actual = digest(regular(path))
+        if record.get(key) != actual:
+            fail("Companion compiler executable changed: " + key)
+        result[name] = {"sdk_path": path.relative_to(sdk).as_posix(), "sha256": actual}
+    if result["compiler"]["sdk_path"] == result["backend"]["sdk_path"]:
+        fail("Companion compiler wrapper and backend must be separate files")
+    return result
+
+
+def companion_inputs(args, metadata, elfs):
+    bundle, sources = getattr(args, "companion_bundle", None), getattr(args, "companion_sources", None)
+    if COMPANION not in elfs:
+        if bundle is not None or sources is not None or "companion" in metadata:
+            fail("Unexpected companion inputs without a packaged helper")
+        return None
+    if bundle is None or sources is None or not isinstance(metadata.get("companion"), dict):
+        fail("Packaged companion requires --companion-bundle, --companion-sources and metadata")
+    bundle, sources = Path(bundle), Path(sources)
+    packaged = metadata["companion"]
+    receipt = load_json(bundle / "receipt.json")
+    source_receipt = load_json(bundle / "source-receipt.json")
+    closure = load_json(sources / "source-closure.json")
+    manifest_path = regular(sources / "SOURCE-MANIFEST.json", JSON_LIMIT)
+    manifest = load_json(manifest_path)
+    archive = regular(sources / "companion-source.tar.gz")
+    if any(value.get("schema") != 1 for value in (receipt, source_receipt, closure, manifest)):
+        fail("Unsupported companion source schema")
+    binary_hash = hashlib.sha256(elfs[COMPANION]).hexdigest()
+    if (
+        packaged.get("elf_sha256") != binary_hash
+        or receipt.get("elf", {}).get("sha256") != binary_hash
+        or receipt["elf"].get("bytes") != len(elfs[COMPANION])
+        or digest(regular(bundle / COMPANION)) != binary_hash
+        or receipt.get("package") != COMPANION
+        or manifest.get("package") != COMPANION
+        or receipt.get("target") != "armv7-unknown-linux-gnueabi"
+        or manifest.get("target") != receipt["target"]
+    ):
+        fail("Companion source/bundle differs from packaged helper")
+    if digest(regular(bundle / "receipt.json")) != packaged.get("receipt_sha256"):
+        fail("Companion build receipt differs from package")
+    for key in ("manifest_sha256", "source_receipt_sha256", "local_source_archive_sha256", "local_inputs_sha256"):
+        if receipt.get(key) != packaged.get(key):
+            fail("Companion package receipt binding mismatch: " + key)
+    for filename, key in (
+        ("source-receipt.json", "source_receipt_sha256"),
+        ("local-source.tar.gz", "local_source_archive_sha256"),
+    ):
+        if digest(regular(bundle / filename)) != packaged[key] or closure.get(key) != packaged[key]:
+            fail("Companion source receipt binding mismatch: " + key)
+    if (
+        source_receipt.get("local_inputs_sha256") != packaged["local_inputs_sha256"]
+        or closure.get("local_inputs_sha256") != packaged["local_inputs_sha256"]
+        or manifest.get("local_inputs_sha256") != packaged["local_inputs_sha256"]
+        or closure.get("elf_sha256") != binary_hash
+    ):
+        fail("Companion source inventory binding mismatch")
+    archive_row = {"file": archive.name, "sha256": digest(archive), "bytes": archive.stat().st_size}
+    if closure.get("source_archive") != archive_row or closure.get("source_manifest_sha256") != digest(manifest_path):
+        fail("Companion source archive binding mismatch")
+    if (
+        manifest.get("bit_identical_rebuild") != "NOT_PROVEN"
+        or closure.get("locked_source_coverage") != "PASS"
+        or any(
+            value.get("sdk_runtime_source_coverage") != "PENDING_ENCLOSING_RELEASE"
+            or value.get("complete_corresponding_source") is not False
+            or value.get("rebuild_validation") != "NOT_RUN"
+            for value in (closure, manifest)
+        )
+    ):
+        fail("Companion source coverage is missing or overclaimed")
+    for key in ("cargo_lock_sha256", "dependency_count", "rust", "sdk_linkage", "sdk_archive_sha256"):
+        if closure.get(key) != manifest.get(key):
+            fail("Companion closure/manifest mismatch: " + key)
+    for filename, key in (
+        ("local-source.tar.gz", "local_source_archive_sha256"),
+        ("source-receipt.json", "source_receipt_sha256"),
+        ("build-receipt.json", "receipt_sha256"),
+    ):
+        if manifest["files"].get(filename, {}).get("sha256") != packaged[key]:
+            fail("Companion archived build/source receipt mismatch")
+    check_companion_archive(archive, manifest, manifest_path.read_bytes())
+    record_path = regular(bundle / (COMPANION + ".link.json"), JSON_LIMIT)
+    record = load_json(record_path)
+    linkage = {
+        "elf_sha256": binary_hash,
+        "map_sha256": receipt.get("link_map_sha256"),
+        "trace_sha256": receipt.get("link_trace_sha256"),
+        "receipt_sha256": digest(record_path),
+        "trace_available": True,
+        "compiler_sha256": record.get("compiler_sha256"),
+        "compiler_backend_sha256": record.get("compiler_backend_sha256"),
+    }
+    if closure["sdk_linkage"] != linkage or linkage["receipt_sha256"] != receipt.get("link_receipt_sha256"):
+        fail("Companion source closure lacks matching real linker evidence")
+    for suffix, key in ((".link.map", "map_sha256"), (".link.trace", "trace_sha256")):
+        if (
+            digest(regular(bundle / (COMPANION + suffix), LINK_LIMIT)) != linkage[key]
+            or record.get(key) != linkage[key]
+        ):
+            fail("Companion linker evidence digest mismatch")
+    compiler_inputs = companion_compiler_inputs(args.sdk, record)
+    if (
+        record.get("elf_sha256") != binary_hash
+        or record.get("archive_excluded") is not True
+        or receipt.get("sdk", {}).get("executables", {}).get("gcc") != compiler_inputs["compiler"]["sha256"]
+        or receipt.get("sdk", {}).get("executables", {}).get("gcc_backend") != compiler_inputs["backend"]["sha256"]
+        or receipt["sdk"].get("archive_sha256") != closure["sdk_archive_sha256"]
+    ):
+        fail("Companion linker compiler or SDK binding mismatch")
+    return {
+        "bundle": bundle,
+        "archive": archive,
+        "sources": sources,
+        "receipt": receipt,
+        "binding": {
+            "archive": dict(archive_row, file="companion/" + archive.name),
+            "source_closure": closure,
+            "packaged": packaged,
+        },
+    }
+
+
 def package_elfs(ipk):
     data = ipk.read_bytes()
     if not data.startswith(b"!<arch>\n"):
@@ -129,12 +348,125 @@ def package_elfs(ipk):
     return result
 
 
-def runtime_inputs(text, source, sdk):
+def observed_archive_names(link_map, trace):
+    """Parse bytes or iterables of lines without filesystem access or execution."""
+    names = set()
+    for data, is_map in ((link_map, True), (trace, False)):
+        lines = data.splitlines() if isinstance(data, (bytes, str)) else data
+        for raw in lines:
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8", errors="strict")
+            if not isinstance(raw, str):
+                fail("Invalid linker evidence line")
+            line = raw.strip()
+            if is_map and line.startswith("LOAD "):
+                value = line[5:].strip()
+                if value.endswith((".a", ".rlib")):
+                    names.add(value)
+            elif not is_map and line.endswith((".a", ".rlib")):
+                names.add(line)
+            if not is_map:
+                match = re.fullmatch(r"\((.+\.(?:a|rlib))\).+", line)
+                if match:
+                    names.add(match[1])
+            names.update(re.findall(r"(?<!\S)(/[^\n]*?\.(?:a|rlib))\([^()\n]*\)", line))
+    return names
+
+
+def observed_archives(link_map, trace, build_root):
+    """Inventory actual map/trace inputs, including rewritten Rust rlibs."""
+    result = set()
+    for name in observed_archive_names(link_map, trace):
+        path = Path(name)
+        path = path if path.is_absolute() else build_root / path
+        if any(part.is_symlink() for part in (path, *path.parents)):
+            fail("Symlink in companion linker archive path")
+        result.add(str(path.resolve()))
+    return result
+
+
+def companion_archives(record, link_map, trace, source, sdk):
+    expected_fields = {
+        "schema",
+        "elf_sha256",
+        "map_sha256",
+        "trace_sha256",
+        "compiler_sha256",
+        "compiler_backend_sha256",
+        "archive_excluded",
+        "build_root",
+        "build_target",
+        "rust_sysroot",
+        "archive_inputs",
+        "archive_inputs_capture",
+    }
+    if set(record) != expected_fields:
+        fail("Unexpected companion linker receipt fields")
+    roots = {}
+    for key in ("build_root", "build_target", "rust_sysroot"):
+        value = record.get(key)
+        if (
+            not isinstance(value, str)
+            or not Path(value).is_absolute()
+            or Path(value) == Path("/")
+            or str(Path(value).resolve()) != value
+        ):
+            fail("Invalid companion build root: " + key)
+        roots[key] = Path(value)
+    if record.get("schema") != 1 or record.get("archive_inputs_capture") != "during-final-link":
+        fail("Companion archive inputs were not captured at final link")
+    observed = observed_archives(link_map, trace, roots["build_root"])
+    rows = record.get("archive_inputs")
+    if not isinstance(rows, list) or not rows:
+        fail("Missing companion link-time archive inventory")
+    seen = set()
+    allowed_roots = [*roots.values(), source.resolve(), sdk.resolve()]
+    for row in rows:
+        if (
+            not isinstance(row, dict)
+            or set(row) != {"path", "sha256", "bytes", "observed_at_link", "validation"}
+            or not isinstance(row["path"], str)
+            or row["path"] not in observed
+            or row["path"] in seen
+            or row["observed_at_link"] is not True
+            or not isinstance(row["sha256"], str)
+            or not re.fullmatch(r"[a-f0-9]{64}", row["sha256"])
+            or type(row["bytes"]) is not int
+            or row["bytes"] <= 0
+        ):
+            fail("Invalid companion link-time archive inventory")
+        path = Path(row["path"])
+        if not any(path.is_relative_to(root) for root in allowed_roots):
+            fail("Companion archive is outside its bound build roots")
+        seen.add(str(path))
+        relative = (
+            path.relative_to(roots["build_target"]).as_posix() if path.is_relative_to(roots["build_target"]) else ""
+        )
+        ephemeral = path.suffix == ".rlib" and re.search(r"(?:^|/)deps/rustc[^/]+/", relative) is not None
+        expected = "link_time_only_ephemeral" if ephemeral else "link_time_and_current"
+        if row["validation"] != expected:
+            fail("Invalid companion archive validation scope")
+        if not ephemeral or path.exists():
+            regular(path)
+            if path.stat().st_size != row["bytes"] or digest(path) != row["sha256"]:
+                fail("Persistent companion linker archive changed")
+    if seen != observed:
+        fail("Companion archive inventory differs from observed linker inputs")
+    return roots, seen
+
+
+def runtime_inputs(text, source, sdk, *, allowed_archives=(), archive_root=None):
     rows = set()
+
+    def archive_path(value):
+        path = Path(value)
+        if not path.is_absolute() and archive_root is not None:
+            path = archive_root / path
+        return path.resolve()
 
     def relative_sdk(path):
         try:
-            return Path(path).resolve().relative_to(sdk.resolve()).as_posix()
+            return archive_path(path).relative_to(sdk.resolve()).as_posix()
         except ValueError:
             fail("Runtime input is outside the recorded SDK: " + path)
 
@@ -144,7 +476,11 @@ def runtime_inputs(text, source, sdk):
             rows.add((RUNTIME[base], base, member, relative_sdk(archive)))
         elif str(sdk) in archive or "/sysroot/" in archive:
             fail("Unclassified static SDK archive: " + base)
-        elif not (str(source) in archive or archive.startswith(("src/", "vendor/", "rust-modules/"))):
+        elif not (
+            str(source) in archive
+            or archive.startswith(("src/", "vendor/", "rust-modules/"))
+            or str(archive_path(archive)) in allowed_archives
+        ):
             fail("Unclassified static archive: " + base)
     for obj in re.findall(r"(?:^|\s)([^\s()]+/[^/\s()]+\.o)(?=\s|$)", text, re.MULTILINE):
         base = PurePosixPath(obj).name
@@ -158,6 +494,38 @@ def runtime_inputs(text, source, sdk):
         else:
             fail("Unclassified static SDK object: " + base)
     return [{"source": a, "archive_or_object": b, "member": c, "sdk_path": d} for a, b, c, d in sorted(rows)]
+
+
+def normalized(value, replacements):
+    """Normalize path-bearing evidence, retaining original byte hashes."""
+    if isinstance(value, dict):
+        return {key: normalized(item, replacements) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalized(item, replacements) for item in value]
+    if isinstance(value, str):
+        lookup = dict(replacements)
+        pattern = "(?:" + "|".join(re.escape(old) for old, _ in replacements) + r")(?=/|$)"
+        value = re.sub(pattern, lambda match: lookup[match[0]], value)
+    return value
+
+
+def published_link_text(data, replacements, archive_names=(), build_root=None):
+    text = normalized(data.decode("utf-8"), replacements)
+    # Independent public root labels no longer encode their original relative
+    # positions. Resolve relative archive references before hiding those roots.
+    relative = {
+        name: normalized(str((build_root / name).resolve()), replacements)
+        for name in archive_names
+        if not Path(name).is_absolute()
+    }
+    if relative:
+        pattern = (
+            r"(?<![\w/.-])(?:"
+            + "|".join(re.escape(name) for name in sorted(relative, key=len, reverse=True))
+            + r")(?=$|[\s()])"
+        )
+        text = re.sub(pattern, lambda match: relative[match[0]], text)
+    return text.encode()
 
 
 def attest_sdk(args, evidence):
@@ -179,10 +547,14 @@ def attest_sdk(args, evidence):
             break
     if archive_path is None:
         fail("Pinned SDK archive required: pass --sdk-archive or preserve bootstrap downloads")
-    inputs = {row["sdk_path"] for item in evidence.values() for row in item["runtime_inputs"]}
-    if not inputs:
+    runtime_paths = {row["sdk_path"] for item in evidence.values() for row in item["runtime_inputs"]}
+    if not runtime_paths:
         fail("No SDK runtime inputs were identified in the final link evidence")
+    compiler_inputs = companion_compiler_inputs(args.sdk, evidence[COMPANION]) if COMPANION in evidence else None
+    inputs = runtime_paths | ({row["sdk_path"] for row in compiler_inputs.values()} if compiler_inputs else set())
     hashes = {path: digest(args.sdk / path) for path in inputs}
+    if compiler_inputs and any(hashes[row["sdk_path"]] != row["sha256"] for row in compiler_inputs.values()):
+        fail("Companion compiler changed during SDK attestation")
     pending = set(inputs)
     prefix = spec["directory"] + "/"
     with tarfile.open(archive_path, "r|*") as archive:
@@ -200,21 +572,27 @@ def attest_sdk(args, evidence):
                 break
     if pending:
         fail("SDK runtime input absent from pinned archive: " + ", ".join(sorted(pending)))
-    return {
+    result = {
         "version": spec["version"],
         "host": allowed[archive_hash],
         "archive_sha256": archive_hash,
-        "runtime_files_sha256": hashes,
+        "runtime_files_sha256": {path: hashes[path] for path in runtime_paths},
         "runtime_archive_match": "PASS",
     }
+    if compiler_inputs:
+        result["companion_compiler"] = {**compiler_inputs, "archive_match": "PASS"}
+    return result
 
 
-def link_evidence(elfs, source, sdk):
+def link_evidence(elfs, source, sdk, companion=None):
     result, files, needed = {}, {}, set()
     readelf = sdk / "bin/arm-webos-linux-gnueabi-readelf"
     with tempfile.TemporaryDirectory(prefix="webos-elf-evidence-") as directory:
         for name, binary in sorted(elfs.items()):
-            base = source / "pkg/link-evidence/stable" / name
+            helper = name == COMPANION
+            if helper and companion is None:
+                fail("Missing companion source evidence")
+            base = companion["bundle"] / name if helper else source / "pkg/link-evidence/stable" / name
             record = json.loads(Path(str(base) + ".link.json").read_text())
             link_map = Path(str(base) + ".link.map").read_bytes()
             trace = Path(str(base) + ".link.trace").read_bytes()
@@ -223,6 +601,27 @@ def link_evidence(elfs, source, sdk):
                     fail("Link evidence differs from shipped ELF: " + name)
             if not record.get("archive_excluded") or b"libglibc_polyfills" in link_map + trace:
                 fail("Unlicensed runtime archive was not excluded")
+            replacements = [(str(source), "/build/ottplay-native"), (str(sdk), "/build/webos-sdk")]
+            allowed_archives = set()
+            archive_root = None
+            archive_names = set()
+            if helper:
+                if b"LOAD " not in link_map or not trace.strip():
+                    fail("Missing genuine companion linker map/input trace")
+                roots, allowed_archives = companion_archives(record, link_map, trace, source, sdk)
+                archive_root = roots["build_root"]
+                archive_names = observed_archive_names(link_map, trace)
+                replacements.extend(
+                    (str(roots[key]), label)
+                    for key, label in (
+                        ("build_root", "/build/ottplay-companion"),
+                        ("build_target", "/build/companion-target"),
+                        ("rust_sysroot", "/build/companion-rust"),
+                    )
+                )
+                record["link_receipt_sha256"] = digest(Path(str(base) + ".link.json"))
+            replacements.append((str(Path.home()), "/home/build"))
+            replacements.sort(key=lambda row: len(row[0]), reverse=True)
             path = Path(directory) / name
             path.write_bytes(binary)
             dynamic = subprocess.check_output([str(readelf), "-dW", str(path)], text=True)
@@ -231,21 +630,39 @@ def link_evidence(elfs, source, sdk):
             needed.update(dependencies)
             record["needed"] = dependencies
             record["interpreter"] = re.findall(r"Requesting program interpreter: ([^\]]+)", headers)
-            record["runtime_inputs"] = runtime_inputs((link_map + trace).decode(errors="replace"), source, sdk)
+            record["runtime_inputs"] = runtime_inputs(
+                (link_map + trace).decode(errors="replace"),
+                source,
+                sdk,
+                allowed_archives=allowed_archives,
+                archive_root=archive_root,
+            )
+            if helper:
+                covered = {row["sdk_path"] for row in record["runtime_inputs"]}
+                for archive_path in sorted(allowed_archives):
+                    path = Path(archive_path)
+                    if path.is_relative_to(sdk.resolve()):
+                        if path.name not in RUNTIME:
+                            fail("Unclassified static SDK archive: " + path.name)
+                        relative = path.relative_to(sdk.resolve()).as_posix()
+                        if relative not in covered:
+                            record["runtime_inputs"].append(
+                                {
+                                    "source": RUNTIME[path.name],
+                                    "archive_or_object": path.name,
+                                    "member": "",
+                                    "sdk_path": relative,
+                                }
+                            )
             for suffix, content in (("map", link_map), ("trace", trace)):
-                for old, new in (
-                    (str(source), "/build/ottplay-native"),
-                    (str(sdk), "/build/webos-sdk"),
-                    (str(Path.home()), "/home/build"),
-                ):
-                    content = content.replace(old.encode(), new.encode())
+                content = published_link_text(content, replacements, archive_names, archive_root)
                 files["evidence/" + name + ".link." + suffix] = content
                 record["distributed_" + suffix + "_sha256"] = hashlib.sha256(content).hexdigest()
             record["evidence_transformation"] = (
-                "source, SDK and user-home paths normalized; original byte digests retained"
+                "source, SDK and user-home paths normalized; relative helper archive names canonicalized; original byte digests retained"
             )
-            result[name] = record
-            files["evidence/" + name + ".readelf.txt"] = (dynamic + "\n" + headers).encode()
+            result[name] = normalized(record, replacements)
+            files["evidence/" + name + ".readelf.txt"] = normalized(dynamic + "\n" + headers, replacements).encode()
     unknown = sorted(name for name in needed if name not in elfs and not SYSTEM.fullmatch(name))
     if unknown:
         fail("Unclassified runtime shared libraries: " + ", ".join(unknown))
@@ -267,8 +684,19 @@ def collect(args):
     primary = args.metadata.parent / metadata["corresponding_source"]["file"]
     if digest(ipk) != metadata["sha256"] or digest(primary) != metadata["corresponding_source"]["sha256"]:
         fail("IPK or primary source changed after validation")
-    evidence, extra, system = link_evidence(package_elfs(ipk), args.source, args.sdk)
+    elfs = package_elfs(ipk)
+    companion = companion_inputs(args, metadata, elfs)
+    evidence, extra, system = link_evidence(elfs, args.source, args.sdk, companion)
     sdk_attestation = attest_sdk(args, evidence)
+    if companion:
+        binding = companion["binding"]
+        if binding["source_closure"]["sdk_archive_sha256"] != sdk_attestation["archive_sha256"] or any(
+            companion["receipt"]["sdk"][key] != sdk_attestation[key] for key in ("host", "version")
+        ):
+            fail("Companion uses a different SDK from the enclosing release")
+        binding["sdk_runtime_source_coverage"] = "PASS"
+        for name in ("source-closure.json", "SOURCE-MANIFEST.json"):
+            extra["companion/" + name] = regular(companion["sources"] / name, JSON_LIMIT).read_bytes()
     sources = []
     for row in spec["inputs"]:
         path = fetch(row, args.cache)
@@ -306,6 +734,8 @@ def collect(args):
         "independent_rebuild": "NOT_RUN",
         "bit_identical_rebuild": "NOT_PROVEN",
     }
+    if companion:
+        closure["companion"] = companion["binding"]
     extra["RUNTIME-SOURCE-MANIFEST.json"] = canonical(closure)
     extra["tools/webos-runtime-sources.py"] = Path(__file__).read_bytes()
     extra["tools/webos-runtime-sources.json"] = MANIFEST.read_bytes()
@@ -322,6 +752,12 @@ def collect(args):
         for row in sources:
             path = args.cache / row["file"]
             entry = tarfile.TarInfo("sources/" + path.name)
+            entry.size, entry.mode, entry.mtime = path.stat().st_size, 0o644, 0
+            with path.open("rb") as stream:
+                archive.addfile(entry, stream)
+        if companion:
+            path = companion["archive"]
+            entry = tarfile.TarInfo(companion["binding"]["archive"]["file"])
             entry.size, entry.mode, entry.mtime = path.stat().st_size, 0o644, 0
             with path.open("rb") as stream:
                 archive.addfile(entry, stream)
@@ -347,10 +783,16 @@ def main():
     parser.add_argument("--sdk", required=True, type=Path)
     parser.add_argument("--sdk-archive", type=Path, help="Original pinned SDK archive, if outside bootstrap downloads")
     parser.add_argument("--cache", type=Path)
+    parser.add_argument("--companion-bundle", type=Path, help="Exact packaged helper and real final-link receipts")
+    parser.add_argument("--companion-sources", type=Path, help="Completed companion source closure directory")
     args = parser.parse_args()
     args.metadata = args.metadata.resolve()
     args.source, args.sdk = args.source.resolve(), args.sdk.resolve()
     args.cache = (args.cache or args.source.parent / "runtime-sources-cache").resolve()
+    if args.companion_bundle is not None:
+        args.companion_bundle = args.companion_bundle.resolve()
+    if args.companion_sources is not None:
+        args.companion_sources = args.companion_sources.resolve()
     collect(args)
 
 
