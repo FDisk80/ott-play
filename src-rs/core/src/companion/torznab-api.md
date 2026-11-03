@@ -41,7 +41,8 @@ optional `indexerId` string in the `search` JSON body. A successful response
 echoes the same ID. IDs are case-sensitive and match
 `^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$`; `all` in any casing is forbidden as a
 child selector. Filters, paths, encoded paths, empty values and unknown IDs
-are rejected. Omit the field entirely for the original aggregate operation.
+are rejected; the literal safe IDs `filter` and `Filter` are still allowed.
+Omit the field entirely for the original aggregate operation.
 `null` does not mean “all”. Discovery itself takes no selector or other query
 parameters. The configured source is not modified by a child request.
 
@@ -55,7 +56,9 @@ retry through the aggregate feed or return another child's cached results.
 
 Caps and transient result handles are bound to source ID, configuration
 generation and exact child ID. The caps cache holds at most 32 scopes.
-Discovery metadata is cached for up to 60 seconds for scoped requests; an
+Discovery metadata is cached for up to 60 seconds for scoped requests. Concurrent
+first-use requests share one discovery, with each caller retaining its own deadline
+and cancellation. An
 explicit `indexers` request refreshes it and revokes transient data belonging
 to removed children. Older discovery responses cannot overwrite a newer refresh. An in-flight
 operation cannot publish a removed child's result, even if a later refresh
@@ -78,8 +81,10 @@ does not imply that every configured source supports enumeration.
 
 Maximum UTF-8 byte lengths: label 128, endpoint 4096, API key 2048, query 512,
 title 1024, category name 128, language 32, publication timestamp 64.
-Control characters are rejected. Language values contain ASCII letters, digits
-or hyphens. Publication timestamps are RFC3339 strings, normalized from RSS
+Control characters are rejected. RSS search-item language values contain ASCII
+letters, digits or hyphens. Discovery `language` and `type` values are nullable
+UTF-8 metadata, each limited to 32 bytes, as specified by the children contract.
+Publication timestamps are RFC3339 strings, normalized from RSS
 pubDate, or null. Unknown metadata is null, not invented.
 
 At most 8 sources, 100 items per page, 512 categories, 32 category IDs per item,
@@ -156,7 +161,9 @@ OTT_TORZNAB_FIXTURE_VIDEO=/absolute/path/to/licensed-movie.mp4 cargo test -p ott
 
 Supply a regular MP4 of 128 KiB to 16 MiB that you are entitled to use. The test
 selects the fixture's `OpenMovie` child, prepares its opaque result, verifies
-initial, forward and backward byte ranges against the original file, and stops
-an open stream. It then checks that the lease and downloaded piece files are
+initial, forward and backward HTTP byte ranges against the original file, and
+holds the production stream body after one chunk while sending HTTP Stop. This
+avoids mistaking a fully buffered response for an active reader. It then checks
+that the reader ends and the lease and downloaded piece files are
 gone. It does not verify a physical display, decoder output or a public swarm.
 The normal suite exercises the same route with deterministic protocol bytes.

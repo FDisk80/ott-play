@@ -2,8 +2,11 @@
 use super::torznab::{Configure, Prepare, Search, Torznab};
 use super::torznab_store::Payload;
 use super::*;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Mutex;
+use std::task::Poll;
 use std::time::Duration;
 
 const PREFIX: &str = "/gateway/api/v2.0/indexers/";
@@ -77,6 +80,12 @@ impl Fixture {
     }
     fn calls(&self) -> Vec<Call> {
         self.state.calls.lock().unwrap().clone()
+    }
+    fn discovery_calls(&self) -> usize {
+        self.calls()
+            .iter()
+            .filter(|call| call.operation == "indexers")
+            .count()
     }
     async fn wait_until_blocked(&self) {
         tokio::time::timeout(Duration::from_secs(2), self.state.seen.notified())
@@ -234,6 +243,16 @@ fn assert_private(value: &Value, fixture: &Fixture) {
     }
 }
 
+// Polling the follower before releasing the fixture makes it overlap the
+// blocked leader without depending on scheduler delays or sleeping.
+async fn poll_pending<F: Future>(mut future: Pin<&mut F>) {
+    std::future::poll_fn(|cx| {
+        assert!(future.as_mut().poll(cx).is_pending());
+        Poll::Ready(())
+    })
+    .await;
+}
+
 #[tokio::test]
 async fn selected_children_resolve_identical_relative_links_against_distinct_endpoints() {
     let fixture = Fixture::start().await;
@@ -272,6 +291,191 @@ async fn selected_children_resolve_identical_relative_links_against_distinct_end
         })
         .await
         .is_err());
+}
+
+#[tokio::test]
+async fn concurrent_cold_children_share_discovery_and_both_search_successfully() {
+    let fixture = Fixture::start().await;
+    let root = Temp::new();
+    let service = configured(&root.0, &fixture).await;
+    fixture.state.delay_discovery.store(true, Ordering::SeqCst);
+    let client = service.clone();
+    let leader = tokio::spawn(async move { client.search(search(Some("alpha"), "open")).await });
+    fixture.wait_until_blocked().await;
+    let follower = service.search(search(Some("beta"), "open"));
+    tokio::pin!(follower);
+    poll_pending(follower.as_mut()).await;
+    fixture.allow_response();
+    let (a, b) = tokio::time::timeout(Duration::from_secs(2), async {
+        tokio::join!(leader, follower)
+    })
+    .await
+    .unwrap();
+    let a = a.unwrap().unwrap();
+    let b = b.unwrap();
+    assert_eq!(a["indexerId"], "alpha");
+    assert_eq!(b["indexerId"], "beta");
+    assert_ne!(result_ref(&a), result_ref(&b));
+    assert_eq!(fixture.discovery_calls(), 1);
+    for child in ["alpha", "beta"] {
+        assert_eq!(
+            fixture
+                .calls()
+                .iter()
+                .filter(|call| call.operation == "search" && call.child == child)
+                .count(),
+            1
+        );
+    }
+}
+
+#[tokio::test]
+async fn cancelling_discovery_follower_does_not_cancel_leader_or_later_requests() {
+    let fixture = Fixture::start().await;
+    let root = Temp::new();
+    let service = configured(&root.0, &fixture).await;
+    fixture.state.delay_discovery.store(true, Ordering::SeqCst);
+    let client = service.clone();
+    let leader = tokio::spawn(async move { client.search(search(Some("alpha"), "open")).await });
+    fixture.wait_until_blocked().await;
+    {
+        let follower = service.search(search(Some("beta"), "open"));
+        tokio::pin!(follower);
+        poll_pending(follower.as_mut()).await;
+        // Leaving this scope drops the pending request and its permit.
+    }
+    assert!(!leader.is_finished());
+    fixture.allow_response();
+    let a = tokio::time::timeout(Duration::from_secs(2), leader)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(a["indexerId"], "alpha");
+    let b = tokio::time::timeout(
+        Duration::from_secs(2),
+        service.search(search(Some("beta"), "open")),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(b["indexerId"], "beta");
+    assert_eq!(fixture.discovery_calls(), 1);
+}
+
+#[tokio::test]
+async fn discovery_follower_keeps_its_own_deadline_without_cancelling_leader() {
+    let fixture = Fixture::start().await;
+    let root = Temp::new();
+    let service = configured(&root.0, &fixture).await;
+    fixture.state.delay_discovery.store(true, Ordering::SeqCst);
+    let client = service.clone();
+    let leader = tokio::spawn(async move { client.search(search(Some("alpha"), "open")).await });
+    fixture.wait_until_blocked().await;
+    let follower = service.search_before(
+        search(Some("beta"), "open"),
+        std::time::Instant::now() + Duration::from_millis(100),
+    );
+    let error = tokio::time::timeout(Duration::from_secs(2), follower)
+        .await
+        .unwrap()
+        .unwrap_err();
+    assert_eq!(error, "torznab_timeout");
+    assert!(
+        !leader.is_finished(),
+        "follower expiry must leave leader alive"
+    );
+    assert_eq!(fixture.discovery_calls(), 1);
+    fixture.allow_response();
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(2), leader)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()["indexerId"],
+        "alpha"
+    );
+    let fresh = tokio::time::timeout(
+        Duration::from_secs(2),
+        service.search(search(Some("beta"), "open")),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(fresh["indexerId"], "beta");
+    assert_eq!(fixture.discovery_calls(), 1);
+}
+
+#[tokio::test]
+async fn source_change_releases_discovery_leader_and_follower_before_old_response() {
+    let fixture = Fixture::start().await;
+    let replacement = Fixture::start().await;
+    let root = Temp::new();
+    let service = configured(&root.0, &fixture).await;
+    fixture.state.delay_discovery.store(true, Ordering::SeqCst);
+    let client = service.clone();
+    let leader = tokio::spawn(async move { client.search(search(Some("alpha"), "open")).await });
+    fixture.wait_until_blocked().await;
+    let follower = service.search(search(Some("beta"), "open"));
+    tokio::pin!(follower);
+    poll_pending(follower.as_mut()).await;
+    configure(&service, "local", replacement.endpoint(), "Replacement").await;
+    let (a, b) = tokio::time::timeout(Duration::from_secs(2), async {
+        tokio::join!(leader, follower)
+    })
+    .await
+    .unwrap();
+    assert_eq!(a.unwrap().unwrap_err(), "torznab_cancelled");
+    assert_eq!(b.unwrap_err(), "torznab_cancelled");
+    assert_eq!(fixture.discovery_calls(), 1);
+    assert!(!fixture
+        .calls()
+        .iter()
+        .any(|call| call.operation == "search"));
+    let fresh = tokio::time::timeout(
+        Duration::from_secs(2),
+        service.search(search(Some("beta"), "open")),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(fresh["indexerId"], "beta");
+    assert_eq!(replacement.discovery_calls(), 1);
+    fixture.allow_response();
+}
+
+#[tokio::test]
+async fn aborting_discovery_leader_releases_follower_and_allows_fresh_discovery() {
+    let fixture = Fixture::start().await;
+    let root = Temp::new();
+    let service = configured(&root.0, &fixture).await;
+    fixture.state.delay_discovery.store(true, Ordering::SeqCst);
+    let client = service.clone();
+    let leader = tokio::spawn(async move { client.search(search(Some("alpha"), "open")).await });
+    fixture.wait_until_blocked().await;
+    let follower = service.search(search(Some("beta"), "open"));
+    tokio::pin!(follower);
+    poll_pending(follower.as_mut()).await;
+    leader.abort();
+    assert!(leader.await.unwrap_err().is_cancelled());
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(2), follower)
+            .await
+            .unwrap()
+            .unwrap_err(),
+        "torznab_cancelled"
+    );
+    // Do not release the abandoned upstream request: retry must be independent.
+    let fresh = tokio::time::timeout(
+        Duration::from_secs(2),
+        service.search(search(Some("beta"), "open")),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(fresh["indexerId"], "beta");
+    assert_eq!(fixture.discovery_calls(), 2);
+    fixture.allow_response();
 }
 
 #[tokio::test]
@@ -649,5 +853,20 @@ async fn authenticated_child_routes_and_legacy_prepare_reject_selector_injection
         .await
         .unwrap();
     assert!(!rejected.status().is_success());
+    let probes_before = fixture.calls().len();
+    let null_selector = http
+        .post(format!("{base}/torrent/search"))
+        .json(&json!({
+            "sourceId":"local", "indexerId":null, "query":"open", "limit":10
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert!(!null_selector.status().is_success());
+    assert_eq!(
+        fixture.calls().len(),
+        probes_before,
+        "null must not probe the aggregate or any child"
+    );
     companion.shutdown().await;
 }

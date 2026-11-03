@@ -10,10 +10,10 @@ use std::{
     collections::HashMap,
     net::{IpAddr, SocketAddr},
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Weak},
     time::{Duration, Instant},
 };
-use tokio::sync::Semaphore;
+use tokio::sync::{watch, Semaphore};
 use tokio_util::sync::CancellationToken;
 
 const DEADLINE: Duration = Duration::from_secs(15);
@@ -33,7 +33,7 @@ struct State {
     tokens: HashMap<String, CancellationToken>,
     caps: HashMap<Scope, (xml::Caps, Instant)>,
     indexers: HashMap<Scope, CachedIndexers>,
-    indexers_pending: HashMap<Scope, String>,
+    indexers_pending: HashMap<Scope, Arc<PendingIndexers>>,
     results: HashMap<String, Handle>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -57,6 +57,59 @@ struct CachedIndexers {
     value: xml::Indexers,
     membership: HashMap<String, String>,
     created: Instant,
+}
+struct PendingIndexers {
+    done: watch::Sender<Option<Result<xml::Indexers>>>,
+}
+impl PendingIndexers {
+    async fn wait(&self, cancel: &CancellationToken, deadline: Instant) -> Result<xml::Indexers> {
+        let mut receiver = self.done.subscribe();
+        let waiting = async {
+            loop {
+                let value = receiver.borrow_and_update().clone();
+                if let Some(value) = value {
+                    return value;
+                }
+                receiver.changed().await.map_err(|_| "torznab_cancelled")?;
+            }
+        };
+        let value = tokio::select! {
+            biased;
+            _ = cancel.cancelled() => Err("torznab_cancelled"),
+            result = tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), waiting) => result.map_err(|_| "torznab_timeout")?,
+        }?;
+        if Instant::now() >= deadline {
+            return Err("torznab_timeout");
+        }
+        Ok(value)
+    }
+}
+struct DiscoveryGuard {
+    owner: Weak<Inner>,
+    scope: Scope,
+    pending: Arc<PendingIndexers>,
+}
+impl Drop for DiscoveryGuard {
+    fn drop(&mut self) {
+        if let Some(owner) = self.owner.upgrade() {
+            let mut state = lock(&owner.state);
+            if state
+                .indexers_pending
+                .get(&self.scope)
+                .is_some_and(|pending| Arc::ptr_eq(pending, &self.pending))
+            {
+                state.indexers_pending.remove(&self.scope);
+            }
+        }
+        // Dropping the request future must release followers and permit a
+        // later retry; a cancelled leader must not strand a pending discovery.
+        let unfinished = self.pending.done.borrow().is_none();
+        if unfinished {
+            self.pending
+                .done
+                .send_replace(Some(Err("torznab_cancelled")));
+        }
+    }
 }
 struct Handle {
     scope: Scope,
@@ -418,7 +471,7 @@ impl Torznab {
         refresh: bool,
     ) -> Result<xml::Indexers> {
         let scope = Scope::new(source, None);
-        let mut url = endpoint_url(&source.endpoint)?;
+        let url = endpoint_url(&source.endpoint)?;
         Self::current(&lock(&self.0.state), source, cancel)?;
         if jackett_path(&url).is_none() {
             return Ok(xml::Indexers {
@@ -426,7 +479,7 @@ impl Torznab {
                 indexers: vec![],
             });
         }
-        let request_id = {
+        let (pending, leader) = {
             let mut state = lock(&self.0.state);
             Self::current(&state, source, cancel)?;
             if !refresh {
@@ -438,12 +491,47 @@ impl Torznab {
                     return Ok(cached.value.clone());
                 }
             }
-            let request_id = storage::new_id();
-            state
-                .indexers_pending
-                .insert(scope.clone(), request_id.clone());
-            request_id
+            let existing = if refresh {
+                None
+            } else {
+                state.indexers_pending.get(&scope).cloned()
+            };
+            if let Some(pending) = existing {
+                (pending, false)
+            } else {
+                let (done, _) = watch::channel(None);
+                let pending = Arc::new(PendingIndexers { done });
+                state
+                    .indexers_pending
+                    .insert(scope.clone(), pending.clone());
+                (pending, true)
+            }
         };
+        if !leader {
+            let result = pending.wait(cancel, deadline).await?;
+            Self::current(&lock(&self.0.state), source, cancel)?;
+            return Ok(result);
+        }
+        let guard = DiscoveryGuard {
+            owner: Arc::downgrade(&self.0),
+            scope,
+            pending,
+        };
+        let result = self
+            .fetch_indexers(source, cancel, deadline, url, &guard)
+            .await;
+        guard.pending.done.send_replace(Some(result.clone()));
+        result
+    }
+    async fn fetch_indexers(
+        &self,
+        source: &Config,
+        cancel: &CancellationToken,
+        deadline: Instant,
+        mut url: reqwest::Url,
+        guard: &DiscoveryGuard,
+    ) -> Result<xml::Indexers> {
+        let scope = &guard.scope;
         url.query_pairs_mut()
             .append_pair("t", "indexers")
             .append_pair("configured", "true")
@@ -461,7 +549,11 @@ impl Torznab {
         Self::current(&state, source, cancel)?;
         // A slower earlier response must never undo a newer refresh, including
         // when the newer request failed and its data therefore cannot be used.
-        if state.indexers_pending.get(&scope) != Some(&request_id) {
+        if !state
+            .indexers_pending
+            .get(scope)
+            .is_some_and(|pending| Arc::ptr_eq(pending, &guard.pending))
+        {
             return Err("torznab_cancelled");
         }
         let membership: HashMap<String, String> = value
@@ -470,7 +562,7 @@ impl Torznab {
             .map(|row| {
                 let generation = state
                     .indexers
-                    .get(&scope)
+                    .get(scope)
                     .and_then(|previous| previous.membership.get(&row.id))
                     .cloned()
                     .unwrap_or_else(storage::new_id);
@@ -489,9 +581,8 @@ impl Torznab {
         };
         state.caps.retain(|key, _| retained(key));
         state.results.retain(|_, handle| retained(&handle.scope));
-        state.indexers_pending.remove(&scope);
         state.indexers.insert(
-            scope,
+            scope.clone(),
             CachedIndexers {
                 value: value.clone(),
                 membership,

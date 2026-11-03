@@ -1,5 +1,6 @@
 //! Explicitly opt-in local player fixture. No external peers, trackers, or media.
 use super::*;
+use futures_util::StreamExt;
 use librqbit::{
     AddTorrent, AddTorrentOptions, CreateTorrentOptions, ListenerOptions, Session, SessionOptions,
 };
@@ -391,14 +392,19 @@ async fn child_media_acceptance(video: &Path) {
             first_bytes_ms = began.elapsed().as_millis();
         }
     }
-    // Stop while a response is still held open, then verify the lease and piece
-    // storage have gone. The stable metadata reference is intentionally retained.
-    let mut active = http
-        .get(format!("{base}/sessions/{id}/stream"))
-        .send()
+    // Hold the actual production body after one chunk, without a network buffer
+    // draining the rest before Stop. The range assertions above use HTTP; here
+    // the unpolled body guarantees a still-active reader when HTTP DELETE runs.
+    let lease = companion.0.torrent.get(id).unwrap();
+    let mut active = companion
+        .0
+        .torrent
+        .stream(lease, 0, bytes.len() as u64)
         .await
-        .unwrap();
-    assert!(active.chunk().await.unwrap().is_some());
+        .unwrap()
+        .into_data_stream();
+    let first_chunk = active.next().await.unwrap().unwrap();
+    assert!(!first_chunk.is_empty() && first_chunk.len() < bytes.len());
     let stopping = std::time::Instant::now();
     let stopped = http
         .delete(format!("{base}/sessions/{id}"))
@@ -406,6 +412,10 @@ async fn child_media_acceptance(video: &Path) {
         .await
         .unwrap();
     assert_eq!(stopped.status(), StatusCode::NO_CONTENT);
+    assert!(tokio::time::timeout(Duration::from_secs(1), active.next())
+        .await
+        .expect("Stop must promptly end the active reader")
+        .is_none());
     drop(active);
     let stop_ms = stopping.elapsed().as_millis();
     assert_eq!(
