@@ -187,6 +187,8 @@ Run on **macOS / Windows / Linux** desktop window. Skip rows that need credentia
 - [ ] Window title / size / position behave normally
 - [ ] In both Classic and Modern, Menu → Full screen enters/exits native window fullscreen; the confirmation reports the resulting on/off state
 - [ ] Menu → Always on top keeps the main window above other applications; selecting it again disables this behavior without changing PiP
+- [ ] Enable Always on top, close and reopen the same app instance: the main window remains on top. Disable it, close and reopen: the main window returns to normal
+- [ ] Two separately configured app instances retain independent Always on top preferences
 - [ ] Repeated clicks during a pending window change do not cause extra toggles; closing or replacing Menu before a reply does not reopen or close another screen
 - [ ] With menus closed, press `L` to enter fullscreen, then `L` again to restore the original window size without clicking or opening Menu
 - [ ] Repeat `L` → `Escape` several times; Escape exits fullscreen without opening the app-exit dialog, and the next key still reaches the player
@@ -194,7 +196,7 @@ Run on **macOS / Windows / Linux** desktop window. Skip rows that need credentia
 - [ ] On macOS Tahoe, enter fullscreen with dark video or black letterboxing: all four outer screen edges must be free of a gray 1px window rim, including after switching focus away and back
 - [ ] Exit fullscreen: the normal window shadow returns; repeat `L` → `L` and `L` → `Escape` without losing the original size or keyboard focus
 
-The two Menu actions belong to the main Tauri desktop window. They are not shown in browser, mobile or PiP players. A failed native request reports an error instead of confirming an unverified state. Always-on-top is a session action: the next app launch retains the normal window default. These controls do not change a provider or restart playback.
+The two Menu actions belong to the main Tauri desktop window. They are not shown in browser, mobile or PiP players. A failed native request reports an error instead of confirming an unverified state. After a confirmed native change, Always on top is saved in the current app instance's data directory and restored on its next launch. Missing or invalid preferences use the normal window default. A save failure reports an error; the current window may already have changed, but persistence is not claimed. These controls do not change a provider or restart playback.
 
 On macOS, this checks native WebView focus as well as fullscreen geometry.
 Tao changes the window style when entering/exiting simple fullscreen and can
@@ -305,6 +307,16 @@ path), confirms that the auxiliary window is unchanged, and restores both flags.
 Geometry is polled for at most two seconds per transition because Windows may
 finish applying it after the API state changes. Commands are never retried to
 make the test pass.
+
+Three more independent fixture processes share only a fresh, parent-owned
+preference directory. The first confirms a normal initial window and enables
+Always on top through the production IPC command. The second uses the same
+startup preference loader as the application, confirms both Tauri and Win32
+report on-top before any IPC, and disables it. The third confirms the next
+initial window is normal without changing it. The runner checks the saved bytes
+after each phase. These checks exercise the shared restoration path and actual
+native window creation; they do not launch the full player or replace its manual
+relaunch and multi-instance UI checklist.
 
 Each process has a hard 30-second internal deadline. The parent runner has a
 40-second process deadline and terminates only the PID tree it created. Normal

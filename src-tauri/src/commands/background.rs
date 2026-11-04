@@ -7,11 +7,26 @@ pub struct BackgroundPersistence(tokio::sync::Mutex<()>);
 
 fn stored(path: &std::path::Path) -> std::io::Result<bool> {
     use std::io::Read;
-    let file = match std::fs::File::open(path) {
-        Ok(file) => file,
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
         Err(error) => return Err(error),
     };
+    // The standby preference is app-owned. A special file (such as a FIFO)
+    // must not block startup before the fail-closed fallback can run.
+    if !metadata.is_file() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Standby preference must be a regular file",
+        ));
+    }
+    let file = std::fs::File::open(path)?;
+    if !file.metadata()?.is_file() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Opened standby preference must be a regular file",
+        ));
+    }
     let mut value = String::new();
     file.take(4).read_to_string(&mut value)?;
     match value.as_str() {
@@ -90,5 +105,59 @@ mod tests {
         std::fs::write(&file, "broken").unwrap();
         assert!(stored(&file).is_err());
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn standby_startup_rejects_non_regular_preferences() {
+        let root = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("background-standby");
+        std::fs::create_dir(&path).unwrap();
+        assert_eq!(
+            stored(&path).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        assert!(stored(&path).unwrap_or(true));
+        std::fs::remove_dir(&path).unwrap();
+        #[cfg(unix)]
+        {
+            let target = root.join("other");
+            std::fs::write(&target, "0\n").unwrap();
+            std::os::unix::fs::symlink(&target, &path).unwrap();
+            assert_eq!(
+                stored(&path).unwrap_err().kind(),
+                std::io::ErrorKind::InvalidData
+            );
+            assert!(stored(&path).unwrap_or(true));
+            assert_eq!(std::fs::read(&target).unwrap(), b"0\n");
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn standby_startup_does_not_wait_for_a_fifo_writer() {
+        let root = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("background-standby");
+        assert!(std::process::Command::new("mkfifo")
+            .arg(&path)
+            .status()
+            .unwrap()
+            .success());
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            let _ = sender.send(stored(&path));
+        });
+        let result = receiver.recv_timeout(std::time::Duration::from_secs(2));
+        // Cleanup also runs when the old blocking reader reaches the deadline.
+        std::fs::remove_dir_all(root).unwrap();
+        let result = result.expect("standby preference reader blocked on a FIFO");
+        worker.join().unwrap();
+        assert_eq!(
+            result.as_ref().unwrap_err().kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        assert!(result.unwrap_or(true));
     }
 }
