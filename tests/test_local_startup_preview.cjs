@@ -6,7 +6,11 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const ts = require("typescript");
 const test = require("node:test");
-const { fixture } = require("./helpers/provider-driver-fixture.cjs");
+const {
+    fixture,
+    integrationFixture,
+} = require("./helpers/provider-driver-fixture.cjs");
+const { actualModule } = require("./helpers/global-favorites-main-ports.cjs");
 // Exercise the actual channel-ready entry point and bookmark adapter. Only the
 // native decoder and DOM shell are replaced by the existing deterministic rig.
 function installChannelStartup(h) {
@@ -46,9 +50,15 @@ function installChannelStartup(h) {
     });
 }
 function setup(options = {}) {
-    const f = fixture();
+    const f = options.integratedPlugin
+        ? integrationFixture("offline")
+        : fixture();
     const h = f.host;
-    h.document = { cookie: "", getElementById: () => null };
+    h.document = {
+        ...h.document,
+        cookie: "",
+        getElementById: () => null,
+    };
     h.localStorage = {
         getItem: (key) => (f.saved.has(key) ? f.saved.get(key) : null),
         key: (at) => [...f.saved.keys()][at] || null,
@@ -89,6 +99,12 @@ function setup(options = {}) {
         setTimeout() {},
         settings: { prevCount: 2 },
     });
+    if (options.integratedPlugin)
+        Object.assign(h.settings, {
+            psChannels: false,
+            psOptions: false,
+            requirePinForProviderSelection: false,
+        });
     const savedId = options.legacy ? "" : "local-saved";
     if (savedId)
         f.saved.set(
@@ -159,6 +175,9 @@ function setup(options = {}) {
             return selected;
         },
     };
+    const integrated = options.integratedPlugin
+        ? installIntegratedLocalMedia(h)
+        : null;
     if (options.kiosk) h.__ottKiosk = { enabled: () => true };
     const driver = f.mount("offline"),
         plays = [];
@@ -258,6 +277,7 @@ function setup(options = {}) {
         finish: (v) => finish(v),
         first,
         h,
+        integrated,
         playback,
         plays,
         progress: (v) => progress(v),
@@ -276,6 +296,68 @@ function setup(options = {}) {
         value,
         wanted,
     };
+}
+
+function installIntegratedLocalMedia(h) {
+    const reads = [];
+    const browser = {
+        list(progress) {
+            return new Promise((finish) => reads.push({ finish, progress }));
+        },
+        // Deliberately uncooperative: an already dispatched filesystem read
+        // may still deliver progress and completion after it was retired.
+        suspend() {},
+    };
+    const selection = actualModule("src/offline/playback-selection.ts", h);
+    const imports = {
+        "../commands/remote-feature": {
+            loadRemoteFeature() {
+                throw new Error("Unexpected feature load in Local handoff");
+            },
+        },
+        "../offline/browser-local-media": {
+            installBrowserLocalMedia: () => browser,
+            installOfflineShell() {},
+        },
+        "../offline/local-media-progress": actualModule(
+            "src/offline/local-media-progress.ts",
+            h
+        ),
+        "../offline/playback-selection": selection,
+        "../offline/profiles": { installOfflineProfiles() {} },
+        "./native-bridge": {
+            resolveNativePlugin: (_name, fallback) => fallback(),
+        },
+    };
+    const exports = {};
+    vm.runInNewContext(
+        ts.transpileModule(
+            fs.readFileSync("src/plugins/local-media.ts", "utf8"),
+            {
+                compilerOptions: {
+                    module: ts.ModuleKind.CommonJS,
+                    target: ts.ScriptTarget.ES5,
+                },
+            }
+        ).outputText,
+        {
+            clearTimeout() {},
+            exports,
+            require(name) {
+                assert.ok(Object.hasOwn(imports, name), name);
+                return imports[name];
+            },
+            setTimeout: () => ({}),
+            URL,
+        }
+    );
+    delete h.__ottLocalMedia;
+    const api = exports.installLocalMedia(h);
+    return { api, order: selection.orderLocalItems, reads };
+}
+
+async function flushLocalCallbacks() {
+    for (let turn = 0; turn < 20; turn++) await Promise.resolve();
 }
 test("first selected-source prefix plays immediately and restores the sealed stable target once", async () => {
     const f = setup();
@@ -604,4 +686,100 @@ test("restarting the current temporary session may restore only its own RAM movi
     assert.equal(durableJournal(f), before);
     assertDurableSelection(f);
     f.driver.dispose();
+});
+
+test("accepted same-folder shuffle owns playback and RAM resume despite late startup callbacks", async (t) => {
+    for (const sameItem of [false, true]) {
+        await t.test(
+            sameItem ? "same preview item" : "saved item in same folder",
+            async (t) => {
+                const f = setup({
+                    channelStartup: true,
+                    integratedPlugin: true,
+                    profileSelected: "local-saved",
+                });
+                t.after(() => f.h.__ottActiveProviderDriver?.dispose());
+                await flushLocalCallbacks();
+                assert.equal(f.integrated.reads.length, 1);
+                const oldRead = f.integrated.reads[0];
+                assert.equal(oldRead.progress(f.value([f.first])), true);
+                assert.deepEqual(f.plays, [{ id: "local-first", position: 0 }]);
+                assert.equal(f.h.ottpStorage.localPlayback.transient(), false);
+                const oldOwner = f.h.ottpStorage.localPlayback.capture();
+                advanceLocal(f, 19);
+
+                const catalog = f.value([f.first, f.wanted], false);
+                const seed = sameItem ? 0x80000000 : 1;
+                const ids = Array.from(
+                    f.integrated.order(catalog.items, seed),
+                    (item) => item.id
+                );
+                const expectedId = sameItem ? "local-first" : "local-saved";
+                assert.equal("local-" + ids[0], expectedId);
+                f.integrated.api.remoteActivate(
+                    "selected-source",
+                    ids,
+                    catalog,
+                    () => true,
+                    seed
+                );
+                await flushLocalCallbacks();
+                assert.equal(oldOwner(), false);
+                assert.notEqual(f.h.__ottActiveProviderDriver, f.driver);
+                assert.equal(f.h.ottpStorage.localPlayback.transient(), true);
+                assert.deepEqual(f.plays, [
+                    { id: "local-first", position: 0 },
+                    { id: expectedId, position: 0 },
+                ]);
+                advanceLocal(f, 37);
+                const currentOwner = f.h.ottpStorage.localPlayback.capture();
+                const currentCatalog = f.integrated.api.favoriteSnapshot();
+                assert.ok(currentCatalog?.current());
+                const before = {
+                    ids: Array.from(f.h.cList),
+                    journal: f.h.stbGetItem("offlineplaybackJournal"),
+                    plays: f.plays.slice(),
+                    snapshots: f.snapshots.length,
+                };
+                const stale = {
+                    id: "stale-only",
+                    name: "Late old scan.mp4",
+                    sourceId: "selected-source",
+                    url: "blob:stale-only",
+                };
+                function assertCurrentPlayback() {
+                    assert.deepEqual(f.plays, before.plays);
+                    assert.deepEqual(Array.from(f.h.cList), before.ids);
+                    assert.equal(f.snapshots.length, before.snapshots);
+                    assert.equal(currentCatalog.current(), true);
+                    assert.equal(currentOwner(), true);
+                    assert.equal(
+                        f.h.stbGetItem("offlineplaybackJournal"),
+                        before.journal
+                    );
+                    assert.equal(currentJournal(f).channelId, expectedId);
+                    assert.equal(currentJournal(f).position, 37);
+                    assert.equal(
+                        durableJournal(f),
+                        f.rawBefore.get("offlineplaybackJournal")
+                    );
+                    assert.equal(
+                        f.saved.get("offlineprimaryIndex"),
+                        f.rawBefore.get("offlineprimaryIndex")
+                    );
+                    assertDurableSelection(f);
+                }
+                // Same source, stable IDs and scan generation: only the old
+                // startup request and its preview/resume owner have been retired.
+                assert.equal(
+                    oldRead.progress(f.value([stale, f.wanted, f.first])),
+                    false
+                );
+                assertCurrentPlayback();
+                oldRead.finish(f.value([stale, f.wanted, f.first], false));
+                await flushLocalCallbacks();
+                assertCurrentPlayback();
+            }
+        );
+    }
 });
