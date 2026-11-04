@@ -60,6 +60,12 @@ impl std::fmt::Display for NativeProbeDeadline {
 
 impl std::error::Error for NativeProbeDeadline {}
 
+/// A native lookup deadline is inconclusive, not proof that its source is unavailable.
+/// Classify the typed cause, including wrapped errors, without inspecting error text.
+pub fn is_native_probe_deadline(error: &anyhow::Error) -> bool {
+    error.is::<NativeProbeDeadline>()
+}
+
 #[derive(Clone, Copy)]
 enum NativeFolderProbePurpose {
     RequestedFolder,
@@ -1273,7 +1279,8 @@ impl Library {
             });
         }
         sources.retain(|source| path_filter.as_ref().is_none_or(|path| *path == source.path));
-        self.native_source_availability(include_paths, sources, &work, deadline)
+        let selected_single = (selection.is_some() || path_filter.is_some()) && sources.len() == 1;
+        self.native_source_availability(include_paths, sources, &work, deadline, selected_single)
             .await
     }
 
@@ -1283,6 +1290,7 @@ impl Library {
         mut sources: Vec<SourceRecord>,
         work: &crate::background_work::WorkLease,
         deadline: tokio::time::Instant,
+        selected_single: bool,
     ) -> anyhow::Result<Vec<NativeSource>> {
         sources.sort_by(|a, b| a.id.cmp(&b.id));
         // A stalled mount must not consume the entire lookup deadline before
@@ -1303,12 +1311,15 @@ impl Library {
                     self.native_file_available_until(source.path.clone(), work, deadline)
                         .await
                 };
+                // Preserve legacy bulk/ambiguous rows, but an unfinished check
+                // must not claim that the single requested source is absent.
                 let available = match probe {
                     Ok(available) => available,
                     Err(error)
-                        if error
-                            .downcast_ref::<NativeProbeDeadline>()
-                            .is_some_and(|timeout| timeout.admitted) =>
+                        if !selected_single
+                            && error
+                                .downcast_ref::<NativeProbeDeadline>()
+                                .is_some_and(|timeout| timeout.admitted) =>
                     {
                         false
                     }
@@ -6531,6 +6542,147 @@ mod tests {
         fs::remove_dir_all(base).await.unwrap();
     }
 
+    #[test]
+    fn native_probe_deadline_classification_requires_the_typed_cause() {
+        for admitted in [false, true] {
+            let error = anyhow::Error::new(NativeProbeDeadline { admitted })
+                .context("private diagnostic context");
+            assert!(is_native_probe_deadline(&error));
+            assert!(!error.is::<NativeSourceUnavailable>());
+        }
+        assert!(!is_native_probe_deadline(&NativeSourceUnavailable.into()));
+        for message in ["Local folder read timed out", "operation_in_progress"] {
+            assert!(!is_native_probe_deadline(&anyhow::anyhow!(message)));
+        }
+    }
+
+    #[tokio::test]
+    async fn native_selected_source_probe_deadline_is_inconclusive_and_retains_owner() {
+        for folder in [true, false] {
+            let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+            let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+                .await
+                .unwrap();
+            let source = native_lookup_fixture(
+                &library,
+                if folder { "Movies" } else { "movie.mp4" },
+                folder,
+            )
+            .await;
+            library.native_source_probe_timeout = Some(std::time::Duration::from_millis(500));
+            for selector in ["id", "name", "path"] {
+                if !folder && selector == "path" {
+                    continue;
+                }
+                let gate = Arc::new(Semaphore::new(0));
+                library.native_source_probe_gate = Some((source.path.clone(), gate.clone()));
+                let (path, selection) = match selector {
+                    "id" => (None, Some(source.id.as_str())),
+                    "name" => (None, Some(source.name.as_str())),
+                    _ => (Some(source.path.clone()), None),
+                };
+                let error = bounded(library.native_sources_selected(false, path, selection))
+                    .await
+                    .err()
+                    .expect(
+                        "one selected source with an unfinished probe must remain inconclusive",
+                    );
+                assert!(is_native_probe_deadline(&error));
+                assert!(error
+                    .downcast_ref::<NativeProbeDeadline>()
+                    .is_some_and(|deadline| deadline.admitted));
+                assert!(!error.is::<NativeSourceUnavailable>());
+                assert_eq!(library.background.status().pending, 1);
+                assert_eq!(
+                    library.source_probes.available_permits(),
+                    LIBRARY_PROBE_CONCURRENCY - 1
+                );
+                gate.add_permits(1);
+                wait_for_drain(&library.background).await;
+                assert_eq!(
+                    library.source_probes.available_permits(),
+                    LIBRARY_PROBE_CONCURRENCY
+                );
+            }
+            assert_eq!(library.scan.lock().await.jobs, 0);
+            assert!(library.scan.lock().await.source_scans.is_empty());
+            fs::remove_dir_all(base).await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn native_ambiguous_source_name_preserves_healthy_availability_rows() {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let mut slow = native_lookup_fixture(&library, "First", true).await;
+        let mut healthy = native_lookup_fixture(&library, "Second", true).await;
+        for source in [&mut slow, &mut healthy] {
+            source.name = "Movies".into();
+            fs::write(
+                library
+                    .root
+                    .join("sources")
+                    .join(format!("{}.json", source.id)),
+                serde_json::to_vec(source).unwrap(),
+            )
+            .await
+            .unwrap();
+        }
+        let gate = Arc::new(Semaphore::new(0));
+        library.native_source_probe_gate = Some((slow.path.clone(), gate.clone()));
+        library.native_source_probe_timeout = Some(std::time::Duration::from_millis(500));
+        let sources = bounded(library.native_sources_selected(false, None, Some("Movies")))
+            .await
+            .unwrap();
+        assert_eq!(sources.len(), 2);
+        assert!(
+            !sources
+                .iter()
+                .find(|row| row.id == slow.id)
+                .unwrap()
+                .available
+        );
+        assert!(
+            sources
+                .iter()
+                .find(|row| row.id == healthy.id)
+                .unwrap()
+                .available
+        );
+        assert_eq!(library.background.status().pending, 1);
+        gate.add_permits(1);
+        wait_for_drain(&library.background).await;
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_selected_missing_folder_is_unavailable_not_pending() {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let source = native_lookup_fixture(&library, "Movies", true).await;
+        fs::remove_dir(&source.path).await.unwrap();
+        for selection in [&source.id, &source.name] {
+            let sources = bounded(library.native_sources_selected(false, None, Some(selection)))
+                .await
+                .unwrap();
+            assert_eq!(sources.len(), 1);
+            assert_eq!(sources[0].id, source.id);
+            assert!(!sources[0].available);
+        }
+        let error = bounded(library.native_sources(false, Some(source.path)))
+            .await
+            .err()
+            .expect("the missing requested folder must be unavailable, not pending");
+        assert!(error.is::<NativeSourceUnavailable>());
+        assert!(!is_native_probe_deadline(&error));
+        wait_for_drain(&library.background).await;
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
     #[tokio::test]
     async fn native_source_lookup_expired_admission_is_not_unavailable() {
         let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
@@ -6546,6 +6698,7 @@ mod tests {
         assert!(error
             .downcast_ref::<NativeProbeDeadline>()
             .is_some_and(|deadline| !deadline.admitted));
+        assert!(is_native_probe_deadline(&error));
         assert!(!error.is::<NativeSourceUnavailable>());
         assert_eq!(
             library.source_probes.available_permits(),
@@ -6588,6 +6741,7 @@ mod tests {
                 sources,
                 &work,
                 tokio::time::Instant::now() + std::time::Duration::from_millis(20),
+                false,
             ))
             .await
             .err()
@@ -6599,6 +6753,7 @@ mod tests {
                 "expected an unadmitted probe deadline, got {error:?}"
             );
             assert!(!error.is::<NativeSourceUnavailable>());
+            assert!(is_native_probe_deadline(&error));
             drop(work);
             wait_for_drain(&library.background).await;
             assert_eq!(library.source_probes.available_permits(), 0);
@@ -6724,6 +6879,7 @@ mod tests {
             sources,
             &work,
             tokio::time::Instant::now() + std::time::Duration::from_millis(20),
+            false,
         ))
         .await
         .err()
@@ -7374,6 +7530,7 @@ mod tests {
             .expect("missing requested folder must fail preflight");
         assert!(error.is::<NativeSourceUnavailable>());
         assert_eq!(error.to_string(), "Requested local folder is unavailable");
+        assert!(!is_native_probe_deadline(&error));
         assert!(!library.root.join("sources").exists());
         {
             let scan = library.scan.lock().await;
