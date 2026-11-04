@@ -155,10 +155,31 @@
   Favorites navigation. Classic remains the default.
 - Keep fullscreen playback controls consistent across browser, desktop and
   mobile clients, including audio, subtitles, keyboard focus and narrow screens.
+- Restore Windows fullscreen and always-on-top controls with native state
+  confirmation and explicit window permissions.
 - Fix previous-row navigation across list pages, zero-position progress, and
   unavailable playback durations. Preserve focused playback status during updates.
 - Correct provider shortcut boundaries and retain measured size limits for
   the main player and optional interface modules.
+- Make explicit Local play and shuffle commands use the requested temporary
+  selection instead of an old saved-profile cursor or resume position. Preserve
+  ordinary saved-profile startup, current-session restart and durable library
+  preferences, including compressed storage and concurrent updates.
+- Keep a saved Local folder visible as unavailable if it becomes a file or an
+  invalid root link, without hiding healthy sources. Advertise progressive Local
+  playback only when the existing Tauri backend capability check succeeds.
+- Keep optional Local status diagnostics within the request's remaining deadline.
+- Remove the empty focusable row from first-run setup while retaining settings
+  import, manual setup and language navigation.
+- Restore newly created read-only webOS recovery directories after their contents,
+  including failure cleanup. Preserve only allowlisted identity diagnostic causes
+  while keeping the public error and sensitive-output suppression unchanged.
+- Extend portable Stalker Favorites regression coverage through the real provider,
+  staged transfer and playback-resolution code; live-provider acceptance is separate.
+- Document LG Developer Mode setup, installation, recovery and optional wake support.
+- Keep publication GET retries bounded, distinguish HTTP denial headers from payload
+  text, and release failed response buffers before another attempt. Publication
+  writes are not automatically replayed.
 
 ### Upgrade
 
@@ -166,6 +187,8 @@
   player. Existing profiles, Favorites and playback settings are retained.
 - Select Modern in Settings → Interface settings → Interface mode to use the
   new layout. Classic remains available through the same setting.
+- Native LG packages and physical-device installation require their own explicit
+  acceptance. Source and software tests do not establish device compatibility.
 
 ### Security
 
