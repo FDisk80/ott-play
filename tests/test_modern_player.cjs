@@ -1346,6 +1346,16 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
         f.api.refresh();
         f.w.document.getElementById("info1").style.display = "block";
         f.api.sync();
+        const rail = f.w.document.querySelector(".modern-player-actions");
+        const play = f.w.document.querySelector(
+            '[data-modern-player-action="play"]'
+        );
+        const rewind = f.w.document.querySelector(
+            '[data-modern-player-action="rewind"]'
+        );
+        rail.getBoundingClientRect = () => ({ left: 0, right: 100 });
+        play.getBoundingClientRect = () => ({ left: 75, right: 140 });
+        rewind.getBoundingClientRect = () => ({ left: -20, right: 20 });
         const key = (name) =>
             f.w.dispatchEvent(
                 new f.w.KeyboardEvent("keydown", { bubbles: true, key: name })
@@ -1366,12 +1376,22 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
             ),
             "play"
         );
+        assert.equal(
+            rail.scrollLeft,
+            48,
+            "expanded Play stays inside the rail"
+        );
         key("ArrowRight");
         assert.equal(
             f.w.document.activeElement.getAttribute(
                 "data-modern-player-action"
             ),
             "rewind"
+        );
+        assert.equal(
+            rail.scrollLeft,
+            20,
+            "focus moving left reveals the next action"
         );
         key("Enter");
         assert.deepEqual(f.calls, [

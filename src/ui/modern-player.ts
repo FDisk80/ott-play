@@ -554,7 +554,21 @@ function createModernPlayer(w: any) {
             var visible = visibleActions();
             if (!visible.length) return;
             railFocus = Math.max(0, Math.min(visible.length - 1, railFocus));
-            visible[railFocus].entry.button.focus();
+            var button = visible[railFocus].entry.button;
+            button.focus();
+            if (rail && typeof rail.getBoundingClientRect === "function") {
+                var railBounds = rail.getBoundingClientRect();
+                var buttonBounds = button.getBoundingClientRect();
+                var safeLeft = railBounds.left + 8;
+                var safeRight = railBounds.right - 8;
+                if (buttonBounds.left < safeLeft)
+                    rail.scrollLeft = Math.max(
+                        0,
+                        rail.scrollLeft - (safeLeft - buttonBounds.left)
+                    );
+                else if (buttonBounds.right > safeRight)
+                    rail.scrollLeft += buttonBounds.right - safeRight;
+            }
         } else if (next === "status" && statusElement) {
             statusElement.focus();
         } else if (progress) {
