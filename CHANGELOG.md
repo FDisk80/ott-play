@@ -171,9 +171,10 @@
 - Keep optional Local status diagnostics within the request's remaining deadline.
 - Remove the empty focusable row from first-run setup while retaining settings
   import, manual setup and language navigation.
-- Restore newly created read-only webOS recovery directories after their contents,
-  including failure cleanup. Preserve only allowlisted identity diagnostic causes
-  while keeping the public error and sensitive-output suppression unchanged.
+- Restore the permissions of newly created webOS recovery directories after
+  writing their contents, including failure cleanup. Preserve only allowlisted
+  identity diagnostic causes while keeping the public error and sensitive-output
+  suppression unchanged.
 - Extend portable Stalker Favorites regression coverage through the real provider,
   staged transfer and playback-resolution code; live-provider acceptance is separate.
 - Document LG Developer Mode setup, installation, recovery and optional wake support.
