@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const observeTerminal = require("./browser-terminal-diagnostics.cjs");
 const {
     selectProfile,
     verifyCapabilities,
@@ -15,9 +16,11 @@ const runtime = JSON.parse(fs.readFileSync(path.join(output, "runtime.json")));
 const candidate = JSON.parse(
     fs.readFileSync(path.join(output, "candidate.json"))
 );
-assert.equal(candidate.sourceSha, runtime.sourceSha);
-const profile = selectProfile(runtime);
-async function main() {
+async function accept(observer) {
+    observer.phase("verify-inputs");
+    assert.equal(candidate.sourceSha, runtime.sourceSha);
+    const profile = selectProfile(runtime);
+    observer.phase("probe-launch");
     const playwright = require(process.env.CI_PLAYWRIGHT_MODULE);
     const browser = await playwright[runtime.engine].launch({
         channel: runtime.channel || undefined,
@@ -25,6 +28,7 @@ async function main() {
     });
     let capabilities;
     try {
+        observer.phase("probe-session");
         assert.equal(
             browser.version(),
             runtime.browserVersion,
@@ -46,6 +50,7 @@ async function main() {
     } finally {
         await browser.close();
     }
+    observer.phase("verify-capabilities");
     fs.writeFileSync(
         path.join(output, "capabilities.json"),
         JSON.stringify(
@@ -60,6 +65,7 @@ async function main() {
         ) + "\n"
     );
     verifyCapabilities(profile, capabilities);
+    observer.phase("scenario-process");
     const result = spawnSync(
         process.execPath,
         [
@@ -77,8 +83,10 @@ async function main() {
             timeout: 8 * 60 * 1000,
         }
     );
+    observer.process(result);
     assert.ifError(result.error);
     assert.equal(result.status, 0, "Real provider/browser assertions failed");
+    observer.phase("verify-scenarios");
     const report = JSON.parse(
         fs.readFileSync(path.join(output, "playwright.json"))
     );
@@ -109,6 +117,7 @@ async function main() {
         [...profile.scenarios].sort(),
         "Every declared profile scenario must pass exactly once"
     );
+    observer.phase("write-acceptance");
     fs.writeFileSync(
         process.env.CI_BROWSER_EVIDENCE,
         JSON.stringify(
@@ -131,7 +140,7 @@ async function main() {
         ) + "\n"
     );
 }
-main().catch((error) => {
+observeTerminal({ candidate, output, runtime }, accept).catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
