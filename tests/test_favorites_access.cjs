@@ -119,6 +119,10 @@ function fixture(saved = new Map()) {
     w.$.expr.filters.visible = (element) => element.style.display !== "none";
     require("./helpers/shared-core-runtime.cjs")(dom.getInternalVMContext());
     vm.runInContext(source, dom.getInternalVMContext(), { timeout: 10000 });
+    if (!bundle)
+        require("./helpers/category-selector-runtime.cjs")(
+            dom.getInternalVMContext()
+        );
     if (!process.argv.includes("--bundle"))
         attachSourceAliases(dom.getInternalVMContext());
     const calls = [];
