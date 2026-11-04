@@ -77,6 +77,7 @@ function fixture(scanning = false) {
             remoteCapabilities: () => plain(legacy.capability),
             remoteCatalog: async () => catalog,
             remoteConnect: async () => ({ source }),
+            remoteProgressive: () => true,
             remoteSources: async () => ({ sources: [source] }),
         },
         runtime: "page-123",
@@ -110,20 +111,31 @@ function capability(w, params) {
     });
     return result;
 }
-test("session-only and combined probes advertise a sibling without changing local_media five fields", () => {
-    for (const probe of [
-        contract.probe_request,
-        contract.session_probe_request,
-        { params: {} },
-    ]) {
-        const f = fixture();
-        const reply = capability(f.w, probe.params);
-        assert.equal(reply.status, "ok");
-        assert.deepEqual(reply.data.local_media_session, contract.capability);
-        assert.deepEqual(reply.data.local_media, legacy.capability);
-        assert.equal(Object.keys(reply.data.local_media).length, 5);
-        assert.deepEqual(reply.data.local_media_progressive, { version: 1 });
-    }
+test("session-only and combined probes preserve Local/session independently of progressive support", () => {
+    for (const supported of [true, false, undefined])
+        for (const probe of [
+            contract.probe_request,
+            contract.session_probe_request,
+            { params: {} },
+        ]) {
+            const f = fixture();
+            if (supported === undefined)
+                delete f.w.__ottLocalMedia.remoteProgressive;
+            else f.w.__ottLocalMedia.remoteProgressive = () => supported;
+            const reply = capability(f.w, probe.params);
+            assert.equal(reply.status, "ok");
+            assert.deepEqual(
+                reply.data.local_media_session,
+                contract.capability
+            );
+            assert.deepEqual(reply.data.local_media, legacy.capability);
+            assert.equal(Object.keys(reply.data.local_media).length, 5);
+            assert.deepEqual(
+                reply.data.local_media_progressive,
+                supported === true ? { version: 1 } : undefined
+            );
+            assert.equal(f.calls.length, 0);
+        }
     const f = fixture();
     delete f.w.__ottLocalMedia;
     assert.equal(
