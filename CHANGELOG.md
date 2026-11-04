@@ -150,6 +150,10 @@
 
 ### Changes
 
+- Show fixed playback-volume arrows accurately in PC/PC2 Buttons settings while
+  retaining saved TV mappings and editable list navigation.
+- Keep Modern player actions reachable and clickable on narrow layouts with long
+  translated labels, while preserving their full accessible names.
 - Expand the optional Modern interface with Home and Library views, bounded
   media grids, selected-item actions, and shared provider, category and
   Favorites navigation. Classic remains the default.

@@ -45,6 +45,14 @@ not active, plain **Left/Right** decreases/increases volume, including when the
 native video element has focus in fullscreen. Active [Modern playback controls](modern-interface.md#navigation-and-shared-state)
 use these arrows for seeking or selecting an action. Other devices retain their
 arrow mappings.
+
+In **Buttons settings**, PC/PC2 shows the two playback arrow rows as fixed
+volume controls. The list-navigation setting remains editable. Saved Left/Right
+mappings are retained for TV/device profiles; opening, saving or cancelling the
+PC settings screen does not replace them with the desktop shortcuts. Changing
+these stored remote mappings does not rebind PC playback keys. Active Modern
+playback controls still use their own navigation, as described above.
+
 Local videos keep the same playback session when seeking, including when file metadata arrives late. The timeline becomes available once the decoder reports a usable duration.
 Menus, lists, dialogs and text editors retain their normal keyboard behavior,
 and kiosk restrictions still take priority. The shortcuts do not change the

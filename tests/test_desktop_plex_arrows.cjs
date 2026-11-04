@@ -580,3 +580,162 @@ test("TV remote Plex arrows keep seeking", () => {
     }
 });
 console.log(checks + " desktop Plex keyboard scenarios passed");
+
+// The desktop playback contract must also be truthful in Buttons settings.
+const settingsSource = ts.createSourceFile(
+    "src/index.ts",
+    fs.readFileSync(path.join(root, "src/index.ts"), "utf8"),
+    ts.ScriptTarget.Latest,
+    true
+);
+const settingsCode = ts.transpileModule(
+    settingsSource.statements
+        .filter(
+            (node) =>
+                (ts.isFunctionDeclaration(node) &&
+                    ["createSettingsPage", "setListArrays"].includes(
+                        node.name?.text
+                    )) ||
+                (ts.isExpressionStatement(node) &&
+                    ts.isBinaryExpression(node.expression) &&
+                    ["window.settingsButtons", "window._setSetup"].includes(
+                        node.expression.left.getText(settingsSource)
+                    ))
+        )
+        .map((node) => node.getText(settingsSource))
+        .join("\n"),
+    {
+        compilerOptions: {
+            module: ts.ModuleKind.ES2015,
+            target: ts.ScriptTarget.ES5,
+        },
+    }
+).outputText;
+const editorCode = ts
+    .transpileModule(
+        fs.readFileSync(path.join(root, "src/settings/editor.ts"), "utf8"),
+        {
+            compilerOptions: {
+                module: ts.ModuleKind.ES2015,
+                target: ts.ScriptTarget.ES5,
+            },
+        }
+    )
+    .outputText.replace(/^import .*$/gm, "")
+    .replace(/^export /gm, "");
+for (const platform of ["pc", "pc2", "lg/webos"]) {
+    test(`${platform} Buttons settings preserves TV mappings and describes playback arrows`, () => {
+        const f = fixture(platform);
+        try {
+            const committed = { alFun: 9, arFun: 10, arrowFun: 2 };
+            let writes = [];
+            Object.assign(f.w, {
+                _: (text, ...args) =>
+                    text.replace(/%([1-9])/g, (_, n) => args[Number(n) - 1]),
+                beginSettingsDraft() {
+                    const draft = { ...committed };
+                    f.w.settingsSchema = f.w.listArray
+                        .filter((row) => row.settingId)
+                        .map((row) => ({ id: row.settingId }));
+                    return {
+                        active: () => true,
+                        cancel() {},
+                        commit() {
+                            Object.assign(committed, draft);
+                            return true;
+                        },
+                        get: (id) => draft[id] ?? 0,
+                        set(id, value) {
+                            writes.push(id);
+                            draft[id] = value;
+                            return true;
+                        },
+                    };
+                },
+                closeList() {},
+                noop() {},
+                normalizeSeekDuration: (value, fallback) => value || fallback,
+                optionsList() {},
+                renderButtonHint: () => "",
+                sALfun: 9,
+                sARfun: 10,
+                sArrowFun: 2,
+                showPage() {},
+                showShift() {},
+                strLEFT: "LEFT",
+                strRIGHT: "RIGHT",
+            });
+            Object.assign(f.w.keys, {
+                ENTER: 13,
+                GREEN: 71,
+                N0: 48,
+                PAUSE: 81,
+                PLAY: 80,
+                PREV: 83,
+                RETURN: 27,
+                RW: 82,
+            });
+            f.w.eval(editorCode + "\n" + settingsCode);
+            f.w.settingsButtons();
+            const rows = f.w.listArray.filter((row) =>
+                /Button.*(?:LEFT|RIGHT).*function when viewing/.test(row.name)
+            );
+            assert.equal(rows.length, 2);
+            if (platform === "lg/webos") {
+                assert.deepEqual(
+                    Array.from(rows, (row) => row.settingId),
+                    ["alFun", "arFun"]
+                );
+                assert.equal(rows[0].val, 9);
+                assert.equal(rows[1].val, 10);
+                rows[0].val = 1;
+                rows[1].val = 4;
+                assert.deepEqual(writes, ["alFun", "arFun"]);
+            } else {
+                assert.deepEqual(
+                    Array.from(rows, (row) => row.cur),
+                    ["volume (V−)", "volume (V+)"]
+                );
+                for (const row of rows) {
+                    assert.equal(row.settingId, undefined);
+                    f.w.selIndex = f.w.listArray.indexOf(row);
+                    for (const key of [
+                        f.w.keys.ENTER,
+                        f.w.keys.LEFT,
+                        f.w.keys.RIGHT,
+                    ])
+                        f.w.listKeyHandlerFn(key);
+                }
+                assert.deepEqual(writes, []);
+            }
+            const navigation = f.w.listArray.find(
+                (row) => row.settingId === "arrowFun"
+            );
+            assert(navigation, "list navigation remains configurable");
+            navigation.val = 1;
+            assert.deepEqual(
+                writes,
+                platform === "lg/webos"
+                    ? ["alFun", "arFun", "arrowFun"]
+                    : ["arrowFun"]
+            );
+            f.w.listKeyHandlerFn(f.w.keys.GREEN);
+            assert.deepEqual(
+                committed,
+                platform === "lg/webos"
+                    ? { alFun: 1, arFun: 4, arrowFun: 1 }
+                    : { alFun: 9, arFun: 10, arrowFun: 1 }
+            );
+            writes = [];
+            f.w.settingsButtons();
+            f.w.listKeyHandlerFn(f.w.keys.RETURN);
+            assert.deepEqual(
+                writes,
+                [],
+                "cancel does not rewrite either mapping"
+            );
+        } finally {
+            f.close();
+        }
+    });
+}
