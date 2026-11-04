@@ -456,6 +456,16 @@ function createChannelLibrary(
             return !hidden[group.id];
         });
     }
+    function metadata(text: string | null): string | null {
+        if (text === null) return null;
+        var value = JSON.parse(text);
+        if (!value || typeof value !== "object" || Array.isArray(value))
+            return null;
+        // Local playback and preview can shadow the selected cursor. Every
+        // other field must still match the physical document after saving.
+        delete value.selected;
+        return JSON.stringify(value);
+    }
     function commit(
         change: (draft: LibraryDocument) => void,
         durable = false
@@ -465,6 +475,7 @@ function createChannelLibrary(
         change(draft);
         var text = JSON.stringify(draft);
         try {
+            var expectedMetadata = durable ? metadata(text) : null;
             var prior = ports.get(key);
             if (!ports.current()) return false;
             var claim = ports.get("channelLibrarySource");
@@ -483,7 +494,7 @@ function createChannelLibrary(
                 prior !== text ||
                 (durable &&
                     ports.getPersisted &&
-                    ports.getPersisted(key) !== text)
+                    metadata(ports.getPersisted(key)) !== expectedMetadata)
             )
                 ports.set(key, text);
             if (!ports.current() || ports.get(key) !== text || !ports.current())
@@ -491,7 +502,7 @@ function createChannelLibrary(
             if (
                 durable &&
                 (!ports.getPersisted ||
-                    ports.getPersisted(key) !== text ||
+                    metadata(ports.getPersisted(key)) !== expectedMetadata ||
                     !ports.current())
             )
                 return false;
@@ -587,16 +598,6 @@ function createChannelLibrary(
             var before = state;
             var prior: string | null = null;
             var written: string | null = null;
-            function metadata(text: string | null): string | null {
-                if (text === null) return null;
-                var value = JSON.parse(text);
-                if (!value || typeof value !== "object" || Array.isArray(value))
-                    return null;
-                // Local preview shadows only its playback cursor. Category
-                // and all other library metadata must survive a fresh page.
-                delete value.selected;
-                return JSON.stringify(value);
-            }
             try {
                 prior = ports.get(key);
                 var persisted = ports.getPersisted?.(key);

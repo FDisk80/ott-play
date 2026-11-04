@@ -56,6 +56,7 @@ export interface StorageAdapter {
     hasValue(key: string): boolean;
     localPlayback?: {
         active(): boolean;
+        transient(): boolean;
         capture(): () => boolean;
         preview(
             identity: () => string
@@ -832,6 +833,11 @@ export function installLocalPlaybackSession(
             key
         );
     }
+    function resumeKey(key: string): boolean {
+        return /^offline(?:primaryIndex|catIndex|prevArr|continueWatch|lastcid|playbackJournal(?:Source|:[^\r\n]{1,1024})?)$/.test(
+            key
+        );
+    }
     function libraryKey(key: string): boolean {
         return /^offlinechannelLibrary:[a-zA-Z0-9_.:@-]{1,1024}$/.test(key);
     }
@@ -840,53 +846,90 @@ export function installLocalPlaybackSession(
             key !== "offlinesSortAbc" && (playbackKey(key) || libraryKey(key))
         );
     }
+    function sessionKey(key: string): boolean {
+        return session?.preview
+            ? previewKey(key)
+            : playbackKey(key) || libraryKey(key);
+    }
+    function libraryDocument(raw: string | null): any {
+        var text = raw || "{}";
+        if (text.substring(0, LZ_MARKER.length) === LZ_MARKER) {
+            var decoded = decompress(text.substring(LZ_MARKER.length));
+            if (!decoded) throw new Error("Invalid Local channel library");
+            text = decoded;
+        }
+        var value = JSON.parse(text);
+        if (!value || typeof value !== "object" || Array.isArray(value))
+            throw new Error("Invalid Local channel library");
+        return value;
+    }
     function selectedOnly(
         metadata: string | null,
         cursor: string | null
     ): string {
-        var value = JSON.parse(metadata || "{}"),
-            selected = JSON.parse(cursor || "{}");
-        if (
-            !value ||
-            typeof value !== "object" ||
-            Array.isArray(value) ||
-            !selected ||
-            typeof selected !== "object" ||
-            Array.isArray(selected)
-        )
-            throw new Error("Invalid Local channel library");
-        if (Object.prototype.hasOwnProperty.call(selected, "selected"))
-            value.selected = selected.selected;
-        else delete value.selected;
-        return JSON.stringify(value);
+        var value = libraryDocument(metadata),
+            selected = libraryDocument(cursor);
+        if (Object.prototype.hasOwnProperty.call(selected, "selected")) {
+            if (!Object.prototype.hasOwnProperty.call(value, "selected")) {
+                // A first temporary write removes the cursor from its physical
+                // document. Restore its original field position for the
+                // library's exact logical readback, without taking stale
+                // metadata values from the cursor snapshot.
+                var ordered: Record<string, any> = Object.create(null);
+                Object.keys(selected).forEach(function (name) {
+                    if (name === "selected") ordered[name] = selected.selected;
+                    else if (Object.prototype.hasOwnProperty.call(value, name))
+                        ordered[name] = value[name];
+                });
+                Object.keys(value).forEach(function (name) {
+                    if (!Object.prototype.hasOwnProperty.call(ordered, name))
+                        ordered[name] = value[name];
+                });
+                value = ordered;
+            } else value.selected = selected.selected;
+        } else delete value.selected;
+        var text = JSON.stringify(value);
+        // This overlay sits below provider compression. Preserve the metadata's
+        // raw representation; transaction preimages remain the original bytes.
+        return metadata?.substring(0, LZ_MARKER.length) === LZ_MARKER
+            ? LZ_MARKER + compress(text)
+            : text;
     }
     function current(): boolean {
         return !!session && session.identity() === session.captured;
     }
     function guarded(key: string): boolean {
-        if (!session || !(session.preview ? previewKey(key) : playbackKey(key)))
-            return false;
+        if (!session || !sessionKey(key)) return false;
         if (!current()) throw new Error("Local playback session changed");
         return true;
     }
     adapter.get = function (key) {
+        var scoped = guarded(key);
         var shadowed =
-            guarded(key) &&
+            scoped &&
             Object.prototype.hasOwnProperty.call(session!.values, key);
-        if (shadowed && session!.preview && libraryKey(key))
-            return selectedOnly(read(key), session!.values[key]);
-        return shadowed ? session!.values[key] : read(key);
+        if (scoped && libraryKey(key)) {
+            var stored = read(key);
+            if (shadowed) return selectedOnly(stored, session!.values[key]);
+            if (!session!.preview && stored) return selectedOnly(stored, null);
+            return stored;
+        }
+        if (shadowed) return session!.values[key];
+        // A new command has no inherited cursor or bookmark. Subsequent writes
+        // belong to this owner and may resume normally within the same session.
+        if (scoped && !session!.preview && resumeKey(key)) return null;
+        return read(key);
     };
     adapter.set = function (key, value) {
         if (guarded(key)) {
-            if (session!.preview && libraryKey(key))
+            if (libraryKey(key))
                 write(key, selectedOnly(String(value), read(key)));
             session!.values[key] = String(value);
         } else write(key, value);
     };
     adapter.del = function (key) {
         if (guarded(key)) {
-            if (session!.preview && libraryKey(key))
+            if (libraryKey(key))
                 throw new Error(
                     "Choose a Local file before resetting its library"
                 );
@@ -894,7 +937,13 @@ export function installLocalPlaybackSession(
         } else remove(key);
     };
     adapter.transaction = function (writes, admitted) {
-        if (session?.preview) {
+        if (
+            session &&
+            (session.preview ||
+                writes.some(function (entry) {
+                    return libraryKey(entry.key);
+                }))
+        ) {
             var owner = session;
             var physicalBefore: Record<string, string | null> =
                 Object.create(null);
@@ -911,14 +960,16 @@ export function installLocalPlaybackSession(
                         entry.key
                     )
                         ? selectedOnly(prior, owner.values[entry.key])
-                        : prior;
+                        : !owner.preview && prior
+                          ? selectedOnly(prior, null)
+                          : prior;
                     return logical !== entry.before;
                 })
             )
                 return false;
             var physical = writes
                 .filter(function (entry) {
-                    return !previewKey(entry.key) || libraryKey(entry.key);
+                    return !sessionKey(entry.key) || libraryKey(entry.key);
                 })
                 .map(function (entry) {
                     if (!libraryKey(entry.key)) return entry;
@@ -949,7 +1000,7 @@ export function installLocalPlaybackSession(
                 return false;
             if (session !== owner || !current() || !admitted()) return false;
             writes.forEach(function (entry) {
-                if (previewKey(entry.key))
+                if (sessionKey(entry.key))
                     owner.values[entry.key] = entry.after;
             });
             return true;
@@ -1013,10 +1064,9 @@ export function installLocalPlaybackSession(
             var writes = Object.keys(values).map(function (key) {
                 var prior = read(key);
                 return {
-                    after:
-                        owner.preview && libraryKey(key)
-                            ? selectedOnly(prior, values[key])
-                            : values[key],
+                    after: libraryKey(key)
+                        ? selectedOnly(prior, values[key])
+                        : values[key],
                     before: prior,
                     key: key,
                 };
@@ -1064,10 +1114,9 @@ export function installLocalPlaybackSession(
                       .map(function (key) {
                           var prior = read(key);
                           return {
-                              after:
-                                  owner.preview && libraryKey(key)
-                                      ? selectedOnly(prior, owner.values[key])
-                                      : owner.values[key],
+                              after: libraryKey(key)
+                                  ? selectedOnly(prior, owner.values[key])
+                                  : owner.values[key],
                               before: prior,
                               key: key,
                           };
@@ -1088,6 +1137,9 @@ export function installLocalPlaybackSession(
                 return false;
             session = null;
             return true;
+        },
+        transient: function () {
+            return !!session && !session.preview;
         },
     };
     var reset = adapter.reset;

@@ -234,6 +234,7 @@ for (const membership of ["global", "category"])
                 };
             });
             await expect(page.locator("#dialogbox")).toBeVisible();
+            await expect(page.locator("#dialogbox")).toBeFocused();
             await page.keyboard.press("Enter");
             await expect(page.locator("#listCaption")).toHaveText(
                 "Select a category to add the channel"
@@ -255,6 +256,8 @@ for (const membership of ["global", "category"])
             await expect(page.locator("#listCaption")).toHaveText(caption);
             expect(await page.locator("#listPodval").innerHTML()).toBe(footer);
             await page.evaluate(() => window.showActionsDialog());
+            await expect(page.locator("#dialogbox")).toBeVisible();
+            await expect(page.locator("#dialogbox")).toBeFocused();
             await page.keyboard.press("Enter");
             await expect(rows).toHaveText(categories);
             await expect(rows.locator("b")).toHaveCount(0);
