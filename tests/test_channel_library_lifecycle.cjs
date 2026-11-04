@@ -432,6 +432,7 @@ function categoryStartupFixture(saved, options = {}) {
     host.window = host;
     vm.createContext(host);
     require("./helpers/shared-core-runtime.cjs")(host);
+    require("./helpers/category-selector-runtime.cjs")(host);
     includeFunctions(host, "src/channels/index.ts", [
         "setCurrent",
         "onChannelsLoaded",

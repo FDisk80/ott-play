@@ -2128,3 +2128,41 @@ console.log(
 console.log(
     "OK: live recovery defaults and semantic values persist through the settings editor"
 );
+
+for (const profile of ["server", "tauri", "capacitor-android"]) {
+    const { w, typed, stored } = fixture(profile);
+    assert.equal(typed().showAllCategory, 1);
+    assert.equal(typed().showFavoritesCategory, 1);
+    assert.equal(stored.has("sShowAllCategory"), false);
+    w.settingsChannels();
+    w.listArray.find((row) => row.settingId === "showAllCategory").val = 0;
+    w.listKeyHandlerFn(w.keys.RETURN);
+    assert.equal(
+        typed().showAllCategory,
+        1,
+        "cancel keeps the default visibility"
+    );
+    for (const [all, favorites] of [
+        [0, 1],
+        [0, 0],
+        [1, 0],
+        [1, 1],
+    ]) {
+        w.settingsChannels();
+        w.listArray.find((row) => row.settingId === "showAllCategory").val =
+            all;
+        w.listArray.find(
+            (row) => row.settingId === "showFavoritesCategory"
+        ).val = favorites;
+        save(w);
+        vm.runInContext("loadSettings();", w);
+        assert.equal(typed().showAllCategory, all);
+        assert.equal(typed().showFavoritesCategory, favorites);
+        assert.equal(stored.get("sShowAllCategory") ?? "1", String(all));
+        assert.equal(
+            stored.get("sShowFavoritesCategory") ?? "1",
+            String(favorites)
+        );
+    }
+}
+console.log("PASS independent category visibility settings save/cancel/reload");

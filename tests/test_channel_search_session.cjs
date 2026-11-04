@@ -21,6 +21,7 @@ const modules = {
 const wrappers = [
     "searchChannel",
     "showActionsDialog",
+    "isCategorySelectionList",
     "shuffleChannelList",
     "channelsKeyHandler",
     "hasParentalLock",
@@ -31,6 +32,7 @@ const wrappers = [
     "restoreListPanelState",
 ];
 const assignments = ["addChannel2bucket"];
+const initializers = ["categoryRowsProjection"];
 function compile(text) {
     const code = ts.transpileModule(text.replace(/^export /gm, ""), {
         compilerOptions: {
@@ -91,12 +93,21 @@ function sourceRuntime() {
                 (name) => node.expression.left.getText(ast) === "window." + name
             );
         });
-        extracted += functions.length;
+        const variables = ast.statements
+            .filter(ts.isVariableStatement)
+            .flatMap((node) => node.declarationList.declarations)
+            .filter((node) => initializers.includes(node.name.getText(ast)));
+        extracted += functions.length + variables.length;
+        for (const node of variables)
+            code.push(compile("var " + node.getText(ast) + ";"));
         code.push(
             compile(functions.map((node) => node.getText(ast)).join("\n"))
         );
     }
-    assert.equal(extracted, wrappers.length + assignments.length);
+    assert.equal(
+        extracted,
+        wrappers.length + assignments.length + initializers.length
+    );
     return code.join("\n");
 }
 function bundleRuntime(file) {
@@ -134,8 +145,14 @@ function bundleRuntime(file) {
     const scopes = [],
         found = new Set(),
         functions = [],
-        assigned = [];
+        assigned = [],
+        variables = [];
     walk(ast, (node) => {
+        if (
+            node.type === "VariableDeclarator" &&
+            initializers.includes(node.id?.name)
+        )
+            variables.push(node);
         if (
             node.type === "FunctionDeclaration" &&
             declarations.includes(node.id?.name)
@@ -191,10 +208,20 @@ function bundleRuntime(file) {
         assigned.map((node) => property(node.left)).sort(),
         assignments.slice().sort()
     );
+    assert.deepEqual(
+        variables.map((node) => node.id.name).sort(),
+        initializers.slice().sort(),
+        file + ": all real category state initializers"
+    );
     return scopes
-        .concat(functions, assigned, aliases)
+        .concat(functions, assigned, aliases, variables)
         .sort((a, b) => a.start - b.start)
-        .map((node) => text.slice(node.start, node.end) + ";")
+        .map(
+            (node) =>
+                (node.type === "VariableDeclarator" ? "var " : "") +
+                text.slice(node.start, node.end) +
+                ";"
+        )
         .join("\n");
 }
 function fixture(code) {
@@ -534,6 +561,23 @@ for (const [profile, code] of profiles) {
             }
         });
     }
+    check("Actions retain raw and projected category identity", (f) => {
+        f.host.renderButtonHint = (_key, _label, action) => action;
+        const labels = [f.host.catsArray[0]];
+        for (const rows of [f.host.catsArray, labels]) {
+            f.host.categoryRowsProjection = rows === labels ? { labels } : null;
+            f.host.listArray = rows;
+            f.host.showActionsDialog();
+            const html = f.host.document.getElementById("dialogbox").innerHTML;
+            assert(!html.includes("Shuffle"));
+            assert(!html.includes("Reset order"));
+        }
+        f.host.listArray = [11, 22];
+        f.host.showActionsDialog();
+        const html = f.host.document.getElementById("dialogbox").innerHTML;
+        assert(html.includes("Shuffle"));
+        assert(html.includes("Reset order"));
+    });
     for (const mode of [0, 1, 2, 3]) {
         for (const [key, direction] of [
             ["LEFT", -1],

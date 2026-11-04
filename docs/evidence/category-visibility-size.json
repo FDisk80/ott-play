@@ -1,0 +1,23 @@
+{
+  "baseCommit": "c9a45230d69619e0b85a631655d689fec9da1239",
+  "node": "v22.23.4",
+  "method": "Paired canonical TypeScript emit, classic entry linker and optimizer; identical 1.1.64-beta.1 version and full source identity width. Web entry only; native transformed and complete release artifacts remain subject to CI checks. No provider or optional module changes.",
+  "baseline": {
+    "bytes": 1190562,
+    "gzipBytes": 363758,
+    "sha256": "95a664be56aa040c5d16827dafc55d1c72d3ea715bc05d3bc459005e6af3f3ef"
+  },
+  "candidate": {
+    "bytes": 1192067,
+    "gzipBytes": 364173,
+    "sha256": "4ece4413b791fbb7dd831c04415ce797b5d3a236ab0f627494fa3a2c6480f7e7"
+  },
+  "previousEntryCap": {
+    "bytes": 1191493,
+    "gzipBytes": 364094
+  },
+  "allowance": {
+    "bytes": 1505,
+    "gzipBytes": 415
+  }
+}

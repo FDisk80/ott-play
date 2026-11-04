@@ -2808,6 +2808,73 @@ function playingChannelIdxInCategory(catIdx: number): number {
     return 0;
 }
 
+// Keep virtual-category visibility in the selector only. The catalog, playback
+// category indices, Favorites contents and remote APIs retain their full view.
+var categoryRowsProjection: {
+    labels: string[];
+    indices: number[];
+    ids: (string | null)[];
+    source: string[];
+} | null = null;
+
+function isCategorySelectionList(): boolean {
+    var w = window as any;
+    return (
+        w.listArray === catsArray ||
+        !!(
+            categoryRowsProjection &&
+            w.listArray === categoryRowsProjection.labels
+        )
+    );
+}
+
+function categoryRowIndex(row: number): number {
+    var w = window as any;
+    var projection = categoryRowsProjection;
+    if (typeof row !== "number" || !(row >= 0) || row % 1) return -1;
+    if (!projection || w.listArray !== projection.labels)
+        return row < catsArray.length ? row : -1;
+    if (projection.source !== catsArray || row >= projection.indices.length)
+        return -1;
+    var index = projection.indices[row];
+    var id = w.__ottChannels?.group?.(index) ?? null;
+    return id === projection.ids[row] ? index : -1;
+}
+
+function setCategoryRows(selected: number): void {
+    var w = window as any;
+    var source = catsArray || [];
+    var indices: number[] = [];
+    var ids: (string | null)[] = [];
+    source.forEach(function (_label: string, index: number) {
+        var id = w.__ottChannels?.group?.(index) ?? null;
+        if (
+            (id === "system:all" && w.sShowAllCategory === 0) ||
+            (id === "system:favorites" && w.sShowFavoritesCategory === 0)
+        )
+            return;
+        indices.push(index);
+        ids.push(id);
+    });
+    if (indices.length === source.length) {
+        categoryRowsProjection = null;
+        w.listArray = source;
+    } else {
+        var labels = indices.map(function (index) {
+            return source[index];
+        });
+        categoryRowsProjection = {
+            ids: ids,
+            indices: indices,
+            labels: labels,
+            source: source,
+        };
+        w.listArray = labels;
+    }
+    w.listDataArray = w.listArray;
+    w.selIndex = Math.max(0, indices.indexOf(selected));
+}
+
 export function bucketsList(
     catIdx: number,
     _channelIdx?: number,
@@ -2817,14 +2884,17 @@ export function bucketsList(
     if (!view && w.__ottActiveProviderDriver?.catalogBrowser?.categories())
         return;
     if (!view && w.__ottChannels) w.__ottChannels.refresh();
-    var catsList = view ? view.labels : catsArray || [];
-
-    w.selIndex =
-        typeof catIdx === "number" && catIdx >= 0 && catIdx < catsList.length
-            ? catIdx
-            : 0;
-    w.listArray = catsList;
-    w.listDataArray = catsList;
+    if (view) {
+        categoryRowsProjection = null;
+        w.listArray = view.labels;
+        w.listDataArray = view.labels;
+        w.selIndex =
+            typeof catIdx === "number" &&
+            catIdx >= 0 &&
+            catIdx < view.labels.length
+                ? catIdx
+                : 0;
+    } else setCategoryRows(catIdx);
     w.getListItemFn = function (item: string, idx: number): string {
         return (
             "&nbsp;&nbsp;" +
@@ -2905,6 +2975,7 @@ export function bucketsKeyHandler(keyCode: number): boolean {
     var w = window as any;
     var keys = w.keys;
     if (!keys) return false;
+    var selectedCategory = categoryRowIndex(w.selIndex);
 
     // Popup actions for category management
     if ($("#listPopUp").is(":visible")) {
@@ -2926,16 +2997,15 @@ export function bucketsKeyHandler(keyCode: number): boolean {
                 var name = prompt(w._("Enter category name"));
                 if (name && name.trim()) {
                     name = name.trim();
-                    if (!w.__ottChannels.change("create", name)) return true;
-                    w.listArray = catsArray;
-                    w.listDataArray = catsArray;
-                    w.selIndex = catsArray.length - 1;
+                    var created = w.__ottChannels.change("create", name);
+                    if (!created) return true;
+                    setCategoryRows(w.__ottChannels.index(created));
                     if (typeof w.showPage === "function") w.showPage();
                 }
                 return true;
             }
             case keys.N6: {
-                var oldName = catsArray[w.selIndex];
+                var oldName = catsArray[selectedCategory];
                 if (!oldName) return true;
                 var newName = prompt(w._("Enter new category name"), oldName);
                 if (newName && newName.trim() && newName.trim() !== oldName) {
@@ -2943,19 +3013,18 @@ export function bucketsKeyHandler(keyCode: number): boolean {
                     if (
                         !w.__ottChannels.change(
                             "rename",
-                            w.__ottChannels.group(w.selIndex),
+                            w.__ottChannels.group(selectedCategory),
                             newName
                         )
                     )
                         return true;
-                    w.listArray = catsArray;
-                    w.listDataArray = catsArray;
+                    setCategoryRows(selectedCategory);
                     if (typeof w.showPage === "function") w.showPage();
                 }
                 return true;
             }
             case keys.N9: {
-                var srcName = catsArray[w.selIndex];
+                var srcName = catsArray[selectedCategory];
                 if (!srcName) return true;
                 var copyName = prompt(
                     w._("Enter new category name"),
@@ -2963,28 +3032,25 @@ export function bucketsKeyHandler(keyCode: number): boolean {
                 );
                 if (copyName && copyName.trim()) {
                     copyName = copyName.trim();
-                    if (
-                        !w.__ottChannels.change(
-                            "create",
-                            copyName,
-                            w.__ottChannels.group(w.selIndex)
-                        )
-                    )
-                        return true;
-                    w.listArray = catsArray;
-                    w.listDataArray = catsArray;
-                    w.selIndex = catsArray.length - 1;
+                    var copied = w.__ottChannels.change(
+                        "create",
+                        copyName,
+                        w.__ottChannels.group(selectedCategory)
+                    );
+                    if (!copied) return true;
+                    setCategoryRows(w.__ottChannels.index(copied));
                     if (typeof w.showPage === "function") w.showPage();
                 }
                 return true;
             }
             case keys.N8: {
+                var visibleRow = w.selIndex;
                 if (catsArray.length <= 1) {
                     if (typeof w.showShift === "function")
                         w.showShift(w._("Cannot delete the last category"));
                     return true;
                 }
-                var delName = catsArray[w.selIndex];
+                var delName = catsArray[selectedCategory];
                 if (
                     delName &&
                     confirm(w._("Delete category") + ' "' + delName + '"?')
@@ -2992,15 +3058,18 @@ export function bucketsKeyHandler(keyCode: number): boolean {
                     if (
                         !w.__ottChannels.change(
                             "remove",
-                            w.__ottChannels.group(w.selIndex)
+                            w.__ottChannels.group(selectedCategory)
                         )
                     )
                         return true;
-                    if (w.selIndex >= catsArray.length)
-                        w.selIndex = catsArray.length - 1;
                     saveChannelsCats();
-                    w.listArray = catsArray;
-                    w.listDataArray = catsArray;
+                    setCategoryRows(
+                        Math.min(selectedCategory, catsArray.length - 1)
+                    );
+                    w.selIndex = Math.max(
+                        0,
+                        Math.min(visibleRow, w.listArray.length - 1)
+                    );
                     if (typeof w.showPage === "function") w.showPage();
                 }
                 return true;
@@ -3025,7 +3094,7 @@ export function bucketsKeyHandler(keyCode: number): boolean {
         case keys.N7:
         case keys.N8:
         case keys.N9: {
-            var idx = keyCode - keys.N1;
+            var idx = categoryRowIndex(keyCode - keys.N1);
             if (
                 idx >= 0 &&
                 idx < catsArray.length &&
@@ -3051,23 +3120,27 @@ export function bucketsKeyHandler(keyCode: number): boolean {
             return true;
 
         case keys.ENTER:
+            if (selectedCategory < 0) return true;
             if (
-                w.__ottChannels.group(w.selIndex) === "system:favorites" &&
+                w.__ottChannels.group(selectedCategory) ===
+                    "system:favorites" &&
                 openGlobalFavorites()
             )
                 return true;
             if (typeof w.channelsList === "function") {
                 w.channelsList(
-                    w.selIndex,
-                    playingChannelIdxInCategory(w.selIndex)
+                    selectedCategory,
+                    playingChannelIdxInCategory(selectedCategory)
                 );
             }
             return true;
 
         case keys.FF:
         case keys.NEXT: {
-            var nextCat =
-                w.selIndex < catsArray.length - 1 ? w.selIndex + 1 : 0;
+            var nextRow =
+                w.selIndex < w.listArray.length - 1 ? w.selIndex + 1 : 0;
+            var nextCat = categoryRowIndex(nextRow);
+            if (nextCat < 0) return true;
             if (
                 w.__ottChannels.group(nextCat) === "system:favorites" &&
                 openGlobalFavorites()
@@ -3083,8 +3156,11 @@ export function bucketsKeyHandler(keyCode: number): boolean {
         case keys.PLAY:
         case keys.PAUSE:
         case keys.PRECH:
-            if (typeof w.openSelectedChannelRecordings === "function") {
-                w.openSelectedChannelRecordings(w.selIndex);
+            if (
+                selectedCategory >= 0 &&
+                typeof w.openSelectedChannelRecordings === "function"
+            ) {
+                w.openSelectedChannelRecordings(selectedCategory);
             }
             return true;
 
@@ -3274,7 +3350,7 @@ export function searchChannel(): void {
 export function shuffleChannelList(reset = false): void {
     var w = window as any;
     if (
-        w.listArray === w.catsArray ||
+        isCategorySelectionList() ||
         !w.listArray ||
         w.listArray.length < 2 ||
         (w.__ottKiosk && w.__ottKiosk.locked())
@@ -3383,7 +3459,7 @@ export function showActionsDialog(): void {
         (typeof w.renderButtonHint === "function"
             ? w.renderButtonHint(w.keys.YELLOW, "", "Search", w.strTools)
             : "") +
-        (w.listArray !== w.catsArray &&
+        (!isCategorySelectionList() &&
         w.listArray &&
         w.listArray.length > 1 &&
         !(w.__ottKiosk && w.__ottKiosk.locked()) &&
@@ -3910,9 +3986,9 @@ export function channelsKeyHandler(keyCode: number): boolean {
 function moveSelectedChannelOrCategory(delta: number): void {
     var w = window as any;
     var selected = w.listArray && w.listArray[w.selIndex];
-    var categories = w.listArray === catsArray;
+    var categories = isCategorySelectionList();
     var groupId = w.__ottChannels.group(
-        categories ? w.selIndex : w.listCatIndex
+        categories ? categoryRowIndex(w.selIndex) : w.listCatIndex
     );
     if (!groupId || selected === undefined) return;
     if (groupId === "system:favorites" && !categories) {
@@ -3941,11 +4017,12 @@ function moveSelectedChannelOrCategory(delta: number): void {
         )
     )
         return;
-    w.listArray = categories
-        ? catsArray
-        : cats[catsArray[w.listCatIndex]] || [];
-    w.listDataArray = w.listArray;
-    w.selIndex = w.listArray.indexOf(selected);
+    if (categories) setCategoryRows(w.__ottChannels.index(groupId));
+    else {
+        w.listArray = cats[catsArray[w.listCatIndex]] || [];
+        w.listDataArray = w.listArray;
+        w.selIndex = w.listArray.indexOf(selected);
+    }
     if (typeof w.showPage === "function") w.showPage();
 }
 

@@ -4965,6 +4965,18 @@ window.settingsChannels = function (): void {
                 [label("no"), 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             ),
             choice(
+                label("Category selection") + ': "' + label("All") + '"',
+                "showAllCategory",
+                w.sShowAllCategory,
+                noyes
+            ),
+            choice(
+                label("Category selection") + ': "' + label("Favorites") + '"',
+                "showFavoritesCategory",
+                w.sShowFavoritesCategory,
+                noyes
+            ),
+            choice(
                 label("Channel list editing style"),
                 "favorites",
                 w.sFavorites !== -1 ? w.sFavorites : w.noop || [],

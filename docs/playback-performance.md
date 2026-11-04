@@ -8,7 +8,9 @@ source cannot restart playback.
 
 The shared HLS/Shaka policy distinguishes live streams, on-demand video,
 AceStream engine endpoints, Android and a reported memory budget of 2 GiB or less.
-Saved positive **Buffer Size, s** preferences take priority over automatic goals.
+Saved **Buffer Size, s** preferences from 1 through 120 seconds override automatic
+goals. Zero and values above 120 select the automatic profile; larger stored
+values remain available for compatibility and are labelled Automatic in settings.
 An absent memory hint does not mean that a device has low memory.
 
 | Automatic profile | Forward target | Back buffer | HLS byte target |
