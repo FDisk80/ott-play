@@ -744,7 +744,9 @@ var TMDb: any = {
             if (nam === TMDb.query && TMDb.searchReady) {
                 switch (TMDb.results.length) {
                     case 0:
-                        $("#dialogbox").html("<br>" + _("Not found") + "!<br>");
+                        $("#dialogbox")
+                            .html("<br>" + _("Not found") + "!<br>")
+                            .show();
                         return;
                     case 1:
                         TMDb.get(

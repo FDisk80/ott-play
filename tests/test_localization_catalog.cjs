@@ -1376,13 +1376,20 @@ try {
     );
     const tmdbRequests = [],
         tmdbMessages = [];
+    let tmdbVisible = false;
     const tmdbDom = {
-        hide: () => tmdbDom,
+        hide: () => {
+            tmdbVisible = false;
+            return tmdbDom;
+        },
         html: (value) => {
             tmdbMessages.push(value);
             return tmdbDom;
         },
-        show: () => tmdbDom,
+        show: () => {
+            tmdbVisible = true;
+            return tmdbDom;
+        },
     };
     const jq = () => tmdbDom;
     jq.ajax = (request) => tmdbRequests.push(request);
@@ -1457,6 +1464,7 @@ try {
     // Replay the actual TMDb object with deterministic, manually ordered AJAX
     // callbacks. No companion, live key, timer, or network is involved.
     function resetTmdb() {
+        tmdbVisible = false;
         tmdbRequests.length = 0;
         tmdbMessages.length = 0;
         tmdbContext.window.__ottInterfaceLanguage = "_eng";
@@ -1643,9 +1651,19 @@ try {
         tmdbRequests[0].success({ results: [] });
         assert.equal(tmdbRequests.length, 1);
         assert(tmdbMessages.at(-1).includes("Not found"));
+        assert.equal(tmdbVisible, true);
+        tmdbContext.window.dialogBoxKeyHandler();
+        assert.equal(tmdbVisible, false);
+        tmdbMessages.length = 0;
         tmdbContext.TMDb.search("Empty");
         assert.equal(tmdbRequests.length, 1);
+        assert.equal(tmdbMessages.length, 1);
         assert(tmdbMessages.at(-1).includes("Not found"));
+        assert.equal(
+            tmdbVisible,
+            true,
+            "cached empty result reopens the dialog"
+        );
     });
 
     const reference = readDictionary(
