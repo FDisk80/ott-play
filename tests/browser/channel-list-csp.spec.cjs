@@ -6236,6 +6236,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 {
                     epgArchiveLabel: 0,
                     epgTimeColor: 3,
+                    interfaceTheme: 2,
                 },
                 "arabic"
             );
@@ -6290,7 +6291,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     await expect(row).toContainText("10:00 - 10:30");
                     await expect(row.locator('span[dir="auto"]')).toHaveCSS(
                         "color",
-                        "rgb(0, 255, 255)"
+                        index === 0 ? "rgb(17, 33, 25)" : "rgb(0, 255, 255)"
                     );
                     await expect(row.locator(".epg-archive-tag")).toHaveCount(
                         0
@@ -6318,6 +6319,33 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                         })
                     ).toBe(true);
                 }
+                // Studio keeps selected text dark on its light highlight;
+                // the configured time colour returns when focus leaves a row.
+                const first = page.locator("#it0");
+                const second = page.locator("#it1");
+                const timeLabel = (row) => row.locator('span[dir="auto"]');
+                await expect(page.locator("body")).toHaveClass(/theme-studio/);
+                await expect(first).toHaveClass(/ott-selected/);
+                await page.keyboard.press("ArrowDown");
+                await expect(second).toHaveClass(/ott-selected/);
+                await expect(timeLabel(first)).toHaveCSS(
+                    "color",
+                    "rgb(0, 255, 255)"
+                );
+                await expect(timeLabel(second)).toHaveCSS(
+                    "color",
+                    "rgb(17, 33, 25)"
+                );
+                await page.keyboard.press("ArrowUp");
+                await expect(first).toHaveClass(/ott-selected/);
+                await expect(timeLabel(first)).toHaveCSS(
+                    "color",
+                    "rgb(17, 33, 25)"
+                );
+                await expect(timeLabel(second)).toHaveCSS(
+                    "color",
+                    "rgb(0, 255, 255)"
+                );
                 const identity = await page.evaluate(() =>
                     window.listArray.map(
                         ({ programmeId, providerId, time }) => ({
