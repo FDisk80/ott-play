@@ -8351,14 +8351,94 @@ mod tests {
     }
 
     async fn wait_for_drain(background: &crate::background_work::BackgroundWork) {
-        tokio::time::timeout(std::time::Duration::from_secs(2), async {
-            while background.status().pending != 0 {
-                // Back off between state-lock reads while retaining the outer deadline.
-                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-            }
-        })
+        tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            background.wait_for_idle(),
+        )
         .await
         .unwrap();
+    }
+
+    #[tokio::test]
+    async fn drain_observes_last_owner_without_waiting_for_a_timer() {
+        use std::future::Future;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::task::{Context, Wake, Waker};
+        #[derive(Default)]
+        struct WakeCount(AtomicUsize);
+        impl Wake for WakeCount {
+            fn wake(self: std::sync::Arc<Self>) {
+                self.0.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+        let background = crate::background_work::BackgroundWork::default();
+        let first = background.enter().unwrap();
+        let last = first.clone();
+        let unrelated = crate::background_work::BackgroundWork::default();
+        let _other_owner = unrelated.enter().unwrap();
+        let a = wait_for_drain(&background);
+        let b = wait_for_drain(&background);
+        tokio::pin!(a, b);
+        let a_count = std::sync::Arc::new(WakeCount::default());
+        let b_count = std::sync::Arc::new(WakeCount::default());
+        let a_waker = Waker::from(a_count.clone());
+        let b_waker = Waker::from(b_count.clone());
+        let mut a_context = Context::from_waker(&a_waker);
+        let mut b_context = Context::from_waker(&b_waker);
+        assert!(a.as_mut().poll(&mut a_context).is_pending());
+        assert!(b.as_mut().poll(&mut b_context).is_pending());
+        drop(first);
+        assert_eq!(a_count.0.load(Ordering::SeqCst), 0);
+        assert_eq!(b_count.0.load(Ordering::SeqCst), 0);
+        assert!(a.as_mut().poll(&mut a_context).is_pending());
+        assert!(b.as_mut().poll(&mut b_context).is_pending());
+        drop(last);
+        assert!(a_count.0.load(Ordering::SeqCst) > 0);
+        assert!(b_count.0.load(Ordering::SeqCst) > 0);
+        assert!(a.as_mut().poll(&mut a_context).is_ready());
+        assert!(b.as_mut().poll(&mut b_context).is_ready());
+        assert_eq!(unrelated.status().pending, 1);
+    }
+
+    #[tokio::test]
+    async fn drain_rechecks_new_work_before_observing_idle() {
+        use std::future::Future;
+        use std::task::{Context, Waker};
+        let background = crate::background_work::BackgroundWork::default();
+        let first = background.enter().unwrap();
+        let wait = wait_for_drain(&background);
+        tokio::pin!(wait);
+        let mut context = Context::from_waker(Waker::noop());
+        assert!(wait.as_mut().poll(&mut context).is_pending());
+        drop(first);
+        let next = background.enter().unwrap();
+        assert!(wait.as_mut().poll(&mut context).is_pending());
+        background.set_standby(true);
+        assert!(wait.as_mut().poll(&mut context).is_pending());
+        drop(next);
+        assert!(wait.as_mut().poll(&mut context).is_ready());
+    }
+
+    #[tokio::test]
+    async fn drain_wakes_when_a_blocking_owner_exits() {
+        use std::future::Future;
+        use std::task::{Context, Waker};
+        let background = crate::background_work::BackgroundWork::default();
+        let owner = background.enter().unwrap();
+        let (finish, release) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            release.recv().unwrap();
+            drop(owner);
+        });
+        let wait = wait_for_drain(&background);
+        tokio::pin!(wait);
+        assert!(wait
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+            .is_pending());
+        finish.send(()).unwrap();
+        wait.await;
+        worker.join().unwrap();
     }
 
     #[tokio::test]

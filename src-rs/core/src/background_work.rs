@@ -11,6 +11,8 @@ pub struct BackgroundWork(Arc<Inner>);
 struct Inner {
     state: Mutex<State>,
     changed: watch::Sender<u64>,
+    #[cfg(test)]
+    drained: tokio::sync::Notify,
 }
 #[derive(Default)]
 struct State {
@@ -32,10 +34,25 @@ impl Default for BackgroundWork {
         Self(Arc::new(Inner {
             state: Mutex::new(State::default()),
             changed,
+            #[cfg(test)]
+            drained: tokio::sync::Notify::new(),
         }))
     }
 }
 impl BackgroundWork {
+    /// Await observed idle state in tests without keeping a polling task runnable.
+    #[cfg(test)]
+    pub(crate) async fn wait_for_idle(&self) {
+        loop {
+            let drained = self.0.drained.notified();
+            tokio::pin!(drained);
+            drained.as_mut().enable();
+            if self.status().pending == 0 {
+                return;
+            }
+            drained.await;
+        }
+    }
     pub fn status(&self) -> BackgroundStatus {
         let state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
         BackgroundStatus {
@@ -84,6 +101,8 @@ impl Drop for Lease {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .pending -= 1;
+        #[cfg(test)]
+        self.work.0.drained.notify_waiters();
     }
 }
 impl WorkLease {
