@@ -49,7 +49,7 @@ deadline.unref();
     checkpoint("listen");
     await new Promise((r) => server.listen(0, "127.0.0.1", r));
     checkpoint("launch browser");
-    const browser = await chromium.launch({ headless: true });
+    let browser = await chromium.launch({ headless: true });
     try {
         checkpoint("initial context");
         const context = await browser.newContext();
@@ -241,6 +241,10 @@ deadline.unref();
         // Isolate the following profile tests from the completed source context.
         checkpoint("close source context");
         await context.close();
+        checkpoint("close source browser");
+        await browser.close();
+        checkpoint("launch profile browser");
+        browser = await chromium.launch({ headless: true });
         checkpoint("profile context");
         const profileContext = await browser.newContext();
         // Keep real OPFS handles, IndexedDB, and page closure. Only model the
