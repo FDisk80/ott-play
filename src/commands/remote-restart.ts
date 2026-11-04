@@ -919,7 +919,10 @@ export function executeRemoteControl(
                 localMessage10,
             ].filter(lifecycleAvailable),
             local_media: localMedia,
-            local_media_progressive: localMedia ? { version: 1 } : undefined,
+            local_media_progressive:
+                localMedia && w.__ottLocalMedia.remoteProgressive?.() === true
+                    ? { version: 1 }
+                    : undefined,
             local_media_session: localMedia ? { version: 1 } : undefined,
             local_source_diagnostics:
                 typeof w.__ottLocalSourceDiagnostics === "function"

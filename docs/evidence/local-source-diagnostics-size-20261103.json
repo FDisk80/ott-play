@@ -259,7 +259,7 @@
     "The Local manager is a per-page singleton; profile and provider changes retain that instance and change its observed catalog.",
     "HEVC canPlayType is advisory and cannot establish file decoding.",
     "Diagnostics perform no filesystem/media requests, runtime initialization or compatibility preparation.",
-    "Entry, legacy, base-total, provider and per-asset caps are unchanged. The existing raw allowance remains 5800 bytes; only complete gzip gains the measured 1724-byte feature cost."
+    "Entry, legacy, base-total and provider caps, the default optional cap, and unrelated per-asset caps are unchanged. The Local compatibility per-asset cap increased from 4800 raw / 1900 gzip bytes to 9450 raw / 3550 gzip bytes. The complete payload allowance is 5800 raw / 1724 gzip bytes; this measured correction retains the existing raw allowance and adds the 1724-byte gzip feature cost."
   ],
   "validation": [
     "Official assembler and optimizer reproduced all 75 existing ON outputs byte-for-byte.",

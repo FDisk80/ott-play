@@ -855,7 +855,7 @@ assert.equal(batch.requests.at(-1).request.method, "GET");
     );
 }
 
-// Plex and media-step implementations use a local deadline internally. A TV's
+// Optional status diagnostics and media operations use local deadlines. A TV's
 // wall clock may differ from the controller, but network delay still consumes TTL.
 {
     const previousClock = clock;
@@ -866,6 +866,7 @@ assert.equal(batch.requests.at(-1).request.method, "GET");
         "local_media",
         "favorites_transfer",
         "capabilities",
+        "status",
     ])
         for (const skew of [-120, 120])
             for (const lifetime of [30, 90]) {
@@ -873,7 +874,7 @@ assert.equal(batch.requests.at(-1).request.method, "GET");
                 const started = clock;
                 const serverTime = started / 1000 + skew;
                 const params =
-                    action === "capabilities"
+                    action === "capabilities" || action === "status"
                         ? {}
                         : action === "favorites_transfer"
                           ? { op: "bindingcatalog", runtime: "page-1" }

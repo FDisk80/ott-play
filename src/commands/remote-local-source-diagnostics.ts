@@ -1,5 +1,9 @@
 /** Passive DOM/native identity comparison. Never opens or initializes a library. */
-function localSourceDiagnostics(w: any, runtime: () => string): Promise<any> {
+function localSourceDiagnostics(
+    w: any,
+    runtime: () => string,
+    expiresAt?: number
+): Promise<any> {
     const MAX = 9007199254740991;
     const CODECS = {
         h264: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
@@ -211,7 +215,9 @@ function localSourceDiagnostics(w: any, runtime: () => string): Promise<any> {
         }
         return result;
     }
+    // Capture and codec getters also consume time before the native wait.
     if (
+        (expiresAt !== undefined && !(expiresAt * 1000 - Date.now() > 250)) ||
         !(w.__TAURI__ || w.__TAURI_INTERNALS__) ||
         w.__ottLocalSourceDiagnosticPending
     )
@@ -254,9 +260,10 @@ function localSourceDiagnostics(w: any, runtime: () => string): Promise<any> {
     w: any,
     runtime: () => string,
     result?: any,
-    reply?: (value: any) => void
+    reply?: (value: any) => void,
+    expiresAt?: number
 ): any {
-    var pending = localSourceDiagnostics(w, runtime);
+    var pending = localSourceDiagnostics(w, runtime, expiresAt);
     if (!reply) return pending;
     var cancelled = false;
     pending.then(

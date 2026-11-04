@@ -225,13 +225,13 @@ class OfficialReleaseValidationTests(unittest.TestCase):
             self.verify()
 
 
-def private_tar(entries, *, uid=0, gid=0):
+def private_tar(entries, *, uid=0, gid=0, modes=None):
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w") as archive:
         for name, data in entries.items():
             item = tarfile.TarInfo(name)
             item.uid, item.gid = uid, gid
-            item.mode = 0o700 if data is None else 0o600
+            item.mode = (modes or {}).get(name, 0o700 if data is None else 0o600)
             if data is None:
                 item.type = tarfile.DIRTYPE
             else:
@@ -681,6 +681,129 @@ class LocalRestoreAndPayloadTests(unittest.TestCase):
         self.assertFalse((self.application / "ott-state").exists())
         self.assertEqual(list(self.application.iterdir()), [])
 
+    def directory_snapshot(self, entries, modes, *, gid=None):
+        archive = private_tar(entries, uid=os.getuid(), gid=os.getgid() if gid is None else gid, modes=modes)
+        path = Path(self.snapshot["path"])
+        path.write_bytes(archive)
+        rows, _ = update.state_archive(archive)
+        self.snapshot = {
+            "capture_protocol": "novacom-framed-v1",
+            "path": str(path),
+            "sha256": hashlib.sha256(archive).hexdigest(),
+            "files": rows,
+        }
+
+    @unittest.skipIf(os.getuid() == 0, "Permission regression requires an unprivileged owner")
+    def test_readonly_directories_restore_children_then_exact_modes(self):
+        folders = {"ott-state": 0o500, "ott-state/read only": 0o550}
+        filename = "ott-state/read only/settings.json"
+        self.directory_snapshot({**dict.fromkeys(folders), filename: self.profile}, folders)
+        self.ares.restore(self.snapshot)
+        self.assertEqual((self.application / filename).read_bytes(), self.profile)
+        for name, mode in folders.items():
+            self.assertEqual((self.application / name).stat().st_mode & 0o777, mode)
+        self.assertEqual(self.ares.capture()[0], self.snapshot["files"])
+
+    @unittest.skipIf(os.getuid() == 0, "Permission regression requires an unprivileged owner")
+    def test_interrupted_child_transfer_restores_directory_modes(self):
+        folder = self.application / "ott-state"
+        self.directory_snapshot({"ott-state": None, "ott-state/settings.json": self.profile}, {"ott-state": 0o500})
+        self.transfer = lambda data: data[:5]
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertEqual(folder.stat().st_mode & 0o777, 0o500)
+        self.assertEqual(list(folder.iterdir()), [])
+        self.assertFalse(list(self.application.glob(".ott-restore.*")))
+
+    @unittest.skipIf(os.getuid() == 0, "Permission regression requires an unprivileged owner")
+    def test_existing_readonly_directory_is_never_made_writable(self):
+        folder = self.application / "ott-state"
+        folder.mkdir(mode=0o500)
+        self.directory_snapshot({"ott-state": None, "ott-state/settings.json": self.profile}, {"ott-state": 0o500})
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertEqual(folder.stat().st_mode & 0o777, 0o500)
+        self.assertEqual(list(folder.iterdir()), [])
+
+    def test_replaced_directory_symlink_is_not_chmodded(self):
+        outside = self.root / "outside"
+        outside.mkdir(mode=0o700)
+        self.directory_snapshot({"ott-state": None, "ott-state/settings.json": self.profile}, {"ott-state": 0o500})
+
+        def replace_after_transfer(command, *, data=None):
+            result = self.local_remote(command, data=data)
+            if data is not None:
+                folder = self.application / "ott-state"
+                folder.rename(self.application / "owned-directory")
+                folder.symlink_to(outside)
+            return result
+
+        self.ares.remote = replace_after_transfer
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+        self.assertEqual(outside.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_directory_mode_failure_is_not_reported_as_complete(self):
+        self.directory_snapshot({"ott-state": None}, {"ott-state": 0o500})
+        self.shell_prefix = "chmod() { return 1; }"
+        with self.assertRaises(update.UpdateError):
+            self.ares.restore(self.snapshot)
+
+    def test_archived_setgid_mode_is_rejected_before_any_transport(self):
+        for mode in (0o2500, 0o2700):
+            archive = private_tar({"ott-state": None}, uid=os.getuid(), gid=os.getgid(), modes={"ott-state": mode})
+            path = Path(self.snapshot["path"])
+            path.write_bytes(archive)
+            snapshot = {
+                "capture_protocol": "novacom-framed-v1",
+                "path": str(path),
+                "sha256": hashlib.sha256(archive).hexdigest(),
+                "files": {},
+            }
+            with (
+                self.subTest(mode=oct(mode)),
+                patch.object(self.ares, "capture") as capture,
+                patch.object(self.ares, "remote") as remote,
+                self.assertRaises(update.UpdateError) as caught,
+            ):
+                self.ares.restore(snapshot)
+            self.assertEqual(caught.exception.code, "unsafe_private_state_type")
+            capture.assert_not_called()
+            remote.assert_not_called()
+
+    @unittest.skipIf(os.getuid() == 0, "Group regression requires an unprivileged owner")
+    def test_real_alternate_group_setgid_parent_is_rejected_without_creation(self):
+        groups = sorted(set(os.getgroups()) - {os.getgid()})
+        if not groups:
+            self.skipTest("No supplementary group available")
+        try:
+            os.chown(self.application, -1, groups[0])
+            self.application.chmod(0o2700)
+        except PermissionError:
+            self.skipTest("Filesystem does not permit supplementary-group fixture")
+        before = self.application.stat()
+        self.assertEqual(before.st_gid, groups[0])
+        self.assertTrue(before.st_mode & 0o2000)
+        self.directory_snapshot({"ott-state": None}, {"ott-state": 0o500})
+        with self.assertRaises(update.UpdateError) as caught:
+            self.ares.restore(self.snapshot)
+        self.assertEqual(caught.exception.code, "private_state_failed")
+        self.assertEqual(list(self.application.iterdir()), [])
+        self.assertEqual(self.application.stat().st_gid, before.st_gid)
+        self.assertEqual(self.application.stat().st_mode, before.st_mode)
+
+    @unittest.skipIf(os.getuid() == 0, "Group regression requires an unprivileged owner")
+    def test_archived_alternate_group_is_rejected_without_creation(self):
+        groups = sorted(set(os.getgroups()) - {os.getgid()})
+        if not groups:
+            self.skipTest("No supplementary group available")
+        self.directory_snapshot({"ott-state": None}, {"ott-state": 0o500}, gid=groups[0])
+        with self.assertRaises(update.UpdateError) as caught:
+            self.ares.restore(self.snapshot)
+        self.assertEqual(caught.exception.code, "private_owner_not_restorable")
+        self.assertEqual(list(self.application.iterdir()), [])
+
     def payload_fixture(self):
         files = {"app/plxnative": b"native-program", "app/appinfo.json": b"package-identity",
                  "service/plxnative-storage": b"storage-program"}
@@ -939,11 +1062,12 @@ class DeviceIdentityTests(unittest.TestCase):
         with patch.object(ares, "command", return_value=json.dumps(inventory).encode()) as command, \
                 patch.object(ares, "device", return_value=system) as device, \
                 patch.object(ares, "remote", return_value=encoded, side_effect=error) as remote:
-            result = ares.identity()
-            command.assert_called_once_with("ares-setup-device", "--listfull")
-            device.assert_called_once_with("ares-device", "--system-info")
-            remote.assert_called_once_with(update.DEVICE_ID_COMMAND, keep_stdin_open=True)
-        return result
+            try:
+                return ares.identity()
+            finally:
+                command.assert_called_once_with("ares-setup-device", "--listfull")
+                device.assert_called_once_with("ares-device", "--system-info")
+                remote.assert_called_once_with(update.DEVICE_ID_COMMAND, keep_stdin_open=True)
 
     def test_identifier_is_hashed_and_not_retained_in_returned_identity(self):
         result = self.identity()
@@ -976,6 +1100,40 @@ class DeviceIdentityTests(unittest.TestCase):
             with self.subTest(response=response), self.assertRaises(update.UpdateError) as caught:
                 self.identity(response)
             self.assertEqual(caught.exception.code, "device_identity_unavailable")
+
+    def test_identity_retains_safe_diagnostic_cause_with_stable_public_error(self):
+        cases = (
+            (update.UpdateError("incomplete_remote_output"), "incomplete_remote_output", "UPDATE_ERROR"),
+            (update.UpdateError("authentication_required"), "authentication_required", "UPDATE_ERROR"),
+            (update.UpdateError("private_state_timeout"), "private_state_timeout", "UPDATE_ERROR"),
+            (ValueError("fixture-sensitive-output"), "invalid_identity_value", "VALUE_ERROR"),
+            (UnicodeError("fixture-sensitive-output"), "invalid_utf8", "UNICODE_ERROR"),
+        )
+        for cause, reason, kind in cases:
+            with self.subTest(reason=reason), self.assertRaises(update.UpdateError) as caught:
+                self.identity(error=cause)
+            error = caught.exception
+            self.assertEqual(error.code, "device_identity_unavailable")
+            self.assertEqual(str(error), "device_identity_unavailable")
+            self.assertEqual(error.diagnostic_reason, reason)
+            self.assertEqual(error.diagnostic_error_class, kind)
+            self.assertTrue(error.__suppress_context__)
+            self.assertIsNone(error.__cause__)
+            self.assertNotIn("fixture-sensitive-output", json.dumps(vars(error)))
+
+    def test_identity_diagnostics_reject_unknown_reason_and_cause_attributes(self):
+        cause = update.UpdateError("fixture-sensitive-output")
+        cause.diagnostic_reason = "authentication_required"
+        cause.diagnostic_error_class = "UPDATE_ERROR"
+        with self.assertRaises(update.UpdateError) as caught:
+            self.identity(error=cause)
+        error = caught.exception
+        self.assertEqual(error.code, "device_identity_unavailable")
+        self.assertEqual(str(error), "device_identity_unavailable")
+        self.assertEqual(vars(error), {"code": "device_identity_unavailable"})
+        self.assertTrue(error.__suppress_context__)
+        self.assertIsNone(error.__cause__)
+        self.assertEqual(cause.diagnostic_reason, "authentication_required")
 
     def test_identity_query_error_does_not_expose_sensitive_output(self):
         with self.assertRaises(update.UpdateError) as caught:

@@ -60,6 +60,12 @@ impl std::fmt::Display for NativeProbeDeadline {
 
 impl std::error::Error for NativeProbeDeadline {}
 
+#[derive(Clone, Copy)]
+enum NativeFolderProbePurpose {
+    RequestedFolder,
+    RegisteredSource,
+}
+
 const NATIVE_SOURCE_PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
 const MAX_NATIVE_SCAN_ENTRIES: usize = 100_000;
 const SOURCE_PROBE_CONCURRENCY: usize = 4;
@@ -1285,9 +1291,14 @@ impl Library {
             .map(|source| async move {
                 work.check().map_err(anyhow::Error::msg)?;
                 let probe = if source.kind == "folder" {
-                    self.native_folder_probe_until(source.path.clone(), work, deadline)
-                        .await
-                        .map(|path| path.is_some_and(|path| path == source.path))
+                    self.native_folder_probe(
+                        source.path.clone(),
+                        work,
+                        Some(deadline),
+                        NativeFolderProbePurpose::RegisteredSource,
+                    )
+                    .await
+                    .map(|path| path.is_some_and(|path| path == source.path))
                 } else {
                     self.native_file_available_until(source.path.clone(), work, deadline)
                         .await
@@ -1446,7 +1457,13 @@ impl Library {
         work: &crate::background_work::WorkLease,
         deadline: tokio::time::Instant,
     ) -> anyhow::Result<Option<PathBuf>> {
-        self.native_folder_probe(path, work, Some(deadline)).await
+        self.native_folder_probe(
+            path,
+            work,
+            Some(deadline),
+            NativeFolderProbePurpose::RequestedFolder,
+        )
+        .await
     }
 
     async fn native_folder_probe(
@@ -1454,6 +1471,7 @@ impl Library {
         path: PathBuf,
         work: &crate::background_work::WorkLease,
         deadline: Option<tokio::time::Instant>,
+        purpose: NativeFolderProbePurpose,
     ) -> anyhow::Result<Option<PathBuf>> {
         anyhow::ensure!(
             path.is_absolute() && path.parent().is_some(),
@@ -1468,7 +1486,7 @@ impl Library {
             self.source_probes.clone(),
             work,
             deadline,
-            move |owner| async move { library.read_native_folder(path, &owner).await },
+            move |owner| async move { library.read_native_folder(path, &owner, purpose).await },
         )
         .await
     }
@@ -1477,6 +1495,7 @@ impl Library {
         &self,
         path: PathBuf,
         owner: &ReadWork,
+        purpose: NativeFolderProbePurpose,
     ) -> Result<Option<PathBuf>, Failure> {
         #[cfg(test)]
         if let Some((blocked, gate)) = &self.native_source_probe_gate {
@@ -1492,6 +1511,9 @@ impl Library {
             Err(_) => return Ok(None),
         };
         if path.parent().is_none() {
+            if matches!(purpose, NativeFolderProbePurpose::RegisteredSource) {
+                return Ok(None);
+            }
             return Err((
                 StatusCode::BAD_REQUEST,
                 "Select a local folder below the filesystem root",
@@ -1502,6 +1524,12 @@ impl Library {
             Err(_) => return Ok(None),
         };
         if !metadata.is_dir() || metadata.file_type().is_symlink() {
+            // A stored folder binding can outlive its filesystem kind.
+            // Keep that row unavailable without hiding healthy sources;
+            // explicit folder requests still reject invalid input.
+            if matches!(purpose, NativeFolderProbePurpose::RegisteredSource) {
+                return Ok(None);
+            }
             return Err((StatusCode::BAD_REQUEST, "Select an accessible local folder"));
         }
         match checked(Some(owner), fs::read_dir(&path)).await? {
@@ -1649,10 +1677,14 @@ impl Library {
                 .await
                 .map_err(|error| anyhow::anyhow!(error.1))?
                 .map_err(|_| anyhow::anyhow!("Local media storage unavailable"))?;
-            self.read_native_folder(picked.to_path_buf(), owner)
-                .await
-                .map_err(|error| anyhow::anyhow!(error.1))?
-                .ok_or_else(|| anyhow::anyhow!("Local media storage unavailable"))?
+            self.read_native_folder(
+                picked.to_path_buf(),
+                owner,
+                NativeFolderProbePurpose::RequestedFolder,
+            )
+            .await
+            .map_err(|error| anyhow::anyhow!(error.1))?
+            .ok_or_else(|| anyhow::anyhow!("Local media storage unavailable"))?
         } else {
             work.run(fs::canonicalize(picked))
                 .await
@@ -2829,9 +2861,14 @@ impl Library {
     ) -> anyhow::Result<()> {
         let first_started = std::time::Instant::now();
         let root = if source.kind == "folder" {
-            self.native_folder_probe(source.path.clone(), work, None)
-                .await?
-                .ok_or_else(|| anyhow::anyhow!("Local media storage unavailable"))?
+            self.native_folder_probe(
+                source.path.clone(),
+                work,
+                None,
+                NativeFolderProbePurpose::RequestedFolder,
+            )
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Local media storage unavailable"))?
         } else {
             fs::canonicalize(&source.path).await?
         };
@@ -6313,6 +6350,185 @@ mod tests {
         .await
         .unwrap();
         source
+    }
+
+    #[tokio::test]
+    async fn native_source_listing_preserves_folder_replaced_by_file() {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let stale = native_lookup_fixture(&library, "Stale", true).await;
+        let healthy = native_lookup_fixture(&library, "Healthy", true).await;
+        let file = native_lookup_fixture(&library, "movie.mp4", false).await;
+        let record_path = library
+            .root
+            .join("sources")
+            .join(format!("{}.json", stale.id));
+        let saved_record = fs::read(&record_path).await.unwrap();
+        fs::remove_dir(&stale.path).await.unwrap();
+        fs::write(&stale.path, b"replacement file").await.unwrap();
+
+        let sources = bounded(library.native_sources(true, None)).await.unwrap();
+        assert_eq!(sources.len(), 3);
+        let row = sources.iter().find(|row| row.id == stale.id).unwrap();
+        assert_eq!(row.kind, "folder");
+        assert_eq!(row.name, stale.name);
+        assert!(!row.available);
+        assert_eq!(
+            row.path.as_ref(),
+            Some(&native_source_export_path(&stale.path))
+        );
+        for id in [&healthy.id, &file.id] {
+            assert!(sources.iter().find(|row| &row.id == id).unwrap().available);
+        }
+        let public = bounded(library.native_sources(false, None)).await.unwrap();
+        assert_eq!(public.len(), 3);
+        assert!(public.iter().all(|row| row.path.is_none()));
+        let selected = bounded(library.native_sources_selected(false, None, Some(&stale.id)))
+            .await
+            .unwrap();
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].id, stale.id);
+        assert!(!selected[0].available);
+
+        // An explicit folder argument remains invalid, not an availability row.
+        let error = bounded(library.native_sources(false, Some(stale.path.clone())))
+            .await
+            .err()
+            .expect("invalid request or unavailable worker must fail");
+        assert!(!error.is::<NativeSourceUnavailable>());
+        assert_eq!(error.to_string(), "Select an accessible local folder");
+        let error = bounded(library.start_link_folder_path_tracked(
+            stale.path.clone(),
+            library.background.enter().unwrap(),
+        ))
+        .await
+        .err()
+        .expect("invalid request or unavailable worker must fail");
+        assert_eq!(error.to_string(), "Select an accessible local folder");
+        assert_eq!(fs::read(&record_path).await.unwrap(), saved_record);
+        assert_eq!(library.scan.lock().await.jobs, 0);
+        assert!(library.scan.lock().await.source_scans.is_empty());
+        wait_for_drain(&library.background).await;
+
+        fs::remove_file(&stale.path).await.unwrap();
+        fs::create_dir(&stale.path).await.unwrap();
+        let restored = bounded(library.native_sources_selected(false, None, Some(&stale.id)))
+            .await
+            .unwrap();
+        assert_eq!(restored[0].id, stale.id);
+        assert!(restored[0].available);
+        assert_eq!(fs::read(record_path).await.unwrap(), saved_record);
+        wait_for_drain(&library.background).await;
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_source_wrong_kind_does_not_hide_lifetime_or_worker_failure() {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let stale = native_lookup_fixture(&library, "Stale", true).await;
+        native_lookup_fixture(&library, "Healthy", true).await;
+        fs::remove_dir(&stale.path).await.unwrap();
+        fs::write(&stale.path, b"replacement file").await.unwrap();
+        library.background.set_standby(true);
+        assert!(bounded(library.native_sources(false, None)).await.is_err());
+        library.background.set_standby(false);
+        library.source_probes.close();
+        let error = bounded(library.native_sources(false, None))
+            .await
+            .err()
+            .expect("invalid request or unavailable worker must fail");
+        assert!(!error.is::<NativeSourceUnavailable>());
+        assert_eq!(error.to_string(), "Local media storage unavailable");
+        wait_for_drain(&library.background).await;
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn native_source_listing_preserves_folder_replaced_by_root_symlink() {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let stale = native_lookup_fixture(&library, "Stale", true).await;
+        let healthy = native_lookup_fixture(&library, "Healthy", true).await;
+        let stale_record = library
+            .root
+            .join("sources")
+            .join(format!("{}.json", stale.id));
+        let healthy_record = library
+            .root
+            .join("sources")
+            .join(format!("{}.json", healthy.id));
+        let saved_stale = fs::read(&stale_record).await.unwrap();
+        let saved_healthy = fs::read(&healthy_record).await.unwrap();
+        let filesystem_root = stale.path.ancestors().last().unwrap().to_path_buf();
+        fs::remove_dir(&stale.path).await.unwrap();
+        std::os::unix::fs::symlink(&filesystem_root, &stale.path).unwrap();
+
+        let sources = bounded(library.native_sources(true, None)).await.unwrap();
+        assert_eq!(sources.len(), 2);
+        let row = sources.iter().find(|row| row.id == stale.id).unwrap();
+        assert_eq!(row.kind, "folder");
+        assert_eq!(row.name, stale.name);
+        assert!(!row.available);
+        assert_eq!(
+            row.path.as_ref(),
+            Some(&native_source_export_path(&stale.path))
+        );
+        assert!(
+            sources
+                .iter()
+                .find(|row| row.id == healthy.id)
+                .unwrap()
+                .available
+        );
+        let selected = bounded(library.native_sources_selected(false, None, Some(&stale.id)))
+            .await
+            .unwrap();
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].id, stale.id);
+        assert!(!selected[0].available);
+        assert!(selected[0].path.is_none());
+
+        for (path, message) in [
+            (
+                &stale.path,
+                "Select a local folder below the filesystem root",
+            ),
+            (
+                &filesystem_root,
+                "Select an absolute local folder below the filesystem root",
+            ),
+        ] {
+            let error = bounded(library.native_sources(false, Some(path.to_path_buf())))
+                .await
+                .err()
+                .expect("explicit root selection must be rejected");
+            assert!(!error.is::<NativeSourceUnavailable>());
+            assert_eq!(error.to_string(), message);
+            let error = bounded(library.start_link_folder_path_tracked(
+                path.to_path_buf(),
+                library.background.enter().unwrap(),
+            ))
+            .await
+            .err()
+            .expect("explicit root registration must be rejected");
+            assert_eq!(error.to_string(), message);
+        }
+        assert_eq!(fs::read(stale_record).await.unwrap(), saved_stale);
+        assert_eq!(fs::read(healthy_record).await.unwrap(), saved_healthy);
+        assert_eq!(library.source_records().await.unwrap().len(), 2);
+        assert_eq!(library.scan.lock().await.jobs, 0);
+        assert!(library.scan.lock().await.source_scans.is_empty());
+        wait_for_drain(&library.background).await;
+        fs::remove_file(&stale.path).await.unwrap();
+        fs::remove_dir_all(base).await.unwrap();
     }
 
     #[tokio::test]
