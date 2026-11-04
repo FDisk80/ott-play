@@ -538,7 +538,7 @@ declare var detailListAction: () => void;
 declare var listKeyHandler: (key: number) => boolean;
 declare var listKeyHandlerFn: (key: number) => boolean;
 declare var showPage: () => void;
-declare var closeList: () => void;
+declare var closeList: (restorePip?: boolean) => void;
 declare var renderButtonHint: (
     key: number,
     label: string,
