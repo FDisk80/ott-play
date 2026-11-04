@@ -260,13 +260,14 @@ deadline.unref();
             function diagnostic(event, detail = {}) {
                 try {
                     console.log(
-                        "[direct-media-native] " + JSON.stringify({
-                            event,
-                            page: performance.timeOrigin,
-                            elapsedMs: performance.now(),
-                            pendingTransactions: [...pendingTransactions],
-                            ...detail,
-                        })
+                        "[direct-media-native] " +
+                            JSON.stringify({
+                                elapsedMs: performance.now(),
+                                event,
+                                page: performance.timeOrigin,
+                                pendingTransactions: [...pendingTransactions],
+                                ...detail,
+                            })
                     );
                 } catch (_) {
                     // Reporting must not affect native operations or results.
@@ -317,7 +318,7 @@ deadline.unref();
                 const state = permission.state;
                 // Keep the browser's check on restored handles. The fixture
                 // may restrict access, but must not grant it over native denial.
-                diagnostic("native-query-call", { query, kind: this.kind });
+                diagnostic("native-query-call", { kind: this.kind, query });
                 let pending;
                 try {
                     pending = nativeQueryPermission.call(this, options);
@@ -329,7 +330,7 @@ deadline.unref();
                 return pending.then(
                     (access) => {
                         permission.queriesResolved++;
-                        diagnostic("native-query-resolved", { query, access });
+                        diagnostic("native-query-resolved", { access, query });
                         return access === "granted" ? state : access;
                     },
                     (error) => {
@@ -364,9 +365,13 @@ deadline.unref();
             }
             window.showDirectoryPicker = () => Promise.resolve(folder);
             const media = installBrowserLocalMedia(window);
-            window.__directMediaProfileDiagnostic("profile-import-folder-start");
+            window.__directMediaProfileDiagnostic(
+                "profile-import-folder-start"
+            );
             const catalog = await media.importFolder();
-            window.__directMediaProfileDiagnostic("profile-import-folder-complete");
+            window.__directMediaProfileDiagnostic(
+                "profile-import-folder-complete"
+            );
             const selected = catalog.items.find(
                 (item) => item.name === "second.mp4"
             );
