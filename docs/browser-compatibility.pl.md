@@ -36,6 +36,34 @@ Siedem generowanych plików inwentarza/lock pochodzi z `venus-os-ci-toolkit/scri
 
 Wspólny werdykt wydania sprawdza każdy wybrany cel i jego SHA źródła, uruchomienie, próbę, kanał oraz dokładne ID artefaktu kandydata. RC nie może używać dowodów beta z pięciu celów. Awans do stable korzysta z bajtów zaakceptowanego RC. Po błędzie uruchom ponownie cały workflow kwalifikacji; poświadczenia starszych prób nie mogą zakończyć nowej kwalifikacji.
 
+## Diagnostyka zakończenia
+
+Po wczytaniu środowiska wykonawczego i metadanych kandydata `scripts/browser-acceptance.cjs`
+zapisuje `acceptance-terminal.json` w katalogu `CI_BROWSER_DIAGNOSTICS`, gdy weryfikacja
+akceptacyjna zakończy się lub zgłosi wyjątek. Rekord zawiera ostatni etap, tożsamość
+źródeł i kandydata, docelową przeglądarkę, uruchomienie i próbę, czas trwania oraz status
+zakończenia procesu testowego, sygnał lub kod błędu z listy dozwolonych wartości. Rekord
+ma mniej niż 2 KiB i nie zawiera surowych błędów, adresów URL, stdout/stderr, wartości
+zmiennych środowiskowych ani zrzutów pamięci. Plik jest tworzony z dostępem wyłącznym
+i uprawnieniami `0600` w istniejącym katalogu wyjściowym zadania; istniejący plik ani
+dowiązanie symboliczne pod ścieżką pliku docelowego nie są nadpisywane.
+
+Są to **dane diagnostyczne, a nie potwierdzenie pomyślnej akceptacji**. Rekord zawsze
+deklaruje `acceptance: false`; tylko osobny plik `CI_BROWSER_EVIDENCE` może potwierdzić
+kwalifikację kandydata po przejściu wszystkich istniejących asercji. Błąd zapisu
+diagnostyki nie może zastąpić pierwotnego wyniku powodzenia lub niepowodzenia. Nagłe
+zakończenie procesu opakowującego albo błąd wczytania metadanych przed rozpoczęciem
+tego etapu może spowodować brak rekordu. Sygnał procesu testowego nie dowodzi, że ten
+sygnał otrzymał proces treści Firefoksa. Ustalenie źródła awarii natywnej nadal wymaga
+odpowiadającego jej natywnego stosu lub kontrolowanego odtworzenia błędu; pomyślna
+ponowna próba nie zamyka dochodzenia.
+
+Ten pomocniczy skrypt nie włącza surowych raportów awarii Firefoksa ani logowania
+`DEBUG=pw:browser`. Pamięć przeglądarki i wyjście konsoli mogą zawierać dane wrażliwe;
+nie wolno ich kopiować do zwykłych wysyłanych artefaktów bez osobno zweryfikowanych
+zasad zbierania danych i dostępu. Kolejność scenariuszy, przypięte wersje przeglądarek,
+jeden proces roboczy, brak ponownych prób i istniejące limity czasu pozostają bez zmian.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Od źródła do zaakceptowanego kandydata

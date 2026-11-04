@@ -36,6 +36,33 @@ Sedm generovaných souborů inventáře/lock pochází z `venus-os-ci-toolkit/sc
 
 Sdílený verdikt vydání ověřuje každý vybraný cíl a jeho zdrojové SHA, běh, pokus, kanál a přesné ID artefaktu kandidáta. RC nesmí použít beta důkazy z pěti cílů. Povýšení na stable používá bajty přijatého RC. Po chybě znovu spusťte celý kvalifikační workflow; doklady starších pokusů nemohou dokončit novou kvalifikaci.
 
+## Diagnostika ukončení
+
+Po načtení běhového prostředí a metadat kandidáta zapíše `scripts/browser-acceptance.cjs`
+soubor `acceptance-terminal.json` do adresáře `CI_BROWSER_DIAGNOSTICS`, když se
+akceptační ověření dokončí nebo vyvolá výjimku. Záznam obsahuje poslední fázi, identitu
+zdrojů a kandidáta, cílový prohlížeč, běh a pokus, uplynulý čas a stav ukončení
+testovacího procesu, signál nebo kód chyby ze seznamu povolených hodnot. Záznam je
+menší než 2 KiB a neobsahuje nezpracované chyby, URL, stdout/stderr, hodnoty prostředí
+ani výpisy paměti. Soubor se vytváří s výhradním přístupem a oprávněními `0600` ve
+stávajícím výstupním adresáři úlohy; existující soubor ani symbolický odkaz na místě
+koncového souboru se nepřepisuje.
+
+Jde o **diagnostické podklady, nikoli o úspěšnou akceptaci**. Záznam vždy uvádí
+`acceptance: false`; kandidáta může kvalifikovat pouze samostatný soubor
+`CI_BROWSER_EVIDENCE`, a to po splnění všech stávajících ověřovacích podmínek. Selhání
+zápisu diagnostiky nemůže nahradit původní úspěšný či neúspěšný výsledek. Při náhlém
+ukončení obalového procesu nebo selhání načtení metadat před zahájením tohoto kroku
+nemusí žádný záznam vzniknout. Signál testovacího procesu nedokazuje, že jej obdržel
+proces obsahu Firefoxu. Určení příčiny nativního pádu nadále vyžaduje odpovídající
+nativní zásobník nebo řízenou reprodukci chyby; úspěšný opakovaný pokus šetření neuzavírá.
+
+Tento pomocný nástroj nezapíná nezpracované zprávy o pádech Firefoxu ani protokolování
+`DEBUG=pw:browser`. Paměť prohlížeče a výstup konzole mohou obsahovat citlivá data a
+nesmějí se kopírovat do běžných nahrávaných artefaktů bez samostatně posouzených pravidel
+pro sběr a přístup. Pořadí scénářů, pevně stanovené verze prohlížečů, jeden pracovní
+proces, žádné opakované pokusy a stávající časové limity zůstávají beze změny.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Od zdroje k přijatému kandidátovi

@@ -36,6 +36,14 @@ I sette file generati di inventario/lock provengono da `venus-os-ci-toolkit/scri
 
 Il verdetto condiviso di rilascio verifica ogni destinazione selezionata con SHA sorgente, esecuzione, tentativo, canale e ID preciso dell’artefatto candidato. RC non può usare le evidenze beta delle cinque destinazioni. La promozione stabile usa i byte dell’RC accettato. Dopo un errore, riesegui tutto il workflow di qualificazione; le ricevute di tentativi precedenti non possono completare una nuova qualificazione.
 
+## Diagnostica al termine dell’esecuzione
+
+Dopo il caricamento dei metadati del runtime e del candidato, `scripts/browser-acceptance.cjs` scrive `acceptance-terminal.json` in `CI_BROWSER_DIAGNOSTICS` quando l’accettazione termina o genera un’eccezione. Registra l’ultima fase, l’identità del sorgente e del candidato, la destinazione browser, l’esecuzione e il tentativo, il tempo trascorso e lo stato di uscita del processo di test, un segnale o un codice di errore ammesso. Il record occupa meno di 2 KiB e non contiene errori grezzi, URL, stdout/stderr, valori dell’ambiente o dump di memoria. Viene creato con accesso esclusivo e modalità `0600` nella directory di output esistente appartenente al job; non vengono sovrascritti né un file esistente né un collegamento simbolico nell’ultimo componente del percorso.
+
+Si tratta di **evidenza diagnostica, non di un’accettazione riuscita**. Il record dichiara sempre `acceptance: false`; solo il file separato `CI_BROWSER_EVIDENCE` può qualificare un candidato dopo il superamento di tutte le asserzioni esistenti. Un errore nella scrittura diagnostica non può sostituire il successo o il fallimento originale. La terminazione improvvisa del programma wrapper, oppure un errore nel caricamento dei metadati prima del suo avvio, può non lasciare alcun record. Un segnale del processo di test non dimostra che il processo dei contenuti di Firefox abbia ricevuto quel segnale. Per attribuire un crash nativo servono ancora una traccia dello stack nativo corrispondente o un caso di riproduzione controllato; un nuovo tentativo riuscito non chiude l’indagine.
+
+Questo strumento ausiliario non abilita i rapporti grezzi dei crash di Firefox né la registrazione `DEBUG=pw:browser`. La memoria del browser e l’output della console possono contenere dati sensibili e non devono essere copiati nei normali artefatti caricati senza una politica di raccolta e accesso revisionata separatamente. Restano invariati l’ordine degli scenari, le versioni fissate dei browser, l’uso di un solo processo di lavoro, l’assenza di nuovi tentativi e i timeout esistenti.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Dal sorgente al candidato accettato

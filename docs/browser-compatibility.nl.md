@@ -36,6 +36,36 @@ De zeven gegenereerde inventaris-/lockbestanden komen van `venus-os-ci-toolkit/s
 
 Het gedeelde releaseoordeel controleert elk geselecteerd doel en zijn bron-SHA, run, poging, kanaal en exacte kandidaatartefact-ID. Een RC mag het betabewijs van vijf doelen niet gebruiken. Promotie naar stable gebruikt de bytes van de geaccepteerde RC. Voer na een fout de hele kwalificatieworkflow opnieuw uit; bewijsbestanden uit oudere pogingen kunnen een nieuwe kwalificatie niet voltooien.
 
+## Diagnostiek bij beëindiging
+
+Nadat de runtime en de metagegevens van de kandidaat zijn geladen, schrijft
+`scripts/browser-acceptance.cjs` het bestand `acceptance-terminal.json` naar
+`CI_BROWSER_DIAGNOSTICS` wanneer de acceptatiecontrole eindigt of een uitzondering
+opwerpt. Het record bevat de laatste fase, de identiteit van bron en kandidaat, het
+browserdoel, de uitvoering en poging, de verstreken tijd en de afsluitstatus van het
+testproces, een signaal of een foutcode uit een lijst met toegestane waarden. Het
+record is kleiner dan 2 KiB en bevat geen onbewerkte fouten, URL's, stdout/stderr,
+omgevingswaarden of geheugendumps. Het bestand wordt met exclusieve toegang en modus
+`0600` aangemaakt in de bestaande uitvoermap van de taak; een bestaand bestand of
+symbolische koppeling op het uiteindelijke bestandspad wordt niet overschreven.
+
+Dit is **diagnostisch bewijs, geen geslaagde acceptatie**. Het record vermeldt altijd
+`acceptance: false`; alleen het afzonderlijke bestand `CI_BROWSER_EVIDENCE` kan een
+kandidaat kwalificeren nadat alle bestaande controles zijn geslaagd. Een mislukte
+schrijfactie voor diagnostiek mag het oorspronkelijke succes of falen niet vervangen.
+Bij een abrupte beëindiging van de wrapper of een fout tijdens het vooraf laden van
+metagegevens kan een record ontbreken. Een signaal van het testproces bewijst niet
+dat het inhoudsproces van Firefox dat signaal heeft ontvangen. Voor toeschrijving
+van een native crash is nog steeds een bijpassende native stack of een gecontroleerde
+reproductie nodig; een geslaagde herhaling sluit het onderzoek niet af.
+
+Deze hulpfunctie schakelt geen onbewerkte Firefox-crashrapporten of logging met
+`DEBUG=pw:browser` in. Browsergeheugen en console-uitvoer kunnen gevoelige gegevens
+bevatten en mogen zonder afzonderlijk beoordeeld beleid voor verzameling en toegang
+niet naar gewone geüploade artefacten worden gekopieerd. De volgorde van scenario's,
+vastgezette browserversies, één worker, nul herhalingen en de bestaande time-outs
+blijven ongewijzigd.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Van bron naar geaccepteerde kandidaat

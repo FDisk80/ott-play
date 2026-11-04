@@ -109,6 +109,32 @@ target beta evidence. Stable promotion consumes the accepted RC bytes. Re-run
 the whole qualification workflow after failure; older attempt receipts cannot
 complete a new qualification.
 
+## Terminal diagnostics
+
+After the runtime and candidate metadata load, `scripts/browser-acceptance.cjs`
+writes `acceptance-terminal.json` in `CI_BROWSER_DIAGNOSTICS` when acceptance
+finishes or throws. It records the last phase, source/candidate identity,
+browser target, run/attempt, elapsed time and the test-process exit status,
+signal or an allowlisted error code. The record is below 2 KiB and contains no
+raw errors, URLs, stdout/stderr, environment values or memory dumps. It is
+created with exclusive access and mode `0600` in the existing job-owned output
+directory; an existing file or final symlink is not overwritten.
+
+This is **diagnostic evidence, not successful acceptance**. It always declares
+`acceptance: false`; only the separate `CI_BROWSER_EVIDENCE` file can qualify a
+candidate after every existing assertion passes. A failed diagnostic write
+cannot replace the original success or failure. An abrupt termination of the
+wrapper, or a metadata-load failure before it starts, may leave no record.
+A test-process signal is not proof that Firefox's content process received that
+signal. Native crash attribution still needs a matching native stack or a
+controlled reproducer; a passing retry does not close the investigation.
+
+Raw Firefox crash reports and `DEBUG=pw:browser` logging are not enabled by this
+helper. Browser memory and console output may contain sensitive data and must
+not be copied into ordinary uploaded artifacts without a separately reviewed
+collection and access policy. The scenario order, browser pins, one worker,
+zero retries and existing timeouts are unchanged.
+
 ## From source to accepted candidate
 
 ![Source, package verification, capability checks and evidence](diagrams/candidate-verification-flow.svg)

@@ -117,7 +117,7 @@
   "sourceSha256": {
     "README.md": "ccbc255f36af2963c0cf04ff731bddb8c11cdd1c6c41aafe0ef94a28cc1d213c",
     "docs/audio-video-check.md": "62bd56d6b55842826c140051d634d96dc3c06208c251aa8e187f7649ea9e0775",
-    "docs/browser-compatibility.md": "6ac74be0b04e20eb76224a49712db2a41a3a61c432805b47be68880b1e0d0b66",
+    "docs/browser-compatibility.md": "09d121f6a314873c46b716e2af0cf0df1d5b95f3ae094210e511df53b727cda6",
     "docs/guide-binding-accessibility.md": "085cd59604f2dfcd25b2da8e5e0ef833eb0f07a906d8469f2d72a8706d3572e0",
     "docs/implementation-report.md": "345a23ce22e00aa84cf8ffea3c2c54678f6f9ac98a3660b14868763d847a108d",
     "docs/playback-stream-policy.md": "39fc53b375d699c1a69ef12ea88cad29ba33f74f7b2dfb4e3523c5bc75ee8fda",

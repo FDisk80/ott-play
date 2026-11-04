@@ -36,6 +36,34 @@ Her iki yol da üretici işin geçerli çalıştırmadaki kesin çıktı kimliğ
 
 Ortak sürüm kararı, seçilen her hedefi ve kaynak SHA’sını, çalıştırmayı, denemeyi, kanalı ve kesin aday çıktı kimliğini doğrular. RC, beş hedefli beta kanıtını kullanamaz. Stable’a yükseltme kabul edilmiş RC baytlarını kullanır. Hata sonrası tüm yeterlilik iş akışını yeniden çalıştırın; eski denemelerin kayıtları yeni yeterliliği tamamlayamaz.
 
+## Sonlandırma tanılama bilgileri
+
+Çalışma zamanı ve adayın meta verileri yüklendikten sonra, kabul denetimi tamamlandığında
+veya bir istisna fırlattığında `scripts/browser-acceptance.cjs`, `CI_BROWSER_DIAGNOSTICS`
+dizinine `acceptance-terminal.json` dosyasını yazar. Kayıt; son aşamayı, kaynak ve aday
+kimliğini, hedef tarayıcıyı, çalıştırmayı ve denemeyi, geçen süreyi ve test sürecinin
+çıkış durumunu, sinyalini ya da izin verilenler listesindeki bir hata kodunu içerir.
+Kayıt 2 KiB'den küçüktür; ham hatalar, URL'ler, stdout/stderr, ortam değerleri veya bellek
+dökümleri içermez. Dosya, işe ait mevcut çıktı dizininde özel erişim ve `0600` modu ile
+oluşturulur; mevcut bir dosyanın veya son dosya yolundaki sembolik bağlantının üzerine
+yazılmaz.
+
+Bu kayıt **başarılı kabul sonucu değil, tanılama kanıtıdır**. Her zaman
+`acceptance: false` bildirir; ancak ayrı `CI_BROWSER_EVIDENCE` dosyası, mevcut tüm
+doğrulamalar geçtikten sonra adayın yeterliliğini onaylayabilir. Tanılama kaydının
+yazılamaması, ilk başarı veya başarısızlık sonucunun yerini alamaz. Sarmalayıcının aniden
+sonlanması veya bu aşamadan önce meta veriler yüklenirken hata oluşması durumunda kayıt
+bulunmayabilir. Test sürecine ait bir sinyal, Firefox'un içerik sürecinin aynı sinyali
+aldığını kanıtlamaz. Yerel bir çökmenin kaynağını belirlemek için hâlâ eşleşen bir yerel
+çağrı yığını veya hatanın kontrollü biçimde yeniden üretilmesi gerekir; başarılı bir
+yeniden deneme incelemeyi kapatmaz.
+
+Bu yardımcı program, ham Firefox çökme raporlarını veya `DEBUG=pw:browser` günlüklemesini
+etkinleştirmez. Tarayıcı belleği ve konsol çıktısı hassas veriler içerebilir; ayrıca
+incelenmiş bir toplama ve erişim politikası olmadan sıradan yüklenen yapılara kopyalanmamalıdır.
+Senaryoların sırası, sabitlenmiş tarayıcı sürümleri, tek işçi, sıfır yeniden deneme ve
+mevcut zaman aşımları değişmeden kalır.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Kaynaktan kabul edilmiş adaya
