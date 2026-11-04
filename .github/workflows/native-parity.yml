@@ -77,6 +77,8 @@ jobs:
           python scripts/check-windows-manifest.py --cargo-json build/windows-window-controls-report/test-artifacts.jsonl --binary target/release/ottplay-tauri.exe --output build/windows-window-controls-report/test-manifests.json
       - name: Test main-window control contracts on Windows
         run: cargo test --locked -p ottplay-tauri window_controls::tests
+      - name: Test saved window preferences
+        run: cargo test --locked -p ottplay-tauri window_preferences::tests
       - name: Test fullscreen confirmation contracts on Windows
         run: cargo test --locked -p ottplay-tauri fullscreen_confirmation_tests
       - name: Check owned-window smoke runner
