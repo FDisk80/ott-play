@@ -1,5 +1,8 @@
 //! Explicit controls for the calling main desktop window.
 
+#[derive(Default)]
+pub struct AlwaysOnTopPersistence(tokio::sync::Mutex<()>);
+
 #[derive(Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlwaysOnTopResult {
@@ -47,14 +50,47 @@ fn apply_always_on_top(
     })
 }
 
+fn apply_and_persist_always_on_top(
+    window: &impl TopmostWindow,
+    enabled: bool,
+    persist: impl FnOnce(bool) -> Result<(), String>,
+) -> Result<AlwaysOnTopResult, String> {
+    let result = apply_always_on_top(window, enabled)?;
+    persist(result.always_on_top)?;
+    Ok(result)
+}
+
+/// Initial state for the main window, using the same instance root as the setter.
+/// Kept here so the isolated native fixture exercises the production startup loader.
+pub fn initial_always_on_top(app: &tauri::AppHandle) -> bool {
+    crate::instance::app_data_dir(app)
+        .map_err(std::io::Error::other)
+        .and_then(|root| crate::window_preferences::read_always_on_top(&root))
+        .unwrap_or_else(|_| {
+            tracing::warn!("Always-on-top preference unavailable; using normal window state");
+            false
+        })
+}
+
 /// Set, rather than toggle, so retrying the same request is idempotent.
 /// The injected caller window prevents selecting a different window by label.
 #[tauri::command]
 pub async fn set_always_on_top(
+    app: tauri::AppHandle,
     window: tauri::Window,
+    persistence: tauri::State<'_, AlwaysOnTopPersistence>,
     always_on_top: bool,
 ) -> Result<AlwaysOnTopResult, String> {
-    apply_always_on_top(&window, always_on_top)
+    if window.label() != "main" {
+        return Err("Always-on-top control is restricted to the main window".into());
+    }
+    let _transition = persistence.0.lock().await;
+    let root = crate::instance::app_data_dir(&app)?;
+    apply_and_persist_always_on_top(&window, always_on_top, |confirmed| {
+        crate::window_preferences::write_always_on_top(&root, confirmed).map_err(|_| {
+            "The window changed, but its always-on-top preference could not be saved".into()
+        })
+    })
 }
 
 #[cfg(test)]
@@ -193,6 +229,54 @@ mod tests {
                 serde_json::json!({"ok": true, "alwaysOnTop": enabled})
             );
         }
+    }
+
+    #[test]
+    fn preferences_are_written_only_after_confirmed_native_changes() {
+        let window = TestWindow::new("main", false);
+        let stored = Cell::new(false);
+        for enabled in [true, false] {
+            apply_and_persist_always_on_top(&window, enabled, |confirmed| {
+                assert_eq!(window.state.get(), confirmed);
+                assert_eq!(window.calls.borrow().last().unwrap(), "read");
+                stored.set(confirmed);
+                Ok(())
+            })
+            .unwrap();
+            assert_eq!(stored.get(), enabled);
+        }
+    }
+
+    #[test]
+    fn denied_or_unconfirmed_changes_do_not_write_preferences() {
+        for failure in ["caller", "setter", "readback", "mismatch"] {
+            let mut window = TestWindow::new("main", false);
+            match failure {
+                "caller" => window.label = "pip",
+                "setter" => window.set_error = Some("setter failed"),
+                "readback" => window.read_error = Some("readback failed"),
+                "mismatch" => window.ignore_set = true,
+                _ => unreachable!(),
+            }
+            let written = Cell::new(false);
+            assert!(apply_and_persist_always_on_top(&window, true, |_| {
+                written.set(true);
+                Ok(())
+            })
+            .is_err());
+            assert!(!written.get(), "{failure}");
+        }
+    }
+
+    #[test]
+    fn persistence_error_is_not_reported_as_success() {
+        let window = TestWindow::new("main", false);
+        let result = apply_and_persist_always_on_top(&window, true, |_| {
+            Err("preference write failed".into())
+        });
+        assert_eq!(result.unwrap_err(), "preference write failed");
+        // Persistence failure does not pretend to roll back the native setter.
+        assert!(window.state.get());
     }
 
     #[test]

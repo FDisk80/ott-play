@@ -10,6 +10,7 @@ mod instance;
 #[cfg(target_os = "linux")]
 mod linux_media_compat;
 mod preferred_languages;
+mod window_preferences;
 
 use commands::media_session::MediaSessionState;
 use commands::tauri_commands::{PipState, TauriState};
@@ -68,6 +69,7 @@ pub fn run() {
         })
         .manage(background.clone())
         .manage(commands::background::BackgroundPersistence::default())
+        .manage(commands::window_controls::AlwaysOnTopPersistence::default())
         .manage(commands::offline_media::OfflineMediaState::default())
         .manage(commands::companion::CompanionState::default())
         .manage(commands::queue::QueueHttpRuntime::default())
@@ -190,6 +192,7 @@ pub fn run() {
             #[cfg(not(dev))]
             let dev_url = None;
 
+            let always_on_top = commands::window_controls::initial_always_on_top(app.handle());
             let mut builder = tauri::WebviewWindowBuilder::new(
                 app,
                 "main",
@@ -203,6 +206,7 @@ pub fn run() {
             .inner_size(1280.0, 720.0)
             .center()
             .resizable(true)
+            .always_on_top(always_on_top)
             .decorations(false);
             if let Some(data_dir) = instance::resolve_data_dir() {
                 builder = instance::apply_isolation(builder, &data_dir);

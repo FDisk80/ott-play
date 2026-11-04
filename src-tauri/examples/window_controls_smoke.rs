@@ -263,6 +263,49 @@ mod smoke {
         )
     }
 
+    #[derive(Clone, Copy)]
+    enum PreferencePhase {
+        Pin,
+        Unpin,
+        VerifyOff,
+    }
+
+    impl PreferencePhase {
+        fn name(self) -> &'static str {
+            match self {
+                Self::Pin => "pin",
+                Self::Unpin => "unpin",
+                Self::VerifyOff => "verify-off",
+            }
+        }
+    }
+
+    async fn exercise_preference(
+        main: tauri::WebviewWindow,
+        phase: PreferencePhase,
+    ) -> Result<Value, String> {
+        let aux = main
+            .app_handle()
+            .get_webview_window("pip")
+            .ok_or("Auxiliary fixture missing")?;
+        let aux_before = snapshot(&aux)?;
+        // Inspect startup state before issuing any mutating IPC. Each phase is a
+        // new process; only the parent-owned preference directory is reused.
+        let initial = settled(&main, matches!(phase, PreferencePhase::Unpin), false, None).await?;
+        let target = matches!(phase, PreferencePhase::Pin);
+        if !matches!(phase, PreferencePhase::VerifyOff) {
+            top(&main, target).await?;
+        }
+        let final_state = settled(&main, target, false, Some(initial.rect)).await?;
+        if snapshot(&aux)? != aux_before {
+            return Err("Preference restoration changed auxiliary window".into());
+        }
+        Ok(
+            json!({"status": "pass", "mode": "preference-restoration", "phase": phase.name(),
+            "initial": initial, "final": final_state, "aux_unchanged": true}),
+        )
+    }
+
     pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
         let output = PathBuf::from(
             std::env::args()
@@ -276,7 +319,19 @@ mod smoke {
             .create_new(true)
             .open(output.join("fixture-owner"))?;
         let data = output.join("webview-data");
-        let missing = std::env::args().any(|a| a == "--without-permission");
+        let arguments: Vec<String> = std::env::args().skip(2).collect();
+        let missing = arguments.iter().any(|a| a == "--without-permission");
+        let phase = match arguments.as_slice() {
+            [] => None,
+            [flag] if flag == "--without-permission" => None,
+            [flag, value] if flag == "--preference-phase" => Some(match value.as_str() {
+                "pin" => PreferencePhase::Pin,
+                "unpin" => PreferencePhase::Unpin,
+                "verify-off" => PreferencePhase::VerifyOff,
+                _ => return Err("Unknown preference phase".into()),
+            }),
+            _ => return Err("Unsupported fixture arguments".into()),
+        };
         let (done, deadline) = std::sync::mpsc::channel();
         let deadline_output = output.clone();
         let watchdog = std::thread::spawn(move || {
@@ -299,6 +354,7 @@ mod smoke {
         };
         let report_output = output.clone();
         let app = tauri::Builder::default()
+            .manage(window_controls::AlwaysOnTopPersistence::default())
             .invoke_handler(tauri::generate_handler![
                 window_controls::set_always_on_top,
                 tauri_commands::set_fullscreen,
@@ -317,7 +373,9 @@ mod smoke {
                     .position(40.0, 40.0)
                     .decorations(false)
                     .fullscreen(false)
-                    .always_on_top(false)
+                    .always_on_top(
+                        label == "main" && window_controls::initial_always_on_top(app.handle()),
+                    )
                     .visible(label == "main")
                     .incognito(true)
                     .data_directory(data.join(label))
@@ -345,7 +403,11 @@ mod smoke {
                     .expect("owned main fixture");
                 let output = report_output.clone();
                 tauri::async_runtime::spawn(async move {
-                    let result = exercise(main, missing).await;
+                    let result = if let Some(phase) = phase {
+                        exercise_preference(main, phase).await
+                    } else {
+                        exercise(main, missing).await
+                    };
                     let mut code = if result.is_ok() { 0 } else { 1 };
                     let mut report =
                         result.unwrap_or_else(|error| json!({"status": "fail", "error": error}));
