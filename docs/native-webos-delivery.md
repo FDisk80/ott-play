@@ -1,5 +1,9 @@
 # Deliver and update OTTPlay Native for LG
 
+For Developer Mode account setup, pairing, session renewal and CLI diagnostics,
+see the [LG Developer Mode runbook](lg-developer-mode.md). The checked native
+update and recovery procedure remains below.
+
 Use this guide to verify a native release and update an existing installation.
 The [native build guide](../native/webos/README.md) describes source preparation,
 SDK setup and first-time Developer Mode access. The [hosted installation
