@@ -139,6 +139,8 @@ pub struct Library {
     #[cfg(test)]
     native_source_records_gate: Option<Arc<Semaphore>>,
     #[cfg(test)]
+    native_registration_gate: Option<(RegistrationStep, Arc<Semaphore>, Arc<Semaphore>)>,
+    #[cfg(test)]
     scan_entry_limit: usize,
     #[cfg(test)]
     metadata_read_gate: Option<Arc<Mutex<()>>>,
@@ -268,6 +270,40 @@ impl NativeRequest {
         Ok(())
     }
 }
+// Dropping an invoke abandons only its uncommitted registration. The worker
+// still owns its mutation lock and lease while submitted filesystem I/O drains.
+struct NativeRegistrationCaller(NativeRequest);
+impl Drop for NativeRegistrationCaller {
+    fn drop(&mut self) {
+        self.0.cancel();
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RegistrationStep {
+    Index,
+    Part,
+    Commit,
+}
+
+// Flush even after a failed write before returning ownership to cleanup.
+async fn write_registration_file(
+    path: &FsPath,
+    bytes: &[u8],
+    created: &mut bool,
+) -> std::io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .await?;
+    *created = true;
+    let written = file.write_all(bytes).await;
+    let flushed = file.flush().await;
+    written.and(flushed)
+}
+
 impl ScanState {
     // Call only inside the lease's publication gate with the scan lock held.
     // Old epochs remain accounted for by BackgroundWork.pending, but cannot
@@ -661,6 +697,8 @@ impl Library {
             native_source_probe_timeout: None,
             #[cfg(test)]
             native_source_records_gate: None,
+            #[cfg(test)]
+            native_registration_gate: None,
             #[cfg(test)]
             scan_entry_limit: MAX_NATIVE_SCAN_ENTRIES,
             #[cfg(test)]
@@ -1425,47 +1463,52 @@ impl Library {
             path.as_os_str().len() <= 4096 && !path.to_string_lossy().chars().any(char::is_control),
             "Invalid local folder path"
         );
-        #[cfg(test)]
-        let gate = self.native_source_probe_gate.clone();
+        let library = self.clone();
         Self::native_read(
             self.source_probes.clone(),
             work,
             deadline,
-            move |owner| async move {
-                #[cfg(test)]
-                if let Some((blocked, gate)) = gate {
-                    if path == blocked {
-                        // Represents a filesystem call already in flight.
-                        let _gate = checked(Some(&owner), gate.acquire())
-                            .await?
-                            .map_err(storage_error)?;
-                    }
-                }
-                let path = match checked(Some(&owner), fs::canonicalize(path)).await? {
-                    Ok(path) => path,
-                    Err(_) => return Ok(None),
-                };
-                if path.parent().is_none() {
-                    return Err((
-                        StatusCode::BAD_REQUEST,
-                        "Select a local folder below the filesystem root",
-                    ));
-                }
-                let metadata = match checked(Some(&owner), fs::symlink_metadata(&path)).await? {
-                    Ok(metadata) => metadata,
-                    Err(_) => return Ok(None),
-                };
-                if !metadata.is_dir() || metadata.file_type().is_symlink() {
-                    return Err((StatusCode::BAD_REQUEST, "Select an accessible local folder"));
-                }
-                match checked(Some(&owner), fs::read_dir(&path)).await? {
-                    Ok(directory) => drop(directory),
-                    Err(_) => return Ok(None),
-                }
-                Ok(Some(path))
-            },
+            move |owner| async move { library.read_native_folder(path, &owner).await },
         )
         .await
+    }
+
+    async fn read_native_folder(
+        &self,
+        path: PathBuf,
+        owner: &ReadWork,
+    ) -> Result<Option<PathBuf>, Failure> {
+        #[cfg(test)]
+        if let Some((blocked, gate)) = &self.native_source_probe_gate {
+            if &path == blocked {
+                // Represents a filesystem call already in flight.
+                let _gate = checked(Some(owner), gate.acquire())
+                    .await?
+                    .map_err(storage_error)?;
+            }
+        }
+        let path = match checked(Some(owner), fs::canonicalize(path)).await? {
+            Ok(path) => path,
+            Err(_) => return Ok(None),
+        };
+        if path.parent().is_none() {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Select a local folder below the filesystem root",
+            ));
+        }
+        let metadata = match checked(Some(owner), fs::symlink_metadata(&path)).await? {
+            Ok(metadata) => metadata,
+            Err(_) => return Ok(None),
+        };
+        if !metadata.is_dir() || metadata.file_type().is_symlink() {
+            return Err((StatusCode::BAD_REQUEST, "Select an accessible local folder"));
+        }
+        match checked(Some(owner), fs::read_dir(&path)).await? {
+            Ok(directory) => drop(directory),
+            Err(_) => return Ok(None),
+        }
+        Ok(Some(path))
     }
 
     /// Link an explicitly authorized absolute native folder, returning its
@@ -1493,36 +1536,76 @@ impl Library {
         );
         let path = request.run(self.native_folder_path(path, &work)).await??;
         request.check()?;
-        let source = {
-            let _lock = request
-                .run(work.run(self.mutation.lock()))
-                .await?
-                .map_err(anyhow::Error::msg)?;
-            let library = self.clone();
-            let sources = request
-                .run(owned_read(&work, move |owner| async move {
+        let _caller = NativeRegistrationCaller(request.clone());
+        let library = self.clone();
+        let worker_request = request.clone();
+        let worker_work = work.clone();
+        let deadline = self.native_probe_deadline();
+        let mut task =
+            tokio::spawn(async move {
+                let owner = ReadWork {
+                    lease: worker_work,
+                    abandoned: worker_request.cancelled.subscribe(),
+                    deadline: Some(deadline.into_std()),
+                };
+                let _lock = owner
+                    .run(library.mutation.clone().lock_owned())
+                    .await
+                    .map_err(|error| anyhow::anyhow!(error.1))?;
+                worker_request.check()?;
+                let sources = {
                     let _permit = owner
                         .run(library.metadata_reads.acquire())
-                        .await?
-                        .map_err(storage_error)?;
-                    library.read_source_records(Some(&owner)).await
-                }))
-                .await?
-                .map_err(|_| anyhow::anyhow!("Cannot read media sources"))?;
-            let existing = sources
-                .iter()
-                .any(|source| source.path == path && source.kind == "folder");
-            anyhow::ensure!(existing || sources.len() < 32, NATIVE_SOURCE_LIMIT);
-            anyhow::ensure!(
-                existing
-                    || !sources
-                        .iter()
-                        .any(|source| source.path.starts_with(&path)
+                        .await
+                        .map_err(|error| anyhow::anyhow!(error.1))?
+                        .map_err(|_| anyhow::anyhow!("Cannot read media sources"))?;
+                    library
+                        .read_source_records(Some(&owner))
+                        .await
+                        .map_err(|_| anyhow::anyhow!("Cannot read media sources"))?
+                };
+                let existing = sources
+                    .iter()
+                    .any(|source| source.path == path && source.kind == "folder");
+                anyhow::ensure!(existing || sources.len() < 32, NATIVE_SOURCE_LIMIT);
+                anyhow::ensure!(
+                    existing
+                        || !sources.iter().any(|source| source.path.starts_with(&path)
                             || path.starts_with(&source.path)),
-                NATIVE_SOURCE_OVERLAP
-            );
-            self.register_source_checked(&path, true, &sources, &work, Some(&path), Some(&request))
-                .await?
+                    NATIVE_SOURCE_OVERLAP
+                );
+                library
+                    .register_source_checked(
+                        &path,
+                        true,
+                        &sources,
+                        &owner.lease,
+                        Some(&path),
+                        Some((&worker_request, &owner)),
+                    )
+                    .await
+            });
+        let source = tokio::select! {
+            biased;
+            failure = async {
+                tokio::select! {
+                    _ = work.cancelled() => anyhow::anyhow!(BACKGROUND_CANCELLED.1),
+                    result = request.run(std::future::pending::<()>()) =>
+                        result.expect_err("pending request cannot complete"),
+                    _ = tokio::time::sleep_until(deadline) =>
+                        anyhow::anyhow!("Local folder registration timed out"),
+                }
+            } => {
+                request.cancel();
+                if request.state.load(Ordering::SeqCst) == 2 {
+                    // Commit won the race: do not abandon its atomic rename or
+                    // report cancellation while publication is still in flight.
+                    task.await??
+                } else {
+                    return Err(failure);
+                }
+            }
+            result = &mut task => result??,
         };
         let result = NativeSource {
             id: source.id.clone(),
@@ -1554,14 +1637,22 @@ impl Library {
         sources: &[SourceRecord],
         work: &crate::background_work::WorkLease,
         expected_root: Option<&FsPath>,
-        request: Option<&NativeRequest>,
+        registration: Option<(&NativeRequest, &ReadWork)>,
     ) -> anyhow::Result<SourceRecord> {
+        let request = registration.map(|(request, _)| request);
+        let owner = registration.map(|(_, owner)| owner);
         work.check().map_err(anyhow::Error::msg)?;
         let request_folder = request.is_some() && folder;
-        let root = if let Some(request) = request.filter(|_| folder) {
-            request
-                .run(self.native_folder_path(picked.to_path_buf(), work))
-                .await??
+        let root = if let Some(owner) = owner.filter(|_| folder) {
+            let _permit = owner
+                .run(self.source_probes.acquire())
+                .await
+                .map_err(|error| anyhow::anyhow!(error.1))?
+                .map_err(|_| anyhow::anyhow!("Local media storage unavailable"))?;
+            self.read_native_folder(picked.to_path_buf(), owner)
+                .await
+                .map_err(|error| anyhow::anyhow!(error.1))?
+                .ok_or_else(|| anyhow::anyhow!("Local media storage unavailable"))?
         } else {
             work.run(fs::canonicalize(picked))
                 .await
@@ -1623,26 +1714,71 @@ impl Library {
             );
         }
         let destination = self.root.join("sources").join(format!("{id}.json"));
-        let temporary = destination.with_extension("part");
-        work.check().map_err(anyhow::Error::msg)?;
-        if let Some(request) = request {
-            request.check()?;
+        let temporary = destination.with_extension(format!("{}.part", uuid::Uuid::new_v4()));
+        let index = self.root.join("source-index").join(format!("{id}.json"));
+        let mut created_index = false;
+        let mut created_part = false;
+        let check = || -> anyhow::Result<()> {
+            work.check().map_err(anyhow::Error::msg)?;
+            if let Some(request) = request {
+                request.check()?;
+            }
+            if let Some(owner) = owner {
+                owner.check().map_err(|error| anyhow::anyhow!(error.1))?;
+            }
+            Ok(())
+        };
+        let result = async {
+            check()?;
+            if !sources.iter().any(|existing| existing.id == id) {
+                fs::create_dir_all(self.root.join("source-index")).await?;
+                check()?;
+                match write_registration_file(&index, b"[]", &mut created_index).await {
+                    // An existing cache belongs to another operation; never
+                    // truncate it or claim it for this registration's cleanup.
+                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                    result => result?,
+                }
+                #[cfg(test)]
+                self.registration_step(RegistrationStep::Index).await;
+                check()?;
+            }
+            write_registration_file(&temporary, &serde_json::to_vec(&source)?, &mut created_part)
+                .await?;
+            #[cfg(test)]
+            self.registration_step(RegistrationStep::Part).await;
+            check()?;
+            if let Some(request) = request {
+                work.publish(|| request.commit())
+                    .map_err(anyhow::Error::msg)??;
+            }
+            #[cfg(test)]
+            self.registration_step(RegistrationStep::Commit).await;
+            fs::rename(&temporary, &destination).await?;
+            Ok::<_, anyhow::Error>(())
         }
-        if !sources.iter().any(|existing| existing.id == id) {
-            fs::create_dir_all(self.root.join("source-index")).await?;
-            fs::write(
-                self.root.join("source-index").join(format!("{id}.json")),
-                b"[]",
-            )
-            .await?;
+        .await;
+        if result.is_err() {
+            // Keep the owning task/lock/lease until writes and cleanup drain.
+            // These flags are set only after exclusive creation succeeds.
+            for (created, path) in [(created_part, &temporary), (created_index, &index)] {
+                if created && fs::remove_file(path).await.is_err() {
+                    tracing::warn!("Could not remove owned local registration staging file");
+                }
+            }
         }
-        fs::write(&temporary, serde_json::to_vec(&source)?).await?;
-        work.check().map_err(anyhow::Error::msg)?;
-        if let Some(request) = request {
-            request.commit()?;
-        }
-        fs::rename(temporary, destination).await?;
+        result?;
         Ok(source)
+    }
+
+    #[cfg(test)]
+    async fn registration_step(&self, step: RegistrationStep) {
+        if let Some((blocked, entered, release)) = &self.native_registration_gate {
+            if *blocked == step {
+                entered.add_permits(1);
+                release.acquire().await.unwrap().forget();
+            }
+        }
     }
 
     /// Schedule native discovery without keeping the webview's invoke pending.
@@ -5898,6 +6034,260 @@ mod tests {
         assert_eq!(probes.available_permits(), 1);
         assert_eq!(next_operations.load(Ordering::SeqCst), 0);
         assert!(request.commit().is_err());
+    }
+
+    async fn registration_fixture(
+        step: RegistrationStep,
+    ) -> (PathBuf, Library, PathBuf, Arc<Semaphore>, Arc<Semaphore>) {
+        let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let folder = base.join("Movies");
+        fs::create_dir_all(&folder).await.unwrap();
+        let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+            .await
+            .unwrap();
+        let entered = Arc::new(Semaphore::new(0));
+        let release = Arc::new(Semaphore::new(0));
+        library.native_registration_gate = Some((step, entered.clone(), release.clone()));
+        (base, library, folder, entered, release)
+    }
+
+    async fn assert_registration_empty(library: &Library) {
+        for name in ["sources", "source-index"] {
+            let mut entries = fs::read_dir(library.root.join(name)).await.unwrap();
+            assert!(
+                entries.next_entry().await.unwrap().is_none(),
+                "left files in {name}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn native_registration_cancel_and_drop_retain_lock_until_cleanup() {
+        for step in [RegistrationStep::Index, RegistrationStep::Part] {
+            for abort in [false, true] {
+                let (base, library, folder, entered, release) = registration_fixture(step).await;
+                let request = NativeRequest::new(u64::MAX);
+                let token = request.clone();
+                let worker = library.clone();
+                let pending = tokio::spawn(async move {
+                    let work = worker.background.enter().unwrap();
+                    worker.start_link_folder_request(folder, work, token).await
+                });
+                bounded(entered.acquire()).await.unwrap().forget();
+                if abort {
+                    pending.abort();
+                    assert!(bounded(pending)
+                        .await
+                        .err()
+                        .expect("invoke should be aborted")
+                        .is_cancelled());
+                } else {
+                    request.cancel();
+                    assert!(bounded(pending).await.unwrap().is_err());
+                }
+                assert_eq!(library.background.status().pending, 1);
+                assert!(
+                    library.mutation.try_lock().is_err(),
+                    "in-flight stage lost its lock"
+                );
+                release.add_permits(1);
+                wait_for_drain(&library.background).await;
+                assert!(library.mutation.try_lock().is_ok());
+                assert_registration_empty(&library).await;
+                assert!(library.scan.lock().await.source_scans.is_empty());
+                fs::remove_dir_all(base).await.unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn native_registration_deadline_keeps_inflight_stage_owned() {
+        let (base, mut library, folder, entered, release) =
+            registration_fixture(RegistrationStep::Part).await;
+        // The gate establishes admission before the deadline. No tiny timeout
+        // races filesystem setup; this exercises the actual registration timer.
+        library.native_source_probe_timeout = Some(std::time::Duration::from_secs(2));
+        let worker = library.clone();
+        let pending = tokio::spawn(async move {
+            let work = worker.background.enter().unwrap();
+            worker
+                .start_link_folder_request(folder, work, NativeRequest::new(u64::MAX))
+                .await
+        });
+        bounded(entered.acquire()).await.unwrap().forget();
+        let error = tokio::time::timeout(std::time::Duration::from_secs(5), pending)
+            .await
+            .expect("registration deadline did not return")
+            .unwrap()
+            .err()
+            .unwrap();
+        assert_eq!(error.to_string(), "Local folder registration timed out");
+        assert_eq!(library.background.status().pending, 1);
+        assert!(library.mutation.try_lock().is_err());
+        release.add_permits(1);
+        wait_for_drain(&library.background).await;
+        assert_registration_empty(&library).await;
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_registration_standby_drains_before_next_actor() {
+        let (base, library, folder, entered, release) =
+            registration_fixture(RegistrationStep::Part).await;
+        let worker = library.clone();
+        let pending = tokio::spawn(async move {
+            let work = worker.background.enter().unwrap();
+            worker
+                .start_link_folder_request(folder, work, NativeRequest::new(u64::MAX))
+                .await
+        });
+        bounded(entered.acquire()).await.unwrap().forget();
+        library.background.set_standby(true);
+        assert!(bounded(pending).await.unwrap().is_err());
+        assert!(!library.background.status().quiescent);
+        library.background.set_standby(false);
+        let mut next = library.clone();
+        next.native_registration_gate = None;
+        let folder = base.join("Next");
+        fs::create_dir_all(&folder).await.unwrap();
+        let next = tokio::spawn(async move {
+            let work = next.background.enter().unwrap();
+            next.start_link_folder_request(folder, work, NativeRequest::new(u64::MAX))
+                .await
+        });
+        assert!(library.mutation.try_lock().is_err());
+        release.add_permits(1);
+        let source = bounded(next).await.unwrap().unwrap();
+        wait_for_drain(&library.background).await;
+        let sources = library.source_records().await.unwrap();
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].id, source.id);
+        for name in ["sources", "source-index"] {
+            let mut entries = fs::read_dir(library.root.join(name)).await.unwrap();
+            assert_eq!(
+                entries.next_entry().await.unwrap().unwrap().file_name(),
+                format!("{}.json", source.id).as_str()
+            );
+            assert!(entries.next_entry().await.unwrap().is_none());
+        }
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_registration_commit_failure_removes_only_owned_staging() {
+        let (base, mut library, folder, _, _) = registration_fixture(RegistrationStep::Part).await;
+        library.native_registration_gate = None;
+        library.source_records().await.unwrap();
+        let unrelated = library.root.join("sources/another.part");
+        fs::write(&unrelated, b"another actor").await.unwrap();
+        let work = library.background.enter().unwrap();
+        let request = NativeRequest::new(u64::MAX);
+        request.commit().unwrap(); // A second commit must fail after staging.
+        let owner = ReadWork {
+            lease: work.clone(),
+            abandoned: request.cancelled.subscribe(),
+            deadline: None,
+        };
+        let _lock = library.mutation.lock().await;
+        assert!(library
+            .register_source_checked(&folder, true, &[], &work, None, Some((&request, &owner)))
+            .await
+            .is_err());
+        assert_eq!(fs::read(&unrelated).await.unwrap(), b"another actor");
+        fs::remove_file(unrelated).await.unwrap();
+        assert_registration_empty(&library).await;
+        drop(_lock);
+        drop(owner);
+        drop(work);
+        wait_for_drain(&library.background).await;
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_registration_cancelled_rebind_preserves_existing_index() {
+        let (base, mut library, folder, entered, release) =
+            registration_fixture(RegistrationStep::Part).await;
+        library.native_registration_gate = None;
+        let source = library
+            .start_link_folder_path_tracked(folder.clone(), library.background.enter().unwrap())
+            .await
+            .unwrap();
+        wait_for_drain(&library.background).await;
+        let index = library
+            .root
+            .join("source-index")
+            .join(format!("{}.json", source.id));
+        let original = library
+            .root
+            .join("sources")
+            .join(format!("{}.json", source.id));
+        let record = fs::read(&original).await.unwrap();
+        fs::write(&index, b"existing index bytes").await.unwrap();
+        library.native_registration_gate =
+            Some((RegistrationStep::Part, entered.clone(), release.clone()));
+        let worker = library.clone();
+        let request = NativeRequest::new(u64::MAX);
+        let token = request.clone();
+        let pending = tokio::spawn(async move {
+            let work = worker.background.enter().unwrap();
+            worker.start_link_folder_request(folder, work, token).await
+        });
+        bounded(entered.acquire()).await.unwrap().forget();
+        request.cancel();
+        assert!(bounded(pending).await.unwrap().is_err());
+        release.add_permits(1);
+        wait_for_drain(&library.background).await;
+        assert_eq!(fs::read(index).await.unwrap(), b"existing index bytes");
+        assert_eq!(fs::read(original).await.unwrap(), record);
+        let mut entries = fs::read_dir(library.root.join("sources")).await.unwrap();
+        assert!(entries.next_entry().await.unwrap().is_some());
+        assert!(entries.next_entry().await.unwrap().is_none());
+        fs::remove_dir_all(base).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_registration_commit_wins_cancel_and_rename_failure_cleans_staging() {
+        for fail_rename in [false, true] {
+            let (base, library, folder, entered, release) =
+                registration_fixture(RegistrationStep::Commit).await;
+            let request = NativeRequest::new(u64::MAX);
+            let token = request.clone();
+            let worker = library.clone();
+            let pending = tokio::spawn(async move {
+                let work = worker.background.enter().unwrap();
+                worker.start_link_folder_request(folder, work, token).await
+            });
+            bounded(entered.acquire()).await.unwrap().forget();
+            assert_eq!(request.state.load(Ordering::SeqCst), 2);
+            request.cancel();
+            assert_eq!(request.state.load(Ordering::SeqCst), 2);
+            let mut entries = fs::read_dir(library.root.join("source-index"))
+                .await
+                .unwrap();
+            let name = entries.next_entry().await.unwrap().unwrap().file_name();
+            let destination = library.root.join("sources").join(&name);
+            if fail_rename {
+                fs::create_dir(&destination).await.unwrap();
+                fs::write(destination.join("preserve"), b"foreign destination")
+                    .await
+                    .unwrap();
+            }
+            release.add_permits(1);
+            let result = bounded(pending).await.unwrap();
+            assert_eq!(result.is_err(), fail_rename);
+            wait_for_drain(&library.background).await;
+            if fail_rename {
+                assert_eq!(
+                    fs::read(destination.join("preserve")).await.unwrap(),
+                    b"foreign destination"
+                );
+                fs::remove_dir_all(destination).await.unwrap();
+                assert_registration_empty(&library).await;
+            } else {
+                assert_eq!(library.source_records().await.unwrap().len(), 1);
+            }
+            fs::remove_dir_all(base).await.unwrap();
+        }
     }
 
     async fn native_lookup_fixture(library: &Library, name: &str, folder: bool) -> SourceRecord {

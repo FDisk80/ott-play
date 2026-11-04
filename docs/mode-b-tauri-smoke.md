@@ -334,3 +334,19 @@ a retry. Direct IPC acknowledgements must contain a boolean fullscreen state;
 missing state or explicit failure cannot be replaced with the requested value.
 The two Rust test groups run as separate Windows CI steps, so one successful exit
 code cannot hide another group's failure.
+
+### Windows test manifests
+
+The MSVC build embeds `src-tauri/windows-app-manifest.xml` in every executable,
+including library tests and the isolated window-control example. The file is an
+unchanged copy of the default in the locked `tauri-build` 2.6.3 crate; retain its
+Common-Controls 6 dependency when updating that build dependency. Tauri still
+generates the application icon and version resources. GNU Windows and other
+targets keep the normal Tauri build path.
+
+Windows CI extracts `RT_MANIFEST` as data before launching the test executable or
+example, compares its complete XML structure with the checked-in default, and
+retains the XML and executable hashes in the window-control evidence. This avoids
+confusing a loader failure (`STATUS_ENTRYPOINT_NOT_FOUND`) with a failing test.
+The regular IPC, ACL, fullscreen, and installer lifecycle tests remain required.
+See the [upstream diagnosis](https://github.com/tauri-apps/tauri/issues/13419).

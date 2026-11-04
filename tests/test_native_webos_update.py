@@ -14,6 +14,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,15 +66,6 @@ class InstalledApplicationParsingTests(unittest.TestCase):
             with self.subTest(text=text), self.assertRaises(update.UpdateError):
                 update.parse_installed(text)
 
-    def test_running_accepts_cli_display_suffix_and_empty_success(self):
-        self.assertEqual(update.parse_running(""), set())
-        self.assertEqual(update.parse_running(APP_ID + "\n"), {APP_ID})
-        self.assertEqual(update.parse_running(BANNER), set())
-        self.assertEqual(
-            update.parse_running(BANNER + APP_ID + " - display 0\n" + HOSTED_ID + " - display 1\n"),
-            {APP_ID, HOSTED_ID},
-        )
-
     def test_system_info_parses_named_fields_without_executing_device_commands(self):
         result = update.parse_system_info(
             BANNER + "modelName : FIXTURE_MODEL\nsdkVersion : 6.1.0\n"
@@ -90,12 +82,6 @@ class InstalledApplicationParsingTests(unittest.TestCase):
         ):
             with self.subTest(text=text), self.assertRaises(update.UpdateError):
                 update.parse_system_info(text)
-
-    def test_running_does_not_treat_error_text_as_an_app(self):
-        for text in ("Connection refused", "ares-launch ERR! expired session", "not an app id !"):
-            with self.subTest(text=text), self.assertRaises(update.UpdateError):
-                update.parse_running(text)
-
 
 class OfficialReleaseValidationTests(unittest.TestCase):
     def setUp(self):
@@ -255,6 +241,219 @@ def private_tar(entries, *, uid=0, gid=0):
 
 
 @unittest.skipUnless(os.name == "posix", "Ares transport requires macOS or Linux")
+class RemoteCompletenessTests(unittest.TestCase):
+    """Exit zero alone cannot attest that the SDK delivered all remote stdout."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.ares = update.Ares("fixture-tv", runner=lambda *a, **kw: self.fail("external CLI forbidden"))
+        self.transform = lambda raw: raw
+        self.tar_command = shutil.which("tar")
+        self.wires = []
+        self.ares.device = self.device
+
+    def device(self, tool, *args, **kwargs):
+        self.assertEqual((tool, args[0]), ("ares-novacom", "--run"))
+        command = args[1].replace(APP_DIR, str(self.root))
+        command = command.replace("/proc/[0-9]*", shlex.quote(str(self.root / "proc")) + "/[0-9]*")
+        command = command.replace("exec tar -cf -", "exec " + shlex.quote(self.tar_command) + " -cf -")
+        result = subprocess.run(["sh", "-c", command], input=kwargs.get("data"),
+                                capture_output=True, timeout=3, check=False,
+                                env={**os.environ, "COPYFILE_DISABLE": "1"})
+        self.wires.append((args[1], result.returncode, result.stdout))
+        # Deliberately report stdout even on nonzero: test the frame's status check too.
+        return self.transform(BANNER.encode() + result.stdout)
+
+    def test_binary_payload_empty_output_and_exec_preserve_exact_bytes(self):
+        for payload in (b"", b"no-newline", b"\n", bytes(range(256)) * 8, b"@ARES-CLOSE@"):
+            with self.subTest(size=len(payload)):
+                self.assertEqual(self.ares.remote("exec cat", data=payload), payload)
+        self.assertEqual(len({wire[0] for wire in self.wires}), len(self.wires))
+
+    def test_exit_zero_empty_inventory_is_rejected_without_completion_frame(self):
+        for output in (b"", BANNER.encode()):
+            self.transform = lambda raw, output=output: output
+            with self.subTest(output=bool(output)), self.assertRaises(update.UpdateError):
+                self.ares.capture()
+
+    def test_snapshot_protocol_is_written_only_for_a_complete_capture(self):
+        snapshot = self.ares.snapshot(self.root / "snapshot")
+        self.assertEqual(snapshot["capture_protocol"], "novacom-framed-v1")
+        self.assertEqual(json.loads((self.root / "snapshot/manifest.json").read_text()), snapshot)
+        self.transform = lambda raw: b""
+        with self.assertRaises(update.UpdateError):
+            self.ares.snapshot(self.root / "incomplete")
+        self.assertFalse((self.root / "incomplete/manifest.json").exists())
+
+    def test_complete_empty_inventory_is_legitimate(self):
+        self.assertEqual(self.ares.capture(), ({}, {}, b""))
+
+    def test_every_truncated_prefix_missing_end_frame_is_rejected(self):
+        self.assertEqual(self.ares.remote("printf payload"), b"payload")
+        previous = BANNER.encode() + self.wires[-1][2]
+        for length in range(len(previous)):
+            self.transform = lambda raw, length=length: raw[:length]
+            with self.subTest(length=length), self.assertRaises(update.UpdateError):
+                self.ares.remote("printf payload")
+
+    def test_replayed_frame_and_trailing_bytes_are_rejected(self):
+        self.assertEqual(self.ares.remote("printf payload"), b"payload")
+        previous = BANNER.encode() + self.wires[-1][2]
+        for transform in (lambda raw: previous, lambda raw: raw + b"unexpected"):
+            self.transform = transform
+            with self.assertRaises(update.UpdateError):
+                self.ares.remote("printf payload")
+
+    def test_duplicate_foreign_or_invalidly_prefixed_frames_are_rejected(self):
+        for transform in (lambda raw: raw + raw,
+                          lambda raw: raw.replace(b"OTT_NATIVE_STREAM_", b"FOREIGN_STREAM_"),
+                          lambda raw: b"unexpected\n" + raw):
+            self.transform = transform
+            with self.assertRaises(update.UpdateError):
+                self.ares.remote("printf payload")
+
+    def test_nonzero_remote_status_cannot_be_turned_into_success(self):
+        with self.assertRaises(update.UpdateError):
+            self.ares.remote("printf payload; exit 17")
+        self.assertEqual(self.wires[-1][1], 17)
+
+    def test_original_command_error_is_preserved(self):
+        error = update.UpdateError("original_command_failed")
+        with patch.object(self.ares, "device", side_effect=error), self.assertRaises(update.UpdateError) as caught:
+            self.ares.remote("true")
+        self.assertIs(caught.exception, error)
+
+    def test_native_process_empty_is_only_valid_after_completion(self):
+        self.assertFalse(self.ares.native_process())
+        self.transform = lambda raw: BANNER.encode()
+        with self.assertRaises(update.UpdateError) as caught:
+            self.ares.native_process()
+        self.assertEqual(caught.exception.code, "process_inspection_unavailable")
+
+    def test_complete_tar_member_prefix_without_tar_end_blocks_is_rejected(self):
+        archive = private_tar({"ott-state/first": b"A", "ott-state/second": b"B"})
+        with self.assertRaises(update.UpdateError):
+            update.state_archive(archive[:1024])
+
+    def test_tar_root_only_prefix_and_nonzero_padding_are_rejected(self):
+        archive = private_tar({"ott-state": None, "ott-state/first": b"A"})
+        for broken in (archive[:512], archive + b"X" * 512):
+            with self.subTest(length=len(broken)), self.assertRaises(update.UpdateError):
+                update.state_archive(broken)
+        self.assertEqual(len(update.state_archive(archive)[0]), 2)
+
+    def test_zero_filled_file_data_cannot_impersonate_tar_end_blocks(self):
+        archive = private_tar({"ott-state/zeros": b"\0" * 2048})
+        missing_end = archive[:512 + 2048]
+        self.assertTrue(missing_end.endswith(b"\0" * 1024))
+        with self.assertRaises(update.UpdateError):
+            update.state_archive(missing_end)
+        self.assertEqual(update.state_archive(archive)[1]["ott-state/zeros"], b"\0" * 2048)
+
+    def test_real_tar_complete_snapshot_is_accepted(self):
+        (self.root / "ott-state").mkdir()
+        (self.root / "ott-state/first").write_bytes(b"A")
+        for executable in dict.fromkeys(filter(None, (shutil.which("tar"), shutil.which("gtar")))):
+            with self.subTest(tar=executable):
+                self.tar_command = executable
+                rows, content, _ = self.ares.capture()
+                self.assertEqual(content["ott-state/first"], b"A")
+                self.assertIn("ott-state", rows)
+
+    def test_remote_command_and_output_are_bounded(self):
+        with self.assertRaises(update.UpdateError):
+            self.ares.remote("x" * (1024 * 1024))
+        with patch.object(update, "OUTPUT_LIMIT", 16), self.assertRaises(update.UpdateError):
+            self.ares.remote("true")
+
+    def test_truncated_tar_transport_is_rejected_before_parsing(self):
+        (self.root / "ott-state").mkdir()
+        (self.root / "ott-state/first").write_bytes(b"A")
+        (self.root / "ott-state/second").write_bytes(b"B")
+        def truncate_tar(raw):
+            marker = b"OTT_NATIVE_STATE\n"
+            if marker in raw:
+                return raw[:raw.index(marker) + len(marker) + 1024]
+            return raw
+        self.transform = truncate_tar
+        with self.assertRaises(update.UpdateError):
+            self.ares.capture()
+
+
+@unittest.skipUnless(os.name == "posix", "Ares transport requires macOS or Linux")
+class RunningResponseTests(unittest.TestCase):
+    def setUp(self):
+        self.ares = update.Ares("fixture-tv", runner=lambda *a, **kw: self.fail("external CLI forbidden"))
+
+    def run_responses(self, sessions, running):
+        with patch.object(self.ares, "remote", side_effect=[json.dumps(sessions).encode(), json.dumps(running).encode()]) as remote:
+            result = self.ares.running()
+        return result, [call.args[0] for call in remote.call_args_list]
+
+    def test_explicit_legacy_and_zero_apps_are_legitimate(self):
+        result, commands = self.run_responses({"returnValue": False}, {"returnValue": True, "running": []})
+        self.assertEqual(result, set())
+        self.assertEqual(commands[0], '/usr/bin/luna-send-pub -n 1 luna://com.webos.service.sessionmanager/getSessionList \'{"subscribe":false}\'')
+        self.assertEqual(commands[1], '/usr/bin/luna-send-pub -n 1 luna://com.webos.applicationManager/dev/running \'{"subscribe":false}\'')
+
+    def test_display_zero_session_and_duplicate_app_ids_preserve_scope(self):
+        sessions = {"returnValue": True, "sessionList": [
+            {"sessionId": "other", "deviceSetInfo": {"displayId": 1}},
+            {"sessionId": "display-0:session", "deviceSetInfo": {"displayId": 0}},
+        ]}
+        result, commands = self.run_responses(sessions, {"returnValue": True, "running": [{"id": APP_ID}, {"id": APP_ID}]})
+        self.assertEqual(result, {APP_ID})
+        self.assertIn(" -c display-0:session ", commands[1])
+
+    def test_positive_exact_integer_session_id_uses_the_same_single_argument(self):
+        sessions = {"returnValue": True, "sessionList": [
+            {"sessionId": 123, "deviceSetInfo": {"displayId": 0}},
+        ]}
+        result, commands = self.run_responses(sessions, {"returnValue": True, "running": []})
+        self.assertEqual(result, set())
+        self.assertIn(" -c 123 ", commands[1])
+        for invalid in (-1, True, False, None, 1.0, 2**53):
+            sessions["sessionList"][0]["sessionId"] = invalid
+            with self.subTest(session_id=invalid), self.assertRaises(update.UpdateError):
+                self.run_responses(sessions, {"returnValue": True, "running": []})
+
+    def test_numeric_zero_omits_session_option_but_string_zero_includes_it(self):
+        for session_id, option in ((0, False), ("0", True)):
+            sessions = {"returnValue": True, "sessionList": [
+                {"sessionId": session_id, "deviceSetInfo": {"displayId": 0}},
+            ]}
+            result, commands = self.run_responses(sessions, {"returnValue": True, "running": []})
+            self.assertEqual(result, set())
+            self.assertEqual(" -c 0 " in commands[1], option)
+
+    def test_missing_or_malformed_session_response_cannot_fallback(self):
+        for raw in (b"", b"{", b"{}", b'{"returnValue":null}', b'{"returnValue":0}',
+                    b'{"returnValue":true,"sessionList":[]}',
+                    b'{"returnValue":false,"returnValue":false}'):
+            with self.subTest(raw=raw), patch.object(self.ares, "remote", return_value=raw) as remote, self.assertRaises(update.UpdateError):
+                self.ares.running()
+            self.assertEqual(remote.call_count, 1)
+
+    def test_ambiguous_or_unsafe_session_selection_is_rejected(self):
+        for rows in ([{"sessionId": "one", "deviceSetInfo": {"displayId": 1}}],
+                     [{"sessionId": "one", "deviceSetInfo": {"displayId": 0}}] * 2,
+                     [{"sessionId": "$(touch /tmp/never)", "deviceSetInfo": {"displayId": 0}}],
+                     [{"sessionId": "one", "deviceSetInfo": {"displayId": False}}]):
+            with self.subTest(rows=rows), self.assertRaises(update.UpdateError):
+                self.run_responses({"returnValue": True, "sessionList": rows}, {"returnValue": True, "running": []})
+
+    def test_missing_or_malformed_running_response_cannot_mean_zero_apps(self):
+        for raw in (b"", b"{", b"{}", b'{"returnValue":true}', b'{"returnValue":false,"running":[]}',
+                    b'{"returnValue":true,"running":null}', b'{"returnValue":true,"running":[{}]}',
+                    b'{"returnValue":true,"running":[{"id":"bad id"}]}',
+                    b'{"returnValue":true,"running":[],"running":[]}'):
+            with self.subTest(raw=raw), patch.object(self.ares, "remote", side_effect=[b'{"returnValue":false}', raw]), self.assertRaises(update.UpdateError):
+                self.ares.running()
+
+
+@unittest.skipUnless(os.name == "posix", "Ares transport requires macOS or Linux")
 class PrivateStateTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -266,11 +465,27 @@ class PrivateStateTests(unittest.TestCase):
         self.rows, self.content = update.state_archive(self.archive)
         path = self.root / "state.tar"
         path.write_bytes(self.archive)
-        self.snapshot = {"path": str(path), "sha256": hashlib.sha256(self.archive).hexdigest(), "files": self.rows}
+        self.snapshot = {"capture_protocol": "novacom-framed-v1", "path": str(path), "sha256": hashlib.sha256(self.archive).hexdigest(), "files": self.rows}
         self.ares = update.Ares("fixture-tv", runner=self.no_device_command)
 
     def no_device_command(self, *args, **kwargs):
         raise AssertionError("a private-state unit test attempted a real device command")
+
+    def test_snapshot_protocol_rejects_unmarked_or_unknown_restore_without_reads(self):
+        for marker in (None, "legacy", "novacom-framed-v2", 1):
+            snapshot = dict(self.snapshot)
+            if marker is None:
+                snapshot.pop("capture_protocol")
+            else:
+                snapshot["capture_protocol"] = marker
+            before = Path(snapshot["path"]).read_bytes()
+            with self.subTest(protocol=marker), patch.object(self.ares, "capture") as capture, \
+                    patch.object(self.ares, "remote") as remote, self.assertRaises(update.UpdateError) as caught:
+                self.ares.restore(snapshot)
+            self.assertEqual(caught.exception.code, "snapshot_capture_unverified")
+            capture.assert_not_called()
+            remote.assert_not_called()
+            self.assertEqual(Path(snapshot["path"]).read_bytes(), before)
 
     def test_private_archive_accepts_only_expected_roots_and_preserves_bytes(self):
         self.assertEqual(set(self.rows), set(self.entries))
@@ -387,7 +602,7 @@ class LocalRestoreAndPayloadTests(unittest.TestCase):
         path = self.root / "state.tar"
         path.write_bytes(archive)
         rows, _ = update.state_archive(archive)
-        self.snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+        self.snapshot = {"capture_protocol": "novacom-framed-v1", "path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
 
     def local_remote(self, command, *, data=None):
         service_dir = "/media/developer/apps/usr/palm/services/" + APP_ID + ".storage"
@@ -460,7 +675,7 @@ class LocalRestoreAndPayloadTests(unittest.TestCase):
         path = Path(self.snapshot["path"])
         path.write_bytes(archive)
         rows, _ = update.state_archive(archive)
-        self.snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+        self.snapshot = {"capture_protocol": "novacom-framed-v1", "path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
         with self.assertRaises(update.UpdateError):
             self.ares.restore(self.snapshot)
         self.assertFalse((self.application / "ott-state").exists())
@@ -644,7 +859,7 @@ module.exports = {validateCli, run};
         path = self.root / "state.tar"
         path.write_bytes(archive)
         rows, _ = update.state_archive(archive)
-        snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+        snapshot = {"capture_protocol": "novacom-framed-v1", "path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
         self.ares.restore(snapshot)
         self.assertEqual((self.application / "ottplay-profile.json").read_bytes(), contents)
         self.assertEqual((self.application / "ottplay-profile.json").stat().st_mode & 0o777, 0o600)
@@ -727,7 +942,7 @@ class DeviceIdentityTests(unittest.TestCase):
             result = ares.identity()
             command.assert_called_once_with("ares-setup-device", "--listfull")
             device.assert_called_once_with("ares-device", "--system-info")
-            remote.assert_called_once_with(update.DEVICE_ID_COMMAND)
+            remote.assert_called_once_with(update.DEVICE_ID_COMMAND, keep_stdin_open=True)
         return result
 
     def test_identifier_is_hashed_and_not_retained_in_returned_identity(self):
@@ -910,7 +1125,7 @@ class FakeAres:
         path = destination / "state.tar"
         path.write_bytes(archive)
         rows, _ = update.state_archive(archive)
-        snapshot = {"path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
+        snapshot = {"capture_protocol": "novacom-framed-v1", "path": str(path), "sha256": hashlib.sha256(archive).hexdigest(), "files": rows}
         (destination / "manifest.json").write_text(json.dumps(snapshot))
         self.snapshots[str(path)] = dict(self.files)
         return snapshot
@@ -1184,6 +1399,27 @@ class UpdateSequenceTests(unittest.TestCase):
         self.assertNotIn("snapshot", ares.calls)
         self.assertNotIn("install", ares.calls)
 
+    def test_truncated_inventory_blocks_real_capture_before_install(self):
+        class TruncatedInventory(FakeAres):
+            capture = update.Ares.capture
+            snapshot = update.Ares.snapshot
+            remote = update.Ares.remote
+
+            def device(self, *args, **kwargs):
+                self.calls.append("incomplete_remote")
+                return BANNER.encode()
+
+        ares = TruncatedInventory()
+        with self.assertRaises(update.UpdateError) as caught:
+            self.perform(ares, apply=True)
+        self.assertEqual(caught.exception.code, "incomplete_remote_output")
+        self.assertNotIn("install", ares.calls)
+        self.assertNotIn("launch", ares.calls)
+        self.assertEqual(ares.files, ares.initial_files)
+        journal = json.loads((self.root / "state/update.json").read_text())
+        self.assertFalse(journal["install_started"])
+        self.assertEqual(journal["outcome"], "needs-review")
+
     def test_snapshot_failure_prevents_install(self):
         class UnreadableState(FakeAres):
             def snapshot(self, destination):
@@ -1385,6 +1621,63 @@ class UpdateSequenceTests(unittest.TestCase):
         self.assertTrue(set(ares.calls[len(before):]) <= {"identity", "installed", "running", "native_process", "payload_matches", "require_payload_hashing"})
         self.assertEqual(ares.calls.count("install"), 1)
         self.assertEqual(ares.calls.count("snapshot"), 1)
+
+    def test_snapshot_protocol_is_required_before_fresh_install(self):
+        for marker_value in (None, "legacy", "novacom-framed-v2"):
+            with self.subTest(protocol=marker_value), tempfile.TemporaryDirectory() as temporary:
+                self.root = Path(temporary)
+                ares = FakeAres()
+                original = ares.snapshot
+
+                def snapshot(destination):
+                    result = original(destination)
+                    if marker_value is None:
+                        result.pop("capture_protocol")
+                    else:
+                        result["capture_protocol"] = marker_value
+                    return result
+
+                with patch.object(ares, "snapshot", side_effect=snapshot), self.assertRaises(update.UpdateError) as caught:
+                    self.perform(ares, apply=True)
+                self.assertEqual(caught.exception.code, "snapshot_capture_unverified")
+                self.assertNotIn("install", ares.calls)
+                self.assertNotIn("launch", ares.calls)
+                journal = json.loads((self.root / "state/update.json").read_text())
+                self.assertFalse(journal["install_started"])
+
+    def test_snapshot_protocol_blocks_old_empty_partial_and_future_recovery(self):
+        variants = [(None, None, b""), (None, None, b"partial-old-archive"),
+                    ("future", "future", None), ("novacom-framed-v1", None, None),
+                    (None, "novacom-framed-v1", None)]
+        for journal_marker, manifest_marker, replacement in variants:
+            with self.subTest(journal=journal_marker, manifest=manifest_marker, replacement=replacement), tempfile.TemporaryDirectory() as temporary:
+                self.root = Path(temporary)
+                ares = self.timed_out(completed=True)
+                self.perform(ares, apply=True)
+                journal_path = self.root / "state/update.json"
+                manifest_path = self.root / "state/snapshot/manifest.json"
+                archive_path = self.root / "state/snapshot/state.tar"
+                journal = json.loads(journal_path.read_text())
+                manifest = json.loads(manifest_path.read_text())
+                for obj, marker_value in ((journal["snapshot"], journal_marker), (manifest, manifest_marker)):
+                    if marker_value is None:
+                        obj.pop("capture_protocol", None)
+                    else:
+                        obj["capture_protocol"] = marker_value
+                if replacement is not None:
+                    archive_path.write_bytes(replacement)
+                    checksum = hashlib.sha256(replacement).hexdigest()
+                    journal["snapshot"]["sha256"] = checksum
+                    manifest["sha256"] = checksum
+                journal_path.write_text(json.dumps(journal))
+                manifest_path.write_text(json.dumps(manifest))
+                before_files = {p: p.read_bytes() for p in (journal_path, manifest_path, archive_path)}
+                before_calls = len(ares.calls)
+                with self.assertRaises(update.UpdateError) as caught:
+                    self.perform(ares, reconcile=True)
+                self.assertEqual(caught.exception.code, "snapshot_capture_unverified")
+                self.assertFalse(set(ares.calls[before_calls:]) & {"close", "snapshot", "install", "restore", "launch"})
+                self.assertEqual({p: p.read_bytes() for p in before_files}, before_files)
 
     def test_reconcile_completed_install_restores_state_without_another_install(self):
         ares = self.timed_out(completed=True)
@@ -1604,6 +1897,111 @@ class UpdateSequenceTests(unittest.TestCase):
         capture.assert_not_called()
         self.assertNotIn("launch", ares.calls)
         self.assertEqual(ares.calls.count("install"), 1)
+
+
+@unittest.skipUnless(os.name == "posix", "Held input needs POSIX process transport")
+class StdinLifecycleTests(unittest.TestCase):
+    def test_closed_input_reproduces_empty_success_held_input_allows_response(self):
+        # Model the documented luna-send -n HUP behavior with real POSIX input.
+        child = 'import select,sys; readable=select.select([sys.stdin],[],[],0.15)[0]; sys.stdout.write("" if readable else \'{"returnValue":true,"running":[]}\')'
+        command = [sys.executable, '-c', child]
+        self.assertEqual(update.run_command(command, operation='fixture'), b'')
+        self.assertEqual(json.loads(update.run_command(command, operation='fixture', keep_stdin_open=True)), {'returnValue': True, 'running': []})
+
+    def test_held_pipe_closed_after_success_and_nonzero_exit(self):
+        original = subprocess.Popen
+        for status in (0, 3):
+            seen = []
+            def start(*args, **kwargs):
+                process = original(*args, **kwargs)
+                seen.append(process)
+                return process
+            with self.subTest(status=status), patch.object(update.subprocess, 'Popen', side_effect=start):
+                if status:
+                    with self.assertRaises(update.UpdateError):
+                        update.run_command([sys.executable, '-c', f'raise SystemExit({status})'], operation='fixture', keep_stdin_open=True)
+                else:
+                    update.run_command([sys.executable, '-c', 'pass'], operation='fixture', keep_stdin_open=True)
+            self.assertEqual(len(seen), 1)
+            self.assertIsNotNone(seen[0].poll())
+            self.assertTrue(seen[0].stdin.closed)
+
+    def test_held_pipe_closed_and_process_reaped_after_timeout(self):
+        original = subprocess.Popen
+        seen = []
+        def start(*args, **kwargs):
+            process = original(*args, **kwargs)
+            seen.append(process)
+            return process
+        with patch.object(update.subprocess, 'Popen', side_effect=start), self.assertRaises(update.UpdateError) as error:
+            update.run_command([sys.executable, '-c', 'import sys; sys.stdin.read()'], operation='fixture', timeout=0.15, keep_stdin_open=True)
+        self.assertEqual(error.exception.code, 'fixture_timeout')
+        self.assertIsNotNone(seen[0].poll())
+        self.assertTrue(seen[0].stdin.closed)
+
+    def test_private_input_cannot_be_mixed_with_held_input(self):
+        with patch.object(update.subprocess, 'Popen') as start, self.assertRaises(update.UpdateError) as error:
+            update.run_command(['unused'], operation='fixture', data=b'private', keep_stdin_open=True)
+        self.assertEqual(error.exception.code, 'invalid_held_input')
+        start.assert_not_called()
+
+    def test_running_requests_hold_for_both_typed_calls(self):
+        ares = update.Ares.__new__(update.Ares)
+        with patch.object(ares, 'remote', side_effect=[b'{"returnValue":false}', b'{"returnValue":true,"running":[]}']) as remote:
+            self.assertEqual(ares.running(), set())
+        self.assertEqual(len(remote.call_args_list), 2)
+        self.assertTrue(all(call.kwargs.get('keep_stdin_open') is True for call in remote.call_args_list))
+
+
+
+@unittest.skipUnless(os.name == "posix", "Held input needs POSIX process transport")
+class StdinCleanupEdge(unittest.TestCase):
+    def process(self):
+        stream = io.BytesIO()
+        self.addCleanup(stream.close)
+        return SimpleNamespace(pid=123, stdin=stream, poll=lambda: None, wait=lambda: None)
+
+    def test_pipe_closed_when_killpg_raises(self):
+        process = self.process()
+        expected = PermissionError('injected cleanup failure')
+        with patch.object(update.subprocess, 'Popen', return_value=process), \
+                patch.object(update.os, 'killpg', side_effect=expected), \
+                self.assertRaises(PermissionError) as caught:
+            update.run_command(['never-executed'], operation='fixture', timeout=0, keep_stdin_open=True)
+        self.assertIs(caught.exception, expected)
+        self.assertTrue(process.stdin.closed, 'Held parent stdin leaked after failed killpg')
+
+    def test_pipe_closed_when_wait_is_interrupted(self):
+        process = self.process()
+        expected = KeyboardInterrupt('injected cleanup interruption')
+        process.wait = lambda: (_ for _ in ()).throw(expected)
+        with patch.object(update.subprocess, 'Popen', return_value=process), \
+                patch.object(update.os, 'killpg'), self.assertRaises(KeyboardInterrupt) as caught:
+            update.run_command(['never-executed'], operation='fixture', timeout=0, keep_stdin_open=True)
+        self.assertIs(caught.exception, expected)
+        self.assertTrue(process.stdin.closed, 'Held parent stdin leaked after interrupted wait')
+
+    def test_held_mode_reaches_runner_and_default_remains_absent(self):
+        calls = []
+        token = '1' * 32
+        raw = ('OTT_NATIVE_STREAM_' + token + '_BEGIN\n\nOTT_NATIVE_STREAM_' + token + '_END:0\n').encode()
+        def runner(command, **kwargs):
+            calls.append(kwargs)
+            return raw
+        ares = update.Ares('offline', runner=runner)
+        with patch.object(update.shutil, 'which', return_value='/never-executed'), \
+                patch.object(update.uuid, 'uuid4', return_value=SimpleNamespace(hex=token)):
+            self.assertEqual(ares.remote('true', keep_stdin_open=True), b'')
+            self.assertEqual(ares.remote('true'), b'')
+        self.assertIs(calls[0]['keep_stdin_open'], True)
+        self.assertNotIn('keep_stdin_open', calls[1])
+
+    def test_non_novacom_tool_rejects_held_input_before_execution(self):
+        ares = update.Ares('offline', runner=lambda *a, **kw: self.fail('Execution forbidden'))
+        with self.assertRaises(update.UpdateError) as caught:
+            ares.command('ares-install', keep_stdin_open=True)
+        self.assertEqual(caught.exception.code, 'invalid_held_input')
+
 
 
 if __name__ == "__main__":
