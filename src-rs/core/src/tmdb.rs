@@ -91,8 +91,9 @@ mod tests {
 
     #[test]
     fn request_errors_do_not_expose_api_keys() {
-        // Build an invalid-header error without sending a request. Attach an
-        // HTTPS URL to exercise redaction of a real credential-bearing error.
+        // Build an invalid-header error from a credential-free URL without
+        // sending a request. Attach the sensitive URL only as error metadata
+        // to exercise redaction without giving it to a request builder.
         let secret = "synthetic-tmdb-secret";
         let url = reqwest::Url::parse(&format!(
             "https://example.invalid/3/movie/1?api_key={secret}"
@@ -102,7 +103,7 @@ mod tests {
             .https_only(true)
             .build()
             .unwrap()
-            .get(url.clone())
+            .get("https://example.invalid/")
             .header("X-Redaction-Test", "\n")
             .build()
             .unwrap_err()
