@@ -338,6 +338,26 @@ class CurrentBuildInputsTests(unittest.TestCase):
 
 
 class RequiredBuildReceiptsTests(unittest.TestCase):
+    def test_policy_receipt_names_fit_the_asset_staging_limit(self):
+        """Reject an impossible receipt inventory before publication begins."""
+        import release_control
+        for size in (199, 200, 201):
+            name = "release-inputs-" + "a" * (size - len("release-inputs-.json")) + ".json"
+            policy = {"versioning": {"schema": 1, "promotion": "final-build",
+                      "files": [{"path": "VERSION", "format": "text", "value": "package"}],
+                      "required_build_receipts": [name]}}
+            with self.subTest(size=size):
+                if size <= 200:
+                    self.assertIsNotNone(release_control.NAME_RE.fullmatch(name))
+                    self.assertEqual(version_plan.validate_policy(policy)["required_build_receipts"], [name])
+                    version_receipt.verify_required_build_receipts([{"name": name}], policy)
+                else:
+                    self.assertIsNone(release_control.NAME_RE.fullmatch(name))
+                    with self.assertRaises(version_plan.VersionError):
+                        version_plan.validate_policy(policy)
+                    with self.assertRaises(version_plan.VersionError):
+                        version_receipt.verify_required_build_receipts([{"name": name}], policy)
+
     def test_legacy_policy_keeps_its_existing_contract(self):
         version_receipt.verify_required_build_receipts([], {"versioning": {}})
 

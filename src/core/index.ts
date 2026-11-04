@@ -1689,6 +1689,13 @@ function startCoreEngine(
                 (window as any).__ottLocalMedia.isPlaybackUrl(url) &&
                 !coreCompat(url)
             );
+            if (localFile)
+                coreCall(
+                    (window as any).__ottLocalMedia,
+                    "warmDiagnostics",
+                    [url],
+                    3
+                );
             startCorePlayback(
                 playbackUrl,
                 position,

@@ -217,6 +217,7 @@ def required_build_receipts(config: dict[str, object]) -> set[str] | None:
     if (
         not isinstance(names, list) or not names
         or any(not isinstance(name, str)
+               or len(name) > 200
                or not re.fullmatch(r"release-inputs-[A-Za-z0-9._-]+\.json", name, re.ASCII)
                or name == "release-inputs-fuzz.json" for name in names)
     ):

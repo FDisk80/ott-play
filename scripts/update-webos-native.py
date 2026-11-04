@@ -36,6 +36,7 @@ DEVICE_ID_COMMAND = '/usr/bin/luna-send-pub -n 1 luna://com.webos.service.sm/dev
 STATE_ROOTS = ("ottplay-profile.json", "ottplay-control.json", "ott-state")
 STATE_LIMIT = 32 * 1024 * 1024
 OUTPUT_LIMIT = 64 * 1024 * 1024
+CAPTURE_PROTOCOL = "novacom-framed-v1"
 VERSION = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 RELEASE_BINDINGS = (
@@ -110,6 +111,13 @@ def load_module(filename):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def require_capture_protocol(snapshot):
+    check(
+        isinstance(snapshot, dict) and snapshot.get("capture_protocol") == CAPTURE_PROTOCOL,
+        "snapshot_capture_unverified",
+    )
 
 
 def require_device_binding(identity):
@@ -190,17 +198,6 @@ def parse_installed(text):
             check(app.get("type") == "native", "not_native_installation")
             app["folderPath"] = APP_DIR
     return apps
-
-
-def parse_running(text):
-    result = set()
-    for line in cli_lines(text):
-        match = re.fullmatch(
-            r"([A-Za-z0-9][A-Za-z0-9._-]*\.[A-Za-z0-9._-]+)(?: - display [0-9]+)?", line
-        )
-        check(match is not None, "invalid_running_inventory")
-        result.add(match[1])
-    return result
 
 
 def parse_system_info(text):
@@ -390,10 +387,19 @@ def official_release(tag, directory):
             destination = directory / name
             check(not destination.is_symlink(), "unsafe_release_file")
             if not destination.exists():
+                assets = release.get("assets")
+                check(isinstance(assets, list), "invalid_release_assets")
+                matches = [asset for asset in assets if isinstance(asset, dict) and asset.get("name") == name]
+                check(len(matches) == 1, "missing_or_duplicate_release_asset")
+                expected = matches[0].get("digest", "")
+                check(isinstance(expected, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", expected),
+                      "missing_official_asset_digest")
                 publisher.fetch_public_asset(
                     f"https://github.com/{REPOSITORY}/releases/download/{tag}/{name}",
                     destination,
                     128 * 1024 * 1024 if suffix == ".ipk" else 8 * 1024 * 1024,
+                    expected_sha256=expected.removeprefix("sha256:"),
+                    expected_size=matches[0].get("size"),
                 )
         result = verify_release_files(directory, tag, release, ref)
         check(
@@ -449,7 +455,8 @@ def command_error(raw):
     return "ares_command_failed"
 
 
-def run_command(command, *, operation, timeout=30, data=None, private_input=False):
+def run_command(command, *, operation, timeout=30, data=None, private_input=False, keep_stdin_open=False):
+    check(type(keep_stdin_open) is bool and not (keep_stdin_open and (data is not None or private_input)), "invalid_held_input")
     environment = {**os.environ, "DEBUG": "", "NODE_DEBUG": ""}
     with (
         tempfile.TemporaryFile() as output,
@@ -476,9 +483,9 @@ def run_command(command, *, operation, timeout=30, data=None, private_input=Fals
         try:
             process = subprocess.Popen(
                 command,
-                stdin=source
-                if data is not None and not private_input
-                else subprocess.DEVNULL,
+                stdin=subprocess.PIPE if keep_stdin_open else (
+                    source if data is not None and not private_input else subprocess.DEVNULL
+                ),
                 stdout=output,
                 stderr=errors,
                 env=environment,
@@ -497,12 +504,16 @@ def run_command(command, *, operation, timeout=30, data=None, private_input=Fals
         except OSError:
             raise UpdateError("ares_execution_unavailable") from None
         finally:
-            if process is not None and process.poll() is None:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
+            try:
+                if process is not None and process.poll() is None:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    process.wait()
+            finally:
+                if process is not None and process.stdin is not None:
+                    process.stdin.close()
         check(
             os.fstat(output.fileno()).st_size <= OUTPUT_LIMIT
             and os.fstat(errors.fileno()).st_size <= 1024 * 1024,
@@ -578,6 +589,13 @@ def state_archive(data):
                 "directory": member.isdir(),
             }
             content[name] = raw
+        # tarfile's streaming reader accepts EOF between complete members. That
+        # is not a complete snapshot: require tar's two end blocks and padding.
+        padding = data[archive.offset:]
+        check(
+            len(data) % 512 == 0 and len(padding) >= 1024 and not any(padding),
+            "private_state_truncated",
+        )
     return rows, content
 
 
@@ -605,7 +623,8 @@ class Ares:
                 "unsupported_ares_version",
             )
 
-    def command(self, tool, *arguments, operation="preflight", timeout=30, data=None):
+    def command(self, tool, *arguments, operation="preflight", timeout=30, data=None, keep_stdin_open=False):
+        check(not keep_stdin_open or (tool == "ares-novacom" and data is None), "invalid_held_input")
         if data is not None:
             check(tool == "ares-novacom", "unsupported_private_transfer")
             return self.runner(
@@ -626,7 +645,8 @@ class Ares:
             check(executable is not None, "ares_not_installed")
             command = [executable]
         return self.runner(
-            [*command, *arguments], operation=operation, timeout=timeout, data=data
+            [*command, *arguments], operation=operation, timeout=timeout, data=data,
+            **({"keep_stdin_open": True} if keep_stdin_open else {}),
         )
 
     def private_input_command(self):
@@ -670,7 +690,7 @@ class Ares:
         try:
             response = json_bytes(
                 "\n".join(
-                    cli_lines(self.remote(DEVICE_ID_COMMAND).decode("utf-8"))
+                    cli_lines(self.remote(DEVICE_ID_COMMAND, keep_stdin_open=True).decode("utf-8"))
                 ).encode()
             )
             check(
@@ -724,12 +744,97 @@ class Ares:
         return next((row for row in apps if row["id"] == APP_ID), None)
 
     def running(self):
-        return parse_running(self.device("ares-launch", "--running").decode("utf-8"))
-
-    def remote(self, command, *, data=None):
-        return self.device(
-            "ares-novacom", "--run", command, operation="private_state", data=data
+        # Match the pinned CLI's public-bus/display-0 selection, but require
+        # complete typed responses instead of interpreting missing stdout as [].
+        command = "/usr/bin/luna-send-pub -n 1 "
+        params = " '{\"subscribe\":false}'"
+        sessions = json_bytes(self.remote(
+            command + "luna://com.webos.service.sessionmanager/getSessionList" + params,
+            keep_stdin_open=True,
+        ))
+        check(
+            isinstance(sessions, dict) and type(sessions.get("returnValue")) is bool,
+            "invalid_running_sessions",
         )
+        if sessions["returnValue"]:
+            rows = sessions.get("sessionList")
+            check(isinstance(rows, list) and 0 < len(rows) <= 256, "invalid_running_sessions")
+            selected = []
+            for row in rows:
+                check(isinstance(row, dict), "invalid_running_sessions")
+                device = row.get("deviceSetInfo")
+                check(
+                    isinstance(device, dict)
+                    and type(device.get("displayId")) is int
+                    and device["displayId"] >= 0,
+                    "invalid_running_sessions",
+                )
+                if device["displayId"] == 0:
+                    selected.append(row.get("sessionId"))
+            check(len(selected) == 1, "invalid_running_sessions")
+            session_id = selected[0]
+            check(
+                (type(session_id) is int and 0 <= session_id <= 2**53 - 1)
+                or (isinstance(session_id, str)
+                    and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", session_id)),
+                "invalid_running_sessions",
+            )
+            # The SDK omits -c for numeric zero, but includes it for string "0".
+            if session_id:
+                command += "-c " + shlex.quote(str(session_id)) + " "
+        response = json_bytes(self.remote(
+            command + "luna://com.webos.applicationManager/dev/running" + params,
+            keep_stdin_open=True,
+        ))
+        check(
+            isinstance(response, dict) and response.get("returnValue") is True
+            and isinstance(response.get("running"), list) and len(response["running"]) <= 4096,
+            "invalid_running_inventory",
+        )
+        result = set()
+        for row in response["running"]:
+            check(isinstance(row, dict), "invalid_running_inventory")
+            app_id = row.get("id")
+            check(
+                isinstance(app_id, str) and len(app_id) <= 256
+                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*\.[A-Za-z0-9._-]+", app_id),
+                "invalid_running_inventory",
+            )
+            result.add(app_id)
+        return result
+
+    def remote(self, command, *, data=None, keep_stdin_open=False):
+        # SDK 3.2.6 can report SSH exit before draining stdout. A fresh trailing
+        # frame proves ordered-stream completion; it is not peer authentication.
+        check(isinstance(command, str) and "\0" not in command, "invalid_remote_command")
+        token = "OTT_NATIVE_STREAM_" + uuid.uuid4().hex
+        begin, end = token + "_BEGIN\n", "\n" + token + "_END:"
+        wrapped = (
+            "printf '%s' " + shlex.quote(begin) + "; (\n" + command
+            + "\n); ott_status=$?; printf '%s%s\\n' " + shlex.quote(end)
+            + ' "$ott_status"; exit "$ott_status"'
+        )
+        check(len(wrapped.encode("utf-8")) <= 1024 * 1024, "remote_command_limit")
+        raw = self.device(
+            "ares-novacom", "--run", wrapped, operation="private_state", data=data,
+            **({"keep_stdin_open": True} if keep_stdin_open else {}),
+        )
+        check(isinstance(raw, bytes) and len(raw) <= OUTPUT_LIMIT, "invalid_remote_output")
+        prefix, separator, framed = raw.partition(begin.encode("ascii"))
+        try:
+            valid_prefix = not list(cli_lines(prefix.decode("utf-8")))
+        except UnicodeError:
+            valid_prefix = False
+        check(
+            separator and valid_prefix and raw.count(begin.encode("ascii")) == 1,
+            "incomplete_remote_output",
+        )
+        payload, separator, status = framed.rpartition(end.encode("ascii"))
+        check(
+            separator and status == b"0\n" and framed.count(end.encode("ascii")) == 1,
+            "incomplete_remote_output",
+        )
+        return payload
 
     def native_process(self):
         command = 'for p in /proc/[0-9]*; do [ -d "$p" ] || continue; '
@@ -885,6 +990,7 @@ class Ares:
             )
         write_private(directory / "state.tar", archive)
         snapshot = {
+            "capture_protocol": CAPTURE_PROTOCOL,
             "path": str(directory / "state.tar"),
             "sha256": digest(archive),
             "files": before,
@@ -895,6 +1001,7 @@ class Ares:
         return snapshot
 
     def restore(self, snapshot):
+        require_capture_protocol(snapshot)
         path = Path(snapshot["path"])
         check(
             not path.is_symlink() and path.stat().st_size <= STATE_LIMIT,
@@ -1048,6 +1155,7 @@ def reconcile_device(ares, release, state_dir, *, attempts=3, poll_interval=1):
         receipt.get("application_id") == APP_ID and receipt.get("snapshot"),
         "recovery_snapshot_unavailable",
     )
+    require_capture_protocol(receipt["snapshot"])
     require_device_binding(receipt.get("device"))
     check(ares.identity() == receipt.get("device"), "device_identity_changed")
     current = ares.installed()
@@ -1063,6 +1171,7 @@ def reconcile_device(ares, release, state_dir, *, attempts=3, poll_interval=1):
     path = directory / "snapshot/manifest.json"
     check(path.is_file() and not path.is_symlink(), "recovery_snapshot_unavailable")
     snapshot = json_bytes(path.read_bytes())
+    require_capture_protocol(snapshot)
     check(
         snapshot.get("path") == str(directory / "snapshot/state.tar")
         and snapshot.get("sha256") == receipt["snapshot"]["sha256"],
@@ -1257,7 +1366,9 @@ def _update_device(
         )
         check(ares.identity() == identity, "device_identity_changed")
         snapshot = ares.snapshot(directory / "snapshot")
+        require_capture_protocol(snapshot)
         receipt["snapshot"] = {
+            "capture_protocol": snapshot["capture_protocol"],
             "sha256": snapshot["sha256"],
             "entries": len(snapshot["files"]),
         }
