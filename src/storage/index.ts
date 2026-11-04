@@ -1456,6 +1456,24 @@ export const stbDelItem = storage.del;
  */
 export const stbClearAllItems = storage.clear;
 
+/** Installation-only settings are excluded from every portable snapshot. */
+function isInstallationSettingsKey(key: string): boolean {
+    return (
+        key === "__ottKioskV1" ||
+        key === "offlineProfileBindings" ||
+        key === "__ottStandbyV1" ||
+        key === "sNotificationsEnabled" ||
+        key === "companionEndpoint" ||
+        key === "sCompanionEndpoint" ||
+        key === "torrentCatalogEndpoint" ||
+        key === "sTorrentCatalogEndpoint" ||
+        key === "torrentStreamAddons" ||
+        key === "sTorrentStreamAddons" ||
+        /^__ottRemoteLifecycleToken_/.test(key) ||
+        isStorageMetadataKey(key)
+    );
+}
+
 /**
  * Backward-compatible alias — dump all items from the underlying storage.
  * @see StorageAdapter.dump
@@ -1463,21 +1481,7 @@ export const stbClearAllItems = storage.clear;
 export function stbGetAllItems(): Record<string, string> {
     var items = storage.dump();
     Object.keys(items).forEach(function (key) {
-        if (
-            key === "__ottKioskV1" ||
-            key === "offlineProfileBindings" ||
-            key === "__ottStandbyV1" ||
-            key === "sNotificationsEnabled" ||
-            key === "companionEndpoint" ||
-            key === "sCompanionEndpoint" ||
-            key === "torrentCatalogEndpoint" ||
-            key === "sTorrentCatalogEndpoint" ||
-            key === "torrentStreamAddons" ||
-            key === "sTorrentStreamAddons" ||
-            /^__ottRemoteLifecycleToken_/.test(key) ||
-            isStorageMetadataKey(key)
-        )
-            delete items[key];
+        if (isInstallationSettingsKey(key)) delete items[key];
     });
     return items;
 }
@@ -1485,18 +1489,7 @@ export function stbGetAllItems(): Record<string, string> {
 /** Credentials, consent and recursive snapshots belong to this installation. */
 export function isPortableSettingsKey(key: string): boolean {
     return (
-        key !== "__ottKioskV1" &&
-        key !== "offlineProfileBindings" &&
-        key !== "__ottStandbyV1" &&
-        key !== "sNotificationsEnabled" &&
-        key !== "companionEndpoint" &&
-        key !== "sCompanionEndpoint" &&
-        key !== "torrentCatalogEndpoint" &&
-        key !== "sTorrentCatalogEndpoint" &&
-        key !== "torrentStreamAddons" &&
-        key !== "sTorrentStreamAddons" &&
-        !/^__ottRemoteLifecycleToken_/.test(key) &&
-        !isStorageMetadataKey(key) &&
+        !isInstallationSettingsKey(key) &&
         (window as any).OttPlayCore.classicPortableKey(key, true)
     );
 }
@@ -1510,21 +1503,7 @@ export function portableSettingsSnapshot(
         true
     );
     Object.keys(result).forEach(function (key) {
-        if (
-            key === "__ottKioskV1" ||
-            key === "offlineProfileBindings" ||
-            key === "__ottStandbyV1" ||
-            key === "sNotificationsEnabled" ||
-            key === "companionEndpoint" ||
-            key === "sCompanionEndpoint" ||
-            key === "torrentCatalogEndpoint" ||
-            key === "sTorrentCatalogEndpoint" ||
-            key === "torrentStreamAddons" ||
-            key === "sTorrentStreamAddons" ||
-            /^__ottRemoteLifecycleToken_/.test(key) ||
-            isStorageMetadataKey(key)
-        )
-            delete result[key];
+        if (isInstallationSettingsKey(key)) delete result[key];
     });
     if (Object.prototype.hasOwnProperty.call(result, "offlineProfiles")) {
         var offline = (window as any).__ottOfflineProfiles;

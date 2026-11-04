@@ -513,6 +513,7 @@ test("local backup restore never clears an existing PIN, including omitted keys 
         true
     );
     const names = [
+        "isInstallationSettingsKey",
         "isStorageMetadataKey",
         "isPortableSettingsKey",
         "portableSettingsSnapshot",
