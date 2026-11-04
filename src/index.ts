@@ -5056,6 +5056,21 @@ window.settingsButtons = function (): void {
     }
     if (typeof w.stbToggleSubtitle !== "function") u[17] = "@@@";
     var noyes = [label("no"), label("yes")];
+    function playbackArrow(
+        name: string,
+        id: string,
+        value: number,
+        volume: string
+    ) {
+        // Desktop playback owns these keys; retain saved TV mappings unchanged.
+        if (/^pc(?:2)?$/.test(w.ott_device || ""))
+            return {
+                cur: label("volume") + " (" + volume + ")",
+                name: name,
+                values: function () {},
+            };
+        return choice(name, id, value, u);
+    }
     w.listArray = page.rows([
         choice(
             w._(r, a + (w.strLEFT || "L") + o, a + (w.strRIGHT || "R") + o),
@@ -5079,8 +5094,18 @@ window.settingsButtons = function (): void {
             w.sPNFun,
             [label("paging"), "dune-php", "neutrino", label("begin/end")]
         ),
-        choice(w._(s, a + (w.strLEFT || "L") + o), "alFun", w.sALfun, u),
-        choice(w._(s, a + (w.strRIGHT || "R") + o), "arFun", w.sARfun, u),
+        playbackArrow(
+            w._(s, a + (w.strLEFT || "L") + o),
+            "alFun",
+            w.sALfun,
+            "V−"
+        ),
+        playbackArrow(
+            w._(s, a + (w.strRIGHT || "R") + o),
+            "arFun",
+            w.sARfun,
+            "V+"
+        ),
         choice(w._(s, a + (w.strUP || "U") + o), "auFun", w.sAUfun, u),
         choice(w._(s, a + (w.strDOWN || "D") + o), "adFun", w.sADfun, u),
         choice(w._(s, a + (w.strRW || "RW") + o), "rwFun", w.sRWfun, u),

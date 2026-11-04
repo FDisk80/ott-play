@@ -1346,6 +1346,16 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
         f.api.refresh();
         f.w.document.getElementById("info1").style.display = "block";
         f.api.sync();
+        const rail = f.w.document.querySelector(".modern-player-actions");
+        const play = f.w.document.querySelector(
+            '[data-modern-player-action="play"]'
+        );
+        const rewind = f.w.document.querySelector(
+            '[data-modern-player-action="rewind"]'
+        );
+        rail.getBoundingClientRect = () => ({ left: 0, right: 100 });
+        play.getBoundingClientRect = () => ({ left: 75, right: 140 });
+        rewind.getBoundingClientRect = () => ({ left: -20, right: 20 });
         const key = (name) =>
             f.w.dispatchEvent(
                 new f.w.KeyboardEvent("keydown", { bubbles: true, key: name })
@@ -1366,12 +1376,22 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
             ),
             "play"
         );
+        assert.equal(
+            rail.scrollLeft,
+            48,
+            "expanded Play stays inside the rail"
+        );
         key("ArrowRight");
         assert.equal(
             f.w.document.activeElement.getAttribute(
                 "data-modern-player-action"
             ),
             "rewind"
+        );
+        assert.equal(
+            rail.scrollLeft,
+            20,
+            "focus moving left reveals the next action"
         );
         key("Enter");
         assert.deepEqual(f.calls, [
@@ -1389,6 +1409,86 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
     } finally {
         f.api.destroy();
         f.dom.window.close();
+    }
+});
+
+test("focused actions reveal only overflow and preserve visible positions", () => {
+    const cases = [
+        {
+            expected: 100,
+            left: 20,
+            name: "already visible",
+            right: 60,
+            start: 100,
+        },
+        {
+            expected: 72,
+            left: -20,
+            name: "left overflow",
+            right: 20,
+            start: 100,
+        },
+        {
+            expected: 48,
+            left: 75,
+            name: "right overflow",
+            right: 140,
+            start: 0,
+        },
+        {
+            expected: 72,
+            left: -20,
+            name: "left takes precedence",
+            right: 140,
+            start: 100,
+        },
+        {
+            expected: 0,
+            left: -20,
+            name: "left origin clamp",
+            right: 20,
+            start: 5,
+        },
+        { expected: 100, left: 8, name: "exact inset", right: 92, start: 100 },
+    ];
+    for (const item of cases) {
+        const f = fixture();
+        try {
+            f.api.refresh();
+            f.w.document.getElementById("info1").style.display = "block";
+            f.api.sync();
+            const rail = f.w.document.querySelector(".modern-player-actions");
+            const play = f.w.document.querySelector(
+                '[data-modern-player-action="play"]'
+            );
+            rail.scrollLeft = item.start;
+            rail.getBoundingClientRect = () => ({ left: 0, right: 100 });
+            play.getBoundingClientRect = () => ({
+                left: item.left - (rail.scrollLeft - item.start),
+                right: item.right - (rail.scrollLeft - item.start),
+            });
+            const key = (name) =>
+                f.w.dispatchEvent(
+                    new f.w.KeyboardEvent("keydown", {
+                        bubbles: true,
+                        key: name,
+                    })
+                );
+            key("ArrowDown");
+            assert.equal(rail.scrollLeft, item.expected, item.name);
+            if (item.name !== "left takes precedence") {
+                key("ArrowUp");
+                key("ArrowDown");
+                assert.equal(
+                    rail.scrollLeft,
+                    item.expected,
+                    item.name + " repeated focus"
+                );
+            }
+        } finally {
+            f.api.destroy();
+            f.dom.window.close();
+        }
     }
 });
 

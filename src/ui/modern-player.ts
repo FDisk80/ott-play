@@ -29,6 +29,7 @@ function createModernPlayer(w: any) {
     var ticker: any = null;
     var scheduled: any = null;
     var iconCache: { [key: string]: string } = {};
+    var actionsFocusClass = "modern-player-actions-focus";
 
     var ICONS: { [key: string]: string } = {
         aspect: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-4 2 2 3-4 2 6"/>',
@@ -147,15 +148,9 @@ function createModernPlayer(w: any) {
         return { button: button, glyph: glyph, label: caption };
     }
     function paintIcon(entry: any, name: string): void {
-        if (
-            iconCache[
-                entry.button.getAttribute("data-modern-player-action")
-            ] === name
-        )
-            return;
-        iconCache[
-            entry.button.getAttribute("data-modern-player-action") as string
-        ] = name;
+        var id = entry.button.getAttribute("data-modern-player-action");
+        if (iconCache[id] === name) return;
+        iconCache[id] = name;
         entry.glyph.innerHTML =
             '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
             (ICONS[name] || "") +
@@ -382,10 +377,7 @@ function createModernPlayer(w: any) {
             }
             if (target === progress) group = "timeline";
             if (target === statusElement) group = "status";
-            node.classList.toggle(
-                "modern-player-actions-focus",
-                group === "actions"
-            );
+            node.classList.toggle(actionsFocusClass, group === "actions");
             setInteractive(true);
             if (promote) keepAlive();
         });
@@ -459,7 +451,7 @@ function createModernPlayer(w: any) {
         var focused = w.document.activeElement;
         if (!value) {
             group = "timeline";
-            root.classList.remove("modern-player-actions-focus");
+            root.classList.remove(actionsFocusClass);
             if (focused && root.contains(focused)) focused.blur();
         } else if (
             changed &&
@@ -546,15 +538,23 @@ function createModernPlayer(w: any) {
     function setGroup(next: string): void {
         group = next;
         if (!root) return;
-        root.classList.toggle(
-            "modern-player-actions-focus",
-            next === "actions"
-        );
+        root.classList.toggle(actionsFocusClass, next === "actions");
         if (next === "actions") {
             var visible = visibleActions();
             if (!visible.length) return;
             railFocus = Math.max(0, Math.min(visible.length - 1, railFocus));
-            visible[railFocus].entry.button.focus();
+            var button = visible[railFocus].entry.button;
+            button.focus();
+            if (rail) {
+                var box = button.getBoundingClientRect();
+                var bounds = rail.getBoundingClientRect();
+                rail.scrollLeft = Math.max(
+                    0,
+                    rail.scrollLeft +
+                        (Math.min(0, box.left - bounds.left - 8) ||
+                            Math.max(0, box.right - bounds.right + 8))
+                );
+            }
         } else if (next === "status" && statusElement) {
             statusElement.focus();
         } else if (progress) {

@@ -40,8 +40,14 @@ Folder playback can start with the first playable portion of the selected
 source, while discovery continues in the background. `local shuffle Movies`
 shuffles the available portion and later discoveries extend the channel list;
 an update does not restart the playing file. Starting before discovery finishes
-cannot choose uniformly from files that have not yet been found. A saved file
-still takes priority on restart when it is available.
+cannot choose uniformly from files that have not yet been found. Each explicit
+remote `local play` or `local shuffle` starts its chosen file at position zero,
+including repeated commands for the same folder or file. An old saved-profile
+cursor or bookmark does not override that choice. Normal startup of an active
+saved Local profile may resume its saved file and position; a stream restart
+within a temporary session may reuse that session's own bookmark. See
+[one-off Local playback commands](local-media-session.md) for the boundary
+between temporary playback and saved-profile restoration.
 
 An accepted response is not proof of decoded video or a completed scan. Its
 count describes the currently accepted portion when discovery is still active.
