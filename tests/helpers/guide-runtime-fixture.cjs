@@ -36,6 +36,7 @@ const functionNames = sourceNames("src/channels/index.ts", [
     "renderGuideView",
     "renderCategoryRecordings",
     "formatEpgTime",
+    "formatEpgDate",
     "renderEpgHTML",
     "renderEpgFooter",
     "itemEPG",
@@ -58,8 +59,24 @@ const nodes = ast.statements.filter(
     (n) => ts.isFunctionDeclaration(n) && functionNames.includes(n.name?.text)
 );
 assert.equal(nodes.length, functionNames.length);
+const settingsAst = ts.createSourceFile(
+    "settings.ts",
+    fs.readFileSync(path.join(root, "src/settings/index.ts"), "utf8"),
+    ts.ScriptTarget.Latest,
+    true
+);
+const palette = settingsAst.statements.find(
+    (node) =>
+        ts.isVariableStatement(node) &&
+        node.declarationList.declarations.some(
+            (item) => item.name.getText(settingsAst) === "epgTimeColors"
+        )
+);
+assert(palette, "The actual EPG palette declaration exists");
 const code = ts.transpileModule(
-    nodes.map((n) => n.getText(ast).replace(/^export\s+/, "")).join("\n"),
+    palette.getText(settingsAst).replace(/^export\s+/, "") +
+        "\n" +
+        nodes.map((n) => n.getText(ast).replace(/^export\s+/, "")).join("\n"),
     {
         compilerOptions: {
             module: ts.ModuleKind.None,

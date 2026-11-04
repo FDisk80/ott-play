@@ -169,6 +169,7 @@ import {
     applyTimezoneSetting,
     beginSettingsDraft,
     defaultSettings,
+    epgTimeColors,
     exportSettings,
     importSettings,
     installSettingsFacade,
@@ -662,23 +663,28 @@ var TMDb: any = {
                 return false;
             };
         }
+        const request = ++TMDb.request;
         if (TMDb.media_type_id === media_type + "/" + id) {
             show();
             return;
         }
-        TMDb.media_type_id = media_type + "/" + id;
+        TMDb.media_type_id = "";
+        TMDb.data = null;
         $.ajax({
             cache: false,
             data: { append_to_response: "credits", language: api_lang },
             dataType: "json",
             error: function (jqXHR: any) {
-                if (TMDb.locale() !== api_lang) return;
+                if (TMDb.locale() !== api_lang || TMDb.request !== request)
+                    return;
                 $("#dialogbox").html(
                     "<br>" + metadataText(_("Failed to load!")) + "<br><br>"
                 );
             },
             success: function (data: any) {
-                if (TMDb.locale() !== api_lang) return;
+                if (TMDb.locale() !== api_lang || TMDb.request !== request)
+                    return;
+                TMDb.media_type_id = media_type + "/" + id;
                 TMDb.data = data;
                 show();
             },
@@ -695,6 +701,8 @@ var TMDb: any = {
         );
         if (TMDb.currentLanguage !== language) {
             TMDb.currentLanguage = language;
+            TMDb.request++;
+            TMDb.searchReady = false;
             TMDb.media_type_id = "";
             TMDb.query = "";
             TMDb.results = [];
@@ -705,6 +713,7 @@ var TMDb: any = {
     media_type_id: "",
     prepare: function () {},
     query: "",
+    request: 0,
     results: [] as any[],
     search: function (nam: string, itr?: number) {
         if (!hasTmdbService()) return;
@@ -731,12 +740,14 @@ var TMDb: any = {
         (window as any).dialogBoxKeyHandler = function () {
             $("#dialogbox").hide();
         };
+        const request = ++TMDb.request;
         if (!itr) {
-            if (nam !== TMDb.query) TMDb.query = nam;
-            else
+            if (nam === TMDb.query && TMDb.searchReady) {
                 switch (TMDb.results.length) {
                     case 0:
-                        $("#dialogbox").html("<br>" + _("Not found") + "!<br>");
+                        $("#dialogbox")
+                            .html("<br>" + _("Not found") + "!<br>")
+                            .show();
                         return;
                     case 1:
                         TMDb.get(
@@ -748,6 +759,10 @@ var TMDb: any = {
                         TMDb.select();
                         return;
                 }
+            }
+            TMDb.query = nam;
+            TMDb.results = [];
+            TMDb.searchReady = false;
         }
         switch (itr) {
             case 0:
@@ -771,6 +786,7 @@ var TMDb: any = {
                 break;
         }
         if (!name) {
+            TMDb.searchReady = true;
             $("#dialogbox").html("<br>" + _("Not found") + "!<br>");
             return;
         }
@@ -789,13 +805,15 @@ var TMDb: any = {
             },
             dataType: "json",
             error: function (jqXHR: any) {
-                if (TMDb.locale() !== api_lang) return;
+                if (TMDb.locale() !== api_lang || TMDb.request !== request)
+                    return;
                 $("#dialogbox").html(
                     "<br>" + metadataText(_("Failed to load!")) + "<br><br>"
                 );
             },
             success: function (data: any) {
-                if (TMDb.locale() !== api_lang) return;
+                if (TMDb.locale() !== api_lang || TMDb.request !== request)
+                    return;
                 data.results = (data.results || []).filter(function (val: any) {
                     return (
                         val.media_type === "movie" || val.media_type === "tv"
@@ -808,6 +826,7 @@ var TMDb: any = {
                     });
                     if (!TMDb.results.length) TMDb.results = data.results;
                 }
+                TMDb.searchReady = TMDb.results.length > 0;
                 TMDb.sel = -1;
                 switch (TMDb.results.length) {
                     case 0:
@@ -828,6 +847,7 @@ var TMDb: any = {
             url: TMDb.apiPath("search/multi"),
         });
     },
+    searchReady: false,
     sel: -1,
     select: function () {
         const $ = (window as any).$;
@@ -1301,6 +1321,8 @@ function setColor(): void {
           : "rgb(" + classicColorRgb(settings.highlightColor, 100) + ")";
     // Keep window.* in sync — itemEPG / listDetail / getListItem read w.curColor.
     window.curColor = curColor;
+    // EPG nodes may already be visible when the theme changes.
+    $(".ott-epg-current-title, .ott-epg-detail-title").css("color", curColor);
     window.curColorB = curColorB;
     window.bodyColor = bodyColor;
 
@@ -4946,6 +4968,18 @@ window.settingsChannels = function (): void {
                 "showArchive",
                 w.sShowArchive,
                 noyes
+            ),
+            choice(
+                label("EPG") + ': "' + label("Archive") + '"',
+                "epgArchiveLabel",
+                w.sEpgArchiveLabel,
+                noyes
+            ),
+            choice(
+                label("EPG") + ": " + label("Text color") + " (00:00)",
+                "epgTimeColor",
+                w.sEpgTimeColor,
+                [label("Player default")].concat(epgTimeColors.slice(1))
             ),
             choice(
                 label("Show description"),

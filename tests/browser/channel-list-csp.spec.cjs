@@ -6225,3 +6225,334 @@ test("Modern M3U provider and profile screens preserve editor Save and Cancel", 
         await fixture.close();
     }
 });
+
+async function prepareEpgFixtureInput(page) {
+    // This fixture boots the renderer directly. Complete its initial paint,
+    // then observe CSP and bind the same keyboard entry point as normal boot.
+    await page.evaluate(async () => {
+        await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+        );
+        window.__fixtureViolations = [];
+        window.stbBindKeyHandler();
+    });
+}
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    test(
+        profile + " EPG calendar and appearance preserve real row selection",
+        async ({ browser }) => {
+            const fixture = await fixturePage(
+                browser,
+                profile,
+                {
+                    epgArchiveLabel: 0,
+                    epgTimeColor: 3,
+                    interfaceTheme: 2,
+                },
+                "arabic"
+            );
+            const { page } = fixture;
+            try {
+                await prepareEpgFixtureInput(page);
+                const expected = await page.evaluate(() => {
+                    Date.setTimezoneOffset(0);
+                    window.__ottInterfaceLanguage = "_ara";
+                    const start =
+                        Math.floor(Date.now() / 86400000) * 86400 -
+                        259200 +
+                        36000;
+                    const rows = [0, 1].map((index) => ({
+                        name: "برنامج طويل ".repeat(15),
+                        providerId: "calendar-" + index,
+                        time: start + index * 86400,
+                        time_to: start + index * 86400 + (index ? 52200 : 1800),
+                    }));
+                    window.channels.one.rec = 168;
+                    window.p_pref = "epg-calendar-fixture";
+                    window.epgArray = [];
+                    window.sPrevCount = 10;
+                    window.__epgPresentationSelection = [];
+                    window.fetchChannelGuide = (id, complete) =>
+                        complete(id, rows);
+                    window.setCurrent = (category, index) =>
+                        window.__epgPresentationSelection.push({
+                            category,
+                            index,
+                        });
+                    window.playArchive = (time) =>
+                        window.__epgPresentationSelection.push({ time });
+                    window.epgList(0, 0, false);
+                    const date = new Intl.DateTimeFormat("ar", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        timeZone: "UTC",
+                        weekday: "short",
+                    });
+                    return {
+                        dates: rows.map((row) =>
+                            date.format(new Date(row.time * 1000))
+                        ),
+                        endingDate: date.format(
+                            new Date(rows[1].time_to * 1000)
+                        ),
+                        start,
+                    };
+                });
+                await expect(page.locator("#listIn .item")).toHaveCount(2);
+                expect(expected.dates[0]).not.toBe(expected.dates[1]);
+                for (let index = 0; index < 2; index++) {
+                    const row = page.locator("#it" + index);
+                    await expect(row).toContainText(expected.dates[index]);
+                    await expect(row).toContainText(
+                        index
+                            ? "10:00 - " + expected.endingDate + " 00:30"
+                            : "10:00 - 10:30"
+                    );
+                    await expect(row.locator('span[dir="auto"]')).toHaveCSS(
+                        "color",
+                        index === 0 ? "rgb(17, 33, 25)" : "rgb(0, 255, 255)"
+                    );
+                    await expect(row.locator(".epg-archive-tag")).toHaveCount(
+                        0
+                    );
+                    await expect(
+                        row.locator('.btn.green[role="img"]')
+                    ).toBeVisible();
+                    expect(
+                        await row
+                            .locator(".btn.green")
+                            .getAttribute("aria-label")
+                    ).toBeTruthy();
+                    expect(
+                        await row.evaluate((element) => {
+                            const rect = element.getBoundingClientRect();
+                            return (
+                                rect.height > 0 &&
+                                document
+                                    .elementFromPoint(
+                                        rect.left + 8,
+                                        rect.top + rect.height / 2
+                                    )
+                                    ?.closest(".item") === element
+                            );
+                        })
+                    ).toBe(true);
+                }
+                // Studio keeps selected text dark on its light highlight;
+                // the configured time colour returns when focus leaves a row.
+                const first = page.locator("#it0");
+                const second = page.locator("#it1");
+                const timeLabel = (row) => row.locator('span[dir="auto"]');
+                await expect(page.locator("body")).toHaveClass(/theme-studio/);
+                await expect(first).toHaveClass(/ott-selected/);
+                await page.keyboard.press("ArrowDown");
+                await expect(second).toHaveClass(/ott-selected/);
+                await expect(timeLabel(first)).toHaveCSS(
+                    "color",
+                    "rgb(0, 255, 255)"
+                );
+                await expect(timeLabel(second)).toHaveCSS(
+                    "color",
+                    "rgb(17, 33, 25)"
+                );
+                await page.keyboard.press("ArrowUp");
+                await expect(first).toHaveClass(/ott-selected/);
+                await expect(timeLabel(first)).toHaveCSS(
+                    "color",
+                    "rgb(17, 33, 25)"
+                );
+                await expect(timeLabel(second)).toHaveCSS(
+                    "color",
+                    "rgb(0, 255, 255)"
+                );
+                const wideRowWidths = [];
+                for (const width of [1280, 960]) {
+                    await page.setViewportSize({
+                        height: (width * 9) / 16,
+                        width,
+                    });
+                    for (let index = 0; index < 2; index++) {
+                        const row = page.locator("#it" + index);
+                        const title = row.locator(".ott-channel-label");
+                        await expect(title).toContainText("برنامج طويل");
+                        await expect(title).toHaveCSS(
+                            "text-overflow",
+                            "ellipsis"
+                        );
+                        await expect
+                            .poll(() =>
+                                row.evaluate((element, wideWidth) => {
+                                    const bounds =
+                                        element.getBoundingClientRect();
+                                    const time = element
+                                        .querySelector('span[dir="auto"]')
+                                        .getBoundingClientRect();
+                                    const title =
+                                        element.querySelector(
+                                            ".ott-channel-label"
+                                        );
+                                    const label = title.getBoundingClientRect();
+                                    return (
+                                        bounds.left >= 0 &&
+                                        bounds.right <= window.innerWidth &&
+                                        (!wideWidth ||
+                                            bounds.width < wideWidth) &&
+                                        time.left >= bounds.left &&
+                                        time.right <= bounds.right &&
+                                        label.width > 0 &&
+                                        label.left >= bounds.left &&
+                                        label.right <= bounds.right &&
+                                        title.scrollWidth > title.clientWidth
+                                    );
+                                }, wideRowWidths[index] || 0)
+                            )
+                            .toBe(true);
+                        if (width === 1280)
+                            wideRowWidths[index] = await row.evaluate(
+                                (element) =>
+                                    element.getBoundingClientRect().width
+                            );
+                    }
+                }
+                const identity = await page.evaluate(() =>
+                    window.listArray.map(
+                        ({ programmeId, providerId, time }) => ({
+                            programmeId,
+                            providerId,
+                            time,
+                        })
+                    )
+                );
+                expect(identity.map((row) => row.providerId)).toEqual([
+                    "calendar-0",
+                    "calendar-1",
+                ]);
+                expect(identity.map((row) => row.time)).toEqual([
+                    expected.start,
+                    expected.start + 86400,
+                ]);
+                expect(
+                    identity.every(
+                        (row) =>
+                            typeof row.programmeId === "string" &&
+                            row.programmeId.length > 0
+                    )
+                ).toBe(true);
+                expect(
+                    new Set(identity.map((row) => row.programmeId)).size
+                ).toBe(2);
+                await activateOwnedFixtureRow(page, page.locator("#it0"));
+                await expect
+                    .poll(() =>
+                        page.evaluate(() => window.__epgPresentationSelection)
+                    )
+                    .toEqual([
+                        { category: 0, index: 0 },
+                        { time: expected.start },
+                    ]);
+                expect(
+                    await page.evaluate(() =>
+                        window.epgArray.map(
+                            ({ programmeId, providerId, time }) => ({
+                                programmeId,
+                                providerId,
+                                time,
+                            })
+                        )
+                    )
+                ).toEqual(identity);
+                expect(fixture.errors).toEqual([]);
+                expect(fixture.unexpectedRequests).toEqual([]);
+                expect(
+                    await page.evaluate(() => window.__fixtureViolations)
+                ).toEqual([]);
+            } finally {
+                await fixture.close();
+            }
+        }
+    );
+}
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    test(
+        profile + " EPG current title follows theme changes under CSP",
+        async ({ browser }) => {
+            const fixture = await fixturePage(browser, profile, {
+                epgTimeColor: 3,
+                interfaceTheme: 2,
+            });
+            const { page } = fixture;
+            try {
+                await prepareEpgFixtureInput(page);
+                await page.evaluate(() => {
+                    const now = Math.floor(Date.now() / 1000);
+                    const rows = [
+                        {
+                            name: "Earlier programme",
+                            providerId: "earlier",
+                            time: now - 1800,
+                            time_to: now - 600,
+                        },
+                        {
+                            name: "Current programme",
+                            providerId: "current",
+                            time: now - 600,
+                            time_to: now + 1800,
+                        },
+                    ];
+                    window.channels.one.rec = 168;
+                    window.p_pref = "epg-current-theme-fixture";
+                    window.epgArray = [];
+                    window.sPrevCount = 10;
+                    window.fetchChannelGuide = (id, complete) =>
+                        complete(id, rows);
+                    window.epgList(0, 0, false);
+                });
+                await expect(page.locator("#listIn .item")).toHaveCount(2);
+                const current = page.locator("#it1");
+                const currentTitle = current.locator(".ott-epg-current-title");
+                await expect(current).toHaveClass(/ott-selected/);
+                await expect(currentTitle).toHaveText("Current programme");
+                await expect(currentTitle).toHaveCSS(
+                    "color",
+                    "rgb(17, 33, 25)"
+                );
+                await page.keyboard.press("ArrowUp");
+                await expect(page.locator("#it0")).toHaveClass(/ott-selected/);
+                await expect(currentTitle).toHaveCSS(
+                    "color",
+                    "rgb(139, 221, 184)"
+                );
+                await expect(page.locator(".ott-epg-detail-title")).toHaveCSS(
+                    "color",
+                    "rgb(139, 221, 184)"
+                );
+                await page.evaluate(() => {
+                    settings.interfaceTheme = 1;
+                    setColor();
+                });
+                await expect(page.locator("body")).toHaveClass(/theme-pli-hd/);
+                await expect(currentTitle).toHaveCSS(
+                    "color",
+                    "rgb(252, 192, 0)"
+                );
+                await expect(page.locator(".ott-epg-detail-title")).toHaveCSS(
+                    "color",
+                    "rgb(252, 192, 0)"
+                );
+                await expect(current.locator('span[dir="auto"]')).toHaveCSS(
+                    "color",
+                    "rgb(0, 255, 255)"
+                );
+                expect(fixture.errors).toEqual([]);
+                expect(fixture.unexpectedRequests).toEqual([]);
+                expect(
+                    await page.evaluate(() => window.__fixtureViolations)
+                ).toEqual([]);
+            } finally {
+                await fixture.close();
+            }
+        }
+    );
+}

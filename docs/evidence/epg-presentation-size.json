@@ -1,0 +1,72 @@
+{
+  "baseCommit": "9803c9035668fb984c48db5cbf1d5cd3b363c5ed",
+  "node": "v22.23.4",
+  "method": "Paired canonical TypeScript project noEmit checks, emit, classic entry linker and optimizer; identical 1.1.64-beta.1 and source identity. Entry only; complete/native emitted outputs still require CI. Rebased on the category fixes and reviewed TMDb/polling source; includes full date/time selected-offset correction.",
+  "baseline": {
+    "bytes": 1192639,
+    "gzipBytes": 364304,
+    "sha256": "eec5a6278d791b4d854203b930fd95c19d9809d57baf085645b48a3d6b58f279"
+  },
+  "candidate": {
+    "bytes": 1193631,
+    "gzipBytes": 364659,
+    "sha256": "18e2d8ab2c153ec3bf5643d5390d29d5ae3e79035cd4ab60bdf8269999d659a5"
+  },
+  "previousEntryCap": {
+    "bytes": 1192998,
+    "gzipBytes": 364509
+  },
+  "allowance": {
+    "bytes": 992,
+    "gzipBytes": 355
+  },
+  "preservedHeadroom": {
+    "bytes": 359,
+    "gzipBytes": 205
+  },
+  "renderTiming": {
+    "environment": "Node22.23.4, Apple M5 Pro; no DOM/layout or legacy-device claim",
+    "samplesPerSize": 20,
+    "before": [
+      {
+        "rows": 25,
+        "coldMs": 1.5334589999999935,
+        "medianMs": 0.32816600000001017,
+        "p95Ms": 0.34354200000001356,
+        "maxMs": 0.35070799999999736,
+        "minMs": 0.3146660000000452,
+        "samples": 20
+      },
+      {
+        "rows": 30,
+        "coldMs": 0.44950000000000045,
+        "medianMs": 0.4327910000000088,
+        "p95Ms": 0.46087499999998727,
+        "maxMs": 1.7052080000000274,
+        "minMs": 0.427250000000015,
+        "samples": 20
+      }
+    ],
+    "after": [
+      {
+        "rows": 25,
+        "coldMs": 9.870500000000021,
+        "medianMs": 1.3767499999999586,
+        "p95Ms": 1.7449159999999893,
+        "maxMs": 2.1753329999999664,
+        "minMs": 1.3293330000000196,
+        "samples": 20
+      },
+      {
+        "rows": 30,
+        "coldMs": 1.774583000000007,
+        "medianMs": 1.7099159999999642,
+        "p95Ms": 1.772707999999966,
+        "maxMs": 1.7769589999999766,
+        "minMs": 1.6356250000000045,
+        "samples": 20
+      }
+    ]
+  },
+  "baseTree": "8f822e8afe6d678c23452cd95c5159768cfabd38"
+}

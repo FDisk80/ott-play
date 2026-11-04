@@ -1,6 +1,6 @@
 {
   "name": "ottplay-foss",
-  "version": "1.1.63",
+  "version": "1.1.64",
   "description": "OTT-play FOSS - IPTV/OTT set-top-box player",
   "type": "module",
   "scripts": {

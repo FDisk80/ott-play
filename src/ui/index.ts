@@ -1091,6 +1091,10 @@ export function showPage(presentationOnly = false): void {
                 row.style.color = curColor || "gold";
                 row.style.backgroundColor = curColorB || "#668";
             }
+            var currentTitle = row.querySelector(
+                ".ott-epg-current-title"
+            ) as HTMLElement | null;
+            if (currentTitle) currentTitle.style.color = curColor || "#fff";
         }
         var scrollbar = listInElement.querySelector(
             ".list-scroll"

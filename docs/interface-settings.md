@@ -117,3 +117,26 @@ and EPG data with the production renderer and factory settings; it is not a
 redrawn mockup or a claim about an actual broadcast.
 
 ![Studio 2026, factory settings with 25 channel rows](images/studio-2026-default.png)
+
+## EPG dates and time appearance
+
+The shared programme list shows the localized weekday and calendar date beside
+each time range. A programme crossing midnight also shows its ending date.
+Calendar labels follow the same player timezone as the clock, including a saved
+UTC-offset override. Selecting a programme still uses its original provider
+identity and timestamps. Full date/time labels in programme details, the archive
+OSD and playback history use that same offset with or without Intl. The existing
+player timezone setting uses a fixed offset; this change does not add historical
+DST conversion to that setting.
+
+Under **Channel list settings**, **EPG: “Archive”** controls the written Archive
+label. It defaults to **yes**. Choosing **no** keeps the green availability marker
+and archive playback; the marker retains its accessible label. The separate
+channel-list archive setting keeps its existing purpose.
+
+**EPG: Text color (00:00)** changes only the date and time range. **Player default**
+inherits the theme; optional fixed colors are white (`#FFFFFF`), yellow
+(`#FFFF00`), cyan (`#00FFFF`), green (`#00FF00`) and light magenta (`#FFB3FF`).
+Programme-title highlighting is unchanged. Both settings are saved for the
+application through the normal Save/Cancel flow and apply to the shared EPG in
+Classic and Modern interfaces.

@@ -1,4 +1,7 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const ts = require("typescript");
 const fixture = require("./helpers/guide-runtime-fixture.cjs");
 const privateRuntime = require("./helpers/private-runtime.cjs");
 const vm = require("node:vm");
@@ -1556,5 +1559,354 @@ for (const delay of [0, -10]) {
         assert.equal(f.timers.has(id), false);
     });
 }
+
+check(
+    "EPG rows distinguish calendar days and preserve same-day clock ranges",
+    () => {
+        const oldZone = process.env.TZ;
+        process.env.TZ = "UTC";
+        try {
+            const f = fixture({ now: Date.UTC(2026, 10, 4, 12) / 1000 }),
+                h = f.host;
+            h.__ottInterfaceLanguage = "_eng";
+            h.epg_ch_id = 1;
+            const a = h.itemEPG(
+                f.row(
+                    Date.UTC(2026, 10, 2, 10) / 1000,
+                    Date.UTC(2026, 10, 2, 11) / 1000,
+                    "Same"
+                ),
+                0
+            );
+            const b = h.itemEPG(
+                f.row(
+                    Date.UTC(2026, 10, 3, 10) / 1000,
+                    Date.UTC(2026, 10, 3, 11) / 1000,
+                    "Same"
+                ),
+                1
+            );
+            assert.notEqual(a, b);
+            assert.match(a, /Mon, 11\/02/);
+            assert.match(b, /Tue, 11\/03/);
+            assert.match(a, /10:00 - 11:00/);
+            assert.equal((a.match(/11\/02/g) || []).length, 1);
+            assert(!a.includes('style="color:'));
+        } finally {
+            if (oldZone === undefined) delete process.env.TZ;
+            else process.env.TZ = oldZone;
+        }
+    }
+);
+check(
+    "EPG dates follow local midnight and daylight saving without shifting clocks",
+    () => {
+        const oldZone = process.env.TZ;
+        process.env.TZ = "America/Los_Angeles";
+        try {
+            const f = fixture({ now: Date.UTC(2026, 10, 4, 12) / 1000 }),
+                h = f.host;
+            h.__ottInterfaceLanguage = "_eng";
+            h.epg_ch_id = 1;
+            const overnight = h.itemEPG(
+                f.row(
+                    Date.UTC(2026, 10, 3, 7, 30) / 1000,
+                    Date.UTC(2026, 10, 3, 8, 30) / 1000
+                ),
+                0
+            );
+            assert.match(overnight, /Mon, 11\/02 23:30 - Tue, 11\/03 00:30/);
+            const fallback = h.itemEPG(
+                f.row(
+                    Date.UTC(2026, 10, 1, 8, 30) / 1000,
+                    Date.UTC(2026, 10, 1, 9, 30) / 1000
+                ),
+                0
+            );
+            assert.match(fallback, /Sun, 11\/01 01:30 - 01:30/);
+            assert.equal((fallback.match(/11\/01/g) || []).length, 1);
+        } finally {
+            if (oldZone === undefined) delete process.env.TZ;
+            else process.env.TZ = oldZone;
+        }
+    }
+);
+check(
+    "EPG calendar labels retain unit validation and the non-Intl fallback",
+    () => {
+        const f = fixture(),
+            h = f.host,
+            start = Date.UTC(2026, 10, 2, 10) / 1000;
+        h.__ottInterfaceLanguage = "_eng";
+        assert.equal(h.formatEpgDate(start), h.formatEpgDate(start * 1000));
+        for (const invalid of [NaN, Infinity, -Infinity, undefined, "bad"])
+            assert.equal(h.formatEpgDate(invalid), "");
+        h.Intl = undefined;
+        assert.match(h.formatEpgDate(start), /Mo\u00a002\.11/);
+        assert(!h.formatEpgDate(start).includes(":"));
+        assert(
+            h.formatLocaleDateTime(start).includes(":"),
+            "Existing date-time callers still include time"
+        );
+    }
+);
+check("EPG dates remain escaped and isolated for long and RTL labels", () => {
+    const f = fixture(),
+        h = f.host;
+    h.epg_ch_id = 1;
+    h.__ottInterfaceLanguage = "_ara";
+    const row = f.row(9000, 9100, "<img src=x>" + "طويل".repeat(100));
+    const html = h.itemEPG(row, 0);
+    assert(html.includes('<span dir="auto"'));
+    assert(html.includes("&lt;img src=x&gt;"));
+    assert(!html.includes("<img"));
+    assert.equal(row.name, "<img src=x>" + "طويل".repeat(100));
+});
+check(
+    "EPG palette accepts only closed numeric choices and preserves title emphasis",
+    () => {
+        const f = fixture(),
+            h = f.host;
+        h.epg_ch_id = 1;
+        const row = f.row();
+        row.programmeId = "current";
+        h.listEpgArray = [row];
+        h.curColor = "gold";
+        for (const [value, color] of [
+            [1, "#FFFFFF"],
+            [2, "#FFFF00"],
+            [3, "#00FFFF"],
+            [4, "#00FF00"],
+            [5, "#FFB3FF"],
+        ]) {
+            h.sEpgTimeColor = value;
+            const html = h.itemEPG(row, 0);
+            assert(html.includes('class="ott-epg-time-color-' + value + '"'));
+            assert(html.includes('class="ott-epg-current-title"'));
+            assert(!html.includes("style="));
+            const css = fs.readFileSync(
+                path.resolve(__dirname, "../styles/player.css"),
+                "utf8"
+            );
+            assert(
+                css.includes(
+                    ".ott-epg-time-color-" +
+                        value +
+                        " {\n    color: " +
+                        color.toLowerCase() +
+                        ";\n}"
+                )
+            );
+        }
+        for (const invalid of [
+            0,
+            undefined,
+            -1,
+            6,
+            1.5,
+            NaN,
+            "1",
+            "__proto__",
+            "red;display:none",
+        ]) {
+            h.sEpgTimeColor = invalid;
+            assert(
+                !h.itemEPG(f.row(8000, 8100), 0).includes("ott-epg-time-color-")
+            );
+        }
+    }
+);
+check(
+    "Hiding the Archive word preserves programme identity and archive playback",
+    () => {
+        const f = fixture(),
+            h = f.host;
+        h.sEpgArchiveLabel = 0;
+        h.sEpgTimeColor = 2;
+        h.epgList(0, 0, false);
+        f.tick();
+        f.complete([f.row(9900, 9950, "Past", "stable-programme")]);
+        const row = h.listArray[0],
+            identity = row.programmeId;
+        const html = h.itemEPG(row, 0);
+        assert(!html.includes('class="epg-archive-tag"'));
+        assert(
+            html.includes('class="btn green" role="img" aria-label="Archive"')
+        );
+        h.selectEpg();
+        assert(
+            f.calls.some((call) => call[0] === "archive" && call[1] === 9900)
+        );
+        assert.equal(row.programmeId, identity);
+        assert.equal(row.time, 9900);
+        assert.equal(row.time_to, 9950);
+    }
+);
+
+function installPlayerTimezone(h) {
+    const file = path.resolve(__dirname, "../src/polyfills/index.ts");
+    const source = ts.createSourceFile(
+        file,
+        fs.readFileSync(file, "utf8"),
+        ts.ScriptTarget.Latest,
+        true
+    );
+    const implementation = source.statements.find(
+        (node) =>
+            ts.isFunctionDeclaration(node) &&
+            node.name?.text === "polyfillDateTimezone"
+    );
+    assert(implementation, "Use the actual timezone override implementation");
+    vm.runInContext(
+        ts.transpileModule(implementation.getText(source), {
+            compilerOptions: {
+                module: ts.ModuleKind.None,
+                target: ts.ScriptTarget.ES5,
+            },
+        }).outputText + "\npolyfillDateTimezone();",
+        h
+    );
+}
+
+check("EPG calendar matches the actual player timezone override", () => {
+    const f = fixture(),
+        h = f.host;
+    h.__ottInterfaceLanguage = "_eng";
+    installPlayerTimezone(h);
+    const time = Date.UTC(2026, 10, 4, 23, 30) / 1000;
+    for (const [offset, date, clock] of [
+        [-180, "Thu, 11/05", "02:30"],
+        [720, "Wed, 11/04", "11:30"],
+    ]) {
+        h.Date.setTimezoneOffset(offset);
+        assert.equal(h.formatEpgTime(time), clock);
+        assert.equal(h.formatEpgDate(time), date);
+    }
+});
+
+check(
+    "display dates preserve native DST and honor fixed player offsets",
+    () => {
+        const previousTimezone = process.env.TZ;
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const two = (value) => String(value).padStart(2, "0");
+        const fallback = (date, dateOnly) =>
+            weekdays[date.getDay()] +
+            "\u00a0" +
+            two(date.getDate()) +
+            "." +
+            two(date.getMonth() + 1) +
+            (dateOnly
+                ? ""
+                : "\u00a0" +
+                  two(date.getHours()) +
+                  ":" +
+                  two(date.getMinutes()));
+        const options = (dateOnly) => ({
+            day: "2-digit",
+            hour: dateOnly ? undefined : "2-digit",
+            minute: dateOnly ? undefined : "2-digit",
+            month: "2-digit",
+            weekday: "short",
+        });
+        try {
+            for (const timezone of [
+                "UTC",
+                "America/Los_Angeles",
+                "Europe/Berlin",
+                "Asia/Kathmandu",
+            ]) {
+                process.env.TZ = timezone;
+                for (const legacy of [false, true]) {
+                    const h = fixture().host;
+                    h.__ottInterfaceLanguage = "_eng";
+                    h.keyStrings = {
+                        "Su Mo Tu We Th Fr Sa": weekdays.join(" "),
+                    };
+                    if (legacy) h.Intl = undefined;
+                    // No override: the host's per-instant DST rules stay intact.
+                    for (const text of [
+                        "2026-01-15T12:30:00Z",
+                        "2026-06-15T12:30:00Z",
+                        "2026-03-08T09:30:00Z",
+                        "2026-03-08T10:30:00Z",
+                        "2026-11-01T08:30:00Z",
+                        "2026-11-01T09:30:00Z",
+                        "2026-03-29T00:30:00Z",
+                        "2026-03-29T01:30:00Z",
+                    ]) {
+                        const date = new Date(text);
+                        for (const dateOnly of [false, true]) {
+                            assert.equal(
+                                h.formatLocaleDateTime(
+                                    date.getTime() / 1000,
+                                    dateOnly
+                                ),
+                                legacy
+                                    ? fallback(date, dateOnly)
+                                    : new Intl.DateTimeFormat(
+                                          "en",
+                                          options(dateOnly)
+                                      ).format(date),
+                                `${timezone}/${text}/legacy=${legacy}/dateOnly=${dateOnly}`
+                            );
+                        }
+                    }
+                    installPlayerTimezone(h);
+                    // Actual player polyfill: selected offsets are fixed, including
+                    // the current offset captured by its system-timezone setting.
+                    for (const [offset, year, month, day, hour, minute] of [
+                        [-720, 2026, 10, 5, 11, 30],
+                        [-345, 2026, 10, 5, 5, 15],
+                        [-180, 2026, 10, 5, 2, 30],
+                        [0, 2026, 10, 4, 23, 30],
+                        [480, 2026, 10, 4, 15, 30],
+                        [720, 2026, 10, 4, 11, 30],
+                    ]) {
+                        h.Date.setTimezoneOffset(offset);
+                        const timestamp = Date.UTC(2026, 10, 4, 23, 30) / 1000;
+                        const localFields = new Date(
+                            year,
+                            month,
+                            day,
+                            hour,
+                            minute
+                        );
+                        for (const dateOnly of [false, true]) {
+                            const expected = legacy
+                                ? fallback(localFields, dateOnly)
+                                : new Intl.DateTimeFormat("en", {
+                                      ...options(dateOnly),
+                                      timeZone: "UTC",
+                                  }).format(
+                                      new Date(
+                                          Date.UTC(
+                                              year,
+                                              month,
+                                              day,
+                                              hour,
+                                              minute
+                                          )
+                                      )
+                                  );
+                            assert.equal(
+                                h.formatLocaleDateTime(timestamp, dateOnly),
+                                expected,
+                                `${timezone}/offset=${offset}/legacy=${legacy}/dateOnly=${dateOnly}`
+                            );
+                        }
+                        assert.equal(
+                            h.formatEpgTime(timestamp),
+                            two(hour) + ":" + two(minute)
+                        );
+                    }
+                }
+            }
+        } finally {
+            if (previousTimezone === undefined) delete process.env.TZ;
+            else process.env.TZ = previousTimezone;
+        }
+    }
+);
 
 console.log("PASS " + count + " guide integration scenarios");

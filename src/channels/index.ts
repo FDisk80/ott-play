@@ -17,7 +17,7 @@ import {
     formatLocaleNumber,
 } from "../localization";
 import { preferredTrackIndex } from "../localization/media";
-import { settings } from "../settings/index";
+import { epgTimeColors, settings } from "../settings/index";
 import { providerSetItem } from "../storage/index";
 import { getThumbnail, time2time } from "../utils/helpers";
 import {
@@ -1698,6 +1698,17 @@ export function formatEpgTime(timestamp: number): string {
     );
 }
 
+/** Local calendar label; use the same accepted units and invalid-input guard as the clock. */
+export function formatEpgDate(timestamp: number): string {
+    if (formatEpgTime(timestamp) === "--:--") return "";
+    return metadataText(
+        formatLocaleDateTime(
+            timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp,
+            true
+        )
+    );
+}
+
 /**
  * Render an EPG list item as an HTML string for display in the channel/EPG list.
  * Highlights the currently-airing program and shows record/archive indicators.
@@ -1728,12 +1739,7 @@ export function itemEPG(item: EPGEntry, index: number): string {
         !!selected && selected.row.programmeId === (item as any).programmeId;
 
     if (isCurrent) {
-        name =
-            '<span style="color:' +
-            (w.curColor || "#fff") +
-            ';">' +
-            name +
-            "</span>";
+        name = '<span class="ott-epg-current-title">' + name + "</span>";
     }
 
     var ch = (channels[epg_ch_id] || {}) as Channel;
@@ -1742,22 +1748,39 @@ export function itemEPG(item: EPGEntry, index: number): string {
     // marks ended programmes so the current row is not also tagged past —
     // wrong past styling after EPG page-up was easy to miss when rows clipped.
     var isPast = item.time_to <= now;
-    if (ch.rec && isPast)
+    if (ch.rec && isPast) {
+        var archive = metadataText(w._ ? w._("Archive") : "Archive");
         prefix +=
-            '<div class="btn green">&nbsp;</div> ' +
-            '<span class="epg-archive-tag">' +
-            (w._ ? w._("Archive") : "Archive") +
-            "</span> ";
+            '<div class="btn green" role="img" aria-label="' +
+            archive +
+            '">&nbsp;</div> ';
+        if (w.sEpgArchiveLabel !== 0)
+            prefix +=
+                '<span class="epg-archive-tag" aria-hidden="true">' +
+                archive +
+                "</span> ";
+    }
     if (isCurrent) prefix += '<div class="btn red">&nbsp;</div> ';
 
+    var date = formatEpgDate(item.time),
+        endDate = formatEpgDate(item.time_to),
+        color = Number.isInteger(w.sEpgTimeColor)
+            ? epgTimeColors[w.sEpgTimeColor] || ""
+            : "";
     return (
         "&nbsp;&nbsp;" +
         prefix +
+        '<span dir="auto"' +
+        (color ? ' class="ott-epg-time-color-' + w.sEpgTimeColor + '"' : "") +
+        ">" +
+        (date ? date + " " : "") +
         formatEpgTime(item.time) +
         " - " +
+        (endDate && endDate !== date ? endDate + " " : "") +
         formatEpgTime(item.time_to) +
-        " " +
-        (name || "")
+        '</span><span class="ott-channel-label">&nbsp;' +
+        (name || "") +
+        "</span>"
     );
 }
 
@@ -1932,7 +1955,7 @@ export function renderEpgFooter(): void {
             "2",
             descExtra
         ) +
-        '<span id="bTimer" style="display:none;">' +
+        '<span id="bTimer">' +
         w.renderButtonHint(w.keys.GREEN, "", "Timer", w.strTools, "8") +
         "</span>" +
         (ch.rec
@@ -1942,6 +1965,10 @@ export function renderEpgFooter(): void {
                   : "Archive: ENTER on past programs") +
               "</span>"
             : "");
+    // Property assignment remains allowed under the native style-src nonce.
+    // Keep jQuery show()/hide() ownership rather than adding a hidden attribute.
+    var timer = document.getElementById("bTimer");
+    if (timer) timer.style.display = "none";
 }
 
 /**
@@ -2092,11 +2119,9 @@ export function detailEPG(channelId: number): void {
 
     // Legacy stbPlayer.js:6507-6516
     detailEl.innerHTML =
-        '<div id="_name"><div style="color:' +
-        (w.curColor || "") +
-        ';">' +
+        '<div id="_name"><div class="ott-epg-detail-title">' +
         metadataText(item.name) +
-        '</div><div style="font-size:smaller;">' +
+        '</div><div class="ott-epg-detail-time">' +
         (typeof w.formatProgramDateTime === "function"
             ? w.formatProgramDateTime(item.time)
             : formatEpgTime(item.time)) +
@@ -2109,12 +2134,16 @@ export function detailEPG(channelId: number): void {
         " " +
         w._("min") +
         ")</div></div>" +
-        '<div id="_descr" style="font-size:smaller;overflow:hidden;"><div id="_prd">' +
+        '<div id="_descr" class="ott-epg-description"><div id="_prd">' +
         (typeof w.getThumbnail === "function"
             ? w.getThumbnail(item.icon)
             : "") +
         metadataHtml(item.descr) +
         "</div></div>";
+    var title = detailEl.querySelector(
+        ".ott-epg-detail-title"
+    ) as HTMLElement | null;
+    if (title) title.style.color = w.curColor || "";
 
     var t = ($("#listDetail").height() || 0) - ($("#_name").height() || 0);
     $("#_descr").height(t);
