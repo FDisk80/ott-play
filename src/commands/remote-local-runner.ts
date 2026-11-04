@@ -190,7 +190,11 @@ function runRemoteLocalMedia(
                 finish({ data: data, status: "ok" });
             },
             function (cause: any) {
-                fail(cause?.localMediaCode || "native_error");
+                fail(
+                    cause === "source_unavailable"
+                        ? cause
+                        : cause?.localMediaCode || "native_error"
+                );
             }
         );
 }

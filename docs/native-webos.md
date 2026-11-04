@@ -16,9 +16,12 @@ Plex library and media pipeline. It is packaged as
 `com.openottplay.player`. They can be installed independently. Their settings
 and update streams are separate.
 
-The published **0.1.0** package is a Plex client. The working **0.2.0** source adds
-M3U, Xtream, Stalker, VPortal and local-folder profiles, shared Favorites and
-its own command-server registration. It is not yet a published release.
+The initial **0.1.0** package is a Plex client.
+[Native **0.2.0 beta.1**](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1)
+is published and adds M3U, Xtream, Stalker, VPortal and local-folder profiles,
+shared Favorites and its own command-server registration. Its package and public
+release checks passed; physical-TV acceptance is still separate and has not
+been established for this release.
 The hosted and native applications retain separate identities: a command
 addressed to the hosted player does not control the native installation.
 See the [current feature scope and limits](../native/webos/README.md#what-this-target-provides).

@@ -17,3 +17,4 @@ pub mod tauri_commands;
 pub mod tmdb;
 
 pub mod offline_media;
+pub mod local_source_diagnostics;

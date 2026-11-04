@@ -101,9 +101,14 @@ and source in every receipt; publication requires the current verified run ident
 The installer scopes build, signing and collection artifact names to that attempt.
 ID-selected candidate downloads require a separate consumer check of receipt
 producer identity and payload digest; the name-scoping helper does not verify them.
-After a partial failure, use **Re-run all jobs**: older-attempt packages must not
-fill missing current builds. Update shared fuzz workflow pins with the producer
-and collector rollout. Local offline receipts cannot qualify live publication.
+Before publication starts, use **Re-run all jobs** only if the allocator and
+release policy permit reuse of that reservation. Recreate every required input
+in the same attempt; older packages must not fill missing current builds. After
+publication starts, or its result is partial or uncertain, inspect existing tags,
+releases and assets before a policy-authorized new run. Never reset the ledger or
+overwrite published assets. See [publication-phase retry rules](VERSIONING.md#package-identity-across-reruns).
+Update shared fuzz workflow pins with the producer and collector rollout. Local
+offline receipts cannot qualify live publication.
 
 Automatic push betas and scheduled nightlies publish the current default HEAD.
 An older source is explicitly marked `superseded` only after ancestry and one
@@ -113,53 +118,6 @@ is created for that skipped publication, and its reserved number is not reused.
 Missing replacement evidence or API failures remain errors. Manual releases keep
 their existing checks. A race after the final check can still fail publication;
 inspect the error and dispatch a fresh run at current HEAD, never reset the ledger.
-
-## Recovering from hosted-runner allocation failures
-
-First distinguish an infrastructure failure from an executed test failure. For a
-cancelled browser job, retain its run ID, attempt, source SHA, job metadata and
-annotations. A missing runner (`runner_id: 0`) and empty steps, together with a
-runner-allocation or capacity annotation, show that the test never started.
-Downstream browser-qualification failures do not turn that into a product test
-failure. If steps did execute, diagnose their logs before choosing a retry.
-
-Browser qualification requires the complete configured matrix from the current
-run attempt. **Re-run failed jobs** is insufficient when successful browser jobs
-remain in the previous attempt: their receipts cannot fill gaps in the new one.
-Do not relabel old receipts or weaken the qualification gate.
-
-For a confirmed allocation failure before publication:
-
-1. Retain the failed attempt's evidence and confirm that it has finished. Verify
-   the exact run, source, frozen version plan and absence of a completed release.
-   If publication was attempted or its outcome is unclear, inspect its draft,
-   tags and immutable evidence before any retry.
-2. Use **Re-run all jobs** on that same Actions run, with one operator responsible
-   for the retry. The version ledger is keyed by run ID: unchanged reservation
-   inputs reuse the existing version and native build number. Do not reset the
-   ledger or create a second dispatch merely to repeat the same release.
-3. Require fresh successful browser receipts and successful platform builders
-   and uploads in the new attempt. Check that artifact retrieval selects the new
-   files; never substitute earlier-attempt packages or receipts to make
-   qualification pass.
-4. Confirm the new attempt's release gate, manifest and published assets before
-   deploying or reloading a player. A retry request being accepted is not a
-   successful release. If runner allocation fails again, diagnose capacity and
-   retain the new evidence before deciding on another attempt.
-
-A changed source, policy or promotion parent must follow the normal new-run
-workflow; do not force it into an existing reservation.
-
-Every release payload receipt now binds its producer repository, source SHA,
-run ID and attempt. Publication compares those fields with the verified current
-Actions run. Build and collection artifact names also include the run ID and
-attempt, including native OCI inputs before assembly. This prevents an earlier
-package from being relabelled by a later assembly or signing step.
-
-Browser qualification checks both the exact web artifact ID and the producer
-identity in its receipt before extracting the candidate. An artifact ID alone
-does not establish the attempt that produced its contents. Missing or old
-producer identities fail closed; repeat all jobs to create fresh evidence.
 
 ## Stable promotion
 
@@ -282,57 +240,139 @@ projects receive the local client, whose contracts run in the toolkit. Update th
 add `--check` to detect drift without writing files. The installer is not vendored
 into consumer repositories.
 
-### Formatting regenerated workflows
-
-This repository also applies its pinned Biome formatter to the three generated
-workflow entry points. The canonical installer emits equivalent YAML with a
-different presentation, so regeneration must include this step. Preserve the
-project-specific sections of this guide before running the installer, then
-restore them alongside the updated canonical guidance.
-
-After regenerating from the reviewed toolkit checkout and installing the locked
-Node dependencies, run from this repository:
-
-```bash
-rendered_yaml_dir="$(mktemp -d)"
-for file in quality-gate release-pipeline release-quality-gate; do
-  cp ".github/workflows/$file.yml" "$rendered_yaml_dir/$file.yml"
-done
-node_modules/.bin/biome format --write \
-  .github/workflows/quality-gate.yml \
-  .github/workflows/release-pipeline.yml \
-  .github/workflows/release-quality-gate.yml
-python3 - "$rendered_yaml_dir" <<'PY'
-import pathlib
-import sys
-import yaml
-
-for name in ("quality-gate", "release-pipeline", "release-quality-gate"):
-    before = pathlib.Path(sys.argv[1], name + ".yml").read_text()
-    after = pathlib.Path(".github/workflows", name + ".yml").read_text()
-    for loader in (yaml.SafeLoader, yaml.BaseLoader):
-        original = yaml.load(before, Loader=loader)
-        formatted = yaml.load(after, Loader=loader)
-        assert "on" in original and "on" in formatted
-        assert original == formatted, name
-print("Generated workflow semantics preserved")
-PY
-npm run lint
-```
-
-The Python comparison uses PyYAML from the workflow-contract requirements. Keep
-the saved raw output until review is complete. These three workflows are checked
-for parsed equality rather than byte equality with canonical output; all other
-generated code still requires an exact comparison. An installer `--check` may
-therefore report these presentation differences and this guide's documented
-project sections. Inspect them explicitly instead of suppressing other drift.
-
 References: [GitHub schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule),
 [protected environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),
 [artifact provenance](https://docs.github.com/en/rest/actions/artifacts).
+
+## Migrating artifact selection without upgrading a consumer
+
+For an existing public, hosted, versioned release pipeline, run the following
+from a toolkit Git checkout containing the consumer's pinned shared fuzz commit:
+
+```sh
+python3 scripts/install_release.py /path/to/consumer --release-attempts-only --check
+python3 scripts/install_release.py /path/to/consumer --release-attempts-only
+```
+
+The check reports drift without writing. The migration changes artifact names
+and selectors in the existing generated release pipeline and its exclusive local
+build adapters. It retains workflow pins, commands, gates, permissions, version
+plans, exact-ID downloads and runtime files. Review and merge the producer and
+collector changes together. This mode does not update dependencies, run builds,
+dispatch releases, fetch Git objects, or delete retained Actions artifacts.
+
+Unsupported or ambiguous layouts stop before any files are written. These include
+legacy pipelines, closed-build importers, aliases on changed artifact edges,
+adapters used by ordinary CI, opaque remote build producers and shared fuzz
+revisions that still upload unscoped artifacts. Closed-build scripts can import
+artifacts by exact name; their importers and workflow must be reviewed together.
+Such revisions need a separately reviewed producer upgrade; changing only the
+collector would leave it without a matching input. The pinned producer is checked
+from its exact local Git object, with replacement objects and lazy fetching disabled.
+This requires Git with the global `--no-lazy-fetch` option; an unsupported option
+or missing local object stops before writes, without falling back to a fetch.
+Workflow files and policy text are read and written as UTF-8 on every platform.
+
+Every ordinary release artifact name now ends in
+`-run-<run_id>-attempt-<run_attempt>`. A full same-run retry can retain previous
+attempts without mixing their payloads. Before publication starts, use
+**Re-run all jobs** only if the allocator and release policy permit reuse of that
+reservation, so every required producer creates inputs for the same new attempt.
+Re-running only a failed job can leave no current inputs, or an incomplete set;
+older packages must not fill those gaps. Once publication starts, or its result
+is partial or uncertain, inspect existing tags, releases and assets before a
+policy-authorized new run. Never reset the ledger or overwrite published assets.
+See [publication-phase retry rules](VERSIONING.md#package-identity-across-reruns).
+Duplicate payload names remain errors, even when their bytes match.
+
+Name selection does not add receipt verification. This mode leaves vendored
+runtimes unchanged. Before qualifying releases, confirm that the consumer's
+publisher verifies source, repository, run and attempt; older receipt/publisher
+code needs a separately reviewed runtime update. Platform completeness requires
+a source-declared set of required producer receipts plus package-specific checks:
+a valid receipt for one platform does not establish that all required platforms
+were built. The regression suite
+uses synthetic packages with the toolkit's actual selector, collector and receipt
+verifiers; it does not certify an older consumer runtime, a live release retry or
+device acceptance.
 
 ## Automatic version preparation
 
 Run `python3 scripts/release.py prepare-version --pr` from the clean default-branch HEAD. The command refreshes tags and opens a PR with synchronized owned version fields. An existing unreleased base is retained; use `--bump minor`, `--bump major`, or `--version X.Y.Z` for explicit intent. See [version plans](VERSIONING.md) for build overlays, the dedicated allocation ledger and recovery.
 
 A local candidate package also needs the saved `.release-plan.json` at its exact source commit. Restore the `version_plan` object from the published `release-manifest.json` as `.release-plan.json` in a disposable checkout. Apply the recorded version fields with `python3 scripts/version_plan.py sync --root . --plan .release-plan.json` before `release.py package`; do not invent a tag or native counter locally. Ordinary development builds can use the project's native build command and explicitly local version identity.
+
+### Migrate package receipt identity without replacing the release engine
+
+For an existing public hosted versioned release, the toolkit can migrate reviewed
+receipt, publisher and signing-preparation code without replacing action pins,
+workflow adapters, package policy, or unrelated release APIs:
+
+```sh
+python3 scripts/install_release.py /path/to/consumer --release-receipts-only --check
+python3 scripts/install_release.py /path/to/consumer --release-receipts-only
+```
+
+`--check` reports pending changes without writing. The migration recognizes
+reviewed complete source shapes only. Unknown customizations, partly updated
+functions or mixed old/new receipt, publisher and signer files require explicit
+review; the renderer refuses the complete update before writing anything.
+The generated header and detached-provenance requirement are preserved.
+
+After migration, run a fresh, complete build of all required package producers in
+one workflow attempt. The publisher verifies the independently supplied repository,
+run ID, attempt and source SHA against every package receipt. Pre-migration receipts
+without producer identity cannot qualify fresh package publication through this
+migrated publisher. Existing historical promotion and retained-evidence validation
+remain separate and unchanged. A failed-job-only retry cannot
+fill missing current-attempt packages from an earlier attempt; regenerate the full
+coherent package set instead. Existing release approval and acceptance policies
+still apply.
+
+Offline creation and inspection remain supported without an Actions identity, but
+an offline receipt cannot qualify fresh publication through the migrated publisher.
+Receipt coverage proves that
+the staged files have matching receipts; package-set completeness is a separate
+check for targets explicitly listed in `versioning.artifacts`. It does not infer
+all intended platforms from workflow names. To require every intended producer,
+declare `versioning.required_build_receipts` and apply `--release-inventory-only`
+as described below. No release is dispatched by this mode.
+
+### Require the complete set of package producers
+
+Declare `versioning.required_build_receipts` as a nonempty list of exact receipt
+filenames after reviewing every release-build matrix and conditional producer.
+Include the final signature receipt when the publisher consumes one. For example,
+an ordinary package and a later signing job require:
+
+```json
+"required_build_receipts": [
+  "release-inputs-package.json",
+  "release-inputs-signature.json"
+]
+```
+
+Do not include `release-inputs-fuzz.json`: the authenticated RC validation receipt
+is checked and separated from package receipts before this inventory check.
+An intentionally smaller release scope needs its own reviewed policy; a skipped
+producer cannot silently reduce the declared set.
+
+For runtimes that already have package producer identity checks, apply only the
+reviewed inventory delta with:
+
+```sh
+python3 scripts/install_release.py /path/to/consumer --release-inventory-only --check
+python3 scripts/install_release.py /path/to/consumer --release-inventory-only
+```
+
+This mode changes only the known version-plan validator, receipt validator and
+publisher. It does not infer or rewrite policy, workflow pins or signing code.
+Unknown or partially migrated files fail before any changes are written.
+The final fresh publisher authenticates each receipt's repository, source, run
+and attempt, then rejects missing, duplicate or unexpected producer receipts.
+Pre-signing validation remains separate because signature receipts do not yet
+exist at that stage. Historical RC promotion retains its original source policy.
+
+Update the declared set whenever producer jobs or matrices change. Receipt-set
+completeness does not prove every package format inside a producer group; retain
+declared artifact metadata checks and release asset verification.

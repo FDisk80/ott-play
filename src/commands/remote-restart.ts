@@ -921,6 +921,10 @@ export function executeRemoteControl(
             local_media: localMedia,
             local_media_progressive: localMedia ? { version: 1 } : undefined,
             local_media_session: localMedia ? { version: 1 } : undefined,
+            local_source_diagnostics:
+                typeof w.__ottLocalSourceDiagnostics === "function"
+                    ? { version: 1 }
+                    : undefined,
             offline_profiles: w.__ottOfflineProfiles
                 ? w.__ottOfflineProfiles.capabilities()
                 : null,

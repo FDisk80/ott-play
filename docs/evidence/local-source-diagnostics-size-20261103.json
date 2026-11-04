@@ -1,0 +1,270 @@
+{
+  "schema": 1,
+  "base": "9451807dd175bcb7c3ca9709e7b89c7940e1d550",
+  "toolchain": {
+    "node": "22.23.4",
+    "zlib": "1.3.1-e00f703",
+    "typescript": "5.9.3",
+    "terser": "5.51.2",
+    "nodeSha256": "2cc28a1880d0774616959f2210ee739bffa6ac695c887e8988a496a21271f6c0"
+  },
+  "measurementContext": {
+    "sameToolchain": true,
+    "sameSourceIdentity": true,
+    "sameBuildIdentity": true,
+    "version": "1.1.63",
+    "buildId": "bundle-6d93dd7d5d0e64edf5090a5c36b59a4e568e4d0504d63e112505af1b7dafa7de",
+    "baseline": "Experimental OFF removes only Local diagnostics code; not a deliverable.",
+    "candidate": "Original feature ON from the frozen source, without runtime optimization.",
+    "gzipAccounting": "Sum of individual emitted-asset gzip sizes, not concatenated compression."
+  },
+  "provenance": {
+    "measurementSha256": "aabc5521a7756082397ece276851fd377a21be3d7e62a431e3ecca462c04ec91",
+    "inputCount": 273,
+    "inputInventorySha256": "77f846262b5e6eeb22ad60aa08fef97333098b8440b364960f2563fb005c5356",
+    "inputHashesUnchanged": true,
+    "onExactOutputMatches": 75,
+    "outputCount": 150,
+    "outputInventorySha256": "633c16c6a0ab28534ca8eb1a55e5e345380ab5735f434fd5fa6fc52b4f76c7f4",
+    "inventoryDigestEncoding": "SHA-256 of UTF-8 JSON with sorted keys and no whitespace. Output order: ON/OFF, assembler row order, web/tauri/capacitor.",
+    "packageJsonSha256": "8867a56bc10e5dbfc5eba934964bd6b7b38c94d6d426bacfadcf8963b02949c0",
+    "packageLockSha256": "692f7e91bc1efa44b82cb7ec64c4aa18be64652adffd00c0fde78a5d1ba95282"
+  },
+  "allowance": {
+    "bytes": 5800,
+    "gzipBytes": 1724,
+    "optional": {
+      "bytes": 9450,
+      "gzipBytes": 3550
+    }
+  },
+  "protectedCaps": {
+    "budget": {
+      "bytes": 1188352,
+      "gzipBytes": 363165
+    },
+    "legacyTotalBudget": {
+      "bytes": 1433408,
+      "gzipBytes": 447420
+    }
+  },
+  "previousTotalCap": {
+    "bytes": 1863353,
+    "gzipBytes": 574760
+  },
+  "currentTotalCap": {
+    "bytes": 1869153,
+    "gzipBytes": 576484
+  },
+  "measurements": [
+    {
+      "variant": "dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1185531,
+          "gzipBytes": 362312,
+          "sha256": "00055ea8a3f1931cb34523da6262158e2cb07fa282358ff0db92855ff2959824",
+          "path": "dist/player.js"
+        },
+        "local": {
+          "bytes": 4012,
+          "gzipBytes": 1737,
+          "sha256": "2aaa2fa4d8855ca97f2669d54a5e7dd5979e3f3e0d2aac364dae935446404b0b",
+          "path": "dist/local-compatibility.js"
+        },
+        "legacy": {
+          "bytes": 1430404,
+          "gzipBytes": 446639
+        },
+        "total": {
+          "bytes": 1860646,
+          "gzipBytes": 573770
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1185885,
+          "gzipBytes": 362360,
+          "sha256": "96d816fe064ee74f159f7b585e025d238b1a373281355edb804b34cdeea3a235",
+          "path": "dist/player.js"
+        },
+        "local": {
+          "bytes": 9174,
+          "gzipBytes": 3413,
+          "sha256": "ff68491f9351005b4ab6f8b9d71e04b86037c30040b302db22adade442d1ba69",
+          "path": "dist/local-compatibility.js"
+        },
+        "legacy": {
+          "bytes": 1430758,
+          "gzipBytes": 446687
+        },
+        "total": {
+          "bytes": 1866162,
+          "gzipBytes": 575494
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "local": {
+          "bytes": 5162,
+          "gzipBytes": 1676
+        },
+        "legacy": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "total": {
+          "bytes": 5516,
+          "gzipBytes": 1724
+        }
+      }
+    },
+    {
+      "variant": "src-tauri/frontend/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1185489,
+          "gzipBytes": 362369,
+          "sha256": "c12e20651574e3f3cf18b82c1e4da388115c4a8e4dc3bd9b5825799c4ba17eae",
+          "path": "src-tauri/frontend/dist/player.js"
+        },
+        "local": {
+          "bytes": 4012,
+          "gzipBytes": 1737,
+          "sha256": "2aaa2fa4d8855ca97f2669d54a5e7dd5979e3f3e0d2aac364dae935446404b0b",
+          "path": "src-tauri/frontend/dist/local-compatibility.js"
+        },
+        "legacy": {
+          "bytes": 1430362,
+          "gzipBytes": 446696
+        },
+        "total": {
+          "bytes": 1860604,
+          "gzipBytes": 573827
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1185843,
+          "gzipBytes": 362417,
+          "sha256": "9c8602ccaeb3cdb80bcaea19e471618bf05501a4d45867fa5d0d70907e689ed2",
+          "path": "src-tauri/frontend/dist/player.js"
+        },
+        "local": {
+          "bytes": 9174,
+          "gzipBytes": 3413,
+          "sha256": "ff68491f9351005b4ab6f8b9d71e04b86037c30040b302db22adade442d1ba69",
+          "path": "src-tauri/frontend/dist/local-compatibility.js"
+        },
+        "legacy": {
+          "bytes": 1430716,
+          "gzipBytes": 446744
+        },
+        "total": {
+          "bytes": 1866120,
+          "gzipBytes": 575551
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "local": {
+          "bytes": 5162,
+          "gzipBytes": 1676
+        },
+        "legacy": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "total": {
+          "bytes": 5516,
+          "gzipBytes": 1724
+        }
+      }
+    },
+    {
+      "variant": "dist-mobile/dist/player.js",
+      "baseline": {
+        "entry": {
+          "bytes": 1185489,
+          "gzipBytes": 362369,
+          "sha256": "c12e20651574e3f3cf18b82c1e4da388115c4a8e4dc3bd9b5825799c4ba17eae",
+          "path": "dist-mobile/dist/player.js"
+        },
+        "local": {
+          "bytes": 4012,
+          "gzipBytes": 1737,
+          "sha256": "2aaa2fa4d8855ca97f2669d54a5e7dd5979e3f3e0d2aac364dae935446404b0b",
+          "path": "dist-mobile/dist/local-compatibility.js"
+        },
+        "legacy": {
+          "bytes": 1430362,
+          "gzipBytes": 446696
+        },
+        "total": {
+          "bytes": 1860604,
+          "gzipBytes": 573827
+        }
+      },
+      "candidate": {
+        "entry": {
+          "bytes": 1185843,
+          "gzipBytes": 362417,
+          "sha256": "9c8602ccaeb3cdb80bcaea19e471618bf05501a4d45867fa5d0d70907e689ed2",
+          "path": "dist-mobile/dist/player.js"
+        },
+        "local": {
+          "bytes": 9174,
+          "gzipBytes": 3413,
+          "sha256": "ff68491f9351005b4ab6f8b9d71e04b86037c30040b302db22adade442d1ba69",
+          "path": "dist-mobile/dist/local-compatibility.js"
+        },
+        "legacy": {
+          "bytes": 1430716,
+          "gzipBytes": 446744
+        },
+        "total": {
+          "bytes": 1866120,
+          "gzipBytes": 575551
+        }
+      },
+      "delta": {
+        "entry": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "local": {
+          "bytes": 5162,
+          "gzipBytes": 1676
+        },
+        "legacy": {
+          "bytes": 354,
+          "gzipBytes": 48
+        },
+        "total": {
+          "bytes": 5516,
+          "gzipBytes": 1724
+        }
+      }
+    }
+  ],
+  "invariants": [
+    "Status and capabilities never load the optional asset.",
+    "Ordinary Local preparePlayback warms the existing Local asset; direct playback does not wait.",
+    "The Local manager is a per-page singleton; profile and provider changes retain that instance and change its observed catalog.",
+    "HEVC canPlayType is advisory and cannot establish file decoding.",
+    "Diagnostics perform no filesystem/media requests, runtime initialization or compatibility preparation.",
+    "Entry, legacy, base-total, provider and per-asset caps are unchanged. The existing raw allowance remains 5800 bytes; only complete gzip gains the measured 1724-byte feature cost."
+  ],
+  "validation": [
+    "Official assembler and optimizer reproduced all 75 existing ON outputs byte-for-byte.",
+    "All 273 recorded inputs remained unchanged; 150 ON/OFF output hashes were independently checked.",
+    "Only player and local-compatibility assets differ between ON and OFF; the typed-error command runner is retained in both.",
+    "This controlled measurement is not a new full build, browser run, or native-device qualification."
+  ]
+}

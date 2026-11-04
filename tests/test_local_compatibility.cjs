@@ -183,6 +183,11 @@ function fixture(options = {}) {
             URL,
             window: w,
         });
+        if (kind === "local-compatibility")
+            vm.runInNewContext(
+                compile("src/commands/remote-local-source-diagnostics.ts"),
+                { window: w }
+            );
     }
     if (!options.loadFeature) {
         loadFeature("local-media-ui");
@@ -216,6 +221,140 @@ function fixture(options = {}) {
         w,
     };
 }
+test("shared direct Local preparation warms diagnostics without waiting or changing the source", async () => {
+    let load, finish;
+    const f = fixture({
+        loadFeature: (w, kind, done, implementation) => {
+            assert.equal(kind, "local-compatibility");
+            load = () => implementation(kind);
+            finish = done;
+        },
+    });
+    await f.api.list();
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+    const direct = f.catalog.items[0].url;
+    assert.equal(await f.api.preparePlayback(direct), direct);
+    assert.equal(typeof load, "function");
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+    load();
+    finish();
+    assert.equal(typeof f.w.__ottLocalSourceDiagnostics, "function");
+});
+
+test("failed diagnostic asset warmup does not reject direct Local playback", async () => {
+    const f = fixture({
+        loadFeature: (_w, _kind, done) => done("unsupported"),
+    });
+    await f.api.list();
+    const direct = f.catalog.items[0].url;
+    assert.equal(await f.api.preparePlayback(direct), direct);
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+});
+
+function startDirectCore(f, url) {
+    const started = [],
+        w = f.w;
+    Object.assign(w, {
+        _corePauseRevision: 0,
+        _coreSeekRevision: 0,
+        _coreShakaTeardown: null,
+        _playSession: 0,
+        cancelCoreAutoPlayback() {},
+        cancelCoreCompat() {},
+        cancelCoreNativeHls() {},
+        cancelCoreSeek() {},
+        cancelCoreSourcePreparation() {},
+        cancelCoreStreamAttempt() {},
+        clearPlayTimeInterval() {},
+        clearTimeout() {},
+        coreDeviceEffects: {},
+        coreNormalizedTimeout: () => 0,
+        corePlexPlaybackHint: () => "",
+        createCoreStreamAttempt: () => null,
+        destroyCoreShaka() {},
+        hlsInstance: null,
+        releaseCoreCompanion() {},
+        setCoreDemoMute() {},
+        setTimeout: () => 1,
+        startCorePlayback: (...args) => started.push(args),
+        video: {
+            addEventListener() {},
+            currentTime: 0,
+            removeEventListener() {},
+        },
+    });
+    w.window = w;
+    vm.createContext(w);
+    vm.runInContext(
+        compile("src/core/index.ts", [
+            "startCoreEngine",
+            "coreCompat",
+            "coreCall",
+        ]),
+        w
+    );
+    w.startCoreEngine(url);
+    return started;
+}
+
+test("actual core direct Local path starts immediately and warms its diagnostic observer", async () => {
+    let finish;
+    const f = fixture({
+        loadFeature: (_w, kind, done, implementation) => {
+            assert.equal(kind, "local-compatibility");
+            finish = () => {
+                implementation(kind);
+                done();
+            };
+        },
+    });
+    await f.api.list();
+    const direct = f.catalog.items[0].url;
+    const started = startDirectCore(f, direct);
+    assert.equal(started.length, 1);
+    assert.equal(started[0][0], direct);
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+    assert.equal(typeof finish, "function");
+    finish();
+    assert.equal(typeof f.w.__ottLocalSourceDiagnostics, "function");
+    assert.equal(started.length, 1);
+});
+
+test("actual core direct Local playback survives failed diagnostic loading", async () => {
+    const f = fixture({
+        loadFeature: (_w, _kind, done) => done("unavailable"),
+    });
+    await f.api.list();
+    const direct = f.catalog.items[0].url;
+    assert.equal(startDirectCore(f, direct)[0][0], direct);
+    await flush();
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+});
+
+test("registered diagnostics prove cached direct and compatibility identities without storage reads", async () => {
+    const f = fixture();
+    const sourceId = "b".repeat(32);
+    f.catalog.sources[0].id = sourceId;
+    f.catalog.items.forEach((item) => {
+        item.sourceId = sourceId;
+    });
+    await f.api.list();
+    const prepared = await f.api.preparePlayback(sourceUrl);
+    assert.equal(typeof f.api.diagnosticSource, "function");
+    f.w.stbGetItem = () => assert.fail("diagnostics must not read storage");
+    const direct = clone(f.api.diagnosticSource(sourceUrl));
+    const compatibility = clone(f.api.diagnosticSource(prepared));
+    assert.deepEqual(direct, {
+        itemId: "a".repeat(32),
+        revision: direct.revision,
+        sourceId,
+    });
+    assert.deepEqual(compatibility, direct);
+    assert.equal(f.api.diagnosticSource(prepared + "/other"), null);
+    f.api.didRestoreLibrary();
+    assert.equal(f.api.diagnosticSource(sourceUrl), null);
+    assert.equal(f.api.diagnosticSource(prepared), null);
+});
 test("finite prepare maps scoped URL to the stable source ID and cancels only its lease", async () => {
     const f = fixture();
     await f.api.list();
@@ -615,6 +754,43 @@ test("offline driver resolves asynchronously and disposal fences a late prepare"
     assert.deepEqual(ready, []);
     assert(f.calls.some((c) => c[0].endsWith?.("/cancel")));
 });
+test("offline driver delivers a direct MP4 while the optional diagnostic asset is still loading", async () => {
+    let finish;
+    const f = fixture({
+        loadFeature(_w, kind, done, load) {
+            assert.equal(kind, "local-compatibility");
+            finish = () => {
+                load(kind);
+                done();
+            };
+        },
+    });
+    await f.api.list();
+    const context = { Promise, window: f.w };
+    vm.createContext(context);
+    vm.runInContext(
+        compile("src/provider/drivers.ts", [
+            "emptyDriverCatalog",
+            "createOfflineDriver",
+            "driverField",
+        ]),
+        context
+    );
+    const driver = context.createOfflineDriver(
+        {},
+        { active: () => true, own: () => () => {} }
+    );
+    const ready = [];
+    const direct = f.catalog.items[0].url;
+    driver.resolveStream(direct, (url) => ready.push(url));
+    await flush();
+    assert.deepEqual(ready, [direct]);
+    assert.equal(f.w.__ottLocalSourceDiagnostics, undefined);
+    finish();
+    assert.equal(typeof f.w.__ottLocalSourceDiagnostics, "function");
+    assert.equal(typeof f.api.diagnosticSource, "function");
+    driver.dispose();
+});
 test("latest user pause/resume intent wins while compatibility seek is preparing", async () => {
     for (const paused of [false, true]) {
         const f = seekFixture(paused);
@@ -690,7 +866,11 @@ test("optional compatibility download is cancellable before any prepare POST", a
     });
     await f.api.list();
     assert.equal(await f.api.preparePlayback(base + "/mp4"), base + "/mp4");
-    assert.equal(ready, undefined);
+    assert.equal(
+        typeof ready,
+        "function",
+        "direct playback warms the passive observer without waiting"
+    );
     const pending = f.api.preparePlayback(sourceUrl);
     const rejected = assert.rejects(pending, /cancelled/);
     pending.cancel();

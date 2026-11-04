@@ -5,15 +5,17 @@ import importlib.util
 import io
 import json
 import os
-from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
-from types import SimpleNamespace
+import time
 import unittest
-from unittest.mock import MagicMock, patch
 import warnings
 import zipfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -452,7 +454,47 @@ class WorkerTests(unittest.TestCase):
             publish.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://elsewhere.invalid")
 
 
+class UpdaterAssetDownloadTests(unittest.TestCase):
+    def test_updater_supplies_official_digest_and_size_before_cache_commit(self):
+        module = load("native_update_download_fixtures", ROOT / "tests/test_native_webos_update.py")
+        fixture = module.OfficialReleaseValidationTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        payloads = {row["name"]: (fixture.root / row["name"]).read_bytes()
+                    for row in fixture.release_info["assets"]}
+        loader = module.update.load_module
+        def load_dependency(name):
+            return publish if name == "publish-webos-native.py" else loader(name)
+        def response(request, timeout):
+            return WorkerTests.Response(payloads[request.full_url.rsplit("/", 1)[1]])
+        def api(path):
+            if "/git/ref/" in path:
+                return fixture.ref_info
+            return fixture.release_info
+        with patch.object(module.update, "load_module", side_effect=load_dependency), \
+                patch.object(publish, "api_json", side_effect=api), \
+                patch.object(publish, "build_opener", return_value=SimpleNamespace(open=response)):
+            cache = fixture.root / "cache"
+            result = module.update.official_release(fixture.tag, cache)
+            self.assertEqual(result["sha256"], fixture.metadata["sha256"])
+            self.assertEqual(len(list(cache.iterdir())), 4)
+            # Same-size corruption must not create the final IPK cache entry.
+            name = fixture.stem + ".ipk"
+            original = payloads[name]
+            payloads[name] = bytes([original[0] ^ 1]) + original[1:]
+            corrupt_cache = fixture.root / "corrupt-cache"
+            with self.assertRaises(module.update.UpdateError):
+                module.update.official_release(fixture.tag, corrupt_cache)
+            self.assertFalse((corrupt_cache / name).exists())
+            self.assertEqual(list(corrupt_cache.iterdir()), [])
+
+
 class PublicAssetTransportTests(unittest.TestCase):
+    def fetch(self, path, payload=b"new", limit=20, url="https://github.com/fixture/asset"):
+        return publish.fetch_public_asset(url, path, limit,
+                                          expected_sha256=hashlib.sha256(payload).hexdigest(),
+                                          expected_size=len(payload))
+
     def test_public_download_sends_no_token_and_obeys_size_bound(self):
         url = "https://github.com/" + publish.REPOSITORY + "/releases/download/" + TAG + "/fixture.ipk"
         def opened(request, timeout):
@@ -464,10 +506,212 @@ class PublicAssetTransportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"GH_TOKEN": "must-not-be-sent"}), \
                 patch.object(publish, "build_opener", return_value=SimpleNamespace(open=opened)):
             path = Path(tmp) / "asset"
-            publish.fetch_public_asset(url, path, 7)
+            self.fetch(path, b"payload", 7, url)
             self.assertEqual(path.read_bytes(), b"payload")
             with self.assertRaises(publish.PromotionError):
-                publish.fetch_public_asset(url, Path(tmp) / "too-large", 6)
+                self.fetch(Path(tmp) / "too-large", b"payload", 6, url)
+            self.assertFalse((Path(tmp) / "too-large").exists())
+            self.assertEqual(list(Path(tmp).glob("*.part")), [])
+
+    def test_interrupted_download_cleans_staging_and_can_retry(self):
+        failure = OSError("synthetic interrupted stream")
+        class Interrupted(WorkerTests.Response):
+            def read1(self, size):
+                if self.tell():
+                    raise failure
+                return super().read1(2)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: Interrupted(b"partial"))
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(OSError) as caught:
+                self.fetch(path, b"partial")
+            self.assertIs(caught.exception, failure)
+            self.assertFalse(path.exists())
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+            opener.open = lambda *args, **kwargs: WorkerTests.Response(b"complete")
+            with patch.object(publish, "build_opener", return_value=opener):
+                self.fetch(path, b"complete")
+            self.assertEqual(path.read_bytes(), b"complete")
+
+    def test_existing_and_concurrent_destination_are_never_removed_or_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            path.write_bytes(b"existing")
+            opener = SimpleNamespace(open=lambda *args, **kwargs: WorkerTests.Response(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(FileExistsError):
+                self.fetch(path)
+            self.assertEqual(path.read_bytes(), b"existing")
+            path.unlink()
+            for interrupt in (False, True):
+                class Replaced(WorkerTests.Response):
+                    def read1(self, size, should_interrupt=interrupt):
+                        if not self.tell():
+                            path.write_bytes(b"replacement")
+                            if should_interrupt:
+                                raise OSError("synthetic replacement during transfer")
+                        return super().read1(size)
+                opener.open = lambda *args, **kwargs: Replaced(b"new")
+                with self.subTest(interrupt=interrupt), patch.object(publish, "build_opener", return_value=opener), \
+                        self.assertRaises(OSError):
+                    self.fetch(path)
+                self.assertEqual(path.read_bytes(), b"replacement")
+                path.unlink()
+            path.symlink_to(Path(tmp) / "missing")
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(FileExistsError):
+                self.fetch(path)
+            self.assertTrue(path.is_symlink())
+
+    def test_fstat_failure_after_creation_leaves_no_final_and_retry_succeeds(self):
+        failure = OSError("synthetic fstat failure")
+        original_fstat = os.fstat
+        failed = False
+        def fail_once(fd):
+            nonlocal failed
+            if not failed:
+                failed = True
+                raise failure
+            return original_fstat(fd)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: WorkerTests.Response(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), \
+                    patch.object(publish.os, "fstat", side_effect=fail_once), self.assertRaises(OSError) as caught:
+                self.fetch(path)
+            self.assertIs(caught.exception, failure)
+            self.assertFalse(path.exists())
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+            with patch.object(publish, "build_opener", return_value=opener):
+                self.fetch(path)
+            self.assertEqual(path.read_bytes(), b"new")
+
+    def test_fstat_failure_preserves_a_concurrent_final_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            original_fstat = os.fstat
+            failed = False
+            def failed_stat(fd):
+                nonlocal failed
+                if not failed:
+                    failed = True
+                    path.write_bytes(b"replacement")
+                    raise OSError("synthetic fstat failure")
+                return original_fstat(fd)
+            opener = SimpleNamespace(open=lambda *args, **kwargs: WorkerTests.Response(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), \
+                    patch.object(publish.os, "fstat", side_effect=failed_stat), self.assertRaises(OSError):
+                self.fetch(path)
+            self.assertEqual(path.read_bytes(), b"replacement")
+            self.assertEqual(list(Path(tmp).iterdir()), [path])
+
+    def test_unverified_or_changed_bytes_are_never_published(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            for actual in (b"bad", b"ne", b"new-extra"):
+                opener = SimpleNamespace(open=lambda *args, body=actual, **kwargs: WorkerTests.Response(body))
+                with self.subTest(actual=actual), patch.object(publish, "build_opener", return_value=opener), \
+                        self.assertRaises(publish.PromotionError):
+                    self.fetch(path)
+                self.assertFalse(path.exists())
+                self.assertEqual(list(Path(tmp).iterdir()), [])
+
+    def test_verified_closed_file_is_committed_with_no_overwrite_link(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: WorkerTests.Response(b"new"))
+            link = publish.os.link
+            def commit(source, destination, **kwargs):
+                self.assertFalse(path.exists())
+                self.assertEqual(source.read_bytes(), b"new")
+                self.assertEqual(destination, path)
+                self.assertEqual(kwargs, {"follow_symlinks": False})
+                return link(source, destination, **kwargs)
+            with patch.object(publish, "build_opener", return_value=opener), \
+                    patch.object(publish.os, "link", side_effect=commit):
+                self.fetch(path)
+            self.assertEqual(path.read_bytes(), b"new")
+            self.assertEqual(list(Path(tmp).iterdir()), [path])
+
+    def test_cleanup_failure_preserves_primary_error(self):
+        failure = OSError("synthetic stream failure")
+        pending = []
+        original_cleanup = tempfile.TemporaryDirectory.cleanup
+        def failed_cleanup(staging):
+            pending.append(staging)
+            raise OSError("synthetic cleanup failure")
+        class Interrupted(WorkerTests.Response):
+            def read1(self, size):
+                raise failure
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: Interrupted(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), \
+                    patch.object(publish.tempfile.TemporaryDirectory, "cleanup", new=failed_cleanup), \
+                    self.assertRaises(OSError) as caught:
+                self.fetch(path)
+            for staging in pending:
+                original_cleanup(staging)
+            self.assertIs(caught.exception, failure)
+            self.assertIn("incomplete asset staging", caught.exception.__notes__[0])
+            self.assertFalse(path.exists())
+
+    def test_response_close_failure_does_not_publish_asset(self):
+        class BadClose(WorkerTests.Response):
+            def __exit__(self, *args):
+                super().__exit__(*args)
+                raise OSError("synthetic response close failure")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            opener = SimpleNamespace(open=lambda *args, **kwargs: BadClose(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener), self.assertRaises(OSError):
+                self.fetch(path)
+            self.assertFalse(path.exists())
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
+    def test_killed_download_leaves_no_final_and_retry_succeeds(self):
+        # Kill only our synthetic child, after its first partial write. No
+        # network, SDK, external process name, or user file is involved.
+        code = """
+import hashlib, importlib.util, io, sys
+from pathlib import Path
+from types import SimpleNamespace
+spec = importlib.util.spec_from_file_location('child_download', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+class Response(io.BytesIO):
+    status = 200
+    def read1(self, size):
+        if self.tell():
+            Path(sys.argv[3]).write_text('ready')
+            sys.stdin.buffer.read(1)
+        return super().read1(2)
+module.build_opener = lambda *args: SimpleNamespace(open=lambda *args, **kwargs: Response(b'new'))
+module.fetch_public_asset('https://github.com/fixture/asset', Path(sys.argv[2]), 20,
+                          expected_sha256=hashlib.sha256(b'new').hexdigest(), expected_size=3)
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "asset"
+            ready = Path(tmp) / "ready"
+            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+            child = subprocess.Popen([sys.executable, "-c", code, str(ROOT / "scripts/publish-webos-native.py"),
+                                      str(path), str(ready)], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+            try:
+                deadline = time.monotonic() + 5
+                while not ready.exists() and child.poll() is None and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertTrue(ready.exists(), "synthetic child did not reach partial write")
+                self.assertIsNone(child.poll())
+                child.kill()
+                child.communicate(timeout=5)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                child.communicate(timeout=5)
+            self.assertFalse(path.exists())
+            opener = SimpleNamespace(open=lambda *args, **kwargs: WorkerTests.Response(b"new"))
+            with patch.object(publish, "build_opener", return_value=opener):
+                self.fetch(path)
+            self.assertEqual(path.read_bytes(), b"new")
 
     def test_redirect_restricts_hosts_protocol_credentials_and_count(self):
         safe = "https://release-assets.githubusercontent.com/fixture?signature=example"
@@ -611,13 +855,15 @@ class FakeGitHub:
         assert len(data) <= limit
         destination.write_bytes(data)
 
-    def public_download(self, url, destination, limit):
+    def public_download(self, url, destination, limit, *, expected_sha256, expected_size):
         prefix = "https://github.com/" + publish.REPOSITORY + "/releases/download/" + TAG + "/"
         assert url.startswith(prefix) and self.release["draft"] is False
         name = url[len(prefix):]
         self.events.append(("PUBLIC_DOWNLOAD", url, None))
         data = self.assets[name]
         assert len(data) <= limit
+        assert len(data) == expected_size
+        assert hashlib.sha256(data).hexdigest() == expected_sha256
         destination.write_bytes(data)
 
     def upload(self, release_id, name, path):

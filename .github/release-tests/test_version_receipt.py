@@ -106,6 +106,20 @@ class CurrentBuildInputsTests(unittest.TestCase):
         )
         self.assertEqual(verified[0]["name"], self.output.name)
 
+    def test_presigning_checks_do_not_require_the_future_signature_receipt(self):
+        self.policy["versioning"]["required_build_receipts"] = [
+            "release-inputs-linux.json", "release-inputs-signature.json",
+        ]
+        self.create()
+        payloads = [{"name": p.name, "size": p.stat().st_size,
+                     "sha256": version_receipt.sha256(p.read_bytes())}
+                    for p in self.assets.iterdir()]
+        authenticated = version_receipt.verify_receipts(
+            self.assets, self.plan, payloads, self.policy)
+        self.assertEqual(len(authenticated), 1)
+        with self.assertRaisesRegex(ValueError, "missing=.*release-inputs-signature"):
+            version_receipt.verify_required_build_receipts(authenticated, self.policy)
+
     def test_invalid_package_name_fails_before_toolchain_or_receipt_write(self):
         (self.assets / "unsafe package.bin").write_bytes(b"not a safe asset name")
         with patch.object(version_receipt, "capture_toolchain") as toolchain:
@@ -321,6 +335,82 @@ class CurrentBuildInputsTests(unittest.TestCase):
         with chdir(self.assets):
             self.create()
         self.assertTrue(self.output.is_file())
+
+
+class RequiredBuildReceiptsTests(unittest.TestCase):
+    def test_policy_receipt_names_fit_the_asset_staging_limit(self):
+        """Reject an impossible receipt inventory before publication begins."""
+        import release_control
+        for size in (199, 200, 201):
+            name = "release-inputs-" + "a" * (size - len("release-inputs-.json")) + ".json"
+            policy = {"versioning": {"schema": 1, "promotion": "final-build",
+                      "files": [{"path": "VERSION", "format": "text", "value": "package"}],
+                      "required_build_receipts": [name]}}
+            with self.subTest(size=size):
+                if size <= 200:
+                    self.assertIsNotNone(release_control.NAME_RE.fullmatch(name))
+                    self.assertEqual(version_plan.validate_policy(policy)["required_build_receipts"], [name])
+                    version_receipt.verify_required_build_receipts([{"name": name}], policy)
+                else:
+                    self.assertIsNone(release_control.NAME_RE.fullmatch(name))
+                    with self.assertRaises(version_plan.VersionError):
+                        version_plan.validate_policy(policy)
+                    with self.assertRaises(version_plan.VersionError):
+                        version_receipt.verify_required_build_receipts([{"name": name}], policy)
+
+    def test_legacy_policy_keeps_its_existing_contract(self):
+        version_receipt.verify_required_build_receipts([], {"versioning": {}})
+
+    def test_exact_unordered_package_and_signature_set_is_required(self):
+        policy = {"versioning": {"required_build_receipts": [
+            "release-inputs-linux.json", "release-inputs-signature.json",
+        ]}}
+        receipts = [{"name": "release-inputs-signature.json"},
+                    {"name": "release-inputs-linux.json"}]
+        version_receipt.verify_required_build_receipts(receipts, policy)
+        for invalid in (receipts[:1], receipts + [{"name": "release-inputs-extra.json"}]):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "inventory differs"):
+                version_receipt.verify_required_build_receipts(invalid, policy)
+        with self.assertRaisesRegex(ValueError, "Duplicate authenticated"):
+            version_receipt.verify_required_build_receipts(receipts + receipts[:1], policy)
+
+    def test_policy_rejects_exact_and_case_colliding_receipt_names(self):
+        """Reject impossible inventories before case-insensitive asset staging."""
+        for names in (["release-inputs-linux.json"] * 2,
+                      ["release-inputs-linux.json", "release-inputs-Linux.json"],
+                      ["release-inputs-WINDOWS.json", "release-inputs-windows.json"]):
+            policy = {"versioning": {"schema": 1, "promotion": "final-build",
+                      "files": [{"path": "VERSION", "format": "text", "value": "package"}],
+                      "required_build_receipts": names}}
+            with self.subTest(names=names), self.assertRaisesRegex(
+                version_plan.VersionError, "duplicate"
+            ):
+                version_plan.validate_policy(policy)
+
+    def test_noncolliding_policy_retains_exact_receipt_spelling(self):
+        """Casefold detects collisions without normalizing legitimate names."""
+        names = ["release-inputs-Linux.json", "release-inputs-Windows.json"]
+        policy = {"versioning": {"schema": 1, "promotion": "final-build",
+                  "files": [{"path": "VERSION", "format": "text", "value": "package"}],
+                  "required_build_receipts": names}}
+        self.assertEqual(version_plan.validate_policy(policy)["required_build_receipts"], names)
+        version_receipt.verify_required_build_receipts(
+            [{"name": name} for name in reversed(names)], policy)
+        with self.assertRaisesRegex(ValueError, "inventory differs"):
+            version_receipt.verify_required_build_receipts(
+                [{"name": name.lower()} for name in names], policy)
+
+    def test_malformed_or_ambiguous_policy_names_are_rejected(self):
+        invalid = (None, True, 1, "release-inputs-linux.json", {}, [],
+                   [None], [True], [123], ["release-inputs-linux.json"] * 2,
+                   ["../release-inputs-linux.json"], ["/release-inputs-linux.json"],
+                   ["release-inputs-sub/linux.json"], ["release-inputs-sub\\linux.json"],
+                   ["release-inputs-linüx.json"], ["release-inputs-linux.json\n"],
+                   ["release-inputs-linux.JSON"], ["release-inputs-fuzz.json"])
+        for names in invalid:
+            with self.subTest(names=names), self.assertRaises(ValueError):
+                version_receipt.verify_required_build_receipts(
+                    [], {"versioning": {"required_build_receipts": names}})
 
 
 if __name__ == "__main__":

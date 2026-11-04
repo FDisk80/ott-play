@@ -917,11 +917,13 @@ function createModernPlayer(w: any) {
             var visible = visibleActions();
             if (!visible.length) {
                 setGroup("timeline");
-            } else if (
-                !visible.some(function (action: any): boolean {
-                    return action.entry.button === w.document.activeElement;
-                })
-            ) {
+            } else {
+                for (var i = 0; i < visible.length; i++) {
+                    if (visible[i].entry.button === w.document.activeElement) {
+                        railFocus = i;
+                        return;
+                    }
+                }
                 railFocus = Math.min(railFocus, visible.length - 1);
                 visible[railFocus].entry.button.focus();
             }

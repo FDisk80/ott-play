@@ -224,6 +224,16 @@ export function installLocalMedia(w: any): any {
         if (!url) compatibilityEpoch++;
         localCall(compatibility, localText4, [url], 1);
     }
+    function warmDiagnostics(url: string, current?: () => boolean): void {
+        // Playback owns this warmup. Passive status requests must never load it.
+        if (
+            !w.__ottLocalSourceDiagnostics &&
+            playbackItem(url) &&
+            !localCall(w.__ottStandby, "blocked", [], 1) &&
+            (!current || current())
+        )
+            loadLocalFeature(localText1).catch(function () {});
+    }
     function preparePlayback(url: string, current?: () => boolean): any {
         if (!compatibility && w.__ottLocalCompatibilityFactory)
             loadLocalFeature(localText1).catch(function () {});
@@ -237,7 +247,10 @@ export function installLocalMedia(w: any): any {
                     "AVI/MKV compatibility is unavailable on this library"
                 )
             );
-        if (!compatibilityPlayback(url)) return Promise.resolve(url);
+        if (!compatibilityPlayback(url)) {
+            warmDiagnostics(url, current);
+            return Promise.resolve(url);
+        }
         if (
             localCall(w.__ottStandby, "blocked", [], 1) ||
             (current && !current()) ||
@@ -1618,6 +1631,7 @@ export function installLocalMedia(w: any): any {
             return selected;
         },
         title: title,
+        warmDiagnostics: warmDiagnostics,
     };
     w.__ottLocalMedia = api;
     if (isTauri())

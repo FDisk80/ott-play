@@ -13,6 +13,65 @@ function createLocalCompatibility(w: any, p: any): any {
     }
     var compatibilityLeases: any[] = [];
     var compatibilityPending: any[] = [];
+    if (w.__ottLocalMedia)
+        w.__ottLocalMedia.diagnosticSource = function (url: string): any {
+            // Cached identities only. Never call playbackItem (it reads saved settings).
+            var catalog = p.b,
+                item: any = null,
+                lease: any = null;
+            if (
+                typeof url !== "string" ||
+                !catalog ||
+                catalog.cancelled ||
+                catalog.reconnectRequired
+            )
+                return null;
+            for (var i = 0; catalog.items && i < catalog.items.length; i++)
+                if (catalog.items[i].url === url) {
+                    item = catalog.items[i];
+                    break;
+                }
+            if (!item) {
+                for (var j = compatibilityLeases.length - 1; j >= 0; j--)
+                    if (
+                        compatibilityLeases[j].a &&
+                        compatibilityLeases[j].h &&
+                        compatibilityLeases[j].g === url
+                    ) {
+                        lease = compatibilityLeases[j];
+                        break;
+                    }
+                if (lease)
+                    for (
+                        var k = 0;
+                        catalog.items && k < catalog.items.length;
+                        k++
+                    ) {
+                        var candidate = catalog.items[k];
+                        if (
+                            candidate.id === lease.d &&
+                            candidate.sourceId === lease.j.sourceId &&
+                            candidate.url === lease.f
+                        ) {
+                            item = candidate;
+                            break;
+                        }
+                    }
+            }
+            if (
+                !item ||
+                typeof item.id !== "string" ||
+                !/^[a-f0-9]{32}$/.test(item.id) ||
+                typeof item.sourceId !== "string" ||
+                !/^[a-f0-9]{32}$/.test(item.sourceId) ||
+                !(catalog.sources || []).some(function (source: any) {
+                    return source.id === item.sourceId;
+                })
+            )
+                return null;
+            return { itemId: item.id, revision: p.a, sourceId: item.sourceId };
+        };
+
     function leaseForUrl(url: string): any {
         return compatibilityLeases
             .filter(function (entry) {

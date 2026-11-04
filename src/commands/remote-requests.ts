@@ -1202,7 +1202,7 @@ export function executeRemoteRequest(
             w,
             player.runtime
         );
-        reply({
+        var statusResult: any = {
             channels: channels().length,
             playback: readPlayerState(w, player).playback,
             player: player,
@@ -1220,7 +1220,18 @@ export function executeRemoteRequest(
             ready: w.commandChannelsReady === true,
             uuid: w.deviceUUID || "",
             volume: volume(),
-        });
+        };
+        if (typeof w.__ottLocalSourceDiagnostics === "function") {
+            return w.__ottLocalSourceDiagnostics(
+                w,
+                function () {
+                    return remotePlayerInfo(w).runtime;
+                },
+                statusResult,
+                reply
+            );
+        }
+        reply(statusResult);
         return;
     }
     if (request.action === "providers") {

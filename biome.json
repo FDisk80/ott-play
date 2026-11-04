@@ -241,6 +241,16 @@
   },
   "overrides": [
     {
+      "includes": [
+        ".github/workflows/quality-gate.yml",
+        ".github/workflows/release-pipeline.yml",
+        ".github/workflows/release-quality-gate.yml"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": ["contracts/ottplay-wire-v1.json"],
       "formatter": {
         "enabled": false
