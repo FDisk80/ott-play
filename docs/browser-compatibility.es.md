@@ -36,6 +36,14 @@ Los siete archivos generados de inventario/bloqueo proceden de `venus-os-ci-tool
 
 El veredicto de publicación compartido verifica cada destino seleccionado y su SHA fuente, ejecución, intento, canal e ID exacto de artefacto candidato. RC no puede usar las evidencias beta de cinco destinos. La promoción estable consume los bytes del RC aceptado. Tras un fallo, vuelve a ejecutar todo el workflow de cualificación; comprobantes de intentos anteriores no completan una cualificación nueva.
 
+## Diagnóstico al finalizar
+
+Tras cargar los metadatos del entorno de ejecución y del candidato, `scripts/browser-acceptance.cjs` escribe `acceptance-terminal.json` en `CI_BROWSER_DIAGNOSTICS` cuando la aceptación termina o lanza una excepción. Registra la última fase, la identidad del código fuente y del candidato, el destino de navegador, la ejecución y el intento, el tiempo transcurrido y el estado de salida del proceso de prueba, una señal o un código de error permitido. El registro ocupa menos de 2 KiB y no contiene errores sin filtrar, URLs, stdout/stderr, valores del entorno ni volcados de memoria. Se crea con acceso exclusivo y modo `0600` en el directorio de salida existente que pertenece al job; no se sobrescribe un archivo existente ni un enlace simbólico en el componente final de la ruta.
+
+Esto es **evidencia de diagnóstico, no una aceptación satisfactoria**. Siempre declara `acceptance: false`; solo el archivo independiente `CI_BROWSER_EVIDENCE` puede cualificar a un candidato una vez superadas todas las aserciones existentes. Un fallo al escribir el diagnóstico no puede sustituir el éxito o fallo original. La terminación abrupta del proceso envolvente, o un fallo al cargar los metadatos antes de que empiece, puede dejar la ejecución sin registro. Una señal del proceso de prueba no demuestra que el proceso de contenido de Firefox recibiera esa señal. Atribuir un fallo nativo sigue requiriendo una traza de pila nativa correspondiente o un caso de reproducción controlado; un reintento satisfactorio no cierra la investigación.
+
+Esta herramienta auxiliar no activa los informes de fallo sin filtrar de Firefox ni el registro `DEBUG=pw:browser`. La memoria del navegador y la salida de consola pueden contener datos sensibles y no deben copiarse en los artefactos subidos habituales sin una política de recopilación y acceso revisada por separado. No cambian el orden de los escenarios, las versiones fijadas de los navegadores, el uso de un solo proceso de trabajo, los cero reintentos ni los tiempos de espera existentes.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Del código al candidato aceptado

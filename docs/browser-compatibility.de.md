@@ -36,6 +36,37 @@ Die sieben erzeugten Inventar-/Lockdateien stammen aus `venus-os-ci-toolkit/scri
 
 Das gemeinsame Release-Urteil prüft jedes ausgewählte Ziel samt Quell-SHA, Lauf, Versuch, Kanal und exakter Kandidaten-Artefakt-ID. Ein RC darf nicht die Beta-Nachweise der fünf Ziele verwenden. Die Stable-Freigabe übernimmt die akzeptierten RC-Bytes. Nach einem Fehler muss der gesamte Qualifikationsworkflow erneut laufen; Nachweise älterer Versuche können keine neue Qualifikation vervollständigen.
 
+## Diagnosedaten zum Abschluss
+
+Nach dem Laden der Laufzeitumgebung und der Kandidatenmetadaten schreibt
+`scripts/browser-acceptance.cjs` die Datei `acceptance-terminal.json` nach
+`CI_BROWSER_DIAGNOSTICS`, wenn die Abnahmeprüfung endet oder eine Ausnahme auslöst.
+Der Datensatz enthält die letzte Phase, die Identität der Quellen und des Kandidaten,
+das Browserziel, Lauf und Versuch, die verstrichene Zeit sowie den Exit-Status des
+Testprozesses, ein Signal oder einen Fehlercode aus einer Positivliste. Er ist kleiner
+als 2 KiB und enthält keine unbearbeiteten Fehler, URLs, stdout/stderr, Umgebungswerte
+oder Speicherabbilder. Die Datei wird mit exklusivem Zugriff und dem Modus `0600` im
+bestehenden Ausgabeverzeichnis des Jobs angelegt; eine vorhandene Datei oder ein
+symbolischer Link am endgültigen Dateipfad wird nicht überschrieben.
+
+Dies sind **Diagnosenachweise, keine erfolgreiche Abnahme**. Der Datensatz weist
+immer `acceptance: false` aus; nur die separate Datei `CI_BROWSER_EVIDENCE` kann einen
+Kandidaten qualifizieren, nachdem alle bestehenden Prüfbedingungen erfüllt sind.
+Ein fehlgeschlagener Diagnose-Schreibvorgang darf das ursprüngliche Erfolgs- oder
+Fehlerergebnis nicht ersetzen. Ein abruptes Ende des Wrapper-Prozesses oder ein Fehler
+beim vorherigen Laden der Metadaten kann dazu führen, dass kein Datensatz entsteht.
+Ein Signal des Testprozesses beweist nicht, dass der Inhaltsprozess von Firefox dieses
+Signal erhalten hat. Die Zuordnung eines nativen Absturzes erfordert weiterhin einen
+passenden nativen Stack oder eine kontrollierte Reproduktion; ein erfolgreicher
+Wiederholungsversuch schließt die Untersuchung nicht ab.
+
+Dieses Hilfsprogramm aktiviert weder unbearbeitete Firefox-Absturzberichte noch die
+Protokollierung mit `DEBUG=pw:browser`. Browserspeicher und Konsolenausgabe können
+vertrauliche Daten enthalten und dürfen ohne gesondert geprüfte Regeln für Erfassung
+und Zugriff nicht in gewöhnliche hochgeladene Artefakte kopiert werden. Szenarioreihenfolge,
+festgelegte Browserversionen, ein Worker, keine Wiederholungsversuche und die bestehenden
+Zeitlimits bleiben unverändert.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Von den Quellen zum akzeptierten Kandidaten

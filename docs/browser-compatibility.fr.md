@@ -36,6 +36,14 @@ Les sept fichiers générés d’inventaire/verrouillage viennent de `venus-os-c
 
 Le verdict de publication partagé vérifie chaque cible retenue et son SHA source, exécution, tentative, canal et identifiant exact d’artefact candidat. RC ne peut pas réutiliser les preuves bêta à cinq cibles. Le passage en stable consomme les octets du RC accepté. Relancez tout le workflow de qualification après un échec ; les justificatifs d’anciennes tentatives ne peuvent pas compléter une nouvelle qualification.
 
+## Diagnostics de fin d’exécution
+
+Après le chargement des métadonnées du runtime et du candidat, `scripts/browser-acceptance.cjs` écrit `acceptance-terminal.json` dans `CI_BROWSER_DIAGNOSTICS` lorsque l’acceptation se termine ou lève une exception. Il consigne la dernière phase, l’identité des sources et du candidat, la cible navigateur, l’exécution et la tentative, le temps écoulé ainsi que le statut de sortie du processus de test, un signal ou un code d’erreur autorisé. L’enregistrement fait moins de 2 KiB et ne contient ni erreurs brutes, ni URL, ni stdout/stderr, ni valeurs d’environnement, ni vidages mémoire. Il est créé avec un accès exclusif et le mode `0600` dans le répertoire de sortie existant appartenant au job ; aucun fichier existant ni lien symbolique constituant le dernier composant du chemin n’est écrasé.
+
+Il s’agit d’une **preuve de diagnostic, pas d’une acceptation réussie**. L’enregistrement déclare toujours `acceptance: false` ; seul le fichier distinct `CI_BROWSER_EVIDENCE` peut qualifier un candidat après la réussite de toutes les assertions existantes. Un échec d’écriture du diagnostic ne peut pas remplacer le succès ou l’échec initial. L’arrêt brutal du programme enveloppant, ou un échec de chargement des métadonnées avant son démarrage, peut ne laisser aucun enregistrement. Un signal du processus de test ne prouve pas que le processus de contenu de Firefox a reçu ce signal. L’attribution d’un plantage natif exige toujours une trace de pile native correspondante ou un cas de reproduction contrôlé ; une nouvelle tentative réussie ne clôt pas l’enquête.
+
+Cet utilitaire n’active ni les rapports bruts de plantage de Firefox ni la journalisation `DEBUG=pw:browser`. La mémoire du navigateur et la sortie de la console peuvent contenir des données sensibles et ne doivent pas être copiées dans les artefacts téléversés habituels sans une politique de collecte et d’accès examinée séparément. L’ordre des scénarios, les versions figées des navigateurs, le processus de travail unique, l’absence de nouvelles tentatives et les délais existants restent inchangés.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Des sources au candidat accepté

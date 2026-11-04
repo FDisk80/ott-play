@@ -36,6 +36,14 @@ Tujuh file inventaris/lock yang dihasilkan berasal dari `venus-os-ci-toolkit/scr
 
 Putusan rilis bersama memverifikasi setiap target terpilih beserta SHA sumber, run, percobaan, kanal, dan ID artefak kandidat yang tepat. RC tidak boleh memakai bukti beta lima target. Promosi stable menggunakan byte RC yang diterima. Jalankan ulang seluruh workflow kualifikasi setelah gagal; bukti percobaan lama tidak boleh melengkapi kualifikasi baru.
 
+## Diagnostik akhir eksekusi
+
+Setelah metadata runtime dan kandidat dimuat, `scripts/browser-acceptance.cjs` menulis `acceptance-terminal.json` di `CI_BROWSER_DIAGNOSTICS` saat proses penerimaan selesai atau melempar pengecualian. Catatan ini memuat fase terakhir, identitas sumber dan kandidat, target browser, run dan percobaan, waktu yang berlalu, serta status keluar proses uji, sinyal, atau kode kesalahan yang diizinkan. Ukurannya kurang dari 2 KiB dan tidak memuat kesalahan mentah, URL, stdout/stderr, nilai lingkungan, atau dump memori. Catatan dibuat dengan akses eksklusif dan mode `0600` di direktori keluaran milik job yang sudah ada; file yang sudah ada atau tautan simbolis pada komponen terakhir jalur tidak ditimpa.
+
+Ini adalah **bukti diagnostik, bukan penerimaan yang berhasil**. Catatan selalu menyatakan `acceptance: false`; hanya file terpisah `CI_BROWSER_EVIDENCE` yang dapat meluluskan kandidat setelah semua asersi yang ada berhasil. Kegagalan penulisan diagnostik tidak dapat menggantikan keberhasilan atau kegagalan semula. Penghentian mendadak program pembungkus, atau kegagalan memuat metadata sebelum program itu mulai, dapat menyebabkan tidak adanya catatan. Sinyal pada proses uji bukan bukti bahwa proses konten Firefox menerima sinyal tersebut. Penentuan penyebab crash native tetap memerlukan jejak stack native yang sesuai atau kasus reproduksi yang terkontrol; percobaan ulang yang berhasil tidak menutup penyelidikan.
+
+Alat bantu ini tidak mengaktifkan laporan crash mentah Firefox ataupun pencatatan `DEBUG=pw:browser`. Memori browser dan keluaran konsol dapat berisi data sensitif dan tidak boleh disalin ke artefak unggahan biasa tanpa kebijakan pengumpulan dan akses yang ditinjau secara terpisah. Urutan skenario, versi browser yang dipatok, penggunaan satu worker, nol percobaan ulang, dan batas waktu yang ada tetap tidak berubah.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Dari sumber hingga kandidat diterima

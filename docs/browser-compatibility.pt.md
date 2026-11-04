@@ -36,6 +36,14 @@ Os sete ficheiros gerados de inventário/lock provêm de `venus-os-ci-toolkit/sc
 
 O veredito de lançamento partilhado verifica cada destino selecionado e o SHA da origem, execução, tentativa, canal e ID exato do artefacto candidato. O RC não pode usar a evidência beta de cinco destinos. A promoção para stable usa os bytes do RC aceite. Após uma falha, volte a executar todo o workflow de qualificação; os comprovativos de tentativas anteriores não podem concluir uma nova qualificação.
 
+## Diagnósticos no fim da execução
+
+Depois de carregar os metadados do runtime e do candidato, `scripts/browser-acceptance.cjs` escreve `acceptance-terminal.json` em `CI_BROWSER_DIAGNOSTICS` quando a aceitação termina ou lança uma exceção. Regista a última fase, a identidade da origem e do candidato, o destino de navegador, a execução e a tentativa, o tempo decorrido e o estado de saída do processo de teste, um sinal ou um código de erro autorizado. O registo ocupa menos de 2 KiB e não contém erros em bruto, URLs, stdout/stderr, valores do ambiente nem despejos de memória. É criado com acesso exclusivo e modo `0600` no diretório de saída existente pertencente ao job; não é substituído um ficheiro existente nem uma ligação simbólica no último componente do caminho.
+
+Trata-se de **evidência de diagnóstico, não de uma aceitação bem-sucedida**. O registo declara sempre `acceptance: false`; só o ficheiro separado `CI_BROWSER_EVIDENCE` pode qualificar um candidato depois de todas as asserções existentes passarem. Uma falha na escrita do diagnóstico não pode substituir o sucesso ou a falha original. A terminação abrupta do programa envolvente, ou uma falha no carregamento dos metadados antes do seu início, pode não deixar qualquer registo. Um sinal do processo de teste não prova que o processo de conteúdo do Firefox tenha recebido esse sinal. A atribuição de uma falha nativa continua a exigir um rastreio correspondente da pilha nativa ou um caso de reprodução controlado; uma repetição bem-sucedida não encerra a investigação.
+
+Este utilitário não ativa os relatórios de falha em bruto do Firefox nem o registo `DEBUG=pw:browser`. A memória do navegador e a saída da consola podem conter dados sensíveis e não devem ser copiadas para os artefactos habitualmente carregados sem uma política de recolha e acesso revista separadamente. Mantêm-se inalterados a ordem dos cenários, as versões fixadas dos navegadores, o uso de um único processo de trabalho, as zero repetições e os tempos limite existentes.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Da origem ao candidato aceite

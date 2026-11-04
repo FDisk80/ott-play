@@ -36,6 +36,14 @@ Bảy tệp danh mục/lock được sinh từ `venus-os-ci-toolkit/scripts/prep
 
 Kết luận phát hành chung kiểm tra từng mục tiêu đã chọn cùng SHA nguồn, lần chạy, lần thử, kênh và ID hiện vật ứng viên chính xác. RC không được dùng bằng chứng beta của năm mục tiêu. Nâng lên stable dùng byte của RC đã được chấp nhận. Sau lỗi, chạy lại toàn bộ workflow đánh giá; bản ghi từ lần thử cũ không được hoàn tất đánh giá mới.
 
+## Chẩn đoán khi kết thúc
+
+Sau khi nạp siêu dữ liệu của môi trường thực thi và ứng viên, `scripts/browser-acceptance.cjs` ghi `acceptance-terminal.json` vào `CI_BROWSER_DIAGNOSTICS` khi quá trình nghiệm thu kết thúc hoặc phát sinh ngoại lệ. Bản ghi chứa giai đoạn cuối cùng, định danh nguồn và ứng viên, mục tiêu trình duyệt, lần chạy và lần thử, thời gian đã trôi qua cùng trạng thái thoát của tiến trình kiểm thử, tín hiệu hoặc mã lỗi thuộc danh sách cho phép. Bản ghi nhỏ hơn 2 KiB và không chứa lỗi thô, URL, stdout/stderr, giá trị môi trường hay bản kết xuất bộ nhớ. Bản ghi được tạo với quyền truy cập độc quyền và chế độ `0600` trong thư mục đầu ra hiện có thuộc tác vụ; không ghi đè tệp đã có hoặc liên kết tượng trưng ở thành phần cuối của đường dẫn.
+
+Đây là **bằng chứng chẩn đoán, không phải kết quả nghiệm thu thành công**. Bản ghi luôn khai báo `acceptance: false`; chỉ tệp riêng biệt `CI_BROWSER_EVIDENCE` mới có thể xác nhận ứng viên đạt yêu cầu sau khi tất cả điều kiện kiểm tra hiện có đều đạt. Lỗi ghi dữ liệu chẩn đoán không thể thay thế kết quả thành công hay thất bại ban đầu. Việc chương trình bao ngoài bị chấm dứt đột ngột, hoặc lỗi nạp siêu dữ liệu trước khi chương trình bắt đầu, có thể khiến không có bản ghi nào. Tín hiệu của tiến trình kiểm thử không chứng minh rằng tiến trình nội dung của Firefox đã nhận tín hiệu đó. Muốn xác định nguyên nhân sự cố native vẫn cần dấu vết ngăn xếp native tương ứng hoặc một trường hợp tái hiện có kiểm soát; một lần thử lại thành công không khép lại cuộc điều tra.
+
+Công cụ hỗ trợ này không bật báo cáo sự cố thô của Firefox hay chế độ ghi nhật ký `DEBUG=pw:browser`. Bộ nhớ trình duyệt và đầu ra bảng điều khiển có thể chứa dữ liệu nhạy cảm, nên không được sao chép chúng vào các hiện vật tải lên thông thường nếu chưa có chính sách thu thập và truy cập được xem xét riêng. Thứ tự kịch bản, các phiên bản trình duyệt đã ghim, việc dùng một worker, không thử lại và các thời hạn chờ hiện có đều không thay đổi.
+
 <a id="from-source-to-accepted-candidate"></a>
 
 ## Từ mã nguồn đến ứng viên được chấp nhận
