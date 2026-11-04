@@ -270,6 +270,8 @@ pub struct LocalMediaFolder {
 fn source_lookup_error(error: anyhow::Error) -> String {
     if error.is::<ottplay_core::offline_media::NativeSourceUnavailable>() {
         "source_unavailable"
+    } else if ottplay_core::offline_media::is_native_probe_deadline(&error) {
+        "operation_in_progress"
     } else {
         "Local sources unavailable; select an accessible absolute directory"
     }
@@ -429,6 +431,8 @@ mod tests {
             "Requested local folder is unavailable",
             "Local media storage unavailable",
             "Cannot read media sources",
+            "Local folder read timed out",
+            "operation_in_progress",
         ] {
             assert_eq!(
                 source_lookup_error(anyhow::anyhow!(message.to_owned())),
