@@ -247,9 +247,58 @@ deadline.unref();
         browser = await chromium.launch({ headless: true });
         checkpoint("profile context");
         const profileContext = await browser.newContext();
+        // Conditional diagnostics: keep the original sequence and native calls.
+        profileContext.on("console", (message) => {
+            const text = message.text();
+            if (text.startsWith("[direct-media-native] ")) console.log(text);
+        });
         // Keep real OPFS handles, IndexedDB, and page closure. Only model the
         // external-folder permission policy, as in the built-UI fixture.
         await profileContext.addInitScript(() => {
+            const pendingTransactions = new Set();
+            let transactionId = 0;
+            function diagnostic(event, detail = {}) {
+                try {
+                    console.log(
+                        "[direct-media-native] " + JSON.stringify({
+                            event,
+                            page: performance.timeOrigin,
+                            elapsedMs: performance.now(),
+                            pendingTransactions: [...pendingTransactions],
+                            ...detail,
+                        })
+                    );
+                } catch (_) {
+                    // Reporting must not affect native operations or results.
+                }
+            }
+            window.__directMediaProfileDiagnostic = diagnostic;
+            window.addEventListener("pagehide", () => diagnostic("pagehide"));
+            const nativeTransaction = IDBDatabase.prototype.transaction;
+            IDBDatabase.prototype.transaction = function () {
+                const tx = nativeTransaction.apply(this, arguments);
+                if (this.name === "ott-local-media") {
+                    try {
+                        const id = ++transactionId;
+                        pendingTransactions.add(id);
+                        diagnostic("idb-start", {
+                            id,
+                            mode: tx.mode,
+                            stores: [...tx.objectStoreNames],
+                        });
+                        for (const event of ["complete", "abort", "error"]) {
+                            tx.addEventListener(event, () => {
+                                if (event !== "error")
+                                    pendingTransactions.delete(id);
+                                diagnostic("idb-" + event, { id });
+                            });
+                        }
+                    } catch (_) {
+                        // Keep the original transaction even if observation fails.
+                    }
+                }
+                return tx;
+            };
             const permission = {
                 queries: 0,
                 queriesRejected: 0,
@@ -264,16 +313,28 @@ deadline.unref();
                 if (!options || options.mode !== "read")
                     throw new Error("Profile fixture requires read permission");
                 permission.queries++;
+                const query = permission.queries;
                 const state = permission.state;
                 // Keep the browser's check on restored handles. The fixture
                 // may restrict access, but must not grant it over native denial.
-                return nativeQueryPermission.call(this, options).then(
+                diagnostic("native-query-call", { query, kind: this.kind });
+                let pending;
+                try {
+                    pending = nativeQueryPermission.call(this, options);
+                } catch (error) {
+                    diagnostic("native-query-throw", { query });
+                    throw error;
+                }
+                diagnostic("native-query-return", { query });
+                return pending.then(
                     (access) => {
                         permission.queriesResolved++;
+                        diagnostic("native-query-resolved", { query, access });
                         return access === "granted" ? state : access;
                     },
                     (error) => {
                         permission.queriesRejected++;
+                        diagnostic("native-query-rejected", { query });
                         throw error;
                     }
                 );
@@ -303,7 +364,9 @@ deadline.unref();
             }
             window.showDirectoryPicker = () => Promise.resolve(folder);
             const media = installBrowserLocalMedia(window);
+            window.__directMediaProfileDiagnostic("profile-import-folder-start");
             const catalog = await media.importFolder();
+            window.__directMediaProfileDiagnostic("profile-import-folder-complete");
             const selected = catalog.items.find(
                 (item) => item.name === "second.mp4"
             );
@@ -324,16 +387,22 @@ deadline.unref();
                 params: { name: "Kids", number: 1 },
             });
             if (saved.status !== "ok") throw new Error(JSON.stringify(saved));
-            return (
-                await profiles.request({
-                    action: "profile_export",
-                    params: { number: 1 },
-                })
-            ).data.profile;
+            window.__directMediaProfileDiagnostic("profile-export-start");
+            const exported = await profiles.request({
+                action: "profile_export",
+                params: { number: 1 },
+            });
+            window.__directMediaProfileDiagnostic("profile-export-complete");
+            return exported.data.profile;
         });
         assert.equal(portable.selected.name, "second.mp4");
         assert(!JSON.stringify(portable).includes("blob:"));
         checkpoint("close saved-profile page");
+        profilePage.once("close", () =>
+            console.log(
+                '[direct-media-native] {"event":"saved-profile-page-closed"}'
+            )
+        );
         await profilePage.close();
         profilePage = await profileContext.newPage();
         await profilePage.goto(address);
