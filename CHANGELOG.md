@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Honor the selected player UTC offset in full programme date/time labels,
+  including archive details and playback history, when Intl is available.
+  Keep provider timestamps and playback requests unchanged.
+
+- Show localized weekdays and calendar dates in programme-list time ranges,
+  including the ending date across midnight and the saved player timezone.
+- Add EPG Archive-word visibility and date/time color settings. Defaults keep
+  the Archive label and theme color; hiding the word preserves the availability
+  marker and archive playback.
+
 - Remove API-key-bearing URLs from TMDb transport error messages before they
   reach server logs or desktop responses.
 

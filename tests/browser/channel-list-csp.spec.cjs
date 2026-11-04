@@ -6225,3 +6225,154 @@ test("Modern M3U provider and profile screens preserve editor Save and Cancel", 
         await fixture.close();
     }
 });
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    test(
+        profile + " EPG calendar and appearance preserve real row selection",
+        async ({ browser }) => {
+            const fixture = await fixturePage(
+                browser,
+                profile,
+                {
+                    epgArchiveLabel: 0,
+                    epgTimeColor: 3,
+                },
+                "arabic"
+            );
+            const { page } = fixture;
+            try {
+                const expected = await page.evaluate(() => {
+                    Date.setTimezoneOffset(0);
+                    window.__ottInterfaceLanguage = "_ara";
+                    const start =
+                        Math.floor(Date.now() / 86400000) * 86400 -
+                        172800 +
+                        36000;
+                    const rows = [0, 1].map((index) => ({
+                        name: "برنامج طويل ".repeat(15),
+                        providerId: "calendar-" + index,
+                        time: start + index * 86400,
+                        time_to: start + index * 86400 + 1800,
+                    }));
+                    window.channels.one.rec = 168;
+                    window.p_pref = "epg-calendar-fixture";
+                    window.epgArray = [];
+                    window.sPrevCount = 10;
+                    window.__epgPresentationSelection = [];
+                    window.fetchChannelGuide = (id, complete) =>
+                        complete(id, rows);
+                    window.setCurrent = (category, index) =>
+                        window.__epgPresentationSelection.push({
+                            category,
+                            index,
+                        });
+                    window.playArchive = (time) =>
+                        window.__epgPresentationSelection.push({ time });
+                    window.epgList(0, 0, false);
+                    const date = new Intl.DateTimeFormat("ar", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        timeZone: "UTC",
+                        weekday: "short",
+                    });
+                    return {
+                        dates: rows.map((row) =>
+                            date.format(new Date(row.time * 1000))
+                        ),
+                        start,
+                    };
+                });
+                await expect(page.locator("#listIn .item")).toHaveCount(2);
+                expect(expected.dates[0]).not.toBe(expected.dates[1]);
+                for (let index = 0; index < 2; index++) {
+                    const row = page.locator("#it" + index);
+                    await expect(row).toContainText(expected.dates[index]);
+                    await expect(row).toContainText("10:00 - 10:30");
+                    await expect(row.locator('span[dir="auto"]')).toHaveCSS(
+                        "color",
+                        "rgb(0, 255, 255)"
+                    );
+                    await expect(row.locator(".epg-archive-tag")).toHaveCount(
+                        0
+                    );
+                    await expect(
+                        row.locator('.btn.green[role="img"]')
+                    ).toBeVisible();
+                    expect(
+                        await row
+                            .locator(".btn.green")
+                            .getAttribute("aria-label")
+                    ).toBeTruthy();
+                    expect(
+                        await row.evaluate((element) => {
+                            const rect = element.getBoundingClientRect();
+                            return (
+                                rect.height > 0 &&
+                                document
+                                    .elementFromPoint(
+                                        rect.left + 8,
+                                        rect.top + rect.height / 2
+                                    )
+                                    ?.closest(".item") === element
+                            );
+                        })
+                    ).toBe(true);
+                }
+                const identity = await page.evaluate(() =>
+                    window.listArray.map(
+                        ({ programmeId, providerId, time }) => ({
+                            programmeId,
+                            providerId,
+                            time,
+                        })
+                    )
+                );
+                expect(identity.map((row) => row.providerId)).toEqual([
+                    "calendar-0",
+                    "calendar-1",
+                ]);
+                expect(identity.map((row) => row.time)).toEqual([
+                    expected.start,
+                    expected.start + 86400,
+                ]);
+                expect(
+                    identity.every(
+                        (row) =>
+                            typeof row.programmeId === "string" &&
+                            row.programmeId.length > 0
+                    )
+                ).toBe(true);
+                expect(
+                    new Set(identity.map((row) => row.programmeId)).size
+                ).toBe(2);
+                await activateOwnedFixtureRow(page, page.locator("#it0"));
+                await expect
+                    .poll(() =>
+                        page.evaluate(() => window.__epgPresentationSelection)
+                    )
+                    .toEqual([
+                        { category: 0, index: 0 },
+                        { time: expected.start },
+                    ]);
+                expect(
+                    await page.evaluate(() =>
+                        window.epgArray.map(
+                            ({ programmeId, providerId, time }) => ({
+                                programmeId,
+                                providerId,
+                                time,
+                            })
+                        )
+                    )
+                ).toEqual(identity);
+                expect(fixture.errors).toEqual([]);
+                expect(fixture.unexpectedRequests).toEqual([]);
+                expect(
+                    await page.evaluate(() => window.__fixtureViolations)
+                ).toEqual([]);
+            } finally {
+                await fixture.close();
+            }
+        }
+    );
+}

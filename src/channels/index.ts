@@ -17,7 +17,7 @@ import {
     formatLocaleNumber,
 } from "../localization";
 import { preferredTrackIndex } from "../localization/media";
-import { settings } from "../settings/index";
+import { epgTimeColors, settings } from "../settings/index";
 import { providerSetItem } from "../storage/index";
 import { getThumbnail, time2time } from "../utils/helpers";
 import {
@@ -1698,6 +1698,17 @@ export function formatEpgTime(timestamp: number): string {
     );
 }
 
+/** Local calendar label; use the same accepted units and invalid-input guard as the clock. */
+export function formatEpgDate(timestamp: number): string {
+    if (formatEpgTime(timestamp) === "--:--") return "";
+    return metadataText(
+        formatLocaleDateTime(
+            timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp,
+            true
+        )
+    );
+}
+
 /**
  * Render an EPG list item as an HTML string for display in the channel/EPG list.
  * Highlights the currently-airing program and shows record/archive indicators.
@@ -1742,21 +1753,37 @@ export function itemEPG(item: EPGEntry, index: number): string {
     // marks ended programmes so the current row is not also tagged past —
     // wrong past styling after EPG page-up was easy to miss when rows clipped.
     var isPast = item.time_to <= now;
-    if (ch.rec && isPast)
+    if (ch.rec && isPast) {
+        var archive = metadataText(w._ ? w._("Archive") : "Archive");
         prefix +=
-            '<div class="btn green">&nbsp;</div> ' +
-            '<span class="epg-archive-tag">' +
-            (w._ ? w._("Archive") : "Archive") +
-            "</span> ";
+            '<div class="btn green" role="img" aria-label="' +
+            archive +
+            '">&nbsp;</div> ';
+        if (w.sEpgArchiveLabel !== 0)
+            prefix +=
+                '<span class="epg-archive-tag" aria-hidden="true">' +
+                archive +
+                "</span> ";
+    }
     if (isCurrent) prefix += '<div class="btn red">&nbsp;</div> ';
 
+    var date = formatEpgDate(item.time),
+        endDate = formatEpgDate(item.time_to),
+        color = Number.isInteger(w.sEpgTimeColor)
+            ? epgTimeColors[w.sEpgTimeColor] || ""
+            : "";
     return (
         "&nbsp;&nbsp;" +
         prefix +
+        '<span dir="auto"' +
+        (color ? ' style="color:' + color + '"' : "") +
+        ">" +
+        (date ? date + " " : "") +
         formatEpgTime(item.time) +
         " - " +
+        (endDate && endDate !== date ? endDate + " " : "") +
         formatEpgTime(item.time_to) +
-        " " +
+        "</span> " +
         (name || "")
     );
 }

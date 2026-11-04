@@ -60,7 +60,7 @@ function func(file, name) {
     return js(n.getText(a));
 }
 function variable(file, name) {
-    const a = ast(file);
+    const a = (file.startsWith("src/") && bundleAst) || ast(file);
     for (const n of a.statements)
         if (ts.isVariableStatement(n))
             for (const d of n.declarationList.declarations)
@@ -403,7 +403,6 @@ test("EPG list titles are escaped without losing current-programme highlighting"
         Object.assign(w, {
             channels: { fixture: { rec: true } },
             epg_ch_id: "fixture",
-            formatEpgTime: () => "12:00",
         });
         w.eval(
             fs.readFileSync(path.join(root, "vendor/ottplay-core.js"), "utf8")
@@ -415,7 +414,12 @@ test("EPG list titles are escaped without losing current-programme highlighting"
             time_to: Date.now() / 1000 + 30,
         };
         w.listEpgArray = [programme];
-        w.eval(func("src/channels/index.ts", "itemEPG"));
+        w.eval(
+            variable("src/settings/index.ts", "epgTimeColors") +
+                func("src/channels/index.ts", "formatEpgTime") +
+                func("src/channels/index.ts", "formatEpgDate") +
+                func("src/channels/index.ts", "itemEPG")
+        );
         w.document.getElementById("listIn").innerHTML = w.itemEPG(programme, 0);
         assert.equal(
             w.document.querySelectorAll("#listIn img,#listIn script").length,
@@ -424,6 +428,25 @@ test("EPG list titles are escaped without losing current-programme highlighting"
         assert(w.document.querySelector("#listIn span[style]"));
         assert(
             w.document.getElementById("listIn").textContent.includes(hostile)
+        );
+        w._ = () => hostile;
+        w.sEpgArchiveLabel = 0;
+        programme.time_to = programme.time + 1;
+        w.document.getElementById("listIn").innerHTML = w.itemEPG(programme, 0);
+        assert.equal(
+            w.document.querySelectorAll("#listIn img,#listIn script,[onerror]")
+                .length,
+            0
+        );
+        assert.equal(
+            w.document
+                .querySelector("#listIn .btn.green")
+                .getAttribute("aria-label"),
+            hostile
+        );
+        assert.equal(
+            w.document.querySelector("#listIn .epg-archive-tag"),
+            null
         );
     } finally {
         w.close();

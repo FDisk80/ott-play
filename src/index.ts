@@ -169,6 +169,7 @@ import {
     applyTimezoneSetting,
     beginSettingsDraft,
     defaultSettings,
+    epgTimeColors,
     exportSettings,
     importSettings,
     installSettingsFacade,
@@ -4965,6 +4966,18 @@ window.settingsChannels = function (): void {
                 "showArchive",
                 w.sShowArchive,
                 noyes
+            ),
+            choice(
+                label("EPG") + ': "' + label("Archive") + '"',
+                "epgArchiveLabel",
+                w.sEpgArchiveLabel,
+                noyes
+            ),
+            choice(
+                label("EPG") + ": " + label("Text color") + " (00:00)",
+                "epgTimeColor",
+                w.sEpgTimeColor,
+                [label("Player default")].concat(epgTimeColors.slice(1))
             ),
             choice(
                 label("Show description"),

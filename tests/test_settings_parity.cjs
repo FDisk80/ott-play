@@ -1458,9 +1458,13 @@ for (const profile of [
                 "sShowProgram",
                 "sShowProgress",
                 "sShowArchive",
+                "sEpgArchiveLabel",
+                "sEpgTimeColor",
                 "sShowDescr",
                 "sPreview",
                 "sNextCountL",
+                "sShowAllCategory",
+                "sShowFavoritesCategory",
                 "sFavorites",
             ],
         ],
@@ -2166,3 +2170,31 @@ for (const profile of ["server", "tauri", "capacitor-android"]) {
     }
 }
 console.log("PASS independent category visibility settings save/cancel/reload");
+
+for (const profile of ["server", "tauri", "capacitor-android"]) {
+    const { w, typed, stored } = fixture(profile);
+    assert.equal(typed().epgArchiveLabel, 1);
+    assert.equal(typed().epgTimeColor, 0);
+    w.settingsChannels();
+    w.listArray.find((row) => row.settingId === "epgArchiveLabel").val = 0;
+    w.listArray.find((row) => row.settingId === "epgTimeColor").val = 4;
+    w.listKeyHandlerFn(w.keys.RETURN);
+    assert.equal(typed().epgArchiveLabel, 1);
+    assert.equal(typed().epgTimeColor, 0);
+    for (const [label, color] of [
+        [0, 4],
+        [1, 0],
+    ]) {
+        w.settingsChannels();
+        w.listArray.find((row) => row.settingId === "epgArchiveLabel").val =
+            label;
+        w.listArray.find((row) => row.settingId === "epgTimeColor").val = color;
+        save(w);
+        vm.runInContext("loadSettings();", w);
+        assert.equal(typed().epgArchiveLabel, label);
+        assert.equal(typed().epgTimeColor, color);
+        assert.equal(stored.get("sEpgArchiveLabel") ?? "1", String(label));
+        assert.equal(stored.get("sEpgTimeColor") ?? "0", String(color));
+    }
+}
+console.log("PASS EPG presentation settings save/cancel/reload and defaults");

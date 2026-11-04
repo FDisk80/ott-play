@@ -128,7 +128,10 @@ export function formatLocaleNumber(value: number): string {
 }
 
 /** Display only; timestamps, persisted values and protocol numbers stay unchanged. */
-export function formatLocaleDateTime(seconds: number): string {
+export function formatLocaleDateTime(
+    seconds: number,
+    dateOnly = false
+): string {
     var date = new Date(seconds * 1000);
     try {
         if (
@@ -137,11 +140,14 @@ export function formatLocaleDateTime(seconds: number): string {
         )
             return new Intl.DateTimeFormat(currentLocaleTag(), {
                 day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
+                hour: dateOnly ? undefined : "2-digit",
+                minute: dateOnly ? undefined : "2-digit",
                 month: "2-digit",
+                timeZone: "UTC",
                 weekday: "short",
-            }).format(date);
+            }).format(
+                new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+            );
     } catch (_error) {}
     function two(value: number): string {
         return ("0" + value).slice(-2);
@@ -152,9 +158,8 @@ export function formatLocaleDateTime(seconds: number): string {
         two(date.getDate()) +
         "." +
         two(date.getMonth() + 1) +
-        "\u00a0" +
-        two(date.getHours()) +
-        ":" +
-        two(date.getMinutes())
+        (dateOnly
+            ? ""
+            : "\u00a0" + two(date.getHours()) + ":" + two(date.getMinutes()))
     );
 }

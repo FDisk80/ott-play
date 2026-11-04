@@ -18,6 +18,16 @@ import {
     type SettingsDraft,
 } from "./store";
 
+/** Closed palette: index zero inherits the active interface theme. */
+export const epgTimeColors = [
+    "",
+    "#FFFFFF",
+    "#FFFF00",
+    "#00FFFF",
+    "#00FF00",
+    "#FFB3FF",
+];
+
 // The polyfill preserves this getter so "system" also restores native DST rules.
 const systemTimezoneOffset =
     (Date as any).nativeGetTimezoneOffset || Date.prototype.getTimezoneOffset;
@@ -88,6 +98,8 @@ export function applyTimezoneSetting(index: number): number {
  * @property showName          - Show channel name (0/1).
  * @property showProgress      - Show progress bar (0/1).
  * @property showArchive       - Show archive indicator (0/1).
+ * @property epgArchiveLabel   - Show the Archive word beside the EPG marker (0/1).
+ * @property epgTimeColor      - EPG time palette index (0 inherits the theme).
  * @property showScroll        - Show scrollbar (0/1).
  * @property showDescription   - Show programme description (0/1).
  * @property showProgram       - Show programme title (0/1).
@@ -132,7 +144,9 @@ export interface PlayerSettings {
     deviceUuid: string;
     editor: number;
     eFun: number;
+    epgArchiveLabel: number;
     epgRemindMinutes: number;
+    epgTimeColor: number;
     favorites: number;
     ffFun: number;
     fontShift: number;
@@ -249,7 +263,9 @@ export function defaultSettings(): PlayerSettings {
         deviceUuid: "",
         editor: 0,
         eFun: webos ? 1 : 0,
+        epgArchiveLabel: 1,
         epgRemindMinutes: 5,
+        epgTimeColor: 0,
         favorites: 0,
         ffFun: 19,
         fontShift: 4,
@@ -899,6 +915,8 @@ export const settingsSchema: SettingDefinition[] = [
     defineSetting("parentPin", "parentPIN", { pin: true }),
     defineSetting("hideMenus", "sHideMenus", { list: true }),
     defineSetting("showAllCategory", "sShowAllCategory", { range: [0, 1] }),
+    defineSetting("epgArchiveLabel", "sEpgArchiveLabel", { range: [0, 1] }),
+    defineSetting("epgTimeColor", "sEpgTimeColor", { range: [0, 5] }),
     defineSetting("showFavoritesCategory", "sShowFavoritesCategory", {
         range: [0, 1],
     }),
