@@ -2614,7 +2614,6 @@ export function firstRun(): void {
             name: _("Enter Provider Code on PC or Phone"),
         },
         { action: loadSettings, name: _("Load settings") },
-        { action: noop, name: "" },
         // OTTPLAY_FULL_ONLY_END
         { action: showProviderSelection, name: _("Manual setup") },
     ];

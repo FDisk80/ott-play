@@ -490,6 +490,16 @@ configuration backup; ordinary listings omit them. Neither operation copies
 media or transfers OS permissions. See [native source commands](tauri-local-media-sources.md#remote-local-videos-commands)
 for limits and [local playback](offline-media.md) for platform setup.
 
+`local_media_progressive: {version: 1}` is advertised only for the supported
+Tauri backend, after its existing native source-capability check succeeds.
+This selects the implemented remote early-playback path; it is not a new native
+protocol negotiation. Partial playback still requires a matching source scan
+generation, and a replaced or failed scan cannot extend the active queue.
+Browser, server-backed and Capacitor Local sources retain ordinary Local and
+session-only playback without this marker. Their remote commands await catalog
+completion; an already active scan can report `catalog_loading`. The CLI enables
+progressive playback only when the target advertises it.
+
 ### M3U profiles and restarts
 
 Select M3U with `ott NAME provider m3u` before using profile commands.

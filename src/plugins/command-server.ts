@@ -692,6 +692,7 @@ export function createCommandServer(
                                 var executionItem = item;
                                 if (
                                     item.action === "capabilities" ||
+                                    item.action === "status" ||
                                     item.action === "plex_queue" ||
                                     item.action === "plex_library" ||
                                     item.action === "favorites" ||

@@ -233,8 +233,33 @@ function fixture() {
     const caps = f.run("capabilities").result.data;
     assert.deepEqual(caps.local_media, local);
     assert.equal(Object.keys(caps.local_media).length, 5);
-    assert.deepEqual(caps.local_media_progressive, { version: 1 });
+    assert.equal(caps.local_media_progressive, undefined);
+    assert.deepEqual(caps.local_media_session, { version: 1 });
     assert.equal(reads, 1);
+    for (const supported of [false, true, undefined, null, 1, "true"]) {
+        let progressiveReads = 0;
+        f.w.__ottLocalMedia.remoteProgressive = () => {
+            progressiveReads++;
+            return supported;
+        };
+        const current = f.run("capabilities", { local_media_progressive: true })
+            .result.data;
+        assert.deepEqual(current.local_media, local);
+        assert.equal(Object.keys(current.local_media).length, 5);
+        assert.deepEqual(current.local_media_session, { version: 1 });
+        assert.deepEqual(
+            current.local_media_progressive,
+            supported === true ? { version: 1 } : undefined
+        );
+        assert.equal(progressiveReads, 1);
+    }
+    f.w.__ottLocalMedia.remoteCapabilities = () => undefined;
+    f.w.__ottLocalMedia.remoteProgressive = () =>
+        assert.fail("unavailable Local has no progressive capability");
+    assert.equal(
+        f.run("capabilities").result.data.local_media_progressive,
+        undefined
+    );
     assert.equal(f.effects.length, 0);
 }
 
