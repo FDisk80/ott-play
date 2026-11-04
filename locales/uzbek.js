@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Ushbu serverga 10 daqiqa davomida tasvirlarni so'rashga ruxsat bering. Rasmlar shaxsiy ma'lumotlarni o'z ichiga olishi mumkin. Brauzerda pleer yorlig'i yoki oynasini tanlang. Ruxsat qayta yuklash yoki aloqani uzish bilan tugaydi.",
     "Allowlist this Device ID": "Bu qurilma ID raqamiga ruxsat berish",
+    "Always on top": "Doim tepada",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS pleer HTTP EPG manbasini yuklab olmaydi. HTTPS manbasidan foydalaning.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -554,6 +555,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV sozlamalari",
     "Full history, sources and license terms":
         "To‘liq tarix, manbalar va litsenziya shartlari",
+    "Full screen": "Toʻliq ekran",
     FXML: "FXML",
     "FXML settings": "FXML sozlamalari",
     Genre: "Janr",

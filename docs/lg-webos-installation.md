@@ -1,7 +1,11 @@
 # Install OTT-play on an LG webOS TV
 
+For Developer Mode account setup, pairing, session renewal and troubleshooting,
+see the [LG Developer Mode runbook](lg-developer-mode.md). This page focuses on
+the hosted OTTPlay package and its installation routes.
+
 This guide describes the full multi-provider **hosted web player**. The
-separate [experimental native Plex application](native-webos.md) has its own
+separate [experimental native OTT application](native-webos.md) has its own
 app ID, build, license and installation package, and renders without the TV's
 web engine.
 

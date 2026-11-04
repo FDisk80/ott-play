@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "ဤဆာဗာအား ပုံများကို 10 မိနစ်ကြာ တောင်းဆိုခွင့်ပြုပါ။ ပုံများတွင် ကိုယ်ရေးကိုယ်တာအချက်အလက်များ ပါဝင်နိုင်သည်။ ဘရောင်ဇာတစ်ခုတွင်၊ ပလေယာတက်ဘ် သို့မဟုတ် ဝင်းဒိုးကို ရွေးပါ။ ပြန်လည်စတင်ခြင်း သို့မဟုတ် ချိတ်ဆက်မှုဖြတ်ခြင်းတွင် ခွင့်ပြုချက် ပြီးဆုံးသည်။",
     "Allowlist this Device ID": "ဤစက်ပစ္စည်း ID အား စာရင်းခွင့်ပြုပါ။",
+    "Always on top": "အမြဲအပေါ်ဆုံးတွင်ထားရန်",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS မီဒီယာဖွင့်စက်တစ်ဦးသည် HTTP EPG အရင်းအမြစ်ကို ဒေါင်းလုဒ်လုပ်၍မရပါ။ HTTPS အရင်းအမြစ်ကို အသုံးပြုပါ။",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -529,6 +530,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV ဆက်တင်များ",
     "Full history, sources and license terms":
         "မှတ်တမ်းအပြည့်အစုံ၊ အရင်းအမြစ်များနှင့် လိုင်စင်စည်းကမ်းချက်များ",
+    "Full screen": "မျက်နှာပြင်အပြည့်",
     FXML: "FXML",
     "FXML settings": "FXML ဆက်တင်များ",
     Genre: "အမျိုးအစား",

@@ -73,6 +73,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Bu serwere 10 minutlap surat soramagyna rugsat beriň. Suratlarda şahsy maglumatlar bolup biler. Brauzerde pleýer goýmasyny ýa-da penjiresini saýlaň. Rugsat täzeden ýüklemek ýa-da aýyrmak bilen tamamlanýar.",
     "Allowlist this Device ID": "Bu enjam ID-sini rugsat berlen sanawa goşuň",
+    "Always on top": "Elmydama ýokarda",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS pleýeri HTTP EPG çeşmesini ýükläp bilmeýär. HTTPS çeşmesini ulanyň.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -544,6 +545,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV sazlamalary",
     "Full history, sources and license terms":
         "Doly taryh, çeşmeler we ygtyýarnama şertleri",
+    "Full screen": "Doly ekran",
     FXML: "FXML",
     "FXML settings": "FXML sazlamalary",
     Genre: "Žanr",

@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "به این سرور اجازه دهید به مدت 10 دقیقه تصاویر را درخواست کند. تصاویر می توانند حاوی اطلاعات شخصی باشند. در مرورگر، برگه یا پنجره پخش کننده را انتخاب کنید. مجوز با بارگیری مجدد یا قطع اتصال به پایان می رسد.",
     "Allowlist this Device ID": "لیست مجاز این دستگاه ID",
+    "Always on top": "همیشه در جلو",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "پخش کننده HTTPS نمی تواند منبع HTTP EPG را دانلود کند. از یک منبع HTTPS استفاده کنید.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -540,6 +541,7 @@ var keyStrings = {
     "Fox-TV settings": "تنظیمات Fox-TV",
     "Full history, sources and license terms":
         "تاریخچه کامل، منابع و شرایط مجوز",
+    "Full screen": "تمام‌صفحه",
     FXML: "FXML",
     "FXML settings": "تنظیمات FXML",
     Genre: "ژانر",

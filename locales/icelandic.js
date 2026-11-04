@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Leyfa þessum netþjóni að biðja um myndir í 10 mínútur. Myndir geta innihaldið persónulegar upplýsingar. Í vafra skaltu velja spilaraflipann eða gluggann. Leyfi lýkur við endurhleðslu eða aftengingu.",
     "Allowlist this Device ID": "Leyfa þetta tækisauðkenni",
+    "Always on top": "Alltaf efst",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS-spilari getur ekki sótt HTTP-uppsprettu EPG. Notaðu HTTPS-uppsprettu.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -537,6 +538,7 @@ var keyStrings = {
     "Fox-TV settings": "Stillingar fyrir Fox-TV",
     "Full history, sources and license terms":
         "Öll sagan, heimildir og leyfisskilmálar",
+    "Full screen": "Allur skjárinn",
     FXML: "FXML",
     "FXML settings": "Stillingar fyrir FXML",
     Genre: "Tegund",

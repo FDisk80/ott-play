@@ -1571,10 +1571,19 @@ export function onChannelsLoaded(): void {
                     mediaRecovery = driver;
                 }
                 var localProfiles = (window as any).__ottOfflineProfiles;
-                if (driver?.capabilities.mediaPlaylist && preferred != null) {
+                if (
+                    (driver?.id === "offline" ||
+                        driver?.capabilities.mediaPlaylist) &&
+                    preferred != null
+                ) {
                     selectStartupChannel(preferred);
                 }
-                if (driver && driver.id === "offline" && localProfiles) {
+                if (
+                    driver &&
+                    driver.id === "offline" &&
+                    localProfiles &&
+                    !(window as any).ottpStorage?.localPlayback?.transient?.()
+                ) {
                     var selectedLocal = localProfiles.selection();
                     if (selectedLocal !== null) {
                         var localIndex = cList.indexOf(selectedLocal);

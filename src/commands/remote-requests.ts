@@ -1221,14 +1221,20 @@ export function executeRemoteRequest(
             uuid: w.deviceUUID || "",
             volume: volume(),
         };
-        if (typeof w.__ottLocalSourceDiagnostics === "function") {
+        // Preserve ordinary status when the optional 250 ms peek cannot fit.
+        if (
+            typeof w.__ottLocalSourceDiagnostics === "function" &&
+            (request.expires_at === undefined ||
+                request.expires_at * 1000 - Date.now() > 250)
+        ) {
             return w.__ottLocalSourceDiagnostics(
                 w,
                 function () {
                     return remotePlayerInfo(w).runtime;
                 },
                 statusResult,
-                reply
+                reply,
+                request.expires_at
             );
         }
         reply(statusResult);

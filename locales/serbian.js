@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Дозволите овом серверу да захтева слике у трајању од 10 минута. Слике могу да садрже личне податке. У прегледачу изаберите картицу или прозор плејера. Дозвола се завршава поновним учитавањем или прекидом везе.",
     "Allowlist this Device ID": "Додај ID овог уређаја на листу дозвољених",
+    "Always on top": "Увек на врху",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS медијски плејер не може да преузме HTTP EPG извор. Користите HTTPS извор.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -551,6 +552,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV подешавања",
     "Full history, sources and license terms":
         "Комплетна историја, извори и услови лиценце",
+    "Full screen": "Цео екран",
     FXML: "FXML",
     "FXML settings": "FXML подешавања",
     Genre: "Жанр",

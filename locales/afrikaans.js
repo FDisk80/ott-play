@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Laat hierdie bediener toe om prente vir 10 minute aan te vra. Prente kan persoonlike inligting bevat. Kies die speleroortjie of -venster in 'n blaaier. Toestemming eindig met herlaai of ontkoppel.",
     "Allowlist this Device ID": "Voeg hierdie toestel-ID by die toegelate lys",
+    "Always on top": "Altyd bo-op",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "'n HTTPS-mediaspeler kan nie 'n HTTP EPG-bron aflaai nie. Gebruik 'n HTTPS-bron.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -550,6 +551,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV-instellings",
     "Full history, sources and license terms":
         "Volledige geskiedenis, bronne en lisensiebepalings",
+    "Full screen": "Volskerm",
     FXML: "FXML",
     "FXML settings": "FXML-instellings",
     Genre: "Genre",

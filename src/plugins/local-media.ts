@@ -1538,6 +1538,10 @@ export function installLocalMedia(w: any): any {
             };
             return pending;
         },
+        remoteProgressive: function () {
+            // Only this backend consumes firstPlayable during remote selection.
+            return isTauri() && nativeSourcePaths;
+        },
         remoteSources: function (
             includePaths = false,
             path?: string,

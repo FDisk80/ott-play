@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "10 నిమిషాల పాటు చిత్రాలను అభ్యర్థించడానికి ఈ సర్వర్‌ని అనుమతించండి. చిత్రాలు వ్యక్తిగత సమాచారాన్ని కలిగి ఉండవచ్చు. బ్రౌజర్‌లో, ప్లేయర్ ట్యాబ్ లేదా విండోను ఎంచుకోండి. రీలోడ్ లేదా డిస్‌కనెక్ట్ చేయడంతో అనుమతి ముగుస్తుంది.",
     "Allowlist this Device ID": "ఈ పరికరాన్ని అనుమతించండి ID",
+    "Always on top": "ఎల్లప్పుడూ పైన",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS ప్లేయర్ HTTP EPG మూలాన్ని డౌన్‌లోడ్ చేయలేరు. HTTPS మూలాన్ని ఉపయోగించండి.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -528,6 +529,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV సెట్టింగ్‌లు",
     "Full history, sources and license terms":
         "పూర్తి చరిత్ర, మూలాలు మరియు లైసెన్స్ నిబంధనలు",
+    "Full screen": "పూర్తి తెర",
     FXML: "FXML",
     "FXML settings": "FXML సెట్టింగ్‌లు",
     Genre: "జానర్",

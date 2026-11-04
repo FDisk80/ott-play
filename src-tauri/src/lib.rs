@@ -1,4 +1,11 @@
 mod commands;
+
+/// Production command modules exposed for the isolated native CI fixture.
+/// Re-exporting handlers does not grant any IPC permission.
+#[doc(hidden)]
+pub mod native_window_smoke_commands {
+    pub use crate::commands::{tauri_commands, window_controls};
+}
 mod instance;
 #[cfg(target_os = "linux")]
 mod linux_media_compat;
@@ -107,6 +114,7 @@ pub fn run() {
             commands::native_hls::native_hls_stop,
             commands::tauri_commands::set_fullscreen,
             commands::tauri_commands::toggle_fullscreen,
+            commands::window_controls::set_always_on_top,
             commands::tauri_commands::prevent_sleep,
             commands::tauri_commands::allow_sleep,
             commands::tauri_commands::play_pip,

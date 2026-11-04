@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Gba olupin yìí láàyè láti béèrè àwòrán fún ìṣẹ́jú 10. Àwòrán lè ní àlàyé ara ẹni nínú. Nínú aṣàwákiri, yan taabu tàbí fèrèsé ẹ̀rọ orin. Ìyọ̀nda yìí parí nígbà tí o bá tún ojú-ìwé ṣí tàbí gé àsopọ̀.",
     "Allowlist this Device ID": "Gba ID Ẹ̀rọ yìí láàyè",
+    "Always on top": "Ní òkè nígbà gbogbo",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Ẹ̀rọ ìṣeré HTTPS kò lè gba orísun EPG HTTP sílẹ̀. Lo orísun HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -535,6 +536,7 @@ var keyStrings = {
     "Fox-TV settings": "Ètò Fox-TV",
     "Full history, sources and license terms":
         "Ìtàn kíkún, àwọn orísun àti àdéhùn ìwé àṣẹ",
+    "Full screen": "Gbogbo ojú ìbòjú",
     FXML: "FXML",
     "FXML settings": "Ètò FXML",
     Genre: "Ẹ̀yà fíìmù",

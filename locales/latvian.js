@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Ļaujiet šim serverim pieprasīt attēlus 10 minūtes. Attēli var saturēt personisku informāciju. Pārlūkprogrammā atlasiet atskaņotāja cilni vai logu. Atļauja beidzas, atkārtoti ielādējot vai atvienojot.",
     "Allowlist this Device ID": "Atļaut šo ierīces ID",
+    "Always on top": "Vienmēr virspusē",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS atskaņotājs nevar lejupielādēt HTTP EPG avotu. Izmantojiet HTTPS avotu.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -551,6 +552,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV iestatījumi",
     "Full history, sources and license terms":
         "Pilna vēsture, avoti un licences noteikumi",
+    "Full screen": "Pilnekrāna režīms",
     FXML: "FXML",
     "FXML settings": "FXML iestatījumi",
     Genre: "Žanrs",

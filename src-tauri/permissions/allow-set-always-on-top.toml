@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-set-always-on-top"
+description = "Allows the main window to set its own always-on-top state."
+commands.allow = ["set_always_on_top"]

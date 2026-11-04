@@ -73,6 +73,7 @@ var keyStrings = {
         "دې سرور ته اجازه ورکړئ چې د 10 دقیقو لپاره د عکسونو غوښتنه وکړي. انځورونه کولی شي شخصي معلومات ولري. په براوزر کې، د پلیر ټب یا کړکۍ غوره کړئ. اجازه د بیا پورته کولو یا منحل کیدو سره پای ته رسیږي.",
     "Allowlist this Device ID":
         "د دې وسیلې ID د اجازه لرونکو په لېست کې ورزیات کړئ",
+    "Always on top": "تل په سر کې",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "د HTTPS میډیا پلیر نشي کولی د HTTP EPG سرچینه ډاونلوډ کړي. د HTTPS سرچینه وکاروئ.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -544,6 +545,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV ترتیبات",
     "Full history, sources and license terms":
         "بشپړ تاریخ، سرچینې او د جواز شرایط",
+    "Full screen": "بشپړه پرده",
     FXML: "FXML",
     "FXML settings": "FXML ترتیبات",
     Genre: "ژانر",

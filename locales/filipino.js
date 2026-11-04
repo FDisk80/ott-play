@@ -75,6 +75,7 @@ var keyStrings = {
         "Payagan ang server na ito na humiling ng mga larawan sa loob ng 10 minuto. Ang mga larawan ay maaaring maglaman ng personal na impormasyon. Sa isang browser, piliin ang tab o window ng player. Matatapos ang pahintulot sa pag-reload o pagdiskonekta.",
     "Allowlist this Device ID":
         "Idagdag ang ID ng device na ito sa listahan ng pinapayagan",
+    "Always on top": "Laging nasa ibabaw",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Ang isang HTTPS media player ay hindi makakapag-download ng isang HTTP EPG na pinagmulan. Gumamit ng HTTPS source.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -560,6 +561,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV na mga setting",
     "Full history, sources and license terms":
         "Buong kasaysayan, mga mapagkukunan at mga tuntunin ng lisensya",
+    "Full screen": "Buong screen",
     FXML: "FXML",
     "FXML settings": "FXML na mga setting",
     Genre: "Uri",

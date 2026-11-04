@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "允许该服务器请求图像10 分钟。图像可以包含个人信息。在浏览器中，选择播放器选项卡或窗口。权限在重新加载或断开连接时终止。",
     "Allowlist this Device ID": "将此设备列入白名单 ID",
+    "Always on top": "始终置顶",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS 播放器无法下载HTTP EPG 源。使用 HTTPS 源。",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -514,6 +515,7 @@ var keyStrings = {
     "Fox-TV": "Fox-TV",
     "Fox-TV settings": "Fox-TV设定",
     "Full history, sources and license terms": "完整历史记录、来源和许可条款",
+    "Full screen": "全屏",
     FXML: "FXML",
     "FXML settings": "FXML设定",
     Genre: "类型",

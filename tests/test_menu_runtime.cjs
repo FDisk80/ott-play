@@ -141,3 +141,6 @@ console.log(
         true
     );
 }
+
+// Native window controls share this menu in Classic and Modern.
+require("./test_native_window_controls.cjs");

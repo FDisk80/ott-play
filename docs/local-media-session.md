@@ -6,6 +6,10 @@ Clients can probe `local_media_session: {version: 1}` and request `session: true
 
 The player keeps this playback selection and its automatic bookmarks in a scoped RAM overlay after retiring the previous playback owner. Reloading or restarting creates a fresh storage adapter and restores the previous durable provider/profile immediately, without briefly loading the command's folder. A later command replaces the earlier session; stale cancellation cannot remove the newer owner.
 
+Each explicit command starts its chosen file from the beginning. A saved profile's selected file or resume position cannot replace that choice, even if the command selects the same folder or happens to shuffle the same file again. For example, running `ott tt local shuffle ~/v/data/FFFF/` again creates a new temporary selection for each player; it does not continue the previous command's bookmark. Positions recorded after a command starts can still be used by a stream restart within that same session.
+
+Normal startup of an active saved Local profile retains its resume behavior, including progressive discovery of the saved file. Temporary playback protects the saved library cursor while explicit edits to library metadata and preferences remain durable.
+
 Explicit persistent actions remain persistent:
 
 - Selecting another provider discards the one-off playback state and saves that provider.

@@ -71,6 +71,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "អនុញ្ញាតឱ្យម៉ាស៊ីនមេនេះស្នើសុំរូបភាពរយៈពេល 10 នាទី។ រូបភាពអាចមានព័ត៌មានផ្ទាល់ខ្លួន។ នៅក្នុងកម្មវិធីរុករក ជ្រើសរើសផ្ទាំងកម្មវិធីចាក់ ឬបង្អួច។ ការអនុញ្ញាតបញ្ចប់នៅពេលផ្ទុកឡើងវិញ ឬផ្តាច់។",
     "Allowlist this Device ID": "បញ្ជីអនុញ្ញាតឧបករណ៍នេះ ID",
+    "Always on top": "នៅពីលើជានិច្ច",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "កម្មវិធីចាក់ HTTPS មិនអាចទាញយកប្រភព HTTP EPG បានទេ។ ប្រើប្រភព HTTPS ។",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -532,6 +533,7 @@ var keyStrings = {
     "Fox-TV settings": "ការកំណត់ Fox-TV",
     "Full history, sources and license terms":
         "ប្រវត្តិ ប្រភព និងលក្ខខណ្ឌអាជ្ញាប័ណ្ណពេញលេញ",
+    "Full screen": "ពេញអេក្រង់",
     FXML: "FXML",
     "FXML settings": "ការកំណត់ FXML",
     Genre: "ប្រភេទ",

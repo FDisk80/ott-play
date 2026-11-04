@@ -73,6 +73,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Baimendu zerbitzari honi 10 minutuz irudiak eskatzeko. Irudiek informazio pertsonala izan dezakete. Arakatzaile batean, hautatu erreproduzitzailearen fitxa edo leihoa. Baimena birkargatu edo deskonektatzean amaitzen da.",
     "Allowlist this Device ID": "Baimendu gailuaren ID hau",
+    "Always on top": "Beti gainean",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS erreproduzitzaile batek ezin du HTTP EPG iturri bat deskargatu. Erabili HTTPS iturri bat.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -556,6 +557,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV ezarpenak",
     "Full history, sources and license terms":
         "Historia osoa, iturriak eta lizentzia-baldintzak",
+    "Full screen": "Pantaila osoa",
     FXML: "FXML",
     "FXML settings": "FXML ezarpenak",
     Genre: "Generoa",

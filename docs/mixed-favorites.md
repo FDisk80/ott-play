@@ -49,6 +49,10 @@ entries use a root alias and relative file path. Plex entries identify the PMS
 server and rating key. VPortal entries retain a provider item identifier and
 folder context. M3U entries use an attested channel identifier, or a unique exact
 channel name and group when no stable identifier is available.
+Stalker live channels use an exact name and optional group. Classic Stalker
+videos use a typed route through category, movie, season and episode IDs, ending
+with the video ID. The route is checked against the receiving profile; it does
+not contain a cached playback command or depend on titles remaining unchanged.
 
 ## Moving a collection to another player
 

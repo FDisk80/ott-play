@@ -606,6 +606,41 @@ test("first-run Privacy action returns to its actual caller without touching pro
     assert.deepEqual(f.scripts, []);
 });
 
+test("Full first-run has no blank focus stop and retains setup and language routes", () => {
+    for (const storageAvailable of [true, false]) {
+        const initial = { m3uCredentials: "unchanged", ottplayprov: "m3u" };
+        const f = fixture("full", initial);
+        if (!storageAvailable) f.w.loadOpt = undefined;
+        let languageOpens = 0;
+        f.w.selectLang = () => languageOpens++;
+        f.w.firstRun();
+        for (const [index, item] of f.w.listArray.entries()) {
+            f.w.selIndex = index;
+            const rendered = f.w.getListItemFn(item, index);
+            assert.notEqual(
+                rendered.replace(/&nbsp;/g, " ").trim(),
+                "",
+                "Every focusable first-run row must render a visible label"
+            );
+            f.w.detailListAction();
+            assert.equal(f.w.listDetail.innerHTML, item.name);
+            assert.equal(typeof item.action, "function");
+        }
+        assert.equal(languageOpens, 0, "Rendering does not open another page");
+        assert.deepEqual(Object.fromEntries(f.stored), initial);
+        assert.equal(f.w.listKeyHandlerFn(f.w.keys.RETURN), true);
+        assert.equal(languageOpens, 1, "Back still opens the language chooser");
+        f.w.firstRun();
+        f.w.selIndex = f.w.listArray.length - 1;
+        assert.equal(f.w.listArray[f.w.selIndex].name, "Manual setup");
+        assert.equal(f.w.listKeyHandlerFn(f.w.keys.ENTER), true);
+        assert.equal(f.w.listCaptionElement.innerHTML, "Choose provider");
+        assert.deepEqual(Object.fromEntries(f.stored), initial);
+        assert.deepEqual(f.requests, []);
+        assert.deepEqual(f.scripts, []);
+    }
+});
+
 test("Full retains activation and both settings import actions", () => {
     const f = fixture("full");
     f.w.firstRun();
@@ -617,7 +652,6 @@ test("Full retains activation and both settings import actions", () => {
             "Enter Provider Code on PC or Phone",
             "Load settings",
             "Load settings from storage",
-            "",
             "Manual setup",
         ]
     );

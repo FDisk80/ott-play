@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Umožněte tomuto serveru požadovat obrázky po dobu 10 minut. Obrázky mohou obsahovat osobní údaje. V prohlížeči vyberte kartu nebo okno přehrávače. Oprávnění končí opětovným načtením nebo odpojením.",
     "Allowlist this Device ID": "Povolte toto ID zařízení",
+    "Always on top": "Vždy navrchu",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Přehrávač HTTPS nemůže stáhnout zdroj HTTP EPG. Použijte zdroj HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -541,6 +542,7 @@ var keyStrings = {
     "Fox-TV settings": "Nastavení Fox-TV",
     "Full history, sources and license terms":
         "Úplná historie, zdroje a licenční podmínky",
+    "Full screen": "Celá obrazovka",
     FXML: "FXML",
     "FXML settings": "Nastavení FXML",
     Genre: "Žánr",

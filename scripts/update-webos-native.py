@@ -37,6 +37,7 @@ STATE_ROOTS = ("ottplay-profile.json", "ottplay-control.json", "ott-state")
 STATE_LIMIT = 32 * 1024 * 1024
 OUTPUT_LIMIT = 64 * 1024 * 1024
 CAPTURE_PROTOCOL = "novacom-framed-v1"
+IDENTITY_DIAGNOSTIC_REASONS = frozenset(('authentication_required', 'developer_mode_expired_or_disabled', 'key_server_unavailable', 'device_unavailable', 'ares_command_failed', 'ares_execution_unavailable', 'ares_output_limit', 'private_state_timeout', 'incomplete_remote_output', 'invalid_remote_output', 'invalid_json', 'duplicate_json_key', 'json_limit', 'invalid_cli_output', 'device_identity_unavailable', 'invalid_utf8', 'invalid_identity_value'))
 VERSION = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 RELEASE_BINDINGS = (
@@ -719,8 +720,19 @@ class Ares:
             device_hash = digest(
                 b"ottplay-lgudid-v1\0" + str(device_id).encode("ascii")
             )
-        except (UpdateError, ValueError, UnicodeError):
-            raise UpdateError("device_identity_unavailable") from None
+        except (UpdateError, ValueError, UnicodeError) as error:
+            # Preserve only a static diagnostic cause; public behavior stays unchanged.
+            unavailable = UpdateError("device_identity_unavailable")
+            if isinstance(error, UpdateError):
+                cause, kind = error.code, "UPDATE_ERROR"
+            elif isinstance(error, UnicodeError):
+                cause, kind = "invalid_utf8", "UNICODE_ERROR"
+            else:
+                cause, kind = "invalid_identity_value", "VALUE_ERROR"
+            if type(cause) is str and cause in IDENTITY_DIAGNOSTIC_REASONS:
+                unavailable.diagnostic_reason = cause
+                unavailable.diagnostic_error_class = kind
+            raise unavailable from None
         # The read-only device ID binds recovery to the TV; this is not SSH peer attestation.
         bound = {
             "alias": self.alias,
@@ -1013,85 +1025,71 @@ class Ares:
         check(expected == snapshot["files"], "private_snapshot_manifest_mismatch")
         current, _, _ = self.capture()
         for name in expected.keys() & current.keys():
-            check(
-                expected[name] == current[name], "private_state_changed_after_install"
-            )
+            check(expected[name] == current[name], "private_state_changed_after_install")
         missing = {name: row for name, row in expected.items() if name not in current}
         if missing:
             ownership = list(cli_lines(self.remote("id -u; id -g").decode("utf-8")))
             check(
-                len(ownership) == 2
-                and all(re.fullmatch(r"[0-9]+", value) for value in ownership),
+                len(ownership) == 2 and all(re.fullmatch(r"[0-9]+", value) for value in ownership),
                 "private_owner_unavailable",
             )
             uid, gid = map(int, ownership)
             check(
-                all(
-                    row["uid"] == uid and row["gid"] == gid for row in missing.values()
-                ),
+                all(row["uid"] == uid and row["gid"] == gid for row in missing.values()),
                 "private_owner_not_restorable",
             )
-        for name in sorted(
-            expected, key=lambda value: (len(PurePosixPath(value).parts), value)
-        ):
-            if name in current:
-                continue
-            row = expected[name]
-            target = APP_DIR + "/" + name
-            parent = str(PurePosixPath(target).parent)
-            command = (
-                "test -d "
-                + shlex.quote(parent)
-                + " && test ! -L "
-                + shlex.quote(parent)
-                + " || exit 74; "
-            )
-            if row["directory"]:
-                command += "if test -g " + shlex.quote(parent) + "; then "
-                command += (
-                    "group=$(stat -c '%g' " + shlex.quote(parent) + ") || exit 75; "
+        # Archives exclude special mode bits and require the process uid/gid.
+        # Keep new directories private and writable until their children exist.
+        created_directories = []
+        try:
+            for name in sorted(expected, key=lambda value: (len(PurePosixPath(value).parts), value)):
+                if name in current:
+                    continue
+                row = expected[name]
+                target = APP_DIR + "/" + name
+                parent = str(PurePosixPath(target).parent)
+                command = "test -d " + shlex.quote(parent) + " && test ! -L " + shlex.quote(parent) + " || exit 74; "
+                if row["directory"]:
+                    command += "if test -g " + shlex.quote(parent) + "; then "
+                    command += "group=$(stat -c '%g' " + shlex.quote(parent) + ") || exit 75; "
+                    command += '[ "$group" = ' + shlex.quote(str(row["gid"])) + " ] || exit 75; fi; "
+                    command += "umask 077; mkdir -m 700 " + shlex.quote(target)
+                else:
+                    # Publish only complete verified bytes. A failed transfer must
+                    # never leave a truncated destination that blocks reconciliation.
+                    # Keep any SIGKILL orphan outside the managed state roots.
+                    # A cross-filesystem destination fails safely at publication.
+                    command += (
+                        "umask 077; tmp=$(mktemp " + shlex.quote(APP_DIR + "/.ott-restore.XXXXXX") + ") || exit 75; "
+                    )
+                    command += "trap 'rm -f -- \"$tmp\"' 0; trap 'exit 76' 1 2 15; "
+                    command += 'cat > "$tmp" || exit 75; actual=$(sha256sum < "$tmp") || exit 75; '
+                    command += '[ "${actual%% *}" = ' + shlex.quote(row["sha256"]) + " ] || exit 75; "
+                    command += "owner=$(stat -c '%u:%g' \"$tmp\") || exit 75; "
+                    command += (
+                        '[ "$owner" = ' + shlex.quote(str(row["uid"]) + ":" + str(row["gid"])) + " ] || exit 75; "
+                    )
+                    command += "chmod " + oct(row["mode"])[2:] + ' "$tmp" || exit 75; '
+                    # -T rejects a racing directory; no -f means an existing file,
+                    # including a symlink, can never be replaced.
+                    command += 'ln -T "$tmp" ' + shlex.quote(target) + " || exit 75"
+                self.remote(command, data=None if row["directory"] else content[name])
+                if row["directory"]:
+                    created_directories.append((name, row))
+        finally:
+            # Keep ancestors traversable until every restored descendant has its
+            # original mode. Never chmod a pre-existing directory or a symlink.
+            for name, row in reversed(created_directories):
+                target = APP_DIR + "/" + name
+                guards = []
+                relative = PurePosixPath(name)
+                for ancestor in (relative, *relative.parents):
+                    path = APP_DIR if str(ancestor) == "." else APP_DIR + "/" + str(ancestor)
+                    quoted = shlex.quote(path)
+                    guards.append("test -d " + quoted + " && test ! -L " + quoted)
+                self.remote(
+                    " && ".join(guards) + " || exit 74; chmod " + oct(row["mode"])[2:] + " " + shlex.quote(target)
                 )
-                command += (
-                    '[ "$group" = '
-                    + shlex.quote(str(row["gid"]))
-                    + " ] || exit 75; fi; "
-                )
-                command += (
-                    "umask 077; mkdir -m "
-                    + oct(row["mode"])[2:]
-                    + " "
-                    + shlex.quote(target)
-                )
-            else:
-                # Publish only complete verified bytes. A failed transfer must
-                # never leave a truncated destination that blocks reconciliation.
-                # Keep any SIGKILL orphan outside the managed state roots.
-                # A cross-filesystem destination fails safely at publication.
-                command += (
-                    "umask 077; tmp=$(mktemp "
-                    + shlex.quote(APP_DIR + "/.ott-restore.XXXXXX")
-                    + ") || exit 75; "
-                )
-                command += "trap 'rm -f -- \"$tmp\"' 0; trap 'exit 76' 1 2 15; "
-                command += (
-                    'cat > "$tmp" || exit 75; actual=$(sha256sum < "$tmp") || exit 75; '
-                )
-                command += (
-                    '[ "${actual%% *}" = '
-                    + shlex.quote(row["sha256"])
-                    + " ] || exit 75; "
-                )
-                command += "owner=$(stat -c '%u:%g' \"$tmp\") || exit 75; "
-                command += (
-                    '[ "$owner" = '
-                    + shlex.quote(str(row["uid"]) + ":" + str(row["gid"]))
-                    + " ] || exit 75; "
-                )
-                command += "chmod " + oct(row["mode"])[2:] + ' "$tmp" || exit 75; '
-                # -T rejects a racing directory; no -f means an existing file,
-                # including a symlink, can never be replaced.
-                command += 'ln -T "$tmp" ' + shlex.quote(target) + " || exit 75"
-            self.remote(command, data=None if row["directory"] else content[name])
         restored, _, _ = self.capture()
         check(
             all(restored.get(name) == row for name, row in expected.items()),

@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Թույլ տվեք այս սերվերին պատկերներ պահանջել 10 րոպե: Պատկերները կարող են պարունակել անձնական տվյալներ: Բրաուզերում ընտրեք նվագարկչի ներդիրը կամ պատուհանը: Թույլտվությունն ավարտվում է վերաբեռնման կամ անջատման դեպքում:",
     "Allowlist this Device ID": "Թույլատրել այս սարքի ID-ն",
+    "Always on top": "Միշտ վերևում",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS նվագարկիչը չի կարող ներբեռնել HTTP EPG աղբյուրը: Օգտագործեք HTTPS աղբյուրը:",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -547,6 +548,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV կարգավորումներ",
     "Full history, sources and license terms":
         "Ամբողջական պատմություն, աղբյուրներ և արտոնագրերի պայմաններ",
+    "Full screen": "Ամբողջ էկրանով",
     FXML: "FXML",
     "FXML settings": "FXML կարգավորումներ",
     Genre: "Ժանր",

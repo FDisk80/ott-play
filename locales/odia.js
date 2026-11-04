@@ -70,6 +70,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "ଏହି ସର୍ଭରକୁ 10 ମିନିଟ୍ ପାଇଁ ପ୍ରତିଛବି ଅନୁରୋଧ କରିବାକୁ ଅନୁମତି ଦିଅନ୍ତୁ। ପ୍ରତିଛବିଗୁଡ଼ିକ ବ୍ୟକ୍ତିଗତ ସୂଚନା ଧାରଣ କରିପାରେ। ଏକ ବ୍ରାଉଜରରେ, ପ୍ଲେୟାର୍ ଟ୍ୟାବ୍ କିମ୍ବା ୱିଣ୍ଡୋ ଚୟନ କରନ୍ତୁ। ପୁନଃ ଲୋଡ୍ କିମ୍ବା ବିଚ୍ଛିନ୍ନ ହେବା ଉପରେ ଅନୁମତି ସମାପ୍ତ ହୁଏ।",
     "Allowlist this Device ID": "ଏହି ଡିଭାଇସ୍ IDକୁ ଅନୁମତିପ୍ରାପ୍ତ ତାଲିକାରେ ଯୋଡ଼ନ୍ତୁ",
+    "Always on top": "ସବୁବେଳେ ଉପରେ",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "HTTPS ପ୍ଲେୟାର୍ HTTP EPG ଉତ୍ସ ଡାଉନଲୋଡ୍ କରିପାରିବ ନାହିଁ। HTTPS ଉତ୍ସ ବ୍ୟବହାର କରନ୍ତୁ।",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -521,6 +522,7 @@ var keyStrings = {
     "Fox-TV": "Fox-TV",
     "Fox-TV settings": "Fox-TV ସେଟିଂସ୍",
     "Full history, sources and license terms": "ସମ୍ପୂର୍ଣ୍ଣ ଇତିହାସ, ଉତ୍ସ ଓ ଲାଇସେନ୍ସ ସର୍ତ୍ତ",
+    "Full screen": "ପୂର୍ଣ୍ଣ ପରଦା",
     FXML: "FXML",
     "FXML settings": "FXML ସେଟିଂସ୍",
     Genre: "ଧାରା",

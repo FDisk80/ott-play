@@ -73,6 +73,7 @@ var keyStrings = {
         "Zezwól temu serwerowi na żądanie obrazów przez 10 minut. Obrazy mogą zawierać dane osobowe. W przeglądarce wybierz kartę lub okno odtwarzacza. Zezwolenie kończy się po ponownym załadowaniu lub rozłączeniu.",
     "Allowlist this Device ID":
         "Dodaj ten identyfikator urządzenia do dozwolonych",
+    "Always on top": "Zawsze na wierzchu",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Odtwarzacz HTTPS nie może pobrać źródła HTTP EPG. Użyj źródła HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -556,6 +557,7 @@ var keyStrings = {
     "Fox-TV settings": "Ustawienia Fox-TV",
     "Full history, sources and license terms":
         "Pełna historia, źródła i warunki licencji",
+    "Full screen": "Pełny ekran",
     FXML: "FXML",
     "FXML settings": "Ustawienia FXML",
     Genre: "Gatunek",

@@ -1,0 +1,819 @@
+{
+  "cases": [
+    {
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "group": null,
+              "kind": "channel-name",
+              "name": "Fixture live"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture live"
+          }
+        ],
+        "version": 1
+      },
+      "id": "live",
+      "input": {
+        "liveId": "42",
+        "name": "Fixture live"
+      }
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJ2IiwiNDIiXV0",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJ2IiwiNDIiXV0",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "movie",
+      "input": {
+        "category": "films",
+        "folders": [],
+        "id": "movie",
+        "leaf": "42"
+      },
+      "leafId": "42",
+      "route": [
+        {
+          "id": "films",
+          "type": "portal-category"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsInNlcmllcyJdLFsibSIsIjIwIl0sWyJ2IiwiNDIiXV0",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsInNlcmllcyJdLFsibSIsIjIwIl0sWyJ2IiwiNDIiXV0",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "movie-folder",
+      "input": {
+        "category": "series",
+        "folders": [
+          {
+            "flag": "is_series",
+            "id": "20",
+            "type": "portal-movie"
+          }
+        ],
+        "id": "movie-folder",
+        "leaf": "42"
+      },
+      "leafId": "42",
+      "route": [
+        {
+          "id": "series",
+          "type": "portal-category"
+        },
+        {
+          "id": "20",
+          "type": "portal-movie"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsInNlcmllcyJdLFsibSIsIjIwIl0sWyJzIiwiMiJdLFsidiIsIjQyIl1d",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsInNlcmllcyJdLFsibSIsIjIwIl0sWyJzIiwiMiJdLFsidiIsIjQyIl1d",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "season-folder",
+      "input": {
+        "category": "series",
+        "folders": [
+          {
+            "flag": "is_series",
+            "id": "20",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_season",
+            "id": "2",
+            "type": "portal-season"
+          }
+        ],
+        "id": "season-folder",
+        "leaf": "42"
+      },
+      "leafId": "42",
+      "route": [
+        {
+          "id": "series",
+          "type": "portal-category"
+        },
+        {
+          "id": "20",
+          "type": "portal-movie"
+        },
+        {
+          "id": "2",
+          "type": "portal-season"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsInNlcmllcyJdLFsibSIsIjIwIl0sWyJzIiwiMiJdLFsiZSIsIjMiXSxbInYiLCJmaWxlLTEiXV0",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsInNlcmllcyJdLFsibSIsIjIwIl0sWyJzIiwiMiJdLFsiZSIsIjMiXSxbInYiLCJmaWxlLTEiXV0",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "episode-folder",
+      "input": {
+        "category": "series",
+        "folders": [
+          {
+            "flag": "is_series",
+            "id": "20",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_season",
+            "id": "2",
+            "type": "portal-season"
+          },
+          {
+            "flag": "is_episode",
+            "id": "3",
+            "type": "portal-episode"
+          }
+        ],
+        "id": "episode-folder",
+        "leaf": "file-1"
+      },
+      "leafId": "file-1",
+      "route": [
+        {
+          "id": "series",
+          "type": "portal-category"
+        },
+        {
+          "id": "20",
+          "type": "portal-movie"
+        },
+        {
+          "id": "2",
+          "type": "portal-season"
+        },
+        {
+          "id": "3",
+          "type": "portal-episode"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsIuaXpeacrCJdLFsicyIsItGB0LXQt9C-0L0iXSxbInYiLCLRjdC_0LjQt9C-0LQiXV0",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsIuaXpeacrCJdLFsicyIsItGB0LXQt9C-0L0iXSxbInYiLCLRjdC_0LjQt9C-0LQiXV0",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "unicode",
+      "input": {
+        "category": "日本",
+        "folders": [
+          {
+            "flag": "is_season",
+            "id": "сезон",
+            "type": "portal-season"
+          }
+        ],
+        "id": "unicode",
+        "leaf": "эпизод"
+      },
+      "leafId": "эпизод",
+      "route": [
+        {
+          "id": "日本",
+          "type": "portal-category"
+        },
+        {
+          "id": "сезон",
+          "type": "portal-season"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsImEvYjpjJTJGIl0sWyJzIiwicyBcIjFcIiJdLFsidiIsInYvNzo1MCUiXV0",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsImEvYjpjJTJGIl0sWyJzIiwicyBcIjFcIiJdLFsidiIsInYvNzo1MCUiXV0",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "escaped-id",
+      "input": {
+        "category": "a/b:c%2F",
+        "folders": [
+          {
+            "flag": "is_season",
+            "id": "s \"1\"",
+            "type": "portal-season"
+          }
+        ],
+        "id": "escaped-id",
+        "leaf": "v/7:50%"
+      },
+      "leafId": "v/7:50%",
+      "route": [
+        {
+          "id": "a/b:c%2F",
+          "type": "portal-category"
+        },
+        {
+          "id": "s \"1\"",
+          "type": "portal-season"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsInJvb3QiXSxbIm0iLCIwIl0sWyJtIiwiMSJdLFsibSIsIjIiXSxbIm0iLCIzIl0sWyJtIiwiNCJdLFsibSIsIjUiXSxbIm0iLCI2Il0sWyJ2IiwidiJdXQ",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsInJvb3QiXSxbIm0iLCIwIl0sWyJtIiwiMSJdLFsibSIsIjIiXSxbIm0iLCIzIl0sWyJtIiwiNCJdLFsibSIsIjUiXSxbIm0iLCI2Il0sWyJ2IiwidiJdXQ",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "eight-folders",
+      "input": {
+        "category": "root",
+        "folders": [
+          {
+            "flag": "is_series",
+            "id": "0",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_series",
+            "id": "1",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_series",
+            "id": "2",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_series",
+            "id": "3",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_series",
+            "id": "4",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_series",
+            "id": "5",
+            "type": "portal-movie"
+          },
+          {
+            "flag": "is_series",
+            "id": "6",
+            "type": "portal-movie"
+          }
+        ],
+        "id": "eight-folders",
+        "leaf": "v"
+      },
+      "leafId": "v",
+      "route": [
+        {
+          "id": "root",
+          "type": "portal-category"
+        },
+        {
+          "id": "0",
+          "type": "portal-movie"
+        },
+        {
+          "id": "1",
+          "type": "portal-movie"
+        },
+        {
+          "id": "2",
+          "type": "portal-movie"
+        },
+        {
+          "id": "3",
+          "type": "portal-movie"
+        },
+        {
+          "id": "4",
+          "type": "portal-movie"
+        },
+        {
+          "id": "5",
+          "type": "portal-movie"
+        },
+        {
+          "id": "6",
+          "type": "portal-movie"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsImEiXSxbInYiLCJ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2diJdXQ",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsImEiXSxbInYiLCJ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2diJdXQ",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "maximum-key",
+      "input": {
+        "category": "a",
+        "folders": [],
+        "id": "maximum-key",
+        "leaf": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      },
+      "leafId": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
+      "route": [
+        {
+          "id": "a",
+          "type": "portal-category"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsIiJdLFsidiIsIjQyIl1d",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsIiJdLFsidiIsIjQyIl1d",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "empty-category",
+      "input": {
+        "category": "",
+        "folders": [],
+        "id": "empty-category",
+        "leaf": "42"
+      },
+      "leafId": "42",
+      "route": [
+        {
+          "id": "",
+          "type": "portal-category"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsIiBcdCJdLFsidiIsIjQyIl1d",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsIiBcdCJdLFsidiIsIjQyIl1d",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "untrimmed-category",
+      "input": {
+        "category": " \t",
+        "folders": [],
+        "id": "untrimmed-category",
+        "leaf": "42"
+      },
+      "leafId": "42",
+      "route": [
+        {
+          "id": " \t",
+          "type": "portal-category"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsImFcdTAwMDFiIl0sWyJtIiwieFx1MDAwMXkiXSxbInYiLCJ2XHUwMDAwXGJcZlxuXHJcdHgiXV0",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsImFcdTAwMDFiIl0sWyJtIiwieFx1MDAwMXkiXSxbInYiLCJ2XHUwMDAwXGJcZlxuXHJcdHgiXV0",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "c0-provider-ids",
+      "input": {
+        "category": "a\u0001b",
+        "folders": [
+          {
+            "flag": "is_series",
+            "id": "x\u0001y",
+            "type": "portal-movie"
+          }
+        ],
+        "id": "c0-provider-ids",
+        "leaf": "v\u0000\b\f\n\r\tx"
+      },
+      "leafId": "v\u0000\b\f\n\r\tx",
+      "route": [
+        {
+          "id": "a\u0001b",
+          "type": "portal-category"
+        },
+        {
+          "id": "x\u0001y",
+          "type": "portal-movie"
+        }
+      ]
+    },
+    {
+      "channelId": "stalker-media:W1siYyIsImEiXSxbInYiLCJsZWFmIl1d",
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "channelId": "stalker-media:W1siYyIsImEiXSxbInYiLCJsZWFmIl1d",
+              "kind": "channel"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture film"
+          }
+        ],
+        "version": 1
+      },
+      "id": "trimmed-leaf",
+      "input": {
+        "category": "a",
+        "folders": [],
+        "id": "trimmed-leaf",
+        "leaf": " \nleaf\t ",
+        "normalizedLeaf": "leaf"
+      },
+      "leafId": "leaf",
+      "route": [
+        {
+          "id": "a",
+          "type": "portal-category"
+        }
+      ]
+    },
+    {
+      "document": {
+        "entries": [
+          {
+            "locator": {
+              "group": "Primary",
+              "kind": "channel-name",
+              "name": "Fixture live"
+            },
+            "origin": {
+              "profile": "Fixture portal",
+              "provider": "stalker",
+              "sourceAlias": "Fixture portal",
+              "subprofile": null
+            },
+            "title": "Fixture live"
+          }
+        ],
+        "version": 1
+      },
+      "id": "live-exact-group"
+    }
+  ],
+  "evidence": {
+    "encoding": "stalker-media: + unpadded base64url of UTF-8 JSON typed tuples; last tuple is v leaf; at most eight folders and 256 total characters",
+    "invalid": "Generic portable channel IDs may be retained even when their Stalker route is unavailable",
+    "invalidProperties": "canonicalEncoding checks exact unpadded base64url and JSON.stringify bytes; structurallyValid checks the decoded typed route. Neither guarantees a current catalog match. Repeated ancestors are structurally valid but discovery refuses their cycle.",
+    "live": "channel-name uses exact name and optional exact group; raw live numbers are not media routes",
+    "producer": "src/provider/stalker-driver.ts:createStalkerMedia key(path,id), executed with vendor/ottplay-core.js",
+    "providerIds": "Category IDs preserve empty strings, whitespace and C0 characters. Leaf and media-folder IDs are trimmed by the core; empty results are omitted. Internal C0 characters are preserved and JSON-escaped.",
+    "resolver": "src/media/global-favorites-player.ts:resolveItem and actual driver mediaClient.resolve",
+    "transfer": "src/commands/global-favorites-protocol.ts staged import/commit/export"
+  },
+  "invalid": [
+    {
+      "canonicalEncoding": false,
+      "channelId": "42",
+      "id": "raw-live-id",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:_w",
+      "id": "invalid-utf8",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:bm90LWpzb24",
+      "id": "invalid-json",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:a",
+      "id": "invalid-base64-length",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJ2IiwiNDIiXV1",
+      "id": "noncanonical-base64",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": true
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:WyBbImMiLCJmaWxtcyJdLCBbInYiLCI0MiJdIF0",
+      "id": "noncanonical-json",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": true
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1sieCIsImZpbG1zIl0sWyJ2IiwiNDIiXV0",
+      "id": "unknown-route-type",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsMV0sWyJ2IiwiNDIiXV0",
+      "id": "numeric-provider-id",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIiwidW5leHBlY3RlZCJdLFsidiIsIjQyIl1d",
+      "id": "extra-tuple-field",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl1d",
+      "id": "missing-leaf",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1sidiIsIjQyIl1d",
+      "id": "missing-folder",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJ2IiwiIl1d",
+      "id": "empty-leaf",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJtIiwiIl0sWyJ2IiwiNDIiXV0",
+      "id": "empty-movie-folder",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJ2Iiwibm90LWluLWNhdGFsb2ciXV0",
+      "id": "missing-file",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": true
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJtIiwic2FtZSJdLFsibSIsInNhbWUiXSxbInYiLCI0MiJdXQ",
+      "id": "repeated-ancestor",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": true
+    },
+    {
+      "canonicalEncoding": true,
+      "channelId": "stalker-media:W1siYyIsIjAiXSxbImMiLCIxIl0sWyJjIiwiMiJdLFsiYyIsIjMiXSxbImMiLCI0Il0sWyJjIiwiNSJdLFsiYyIsIjYiXSxbImMiLCI3Il0sWyJjIiwiOCJdLFsidiIsIjQyIl1d",
+      "id": "overdeep-route",
+      "portable": true,
+      "resolves": false,
+      "structurallyValid": false
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:W1siYyIsImZpbG1zIl0sWyJ2IiwiNDIiXV0=",
+      "id": "padding",
+      "portable": false,
+      "resolves": false,
+      "structurallyValid": true
+    },
+    {
+      "canonicalEncoding": false,
+      "channelId": "stalker-media:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "id": "oversize",
+      "portable": false,
+      "resolves": false,
+      "structurallyValid": false
+    }
+  ],
+  "producerRejected": [
+    {
+      "catalogError": false,
+      "input": {
+        "category": "a",
+        "folders": [],
+        "id": "empty-leaf",
+        "leaf": ""
+      },
+      "published": 0
+    },
+    {
+      "catalogError": false,
+      "input": {
+        "category": "a",
+        "folders": [],
+        "id": "blank-leaf",
+        "leaf": " \n\t"
+      },
+      "published": 0
+    },
+    {
+      "catalogError": false,
+      "input": {
+        "category": "a",
+        "folders": [
+          {
+            "flag": "is_series",
+            "id": "",
+            "type": "portal-movie"
+          }
+        ],
+        "id": "empty-movie-folder",
+        "leaf": "42"
+      },
+      "published": 0
+    }
+  ],
+  "version": 1
+}

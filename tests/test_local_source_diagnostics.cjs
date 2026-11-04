@@ -25,7 +25,7 @@ const route = (kind = "direct", endpointMatch = "match", itemId = ITEM) => ({
     itemId,
     kind,
 });
-function fixture() {
+function fixture(clock = Date) {
     const calls = [],
         codecCalls = [],
         timers = new Map();
@@ -87,7 +87,7 @@ function fixture() {
             );
         },
     };
-    vm.runInNewContext(code, { Date, Promise, window: w });
+    vm.runInNewContext(code, { Date: clock, Promise, window: w });
     return {
         backend,
         calls,
@@ -418,7 +418,7 @@ test("idle DOM replacement during native collection still invalidates the snapsh
     assert.deepEqual(plain(result.codecs), { h264: null, hevc: null });
 });
 
-function statusDispatcher(f) {
+function statusDispatcher(f, clock = Date) {
     const source = fs.readFileSync("src/commands/remote-requests.ts", "utf8");
     const modules = {};
     for (const match of source.matchAll(/from "([^"]+)"/g))
@@ -439,7 +439,7 @@ function statusDispatcher(f) {
         },
     }).outputText;
     vm.runInNewContext(compiled, {
-        Date,
+        Date: clock,
         exports,
         Promise,
         require(name) {
@@ -546,4 +546,121 @@ test("cancelled status suppresses late completion without repeating the native p
     await Promise.resolve();
     assert.equal(replies.length, 0);
     assert.equal(f.calls.length, 1);
+});
+
+test("near-expiry status skips optional diagnostics and keeps the ordinary reply", () => {
+    const now = 5000000;
+    for (const remaining of [0, 1, 249, 250]) {
+        const clock = { now: () => now };
+        const f = fixture(clock),
+            replies = [];
+        const execute = statusDispatcher(f, clock);
+        const request = {
+            action: "status",
+            expires_at: (now + remaining) / 1000,
+            params: {},
+        };
+        execute(request, (reply) => replies.push(reply));
+        assert.equal(
+            replies.length,
+            1,
+            "ordinary status is synchronous at " + remaining
+        );
+        assert.equal(replies[0].status, "ok");
+        assert.equal(replies[0].data.local_source_diagnostics, undefined);
+        assert.equal(
+            f.calls.length,
+            0,
+            "no native peek may consume remaining TTL"
+        );
+        assert.equal(f.timers.size, 0);
+        assert.equal(
+            f.codecCalls.length,
+            0,
+            "the optional producer was not entered"
+        );
+        delete f.w.__ottLocalSourceDiagnostics;
+        execute(request, (reply) => replies.push(reply));
+        assert.deepEqual(plain(replies[0]), plain(replies[1]));
+    }
+});
+
+test("status with enough time or no deadline retains optional diagnostics", async () => {
+    const now = 5000000;
+    for (const remaining of [251, 1000, undefined]) {
+        const clock = { now: () => now };
+        const f = fixture(clock),
+            replies = [];
+        const execute = statusDispatcher(f, clock);
+        execute(
+            {
+                action: "status",
+                params: {},
+                ...(remaining === undefined
+                    ? {}
+                    : { expires_at: (now + remaining) / 1000 }),
+            },
+            (reply) => replies.push(reply)
+        );
+        assert.equal(replies.length, 0);
+        assert.equal(f.calls.length, 1);
+        assert.equal(f.timers.size, 1);
+        f.finish();
+        await Promise.resolve();
+        await Promise.resolve();
+        assert.equal(replies.length, 1);
+        assert.equal(replies[0].status, "ok");
+        assert.equal(replies[0].data.volume, 35);
+        assert.equal(replies[0].data.local_source_diagnostics.consistent, true);
+        assert.equal(f.timers.size, 0);
+    }
+});
+
+test("status rechecks remaining TTL after assembling the ordinary snapshot", () => {
+    let now = 5000000;
+    const f = fixture(),
+        replies = [];
+    const execute = statusDispatcher(f, { now: () => now });
+    f.w.stbGetVolume = () => {
+        now += 100;
+        return 35;
+    };
+    execute(
+        { action: "status", expires_at: (now + 300) / 1000, params: {} },
+        (reply) => replies.push(reply)
+    );
+    assert.equal(replies.length, 1);
+    assert.equal(replies[0].status, "ok");
+    assert.equal(replies[0].data.volume, 35);
+    assert.equal(replies[0].data.local_source_diagnostics, undefined);
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.timers.size, 0);
+});
+
+test("optional capture cannot start a native wait after using the remaining allowance", async () => {
+    let now = 5000000;
+    const clock = { now: () => now };
+    const f = fixture(clock),
+        replies = [];
+    const execute = statusDispatcher(f, clock);
+    const canPlayType = f.node.canPlayType;
+    f.node.canPlayType = (value) => {
+        now += 1;
+        return canPlayType(value);
+    };
+    execute(
+        { action: "status", expires_at: (now + 251) / 1000, params: {} },
+        (reply) => replies.push(reply)
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(
+        f.calls.length,
+        0,
+        "only 249 ms remain after the two codec getters"
+    );
+    assert.equal(f.timers.size, 0);
+    assert.equal(replies.length, 1);
+    assert.equal(replies[0].status, "ok");
+    assert.equal(replies[0].data.volume, 35);
 });

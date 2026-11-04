@@ -74,6 +74,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Επιτρέψτε σε αυτόν τον διακομιστή να ζητήσει εικόνες για 10 λεπτά. Οι εικόνες μπορεί να περιέχουν προσωπικές πληροφορίες. Σε ένα πρόγραμμα περιήγησης, επιλέξτε την καρτέλα ή το παράθυρο του προγράμματος αναπαραγωγής. Η άδεια λήγει με επαναφόρτωση ή αποσύνδεση.",
     "Allowlist this Device ID": "Επιτρέψτε αυτό το αναγνωριστικό συσκευής",
+    "Always on top": "Πάντα στο προσκήνιο",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Μια συσκευή αναπαραγωγής HTTPS δεν μπορεί να πραγματοποιήσει λήψη μιας πηγής HTTP EPG. Χρησιμοποιήστε μια πηγή HTTPS.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -566,6 +567,7 @@ var keyStrings = {
     "Fox-TV settings": "Ρυθμίσεις Fox-TV",
     "Full history, sources and license terms":
         "Πλήρες ιστορικό, πηγές και όροι αδειών",
+    "Full screen": "Πλήρης οθόνη",
     FXML: "FXML",
     "FXML settings": "Ρυθμίσεις FXML",
     Genre: "Είδος",

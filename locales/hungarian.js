@@ -72,6 +72,7 @@ var keyStrings = {
     "Allow this server to request images for 10 minutes. Images can contain personal information. In a browser, select the player tab or window. Permission ends on reload or disconnect.":
         "Engedélyezze a szervernek, hogy képeket kérjen 10 percig. A képek személyes adatokat tartalmazhatnak. A böngészőben válassza ki a lejátszó lapot vagy ablakot. Az engedély újratöltéskor vagy leválasztáskor lejár.",
     "Allowlist this Device ID": "Eszközazonosító engedélyezése",
+    "Always on top": "Mindig felül",
     "An HTTPS player cannot download an HTTP EPG source. Use an HTTPS source.":
         "Egy HTTPS lejátszó nem tölthet le HTTP EPG forrást. Használjon HTTPS forrást.",
     "An IP without a port uses HTTP port 8081. Clear the address or select Disconnect to stop.":
@@ -553,6 +554,7 @@ var keyStrings = {
     "Fox-TV settings": "Fox-TV beállításai",
     "Full history, sources and license terms":
         "Teljes történet, források és licencfeltételek",
+    "Full screen": "Teljes képernyő",
     FXML: "FXML",
     "FXML settings": "FXML beállításai",
     Genre: "Műfaj",

@@ -101,21 +101,52 @@ async function main() {
             ]);
         }
     );
-    for (const mode of ["throw", "reject", "bad-result", "api-getter"])
+    for (const mode of ["throw", "reject", "bad-result", "unknown-command"])
         await check(
-            "toggle core " + mode + " falls back to internals once",
+            "attempted toggle " +
+                mode +
+                " is never replayed through another path",
+            async () => {
+                const f = fixture({ cached: true });
+                f.host.__TAURI__ = {
+                    core: f.api("core", () => {
+                        if (mode === "throw") throw Error("readback failed");
+                        if (mode === "bad-result")
+                            return Object.defineProperty({}, "fullscreen", {
+                                get() {
+                                    throw Error("bad result");
+                                },
+                            });
+                        return Promise.reject(
+                            Error(
+                                mode === "unknown-command"
+                                    ? "Command toggle_fullscreen not found"
+                                    : "readback failed"
+                            )
+                        );
+                    }),
+                };
+                f.host.__TAURI_INTERNALS__ = f.api("internal", () =>
+                    assert.fail("mutation replay")
+                );
+                f.host.__TAURI__.window = {
+                    getCurrentWindow() {
+                        assert.fail("post-dispatch window fallback");
+                    },
+                };
+                await f.host.stbToggleTauriNativeFullscreen();
+                assert.deepEqual(f.calls, [
+                    ["core", "toggle_fullscreen", null],
+                ]);
+                assert.equal(f.host.__ottTauriNativeFs, true);
+                assert.equal(f.warnings.length, 1);
+            }
+        );
+    for (const mode of ["missing", "api-getter"])
+        await check(
+            "pre-dispatch " + mode + " selects the available internal API",
             async () => {
                 const f = fixture();
-                const core = f.api("core", () => {
-                    if (mode === "throw") throw Error("core failed");
-                    if (mode === "bad-result")
-                        return Object.defineProperty({}, "fullscreen", {
-                            get() {
-                                throw Error("bad result");
-                            },
-                        });
-                    return Promise.reject(Error("core failed"));
-                });
                 f.host.__TAURI__ =
                     mode === "api-getter"
                         ? Object.defineProperty({}, "core", {
@@ -123,73 +154,108 @@ async function main() {
                                   throw Error("getter");
                               },
                           })
-                        : { core };
+                        : {};
                 f.host.__TAURI_INTERNALS__ = f.api("internal", () => ({
-                    fullscreen: false,
+                    fullscreen: true,
                 }));
                 await f.host.stbToggleTauriNativeFullscreen();
-                assert.deepEqual(
-                    f.calls.map((call) => call[0]),
-                    mode === "api-getter" ? ["internal"] : ["core", "internal"]
-                );
-                assert.equal(f.host.__ottTauriNativeFs, false);
+                assert.deepEqual(f.calls, [
+                    ["internal", "toggle_fullscreen", null],
+                    ["close", true],
+                ]);
+                assert.equal(f.host.__ottTauriNativeFs, true);
                 assert.deepEqual(f.warnings, []);
             }
         );
-    for (const result of [undefined, {}, { fullscreen: "true" }])
+    for (const result of [
+        undefined,
+        {},
+        { fullscreen: "true" },
+        { fullscreen: true, ok: false },
+    ])
         await check(
-            "older toggle response flips cached state: " +
+            "unconfirmed toggle response does not invert the cache: " +
                 JSON.stringify(result),
             async () => {
                 const f = fixture({ cached: true });
                 f.host.__TAURI_INTERNALS__ = f.api("internal", () => result);
                 await f.host.stbToggleTauriNativeFullscreen();
-                assert.equal(f.host.__ottTauriNativeFs, false);
-                assert.equal(f.calls.length, 1);
+                assert.equal(f.host.__ottTauriNativeFs, true);
+                assert.deepEqual(f.calls, [
+                    ["internal", "toggle_fullscreen", null],
+                ]);
+                assert.equal(f.warnings.length, 1);
             }
         );
     await check(
-        "toggle retries native toggle then probes and uses core set before window set",
+        "pre-dispatch window fallback can use an API appearing during its probe exactly once",
         async () => {
             const f = fixture();
             f.host.__TAURI__ = {
-                core: f.api("core", (command) =>
-                    command === "toggle_fullscreen"
-                        ? Promise.reject(Error("unsupported"))
-                        : { fullscreen: false }
-                ),
                 window: {
                     getCurrentWindow() {
                         f.calls.push(["window"]);
                         return {
                             isFullscreen() {
                                 f.calls.push(["probe"]);
+                                f.host.__TAURI__.core = f.api(
+                                    "core",
+                                    (command) => {
+                                        assert.equal(command, "set_fullscreen");
+                                        return { fullscreen: true };
+                                    }
+                                );
                                 return Promise.resolve(false);
                             },
                             setFullscreen() {
-                                throw Error("must prefer core set");
+                                assert.fail(
+                                    "must not replay through window setter"
+                                );
                             },
                         };
                     },
                 },
             };
-            f.host.__TAURI_INTERNALS__ = f.api("internal", () =>
-                Promise.reject(Error("unsupported"))
-            );
             await f.host.stbToggleTauriNativeFullscreen();
             assert.deepEqual(f.calls, [
-                ["core", "toggle_fullscreen", null],
-                ["internal", "toggle_fullscreen", null],
                 ["window"],
                 ["probe"],
                 ["core", "set_fullscreen", { fullscreen: true }],
                 ["close", true],
             ]);
+            assert.equal(f.host.__ottTauriNativeFs, true);
+        }
+    );
+    await check(
+        "applied toggle followed by failed readback has one mutation and no success publication",
+        async () => {
+            const f = fixture();
+            let nativeState = false;
+            f.host.__TAURI__ = {
+                core: f.api("core", () => {
+                    nativeState = !nativeState;
+                    return Promise.reject(Error("native readback failed"));
+                }),
+            };
+            f.host.__TAURI_INTERNALS__ = f.api("internal", () => {
+                nativeState = !nativeState;
+                return { fullscreen: nativeState };
+            });
+            await f.host.stbToggleTauriNativeFullscreen();
+            assert.equal(
+                nativeState,
+                true,
+                "readback failure must not undo the already-applied native toggle"
+            );
             assert.equal(
                 f.host.__ottTauriNativeFs,
-                true,
-                "probe/set fallback uses requested state even for old response fields"
+                false,
+                "unconfirmed native state must not be published"
             );
+            assert.deepEqual(f.calls, [["core", "toggle_fullscreen", null]]);
+            assert.deepEqual(f.warnings, [
+                ["[Tauri] toggle_fullscreen failed:", "native readback failed"],
+            ]);
         }
     );
     for (const mode of ["sync", "async", "throw", "reject", "not-boolean"])
@@ -344,7 +410,7 @@ async function main() {
             }
         );
     await check(
-        "explicit set recovers unavailable getter and honors older response",
+        "explicit set recovers unavailable getter and honors a confirmed legacy response",
         async () => {
             const f = fixture();
             f.host.__TAURI__ = Object.defineProperty({}, "core", {
@@ -352,7 +418,9 @@ async function main() {
                     throw Error("getter");
                 },
             });
-            f.host.__TAURI_INTERNALS__ = f.api("internal", () => ({}));
+            f.host.__TAURI_INTERNALS__ = f.api("internal", () => ({
+                fullscreen: true,
+            }));
             await f.host.stbSetTauriNativeFullscreen(true);
             assert.deepEqual(f.calls, [
                 ["internal", "set_fullscreen", { fullscreen: true }],
@@ -360,6 +428,29 @@ async function main() {
             ]);
         }
     );
+    for (const result of [
+        undefined,
+        {},
+        { fullscreen: "true" },
+        { fullscreen: true, ok: false },
+    ])
+        await check(
+            "explicit set requires native state and never fabricates success: " +
+                JSON.stringify(result),
+            async () => {
+                const f = fixture();
+                f.host.__TAURI__ = { core: f.api("core", () => result) };
+                f.host.__TAURI_INTERNALS__ = f.api("internal", () =>
+                    assert.fail("set replay")
+                );
+                await f.host.stbSetTauriNativeFullscreen(true);
+                assert.equal(f.host.__ottTauriNativeFs, false);
+                assert.deepEqual(f.calls, [
+                    ["core", "set_fullscreen", { fullscreen: true }],
+                ]);
+                assert.equal(f.warnings.length, 1);
+            }
+        );
     for (const mode of [
         "visible-dom",
         "hidden",
