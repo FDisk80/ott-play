@@ -303,6 +303,7 @@ module.exports = function guideFixture(options = {}) {
     ])
         privateRuntime(host, "src/guide/" + name + ".ts");
     vm.runInContext(localizationRuntime(), host);
+    require("./category-selector-runtime.cjs")(host);
     vm.runInContext(code, host);
     attachSourceAliases(host);
     function dueIndependent(limit) {
@@ -419,6 +420,7 @@ module.exports.install = function (host) {
         "classic-reminders",
     ])
         privateRuntime(host, "src/guide/" + name + ".ts");
+    require("./category-selector-runtime.cjs")(host);
     vm.runInContext(code, host);
     attachSourceAliases(host);
 };

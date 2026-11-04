@@ -373,6 +373,7 @@ async function categoryFixture(count, device = "pc") {
         "src/channels/index.ts",
         "playingChannelIdxInCategory"
     );
+    require("./helpers/category-selector-runtime.cjs")(w);
     w.bucketsKeyHandler = actual("src/channels/index.ts", "bucketsKeyHandler");
     w.bucketsList = actual("src/channels/index.ts", "bucketsList");
     const show = fn(
