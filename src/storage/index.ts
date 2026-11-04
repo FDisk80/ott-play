@@ -869,9 +869,25 @@ export function installLocalPlaybackSession(
     ): string {
         var value = libraryDocument(metadata),
             selected = libraryDocument(cursor);
-        if (Object.prototype.hasOwnProperty.call(selected, "selected"))
-            value.selected = selected.selected;
-        else delete value.selected;
+        if (Object.prototype.hasOwnProperty.call(selected, "selected")) {
+            if (!Object.prototype.hasOwnProperty.call(value, "selected")) {
+                // A first temporary write removes the cursor from its physical
+                // document. Restore its original field position for the
+                // library's exact logical readback, without taking stale
+                // metadata values from the cursor snapshot.
+                var ordered: Record<string, any> = Object.create(null);
+                Object.keys(selected).forEach(function (name) {
+                    if (name === "selected") ordered[name] = selected.selected;
+                    else if (Object.prototype.hasOwnProperty.call(value, name))
+                        ordered[name] = value[name];
+                });
+                Object.keys(value).forEach(function (name) {
+                    if (!Object.prototype.hasOwnProperty.call(ordered, name))
+                        ordered[name] = value[name];
+                });
+                value = ordered;
+            } else value.selected = selected.selected;
+        } else delete value.selected;
         var text = JSON.stringify(value);
         // This overlay sits below provider compression. Preserve the metadata's
         // raw representation; transaction preimages remain the original bytes.

@@ -741,3 +741,86 @@ for (const mode of ["preview", "transient"]) {
 console.log(
     "PASS compressed provider libraries: fresh cursor, metadata, raw transactions, discard/promotion, preview, CAS"
 );
+
+// A library first created in a temporary session has no durable cursor. Its
+// logical readback must retain the writer's selected-field position: the real
+// library commit verifies exact text, not just decoded field values.
+for (const mode of ["preview", "transient"]) {
+    for (const encoding of ["plain", "compressed"]) {
+        for (const initiallyMissing of [false, true]) {
+            const encode = (value) => {
+                const text = JSON.stringify(value);
+                return encoding === "compressed"
+                    ? localLibraryMarker + localLibraryLZ.compress(text)
+                    : text;
+            };
+            const decode = (raw) =>
+                JSON.parse(
+                    raw.startsWith(localLibraryMarker)
+                        ? localLibraryLZ.decompress(
+                              raw.slice(localLibraryMarker.length)
+                          )
+                        : raw
+                );
+            const desired = {
+                groups: [{ id: "films", members: ["first", "second"] }],
+                hidden: [],
+                selected: null,
+                sourceId: "temporary",
+                version: 1,
+            };
+            const metadata = { ...desired };
+            delete metadata.selected;
+            const f = boot(
+                initiallyMissing
+                    ? new Map()
+                    : new Map([[localLibraryPhysicalKey, encode(metadata)]])
+            );
+            const scope = enterLibrarySession(f, mode);
+            for (const selected of [null, { itemId: "fresh" }]) {
+                desired.selected = selected;
+                const expected = encode(desired);
+                f.adapter.set(localLibraryPhysicalKey, expected);
+                assert.equal(
+                    f.adapter.get(localLibraryPhysicalKey),
+                    expected,
+                    mode + "/" + encoding + ": exact first-write readback"
+                );
+                assert.deepEqual(
+                    decode(f.saved.get(localLibraryPhysicalKey)),
+                    metadata,
+                    "temporary cursor never becomes durable"
+                );
+            }
+            for (const change of [
+                (value) => delete value.hidden,
+                (value) => (value.extra = "new metadata"),
+                (value) => (value.sourceId = "changed"),
+                (value) => value.groups[0].members.reverse(),
+                (value) =>
+                    Object.defineProperty(value, "__proto__", {
+                        enumerable: true,
+                        value: { savedMetadata: true },
+                    }),
+            ]) {
+                const actual = structuredClone(metadata);
+                change(actual);
+                f.saved.set(localLibraryPhysicalKey, encode(actual));
+                const logical = f.adapter.get(localLibraryPhysicalKey);
+                assert.notEqual(logical, encode(desired));
+                const decoded = decode(logical);
+                assert.deepEqual(decoded.selected, desired.selected);
+                delete decoded.selected;
+                assert.deepEqual(
+                    decoded,
+                    actual,
+                    "cursor overlay cannot hide or replace changed metadata"
+                );
+            }
+            scope.discard();
+        }
+    }
+}
+console.log(
+    "PASS missing durable cursor: exact logical order and metadata changes"
+);
