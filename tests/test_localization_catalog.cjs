@@ -1390,6 +1390,7 @@ try {
         console: { log() {} },
         hasTmdbService: () => true,
         languageLocaleTag: localeAssets.languageLocaleTag,
+        metadataCssUrl: String,
         metadataText: String,
         stbGetItem: () => "_eng",
         window: {
@@ -1419,12 +1420,18 @@ try {
             localeAssets.languageLocaleTag(code)
         );
     }
-    tmdbRequests.at(-2).error({ status: 503 });
+    // Each localized error belongs to the current request; a newer search
+    // deliberately invalidates an older detail response.
+    tmdbContext.TMDb.get("movie", 43);
     tmdbRequests.at(-1).error({ status: 503 });
+    const localizedErrors = [tmdbMessages.at(-1)];
+    tmdbContext.TMDb.search("Another title");
+    tmdbRequests.at(-1).error({ status: 503 });
+    localizedErrors.push(tmdbMessages.at(-1));
     assert(
-        tmdbMessages
-            .slice(-2)
-            .every((message) => message.includes("Не удалось загрузить!"))
+        localizedErrors.every((message) =>
+            message.includes("Не удалось загрузить!")
+        )
     );
 
     // Late responses in the previous UI language cannot repaint a dialog,
@@ -1446,6 +1453,200 @@ try {
     assert.equal(tmdbRequests.length, priorRequestCount);
     assert.equal(tmdbContext.TMDb.data, null);
     assert.deepEqual(Array.from(tmdbContext.TMDb.results), []);
+
+    // Replay the actual TMDb object with deterministic, manually ordered AJAX
+    // callbacks. No companion, live key, timer, or network is involved.
+    function resetTmdb() {
+        tmdbRequests.length = 0;
+        tmdbMessages.length = 0;
+        tmdbContext.window.__ottInterfaceLanguage = "_eng";
+        vm.runInNewContext(
+            ts.transpileModule(tmdbVariable.getText(selectionSource), {})
+                .outputText,
+            tmdbContext
+        );
+    }
+    function tmdbState() {
+        const value = tmdbContext.TMDb;
+        return JSON.stringify({
+            detail: value.data,
+            detailId: value.media_type_id,
+            message: tmdbMessages.at(-1),
+            query: value.query,
+            requests: tmdbRequests.length,
+            results: value.results,
+        });
+    }
+    function tmdbMatch(id, title) {
+        return { results: [{ id, media_type: "movie", title }] };
+    }
+    function tmdbRegression(name, run) {
+        resetTmdb();
+        try {
+            run();
+        } catch (error) {
+            throw new Error(name, { cause: error });
+        }
+    }
+    tmdbRegression("failed search remains retryable", () => {
+        tmdbContext.TMDb.search("Needle");
+        tmdbRequests[0].error({ status: 503 });
+        tmdbContext.TMDb.search("Needle");
+        assert.equal(tmdbRequests.length, 2);
+        assert.equal(tmdbRequests[1].data.query, "Needle");
+        assert(!tmdbMessages.at(-1).includes("Not found"));
+    });
+    tmdbRegression("failed new search cannot reuse previous results", () => {
+        tmdbContext.TMDb.search("Old search");
+        tmdbRequests[0].success(tmdbMatch(1, "Old search"));
+        tmdbRequests[1].success({ id: 1, title: "Old result" });
+        tmdbContext.TMDb.search("New search");
+        tmdbRequests[2].error({ status: 503 });
+        tmdbContext.TMDb.search("New search");
+        assert.equal(tmdbRequests.length, 4);
+        assert.equal(tmdbRequests[3].data.query, "New search");
+        assert(!tmdbMessages.at(-1).includes("Old result"));
+    });
+    tmdbRegression("failed first detail does not render null on retry", () => {
+        tmdbContext.TMDb.get("movie", 1);
+        tmdbRequests[0].error({ status: 503 });
+        assert.doesNotThrow(() => tmdbContext.TMDb.get("movie", 1));
+        assert.equal(tmdbRequests.length, 2);
+        tmdbRequests[1].success({ id: 1, title: "Retried detail" });
+        assert(tmdbMessages.at(-1).includes("Retried detail"));
+    });
+    tmdbRegression("failed new detail cannot reuse previous item", () => {
+        tmdbContext.TMDb.get("movie", 1);
+        tmdbRequests[0].success({ id: 1, title: "Old detail" });
+        tmdbContext.TMDb.get("movie", 2);
+        tmdbRequests[1].error({ status: 503 });
+        tmdbContext.TMDb.get("movie", 2);
+        assert.equal(tmdbRequests.length, 3);
+        tmdbRequests[2].success({ id: 2, title: "New detail" });
+        assert(tmdbMessages.at(-1).includes("New detail"));
+        assert(!tmdbMessages.at(-1).includes("Old detail"));
+    });
+    for (const operation of ["search", "get"]) {
+        tmdbRegression(
+            "pending duplicate " + operation + " remains current",
+            () => {
+                const args =
+                    operation === "search" ? ["Pending"] : ["movie", 1];
+                tmdbContext.TMDb[operation](...args);
+                assert.doesNotThrow(() => tmdbContext.TMDb[operation](...args));
+                assert.equal(tmdbRequests.length, 2);
+                const current = tmdbState();
+                tmdbRequests[0].error({ status: 503 });
+                assert.equal(tmdbState(), current);
+                tmdbRequests[1].error({ status: 503 });
+                assert(tmdbMessages.at(-1).includes("Не удалось загрузить!"));
+            }
+        );
+    }
+    tmdbRegression("successful detail is reused", () => {
+        tmdbContext.TMDb.get("movie", 1);
+        tmdbRequests[0].success({ id: 1, title: "Cached detail" });
+        tmdbContext.TMDb.get("movie", 1);
+        assert.equal(tmdbRequests.length, 1);
+        assert(tmdbMessages.at(-1).includes("Cached detail"));
+    });
+    tmdbRegression("successful search and detail are reused", () => {
+        tmdbContext.TMDb.search("Cached");
+        tmdbRequests[0].success(tmdbMatch(1, "Cached"));
+        tmdbRequests[1].success({ id: 1, title: "Cached detail" });
+        tmdbContext.TMDb.search("Cached");
+        assert.equal(tmdbRequests.length, 2);
+        assert(tmdbMessages.at(-1).includes("Cached detail"));
+    });
+    tmdbRegression(
+        "same-language detail A B A ignores both stale callbacks",
+        () => {
+            tmdbContext.TMDb.get("movie", 1);
+            tmdbContext.TMDb.get("movie", 2);
+            tmdbContext.TMDb.get("movie", 1);
+            tmdbRequests[2].success({ id: 1, title: "Fresh A" });
+            const current = tmdbState();
+            for (const request of tmdbRequests.slice(0, 2)) {
+                request.success({ id: 99, title: "Stale detail" });
+                request.error({ status: 503 });
+                assert.equal(tmdbState(), current);
+            }
+        }
+    );
+    tmdbRegression(
+        "same-language search A B A ignores both stale callbacks",
+        () => {
+            tmdbContext.TMDb.search("Alpha");
+            tmdbContext.TMDb.search("Beta");
+            tmdbContext.TMDb.search("Alpha");
+            tmdbRequests[2].success(tmdbMatch(3, "Alpha"));
+            tmdbRequests[3].success({ id: 3, title: "Fresh Alpha" });
+            const current = tmdbState();
+            for (const request of tmdbRequests.slice(0, 2)) {
+                request.success(tmdbMatch(99, "Stale search"));
+                request.error({ status: 503 });
+                assert.equal(tmdbState(), current);
+            }
+        }
+    );
+    tmdbRegression("cached detail invalidates a pending search", () => {
+        tmdbContext.TMDb.get("movie", 1);
+        tmdbRequests[0].success({ id: 1, title: "Cached A" });
+        tmdbContext.TMDb.search("Pending B");
+        const stale = tmdbRequests[1];
+        tmdbContext.TMDb.get("movie", 1);
+        const current = tmdbState();
+        stale.success(tmdbMatch(2, "Pending B"));
+        stale.error({ status: 503 });
+        assert.equal(tmdbState(), current);
+        assert.equal(tmdbRequests.length, 2);
+    });
+    tmdbRegression("new detail invalidates a pending search", () => {
+        tmdbContext.TMDb.search("Old search");
+        const stale = tmdbRequests[0];
+        tmdbContext.TMDb.get("movie", 2);
+        tmdbRequests[1].success({ id: 2, title: "Current detail" });
+        const current = tmdbState();
+        stale.success(tmdbMatch(1, "Old search"));
+        stale.error({ status: 503 });
+        assert.equal(tmdbState(), current);
+    });
+    tmdbRegression("new search invalidates a pending detail", () => {
+        tmdbContext.TMDb.get("movie", 1);
+        const stale = tmdbRequests[0];
+        tmdbContext.TMDb.search("New search");
+        tmdbRequests[1].success(tmdbMatch(2, "New search"));
+        tmdbRequests[2].success({ id: 2, title: "Current detail" });
+        const current = tmdbState();
+        stale.success({ id: 1, title: "Old detail" });
+        stale.error({ status: 503 });
+        assert.equal(tmdbState(), current);
+    });
+    tmdbRegression(
+        "failed intermediate fallback retries original query",
+        () => {
+            tmdbContext.TMDb.search("One Two");
+            tmdbRequests[0].success({ results: [] });
+            assert.equal(tmdbRequests[1].data.query, "One");
+            tmdbRequests[1].error({ status: 503 });
+            tmdbContext.TMDb.search("One Two");
+            assert.equal(tmdbRequests.length, 3);
+            assert.equal(tmdbRequests[2].data.query, "One Two");
+            tmdbRequests[2].success(tmdbMatch(1, "One Two"));
+            tmdbRequests[3].success({ id: 1, title: "Found original" });
+            tmdbContext.TMDb.search("One Two");
+            assert.equal(tmdbRequests.length, 4);
+        }
+    );
+    tmdbRegression("completed empty search is cached", () => {
+        tmdbContext.TMDb.search("Empty");
+        tmdbRequests[0].success({ results: [] });
+        assert.equal(tmdbRequests.length, 1);
+        assert(tmdbMessages.at(-1).includes("Not found"));
+        tmdbContext.TMDb.search("Empty");
+        assert.equal(tmdbRequests.length, 1);
+        assert(tmdbMessages.at(-1).includes("Not found"));
+    });
 
     const reference = readDictionary(
         path.join(root, languageAssetPath("_eng"))

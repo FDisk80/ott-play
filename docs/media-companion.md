@@ -434,6 +434,29 @@ The default TMDB catalog's metadata and images are supplied by
 The built-in credits include its official logo and attribution notice.
 The logo is retained unchanged from the [official asset](https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg).
 
+## Troubleshooting TMDb metadata
+
+The programme-information **TMDb** action uses the server's `/tmdb/s/` proxy
+or the desktop application's `tmdb_proxy` command. Static web hosting alone
+cannot provide that proxy. The built-in proxy reads `TMDB_API_KEY` from the
+server or desktop process environment; the key is not supplied by the web
+player or bundled with a release. An operator must provide their own key
+through private process configuration. The `torrentCatalogEndpoint` setting
+above selects a different catalog transport; it does not configure this key.
+
+If the key is missing, the server returns HTTP 503 and the desktop proxy
+rejects the request. Other connection or upstream errors need their own
+diagnosis: record the app version, platform, hosting mode and HTTP status of
+the failed request. Share only redacted details, without API keys,
+authorization headers or URLs containing credentials. A generic “Failed to
+load!” message alone does not identify the failing service.
+
+A failed search or item request remains retryable. Successful search results
+can be reused, but an earlier request's delayed response cannot replace a
+newer selection. An empty successful search is distinct from a transport
+failure. Retrying does not provision a missing key or repair an unavailable
+proxy.
+
 ## Remote catalog control
 
 Authenticated remote control exposes `torrent_catalog: {version: 1}` only when

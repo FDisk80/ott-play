@@ -20,17 +20,29 @@ pub async fn proxy(
         .header("Accept", "application/json")
         .send()
         .await
-        .map_err(|e| anyhow!("tmdb upstream: {e}"))?;
+        .map_err(upstream_error)?;
 
     let status = resp.status();
     let mut out_headers = HeaderMap::new();
     if let Some(ct) = resp.headers().get(CONTENT_TYPE) {
-        out_headers.insert(CONTENT_TYPE, HeaderValue::from_bytes(ct.as_bytes()).unwrap());
+        out_headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_bytes(ct.as_bytes()).unwrap(),
+        );
     } else {
-        out_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/octet-stream"));
+        out_headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/octet-stream"),
+        );
     }
-    let body = resp.bytes().await?.to_vec();
+    let body = resp.bytes().await.map_err(upstream_error)?.to_vec();
     Ok((status.as_u16(), out_headers, body))
+}
+
+// Request URLs contain the operator's API key. Strip them before an error
+// reaches either server logs or the desktop command response.
+fn upstream_error(error: reqwest::Error) -> anyhow::Error {
+    anyhow!("tmdb upstream: {}", error.without_url())
 }
 
 fn build_url(path_tail: &str, query: &str, api_key: &str) -> Result<String> {
@@ -71,4 +83,32 @@ pub fn api_key_from_env() -> Option<String> {
 /// Returns Err if no key — used by /tmdb/* handlers to short-circuit with 503.
 pub fn require_api_key() -> Result<String> {
     api_key_from_env().ok_or_else(|| anyhow!("TMDB_API_KEY not set"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn request_errors_do_not_expose_api_keys() {
+        // HTTPS-only rejects this request before any DNS lookup or connection.
+        let secret = "synthetic-tmdb-secret";
+        let error = Client::builder()
+            .https_only(true)
+            .build()
+            .unwrap()
+            .get(format!("http://example.invalid/3/movie/1?api_key={secret}"))
+            .send()
+            .await
+            .unwrap_err();
+        assert!(error.url().is_some());
+        assert!(error.to_string().contains(secret));
+        let safe = upstream_error(error);
+        for rendered in [safe.to_string(), format!("{safe:?}"), format!("{safe:#}")] {
+            assert!(rendered.starts_with("tmdb upstream:"));
+            assert!(!rendered.contains(secret));
+            assert!(!rendered.contains("api_key"));
+            assert!(!rendered.contains("example.invalid"));
+        }
+    }
 }

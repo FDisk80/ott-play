@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Remove API-key-bearing URLs from TMDb transport error messages before they
+  reach server logs or desktop responses.
+
+- Keep TMDb searches and item details retryable after a failed request. Ignore
+  late responses from an earlier selection so they cannot replace newer results.
+
 - Add separate Channel list settings to hide the virtual All and Favorites
   rows in the category selector. Keep both visible by default and preserve
   provider categories, saved favorites, direct commands and catalog identities.
