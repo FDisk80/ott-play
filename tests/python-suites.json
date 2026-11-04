@@ -13,6 +13,8 @@
     ["tests/test_native_favorites_harness.py"],
     ["tests/test_normalize_m3u_overlay.py"],
     ["tests/test_windows_installers.py"],
+    ["tests/test_window_controls_smoke.py"],
+    ["tests/test_windows_manifest.py"],
     ["tests/test_media_helper_installer.py"],
     ["tests/test_tizen_install.py"],
     ["tests/test_webos_native_release.py"],
