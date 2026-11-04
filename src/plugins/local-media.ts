@@ -1430,10 +1430,6 @@ export function installLocalMedia(w: any): any {
                 version: 1,
             };
         },
-        remoteProgressive: function () {
-            // Only this backend consumes firstPlayable during remote selection.
-            return isTauri() && nativeSourcePaths;
-        },
         remoteCatalog: function (
             current?: () => boolean,
             sourceId?: string,
@@ -1541,6 +1537,10 @@ export function installLocalMedia(w: any): any {
                 }
             };
             return pending;
+        },
+        remoteProgressive: function () {
+            // Only this backend consumes firstPlayable during remote selection.
+            return isTauri() && nativeSourcePaths;
         },
         remoteSources: function (
             includePaths = false,

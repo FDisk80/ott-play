@@ -557,8 +557,8 @@ test("near-expiry status skips optional diagnostics and keeps the ordinary reply
         const execute = statusDispatcher(f, clock);
         const request = {
             action: "status",
-            params: {},
             expires_at: (now + remaining) / 1000,
+            params: {},
         };
         execute(request, (reply) => replies.push(reply));
         assert.equal(
@@ -626,7 +626,7 @@ test("status rechecks remaining TTL after assembling the ordinary snapshot", () 
         return 35;
     };
     execute(
-        { action: "status", params: {}, expires_at: (now + 300) / 1000 },
+        { action: "status", expires_at: (now + 300) / 1000, params: {} },
         (reply) => replies.push(reply)
     );
     assert.equal(replies.length, 1);
@@ -649,7 +649,7 @@ test("optional capture cannot start a native wait after using the remaining allo
         return canPlayType(value);
     };
     execute(
-        { action: "status", params: {}, expires_at: (now + 251) / 1000 },
+        { action: "status", expires_at: (now + 251) / 1000, params: {} },
         (reply) => replies.push(reply)
     );
     await Promise.resolve();

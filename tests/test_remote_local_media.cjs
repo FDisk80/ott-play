@@ -2108,11 +2108,11 @@ test("progressive capability follows the implemented backend and settled native 
     }
     for (const capability of [
         {},
-        { version: 1, absolutePaths: true },
-        { version: 1, sourcePaths: true },
-        { version: 1, absolutePaths: false, sourcePaths: true },
-        { version: 2, absolutePaths: true, sourcePaths: true },
-        { version: 1, absolutePaths: "true", sourcePaths: true },
+        { absolutePaths: true, version: 1 },
+        { sourcePaths: true, version: 1 },
+        { absolutePaths: false, sourcePaths: true, version: 1 },
+        { absolutePaths: true, sourcePaths: true, version: 2 },
+        { absolutePaths: "true", sourcePaths: true, version: 1 },
         null,
         "reject",
     ]) {
