@@ -3044,6 +3044,7 @@ export function bucketsKeyHandler(keyCode: number): boolean {
                 return true;
             }
             case keys.N8: {
+                var visibleRow = w.selIndex;
                 if (catsArray.length <= 1) {
                     if (typeof w.showShift === "function")
                         w.showShift(w._("Cannot delete the last category"));
@@ -3064,6 +3065,10 @@ export function bucketsKeyHandler(keyCode: number): boolean {
                     saveChannelsCats();
                     setCategoryRows(
                         Math.min(selectedCategory, catsArray.length - 1)
+                    );
+                    w.selIndex = Math.max(
+                        0,
+                        Math.min(visibleRow, w.listArray.length - 1)
                     );
                     if (typeof w.showPage === "function") w.showPage();
                 }

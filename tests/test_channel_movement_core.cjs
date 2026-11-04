@@ -82,7 +82,17 @@ const categoryFunctions = new Set([
     "playingChannelIdxInCategory",
     "moveSelectedChannelOrCategory",
 ]);
-const categoryCode = source.statements
+// Historical channel movement capture stays on its immutable baseline;
+// category visibility contracts always exercise the current implementation.
+const categorySource = capture
+    ? ts.createSourceFile(
+          "channels.ts",
+          fs.readFileSync(path.join(root, "src/channels/index.ts"), "utf8"),
+          ts.ScriptTarget.Latest,
+          true
+      )
+    : source;
+const categoryCode = categorySource.statements
     .filter(
         (node) =>
             (ts.isFunctionDeclaration(node) &&
@@ -90,10 +100,11 @@ const categoryCode = source.statements
             (ts.isVariableStatement(node) &&
                 node.declarationList.declarations.some(
                     (item) =>
-                        item.name.getText(source) === "categoryRowsProjection"
+                        item.name.getText(categorySource) ===
+                        "categoryRowsProjection"
                 ))
     )
-    .map((node) => node.getText(source))
+    .map((node) => node.getText(categorySource))
     .join("\n");
 function categoryFixture(showAll = 1, showFavorites = 1, ordinary = true) {
     let labels = ordinary
@@ -378,6 +389,132 @@ for (const [key, action] of [
     );
     assert.equal(f.w.listKeyHandlerFn, key);
 }
+// Removing the row before hidden Favorites keeps the nearest visible row,
+// including when All remains visible and must not steal the selection.
+for (const showAll of [0, 1])
+    for (const removed of [1, 2]) {
+        const f = categoryFixture(showAll, 0);
+        f.show(removed);
+        f.popup();
+        f.press(f.w.keys.N8);
+        assert.equal(
+            f.ids[f.context.categoryRowIndex(f.w.selIndex)],
+            removed === 2 ? "provider:a" : "provider:b"
+        );
+        f.press(f.w.keys.RETURN);
+        f.events.length = 0;
+        f.press(f.w.keys.ENTER);
+        assert.deepEqual(f.events[0], ["open", 1, 0]);
+    }
+
+// Exercise the real load boundary with #launch still visible. Ownership
+// invalidation alone does not remove the old selector from the display.
+const providerText = fs.readFileSync(
+    path.join(root, "src/provider/index.ts"),
+    "utf8"
+);
+const providerSource = ts.createSourceFile(
+    "provider.ts",
+    providerText,
+    ts.ScriptTarget.Latest,
+    true
+);
+const loadNode = providerSource.statements.find(
+    (node) =>
+        ts.isFunctionDeclaration(node) && node.name?.text === "loadChannels"
+);
+assert(loadNode);
+const loadCode = ts
+    .transpileModule(loadNode.getText(providerSource), {
+        compilerOptions: {
+            module: ts.ModuleKind.ES2015,
+            target: ts.ScriptTarget.ES5,
+        },
+    })
+    .outputText.replace(/^export /gm, "");
+for (const [view, launchVisible] of [
+    ["category", true],
+    ["other", true],
+    ["hidden", true],
+    ["category", false],
+]) {
+    const f = categoryFixture(1, 0);
+    f.show(2);
+    const oldCatalog = f.context.catsArray;
+    const calls = [];
+    f.w.isListVisible = view !== "hidden";
+    if (view === "other") f.w.listKeyHandlerFn = () => {};
+    f.w.__ottClassicScreenPort = { invalidate: () => calls.push("invalidate") };
+    f.w.__ottChannels.reset = () => calls.push("reset");
+    f.w.__ottProviderRuntime = {
+        classic: {
+            beginCatalog: () => ({
+                dispose() {},
+                guard: (fn) => fn,
+                own() {},
+                run: (fn) => fn(),
+            }),
+        },
+    };
+    f.w.settings = { players: 0 };
+    Object.assign(f.context, {
+        $: () => ({
+            append() {},
+            html() {
+                return this;
+            },
+            is: () => launchVisible,
+            show() {
+                return this;
+            },
+        }),
+        beginPortChannelIdMigration: () => ({}),
+        channels: {},
+        clearTimeout() {},
+        closeList(restorePip) {
+            assert.equal(
+                f.context.catsArray,
+                oldCatalog,
+                "close before the catalog changes"
+            );
+            assert.equal(
+                restorePip,
+                launchVisible ? false : undefined,
+                "targeted startup close does not restart old-catalog PiP; normal reload behavior stays unchanged"
+            );
+            f.w.isListVisible = false;
+            calls.push("close");
+        },
+        getChannelsArray() {
+            calls.push("fetch");
+        },
+        getDefaultPlayerMode: () => 0,
+        invalidateEpgCache() {},
+        launch_id: "#launch",
+        loadProviderSettings() {},
+        normalizePlayerMode: (value) => value,
+        providerGetJson: (_key, fallback) => fallback,
+        providerGetNum: (_key, fallback) => fallback,
+        setPlayerMode() {},
+        setTimeout: () => 1,
+        stbIsPlaying: () => false,
+    });
+    vm.runInContext(loadCode, f.context);
+    f.context.loadChannels();
+    assert.deepEqual(
+        calls,
+        view === "category"
+            ? ["invalidate", "reset", "close", "fetch"]
+            : ["invalidate", "reset", "fetch"]
+    );
+    assert.notEqual(f.context.catsArray, oldCatalog);
+    assert.equal(
+        f.w.isListVisible,
+        view === "other",
+        "unrelated visible lists are unchanged"
+    );
+}
+
 console.log(
     "PASS virtual category visibility, canonical navigation/editing, empty/stale/default/custom views"
 );

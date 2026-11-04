@@ -18,6 +18,7 @@ import { metadataCssUrl, metadataHtml, metadataText } from "../utils/helpers";
 
 import {
     beginPortChannelIdMigration,
+    bucketsKeyHandler,
     cancelMediaLoad,
     cancelPortChannelIdMigration,
     finishPortChannelIdMigration,
@@ -1437,6 +1438,14 @@ export function loadChannels(): void {
                 (window as any).clearBootHide();
         }
     }
+
+    // A selector can be opened while the startup overlay is still visible.
+    // Retire its old catalog rows before replacing their identities below.
+    if (
+        (window as any).isListVisible &&
+        (window as any).listKeyHandlerFn === bucketsKeyHandler
+    )
+        closeList(false);
 
     primaryIndex = providerGetNum("primaryIndex", 0);
     cList = [];
