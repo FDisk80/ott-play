@@ -2689,9 +2689,9 @@ body.interface-modern.modern-player-ready #permanentTime {
     justify-content: flex-start;
     min-width: 0;
     max-width: 48%;
+    padding: 6px 8px;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 6px 8px;
     scroll-padding-inline: 8px;
     scrollbar-width: none;
     direction: ltr;
@@ -2746,11 +2746,11 @@ body.interface-modern.modern-player-ready #permanentTime {
 #modernPlayer .modern-player-action:focus {
     z-index: 1;
     display: flex;
-    width: auto;
-    max-width: 100%;
-    min-width: 46px;
-    padding: 0 14px;
     gap: 8px;
+    width: auto;
+    min-width: 46px;
+    max-width: 100%;
+    padding: 0 14px;
     border-radius: 999px;
 }
 #modernPlayer .modern-player-action.modern-player-primary:focus {
@@ -2768,16 +2768,16 @@ body.interface-modern.modern-player-ready #permanentTime {
 #modernPlayer .modern-player-action:focus .modern-player-action-label {
     position: static;
     width: auto;
-    height: auto;
     min-width: 0;
+    height: auto;
     padding: 0;
     margin: 0;
     overflow: hidden;
+    text-overflow: ellipsis;
     font-size: clamp(12px, 0.85vw, 16px);
     font-weight: 600;
     line-height: 1.1;
     white-space: nowrap;
-    text-overflow: ellipsis;
     border: 0;
     clip: auto;
 }

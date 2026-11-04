@@ -708,16 +708,23 @@ for (const platform of ["pc", "pc2", "lg/webos"]) {
                 }
                 assert.deepEqual(writes, []);
             }
-            assert(
-                f.w.listArray.some((row) => row.settingId === "arrowFun"),
-                "list navigation remains configurable"
+            const navigation = f.w.listArray.find(
+                (row) => row.settingId === "arrowFun"
+            );
+            assert(navigation, "list navigation remains configurable");
+            navigation.val = 1;
+            assert.deepEqual(
+                writes,
+                platform === "lg/webos"
+                    ? ["alFun", "arFun", "arrowFun"]
+                    : ["arrowFun"]
             );
             f.w.listKeyHandlerFn(f.w.keys.GREEN);
             assert.deepEqual(
                 committed,
                 platform === "lg/webos"
-                    ? { alFun: 1, arFun: 4, arrowFun: 2 }
-                    : { alFun: 9, arFun: 10, arrowFun: 2 }
+                    ? { alFun: 1, arFun: 4, arrowFun: 1 }
+                    : { alFun: 9, arFun: 10, arrowFun: 1 }
             );
             writes = [];
             f.w.settingsButtons();
