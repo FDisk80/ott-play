@@ -191,7 +191,8 @@ function runRemoteLocalMedia(
             },
             function (cause: any) {
                 fail(
-                    cause === "source_unavailable"
+                    cause === "source_unavailable" ||
+                        cause === "operation_in_progress"
                         ? cause
                         : cause?.localMediaCode || "native_error"
                 );

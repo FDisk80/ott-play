@@ -6,6 +6,15 @@ const http = require("node:http");
 const ts = require("typescript");
 const { chromium } = require("@playwright/test");
 const { stageOfflineShell } = require("../scripts/offline-shell.cjs");
+const initialRetry = process.argv.includes("--initial-retry");
+if (
+    initialRetry &&
+    (!process.argv.includes("--built-ui") ||
+        process.argv.includes("--stalled-file"))
+)
+    throw new Error(
+        "--initial-retry requires --built-ui and excludes --stalled-file"
+    );
 const source = ts.transpileModule(
     fs
         .readFileSync(
@@ -753,6 +762,207 @@ async function builtUi(devicePath) {
             },
             { bytes: Array.from(movie), stalled: stalledFixture }
         );
+        if (initialRetry) {
+            let bodyFailed = false;
+            try {
+                await page.evaluate(async () => {
+                    const browserMedia = window.__ottBrowserLocalMedia;
+                    const saved = await browserMedia.importFolder({
+                        deferScan: true,
+                    });
+                    if (!saved.sourceSaved || saved.sourceIds.length !== 1)
+                        throw new Error(
+                            "The retry fixture source was not saved"
+                        );
+                    const prototype = FileSystemDirectoryHandle.prototype;
+                    const values = prototype.values;
+                    const list = browserMedia.list;
+                    const fixture = (window.__initialReadFixture = {
+                        earlyItems: false,
+                        firstReads: 0,
+                        gates: [],
+                        iterators: 0,
+                        old: [],
+                        release() {
+                            this.released = true;
+                            this.gates
+                                .splice(0)
+                                .forEach((resolve) => resolve());
+                        },
+                        released: false,
+                        restore() {
+                            prototype.values = values;
+                            browserMedia.list = list;
+                            this.release();
+                        },
+                        scans: [],
+                        sourceId: saved.sourceIds[0],
+                        start() {
+                            const result = { state: "pending" };
+                            this.old.push(result);
+                            window.__ottLocalMedia.list().then(
+                                (value) => {
+                                    result.state = "fulfilled";
+                                    result.cancelled = value.cancelled;
+                                    result.items = value.items.length;
+                                },
+                                () => {
+                                    result.state = "rejected";
+                                }
+                            );
+                        },
+                    });
+                    prototype.values = function () {
+                        const iterator = values.call(this);
+                        if (this.name !== "selected-folder") return iterator;
+                        fixture.iterators++;
+                        let first = true;
+                        return {
+                            next() {
+                                if (!first) return iterator.next();
+                                first = false;
+                                fixture.firstReads++;
+                                const gate = new Promise((resolve) =>
+                                    fixture.gates.push(resolve)
+                                );
+                                // Execute the real native read once; delay only
+                                // delivery of its result to the shared scanner.
+                                return Promise.all([
+                                    gate,
+                                    iterator.next(),
+                                ]).then(([, step]) => step);
+                            },
+                            [Symbol.asyncIterator]() {
+                                return this;
+                            },
+                        };
+                    };
+                    // playbackList closes over the public list implementation.
+                    // Observe the common browser scanner without replacing its
+                    // promise, callback result, receiver or remaining arguments.
+                    browserMedia.list = function (...args) {
+                        const scan = { enumerating: false };
+                        fixture.scans.push(scan);
+                        const progress = args[0];
+                        args[0] = function (value) {
+                            if (
+                                value.scanning &&
+                                value.phase === "enumerating" &&
+                                value.sources.some(
+                                    (source) =>
+                                        source.id === fixture.sourceId &&
+                                        source.access === "granted"
+                                )
+                            )
+                                scan.enumerating = true;
+                            if (!fixture.released && value.items.length)
+                                fixture.earlyItems = true;
+                            return typeof progress === "function"
+                                ? progress.apply(this, arguments)
+                                : undefined;
+                        };
+                        return list.apply(this, args);
+                    };
+                    fixture.start();
+                });
+                await page.waitForFunction(
+                    () => window.__initialReadFixture.firstReads === 1
+                );
+                await page.evaluate(() => window.__initialReadFixture.start());
+                await page.waitForFunction(
+                    () => window.__initialReadFixture.scans[1]?.enumerating
+                );
+                await page.evaluate(() => {
+                    window.stbSetItem("ottplayprov", "offline");
+                    window.loadProv("offline");
+                });
+                await page.waitForFunction(
+                    () =>
+                        window.__initialReadFixture.scans[2]?.enumerating &&
+                        window.__ottActiveProviderDriver?.id === "offline"
+                );
+                assert.deepEqual(
+                    await page.evaluate(() => {
+                        const f = window.__initialReadFixture;
+                        return [
+                            f.scans.length,
+                            f.iterators,
+                            f.firstReads,
+                            f.earlyItems,
+                        ];
+                    }),
+                    [3, 1, 1, false],
+                    "three scan owners share one pending native read"
+                );
+                await page.evaluate(() =>
+                    window.__initialReadFixture.release()
+                );
+                await page.waitForFunction(() => {
+                    const f = window.__initialReadFixture;
+                    const id = window.curList?.[window.primaryIndex];
+                    const channel = window.channels?.[id];
+                    const video = document.querySelector("video");
+                    return (
+                        f.old.length === 2 &&
+                        f.old.every((result) => result.state !== "pending") &&
+                        id ===
+                            "local-" +
+                                f.sourceId +
+                                ":nested/folder-video.mp4" &&
+                        channel?.__ottLocalSource === f.sourceId &&
+                        video &&
+                        video.currentSrc === channel.url &&
+                        !video.error &&
+                        !video.paused &&
+                        video.videoWidth > 0 &&
+                        video.videoHeight > 0 &&
+                        video.currentTime > 0.1 &&
+                        video.getVideoPlaybackQuality().totalVideoFrames > 0
+                    );
+                });
+                const result = await page.evaluate(() => {
+                    const f = window.__initialReadFixture;
+                    return {
+                        firstReads: f.firstReads,
+                        frames: document
+                            .querySelector("video")
+                            .getVideoPlaybackQuality().totalVideoFrames,
+                        iterators: f.iterators,
+                        old: f.old,
+                        selected:
+                            window.channels[window.curList[window.primaryIndex]]
+                                .channel_name,
+                    };
+                });
+                assert.equal(result.iterators, 1);
+                assert.equal(result.firstReads, 1);
+                assert.deepEqual(result.old, [
+                    { cancelled: true, items: 0, state: "fulfilled" },
+                    { cancelled: true, items: 0, state: "fulfilled" },
+                ]);
+                assert.equal(result.selected, "folder-video.mp4");
+                assert.ok(result.frames > 0);
+                assert.deepEqual(errors, []);
+                console.log(
+                    "PASS shared first directory read " +
+                        devicePath +
+                        ": latest provider decoded the selected source after two cancelled scans"
+                );
+            } catch (error) {
+                bodyFailed = true;
+                throw error;
+            } finally {
+                try {
+                    await page.evaluate(() => {
+                        window.__initialReadFixture?.restore();
+                        delete window.__initialReadFixture;
+                    });
+                } catch (cleanupError) {
+                    if (!bodyFailed) throw cleanupError;
+                }
+            }
+            return;
+        }
         async function blockOlderSource() {
             await page.evaluate(async () => {
                 const root = await navigator.storage.getDirectory();

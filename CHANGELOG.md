@@ -173,6 +173,8 @@
   invalid root link, without hiding healthy sources. Advertise progressive Local
   playback only when the existing Tauri backend capability check succeeds.
 - Keep optional Local status diagnostics within the request's remaining deadline.
+- Report unfinished checks of a selected Local source as `operation_in_progress`
+  instead of treating the source as unavailable; preserve existing probe budgets.
 - Remove the empty focusable row from first-run setup while retaining settings
   import, manual setup and language navigation.
 - Restore the permissions of newly created webOS recovery directories after

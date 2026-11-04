@@ -327,6 +327,7 @@ jobs:
         run: |
           node tests/test_browser_direct_media.cjs
           node tests/test_browser_local_media.cjs --built-ui
+          node tests/test_browser_local_media.cjs --built-ui --initial-retry
 
       - name: Test hosted EPG worker and persistent cache
         run: npm run test:hosted:browser

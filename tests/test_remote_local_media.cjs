@@ -1375,11 +1375,62 @@ test("missing native folder reports source_unavailable without changing current 
     }
 });
 
+test("native source deadline remains busy without connecting, scanning or activating", async () => {
+    for (const op of ["play", "shuffle", "connect"]) {
+        for (const selector of ["/media/Movies", "Movies", source.id]) {
+            const f = pluginFixture({
+                invoke(name) {
+                    if (name === "local_media_sources")
+                        return Promise.reject("operation_in_progress");
+                },
+            });
+            await tick();
+            const driver = f.w.__ottActiveProviderDriver;
+            const channelLoad = f.w.__ottCommandChannelLoad;
+            const saved = [...f.data];
+            const initialCalls = f.calls.length;
+            const result = await new Promise((resolve) =>
+                execute(f.w, request(op, { source: selector }), resolve)
+            );
+            assert.deepEqual(clone(result), {
+                data: {
+                    error: "operation_in_progress",
+                    op,
+                    runtime: "page-123",
+                    state: "error",
+                    version: 1,
+                },
+                status: "rejected",
+            });
+            assert.equal(f.w.__ottActiveProviderDriver, driver);
+            assert.equal(f.w.__ottCommandChannelLoad, channelLoad);
+            assert.deepEqual([...f.data], saved);
+            assert.equal(f.w.ottpStorage.localPlayback.active(), false);
+            assert.equal(f.w.__ottLocalMediaRequestActive, false);
+            assert.equal(f.reads, 0);
+            assert.deepEqual(
+                f.calls.slice(initialCalls).map(([name]) => name),
+                ["local_media_sources"]
+            );
+            const lookup = f.calls.at(-1)[1];
+            assert.equal(
+                selector.startsWith("/") ? lookup.path : lookup.selection,
+                selector
+            );
+        }
+    }
+});
+
 test("native source errors without the exact fixed code remain generic and private", async () => {
     for (const error of [
         "Local sources unavailable; select an accessible absolute directory",
         "source_unavailable: private diagnostic context",
         new Error("source_unavailable"),
+        "operation_in_progress: private diagnostic context",
+        " operation_in_progress",
+        "operation_in_progress ",
+        "Operation_in_progress",
+        new Error("operation_in_progress"),
     ]) {
         const f = pluginFixture({
             invoke(name) {

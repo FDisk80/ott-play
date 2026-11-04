@@ -1161,6 +1161,7 @@ async function flushScans() {
     const cancelledPermissionResult = await settle(cancelledScan);
     assert.equal(cancelledPermissionResult.cancelled, true);
     assert.equal(cancelledPermission.iteratorCreations(), 0);
+    require("./helpers/browser-local-media-cli-contract.cjs")();
     await require("./helpers/browser-import-regression.cjs")();
     console.log(
         "PASS progressive local media: 10,000 entries, early playback, bounded immutable batches, yielding, direct saved-file lookup, stable URLs, cancellation, and nonmedia heartbeats"
