@@ -105,7 +105,7 @@ export function applyTimezoneSetting(index: number): number {
  * @property hdmiSupport       - Enable HDMI-CEC support (0/1).
  * @property autorun           - Auto-start on boot (0/1).
  * @property players           - Player type selection.
- * @property bufSize           - Buffer size in KB.
+ * @property bufSize           - Buffer preference in seconds.
  * @property useGraphicalIndicators - Use graphical icons for yes/no/off (0/1).
  * @property parentPin         - Parental control PIN code.
  * @property hideMenus         - List of menu IDs to hide.
