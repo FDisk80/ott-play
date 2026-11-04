@@ -568,6 +568,18 @@ export var listPos = 0;
 export var editorMode = 1;
 /** Desired buffer size preference (string parsed from settings). */
 export var bufSize: any = 0;
+
+/** Read the persisted preference for each newly opened media lane. */
+function coreBufferPreference(): any {
+    var preference = bufSize;
+    try {
+        if (!preference && typeof window.stbGetItem === "function")
+            preference = window.stbGetItem("sBufSize");
+    } catch (_) {
+        /* Storage is optional for playback. */
+    }
+    return preference;
+}
 /** Encoded bytes per second of media, independent of download/playback speed. */
 var prevDecodedBytes = -1;
 var prevDecodedMediaTime = -1;
@@ -2006,18 +2018,11 @@ function startCorePlayback(
         ? streamPolicy.begin(_pm, _corePlaybackMode !== 0)
         : { maxBitrate: 0, maxHeight: 0 };
     var owner = streamPolicy && streamPolicy.capture();
-    var bufferPreference = bufSize;
-    try {
-        if (!bufferPreference && typeof window.stbGetItem === "function")
-            bufferPreference = window.stbGetItem("sBufSize");
-    } catch (_) {
-        /* Storage is optional for playback. */
-    }
     var bufferPolicy = coreBufferPolicy(
         window,
         url,
         originalUrl,
-        bufferPreference,
+        coreBufferPreference(),
         owner ? owner.live : !(position && position > 0)
     );
     // Diagnostics contain only policy values, never a media URL or credentials.
@@ -3168,7 +3173,14 @@ function startCorePipEngine(
     var startHls = function (): void {
         var pipHls = new Hls(
             coreHlsConfig(
-                coreBufferPolicy(window, url, url, bufSize, true, true).hls,
+                coreBufferPolicy(
+                    window,
+                    url,
+                    url,
+                    coreBufferPreference(),
+                    true,
+                    true
+                ).hls,
                 url
             )
         );

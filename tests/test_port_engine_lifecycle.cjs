@@ -2773,6 +2773,59 @@ test("shared HLS policy uses measured RAM, source identity and saved seconds wit
     assert.equal(JSON.stringify(w.__ottBufferPolicy).includes("abc"), false);
     w.stbStop();
 });
+test("main and in-page HLS PiP use the same saved buffer preference on each new stream", () => {
+    for (const [stored, expected] of [
+        ["7", 7],
+        ["120", 120],
+        ["0", 30],
+        [null, 30],
+        ["300", 30],
+        ["invalid", 30],
+    ]) {
+        const { w, players } = fixture();
+        w.playerMode = 1;
+        w.stbGetItem = (key) => (key === "sBufSize" ? stored : null);
+        w.stbPlay("https://fixture.invalid/main.m3u8");
+        w.stbPlayPip("https://fixture.invalid/pip.m3u8");
+        assert.equal(players.length, 2);
+        assert.equal(
+            players[0].config.maxBufferLength,
+            expected,
+            String(stored)
+        );
+        assert.equal(
+            players[1].config.maxBufferLength,
+            expected,
+            String(stored)
+        );
+        assert.equal(players[1].config.backBufferLength, 0);
+        w.stbStopPip();
+        w.stbStop();
+    }
+});
+test("in-page HLS PiP reads changed saved seconds and tolerates unavailable storage", () => {
+    const { w, players } = fixture();
+    w.playerMode = 1;
+    let stored = "7";
+    w.stbGetItem = (key) => (key === "sBufSize" ? stored : null);
+    w.stbPlayPip("https://fixture.invalid/first.m3u8");
+    assert.equal(players[0].config.maxBufferLength, 7);
+    w.stbStopPip();
+    stored = "0";
+    w.stbPlayPip("https://fixture.invalid/second.m3u8");
+    assert.equal(players[1].config.maxBufferLength, 30);
+    w.stbStopPip();
+    w.stbGetItem = () => {
+        throw new Error("unavailable");
+    };
+    w.stbPlayPip("https://fixture.invalid/third.m3u8");
+    assert.equal(players[2].config.maxBufferLength, 30);
+    w.stbStopPip();
+    delete w.stbGetItem;
+    w.stbPlayPip("https://fixture.invalid/fourth.m3u8");
+    assert.equal(players[3].config.maxBufferLength, 30);
+    w.stbStopPip();
+});
 test("shared Shaka policy applies on Android with no RAM hint and preserves quality settings", () => {
     const { w, shakas } = fixture();
     w.ott_device = "android";
