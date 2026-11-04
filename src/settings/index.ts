@@ -189,8 +189,10 @@ export interface PlayerSettings {
     seek13Duration: number;
     seek46Duration: number;
     seek79Duration: number;
+    showAllCategory: number;
     showArchive: number;
     showDescription: number;
+    showFavoritesCategory: number;
     showName: number;
     showNumber: number;
     showProgram: number;
@@ -304,8 +306,10 @@ export function defaultSettings(): PlayerSettings {
         seek13Duration: 15,
         seek46Duration: 180,
         seek79Duration: 600,
+        showAllCategory: 1,
         showArchive: 1,
         showDescription: 1,
+        showFavoritesCategory: 1,
         showName: 1,
         showNumber: 1,
         showProgram: 1,
@@ -894,6 +898,10 @@ export const settingsSchema: SettingDefinition[] = [
     ),
     defineSetting("parentPin", "parentPIN", { pin: true }),
     defineSetting("hideMenus", "sHideMenus", { list: true }),
+    defineSetting("showAllCategory", "sShowAllCategory", { range: [0, 1] }),
+    defineSetting("showFavoritesCategory", "sShowFavoritesCategory", {
+        range: [0, 1],
+    }),
     defineSetting(
         "highlightColorSel",
         "sSHLcolSel",

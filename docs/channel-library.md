@@ -45,3 +45,19 @@ and remain compatible with older documents that do not contain it.
 Production JavaScript retains ES5. The unused `devices/legacy-core.js` artifact is excluded
 from browser and native staging but retained as a test fixture.
 The packaging audit rejects its reappearance in the shipped roots.
+
+
+## Virtual categories in the selector
+
+Channel list settings includes separate **Category selection: “All”** and
+**Category selection: “Favorites”** options. Both default to **yes**. Set either to
+**no** to hide that virtual row when opening the category selector. The setting
+is saved for the application and applies to both Classic and Modern interfaces.
+The labels reuse the existing translated Category selection, All, Favorites,
+yes and no text.
+
+This changes the selector only: channels, saved favorites, direct favorites
+commands and remote catalog identities remain intact. Provider categories with
+the same displayed names remain visible. If both rows are hidden and the provider
+has no ordinary categories, the selector is empty; return to settings to show
+one again. Custom provider discovery screens keep their own category semantics.

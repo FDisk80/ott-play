@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add separate Channel list settings to hide the virtual All and Favorites
+  rows in the category selector. Keep both visible by default and preserve
+  provider categories, saved favorites, direct commands and catalog identities.
+
 - Fix a use-after-free in the Linux desktop media-controls executor during
   shutdown by updating async-executor to 1.14.1. Preserve the existing Tauri
   and D-Bus integration and all other locked dependency versions.
