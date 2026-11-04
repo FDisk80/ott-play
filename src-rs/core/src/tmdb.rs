@@ -89,18 +89,25 @@ pub fn require_api_key() -> Result<String> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn request_errors_do_not_expose_api_keys() {
-        // HTTPS-only rejects this request before any DNS lookup or connection.
+    #[test]
+    fn request_errors_do_not_expose_api_keys() {
+        // Build an invalid-header error without sending a request. Attach an
+        // HTTPS URL to exercise redaction of a real credential-bearing error.
         let secret = "synthetic-tmdb-secret";
+        let url = reqwest::Url::parse(&format!(
+            "https://example.invalid/3/movie/1?api_key={secret}"
+        ))
+        .unwrap();
         let error = Client::builder()
             .https_only(true)
             .build()
             .unwrap()
-            .get(format!("http://example.invalid/3/movie/1?api_key={secret}"))
-            .send()
-            .await
-            .unwrap_err();
+            .get(url.clone())
+            .header("X-Redaction-Test", "\n")
+            .build()
+            .unwrap_err()
+            .with_url(url);
+        assert!(error.is_builder());
         assert!(error.url().is_some());
         assert!(error.to_string().contains(secret));
         let safe = upstream_error(error);
