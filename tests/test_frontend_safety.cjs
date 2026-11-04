@@ -425,7 +425,8 @@ test("EPG list titles are escaped without losing current-programme highlighting"
             w.document.querySelectorAll("#listIn img,#listIn script").length,
             0
         );
-        assert(w.document.querySelector("#listIn span[style]"));
+        assert(w.document.querySelector("#listIn .ott-epg-current-title"));
+        assert.equal(w.document.querySelector("#listIn [style]"), null);
         assert(
             w.document.getElementById("listIn").textContent.includes(hostile)
         );

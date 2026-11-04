@@ -1681,8 +1681,22 @@ check(
         ]) {
             h.sEpgTimeColor = value;
             const html = h.itemEPG(row, 0);
-            assert(html.includes('style="color:' + color + '"'));
-            assert(html.includes('style="color:gold;"'));
+            assert(html.includes('class="ott-epg-time-color-' + value + '"'));
+            assert(html.includes('class="ott-epg-current-title"'));
+            assert(!html.includes("style="));
+            const css = fs.readFileSync(
+                path.resolve(__dirname, "../styles/player.css"),
+                "utf8"
+            );
+            assert(
+                css.includes(
+                    ".ott-epg-time-color-" +
+                        value +
+                        " {\n    color: " +
+                        color.toLowerCase() +
+                        ";\n}"
+                )
+            );
         }
         for (const invalid of [
             0,
@@ -1697,7 +1711,7 @@ check(
         ]) {
             h.sEpgTimeColor = invalid;
             assert(
-                !h.itemEPG(f.row(8000, 8100), 0).includes('dir="auto" style=')
+                !h.itemEPG(f.row(8000, 8100), 0).includes("ott-epg-time-color-")
             );
         }
     }

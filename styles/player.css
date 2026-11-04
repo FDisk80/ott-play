@@ -1305,6 +1305,30 @@ body {
     color: lime;
 }
 
+/* EPG styles must also work with the native nonce-based style-src policy. */
+.ott-epg-time-color-1 {
+    color: #ffffff;
+}
+.ott-epg-time-color-2 {
+    color: #ffff00;
+}
+.ott-epg-time-color-3 {
+    color: #00ffff;
+}
+.ott-epg-time-color-4 {
+    color: #00ff00;
+}
+.ott-epg-time-color-5 {
+    color: #ffb3ff;
+}
+.ott-epg-detail-time,
+.ott-epg-description {
+    font-size: smaller;
+}
+.ott-epg-description {
+    overflow: hidden;
+}
+
 /* Shared orbit indicator for playback, PiP, menus and provider dialogs.
    Keep the 30px layout box; separated dots leave the center and edges clear.
    Position and size both change so motion remains readable at TV distance. */

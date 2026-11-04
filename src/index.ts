@@ -1321,6 +1321,8 @@ function setColor(): void {
           : "rgb(" + classicColorRgb(settings.highlightColor, 100) + ")";
     // Keep window.* in sync — itemEPG / listDetail / getListItem read w.curColor.
     window.curColor = curColor;
+    // EPG nodes may already be visible when the theme changes.
+    $(".ott-epg-current-title, .ott-epg-detail-title").css("color", curColor);
     window.curColorB = curColorB;
     window.bodyColor = bodyColor;
 

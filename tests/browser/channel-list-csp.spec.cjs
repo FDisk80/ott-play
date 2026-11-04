@@ -6226,6 +6226,18 @@ test("Modern M3U provider and profile screens preserve editor Save and Cancel", 
     }
 });
 
+async function prepareEpgFixtureInput(page) {
+    // This fixture boots the renderer directly. Complete its initial paint,
+    // then observe CSP and bind the same keyboard entry point as normal boot.
+    await page.evaluate(async () => {
+        await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+        );
+        window.__fixtureViolations = [];
+        window.stbBindKeyHandler();
+    });
+}
+
 for (const profile of ["server", "tauri", "capacitor"]) {
     test(
         profile + " EPG calendar and appearance preserve real row selection",
@@ -6242,6 +6254,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
             );
             const { page } = fixture;
             try {
+                await prepareEpgFixtureInput(page);
                 const expected = await page.evaluate(() => {
                     Date.setTimezoneOffset(0);
                     window.__ottInterfaceLanguage = "_ara";
@@ -6449,6 +6462,89 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                         )
                     )
                 ).toEqual(identity);
+                expect(fixture.errors).toEqual([]);
+                expect(fixture.unexpectedRequests).toEqual([]);
+                expect(
+                    await page.evaluate(() => window.__fixtureViolations)
+                ).toEqual([]);
+            } finally {
+                await fixture.close();
+            }
+        }
+    );
+}
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    test(
+        profile + " EPG current title follows theme changes under CSP",
+        async ({ browser }) => {
+            const fixture = await fixturePage(browser, profile, {
+                epgTimeColor: 3,
+                interfaceTheme: 2,
+            });
+            const { page } = fixture;
+            try {
+                await prepareEpgFixtureInput(page);
+                await page.evaluate(() => {
+                    const now = Math.floor(Date.now() / 1000);
+                    const rows = [
+                        {
+                            name: "Earlier programme",
+                            providerId: "earlier",
+                            time: now - 1800,
+                            time_to: now - 600,
+                        },
+                        {
+                            name: "Current programme",
+                            providerId: "current",
+                            time: now - 600,
+                            time_to: now + 1800,
+                        },
+                    ];
+                    window.channels.one.rec = 168;
+                    window.p_pref = "epg-current-theme-fixture";
+                    window.epgArray = [];
+                    window.sPrevCount = 10;
+                    window.fetchChannelGuide = (id, complete) =>
+                        complete(id, rows);
+                    window.epgList(0, 0, false);
+                });
+                await expect(page.locator("#listIn .item")).toHaveCount(2);
+                const current = page.locator("#it1");
+                const currentTitle = current.locator(".ott-epg-current-title");
+                await expect(current).toHaveClass(/ott-selected/);
+                await expect(currentTitle).toHaveText("Current programme");
+                await expect(currentTitle).toHaveCSS(
+                    "color",
+                    "rgb(17, 33, 25)"
+                );
+                await page.keyboard.press("ArrowUp");
+                await expect(page.locator("#it0")).toHaveClass(/ott-selected/);
+                await expect(currentTitle).toHaveCSS(
+                    "color",
+                    "rgb(139, 221, 184)"
+                );
+                await expect(page.locator(".ott-epg-detail-title")).toHaveCSS(
+                    "color",
+                    "rgb(139, 221, 184)"
+                );
+                await page.evaluate(() => {
+                    settings.interfaceTheme = 1;
+                    setColor();
+                });
+                await expect(page.locator("body")).toHaveClass(/theme-pli-hd/);
+                await expect(currentTitle).toHaveCSS(
+                    "color",
+                    "rgb(252, 192, 0)"
+                );
+                await expect(page.locator(".ott-epg-detail-title")).toHaveCSS(
+                    "color",
+                    "rgb(252, 192, 0)"
+                );
+                await expect(current.locator('span[dir="auto"]')).toHaveCSS(
+                    "color",
+                    "rgb(0, 255, 255)"
+                );
                 expect(fixture.errors).toEqual([]);
                 expect(fixture.unexpectedRequests).toEqual([]);
                 expect(
