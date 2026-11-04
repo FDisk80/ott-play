@@ -8353,7 +8353,8 @@ mod tests {
     async fn wait_for_drain(background: &crate::background_work::BackgroundWork) {
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
             while background.status().pending != 0 {
-                tokio::task::yield_now().await;
+                // Back off between state-lock reads while retaining the outer deadline.
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
             }
         })
         .await
