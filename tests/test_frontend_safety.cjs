@@ -175,6 +175,7 @@ function fixture() {
     w.setTimeout = () => 1;
     w.clearTimeout = () => {};
     w.requestAnimationFrame = () => {};
+    w.eval(func("src/storage/index.ts", "isInstallationSettingsKey"));
     w.eval(func("src/storage/index.ts", "isPortableSettingsKey"));
     return w;
 }
@@ -192,7 +193,8 @@ test("cloud bundle extraction selects exact closures and rejects missing depende
     const code = [
         'var STORAGE_FALLBACK_KEYS = "ottplayStorageFallback";',
         "function isStorageMetadataKey(key) { return key === STORAGE_FALLBACK_KEYS; }",
-        "function isPortableSettingsKey(key) { return !isStorageMetadataKey(key); }",
+        "function isInstallationSettingsKey(key) { return isStorageMetadataKey(key); }",
+        "function isPortableSettingsKey(key) { return !isInstallationSettingsKey(key); }",
         "function metadataText(value) { return value; }",
         "function settingsFailure() {}",
         "function commitSettingsWrites() {}",
@@ -209,6 +211,7 @@ test("cloud bundle extraction selects exact closures and rejects missing depende
     for (const name of [
         "STORAGE_FALLBACK_KEYS",
         "isStorageMetadataKey",
+        "isInstallationSettingsKey",
         "isPortableSettingsKey",
         "metadataText",
         "settingsFailure",

@@ -30,11 +30,74 @@ function functions(file, names) {
     ).outputText;
 }
 const policy = functions("src/storage/index.ts", [
+    "isInstallationSettingsKey",
     "stbGetAllItems",
     "isPortableSettingsKey",
     "portableSettingsSnapshot",
     "restoreLocalSettingsSnapshot",
 ]);
+// Every export path shares the same installation-only policy and still
+// delegates ordinary keys to the core without coercing its return value.
+{
+    const localKeys = [
+        "__ottKioskV1",
+        "offlineProfileBindings",
+        "__ottStandbyV1",
+        "sNotificationsEnabled",
+        "companionEndpoint",
+        "sCompanionEndpoint",
+        "torrentCatalogEndpoint",
+        "sTorrentCatalogEndpoint",
+        "torrentStreamAddons",
+        "sTorrentStreamAddons",
+        "__ottRemoteLifecycleToken_device",
+        "metadata-fixture",
+    ];
+    const ordinaryKeys = ["ordinary", "torrent:sTorrentCatalogLanguage"];
+    const items = Object.fromEntries(
+        localKeys.concat(ordinaryKeys).map((key) => [key, "value:" + key])
+    );
+    const calls = [];
+    const context = {
+        isStorageMetadataKey: (key) => key === "metadata-fixture",
+        storage: { dump: () => ({ ...items }) },
+        window: {
+            OttPlayCore: {
+                classicPortableKey: (key, enabled) => {
+                    calls.push([key, enabled]);
+                    return "core-result";
+                },
+                classicPortableSnapshot: (value) => ({ ...value }),
+            },
+        },
+    };
+    vm.createContext(context);
+    vm.runInContext(policy, context);
+    for (const key of localKeys)
+        assert.equal(context.isPortableSettingsKey(key), false);
+    assert.deepEqual(calls, [], "installation keys never reach the core");
+    for (const key of ordinaryKeys)
+        assert.equal(context.isPortableSettingsKey(key), "core-result");
+    assert.deepEqual(
+        calls,
+        ordinaryKeys.map((key) => [key, true])
+    );
+    for (const result of [
+        context.stbGetAllItems(),
+        context.portableSettingsSnapshot(items),
+    ]) {
+        assert.deepEqual(
+            Object.keys(result).sort(),
+            ordinaryKeys.slice().sort()
+        );
+        for (const key of ordinaryKeys) assert.equal(result[key], items[key]);
+    }
+    assert.equal(
+        Object.keys(items).length,
+        localKeys.length + ordinaryKeys.length,
+        "snapshot filtering does not mutate its input"
+    );
+}
 const controller = functions("src/plugins/command-server.ts", [
     "normalizeCommandServerAddress",
     "createCommandServer",

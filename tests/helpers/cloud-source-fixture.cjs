@@ -13,7 +13,11 @@ function storagePolicySource(bundleAst) {
             ts.ScriptTarget.Latest,
             true
         );
-    const names = ["isStorageMetadataKey", "isPortableSettingsKey"];
+    const names = [
+        "isStorageMetadataKey",
+        "isInstallationSettingsKey",
+        "isPortableSettingsKey",
+    ];
     const code = [];
     for (const name of names) {
         const nodes = ast.statements.filter(

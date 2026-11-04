@@ -36,6 +36,7 @@ function fixture() {
         keys: { EXIT: 27, RETURN: 8 },
         setTimeout: () => 1,
     });
+    w.eval(func("src/storage/index.ts", "isInstallationSettingsKey"));
     w.eval(func("src/storage/index.ts", "isPortableSettingsKey"));
     return w;
 }

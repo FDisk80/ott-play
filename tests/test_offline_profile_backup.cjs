@@ -17,6 +17,7 @@ const ast = ts.createSourceFile(
     true
 );
 const names = [
+    "isInstallationSettingsKey",
     "stbGetAllItems",
     "portableSettingsSnapshot",
     "restoreLocalSettingsSnapshot",
