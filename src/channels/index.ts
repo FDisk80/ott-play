@@ -1783,8 +1783,9 @@ export function itemEPG(item: EPGEntry, index: number): string {
         " - " +
         (endDate && endDate !== date ? endDate + " " : "") +
         formatEpgTime(item.time_to) +
-        "</span> " +
-        (name || "")
+        '</span><span class="ott-channel-label">&nbsp;' +
+        (name || "") +
+        "</span>"
     );
 }
 

@@ -6247,13 +6247,13 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     window.__ottInterfaceLanguage = "_ara";
                     const start =
                         Math.floor(Date.now() / 86400000) * 86400 -
-                        172800 +
+                        259200 +
                         36000;
                     const rows = [0, 1].map((index) => ({
                         name: "برنامج طويل ".repeat(15),
                         providerId: "calendar-" + index,
                         time: start + index * 86400,
-                        time_to: start + index * 86400 + 1800,
+                        time_to: start + index * 86400 + (index ? 52200 : 1800),
                     }));
                     window.channels.one.rec = 168;
                     window.p_pref = "epg-calendar-fixture";
@@ -6280,6 +6280,9 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                         dates: rows.map((row) =>
                             date.format(new Date(row.time * 1000))
                         ),
+                        endingDate: date.format(
+                            new Date(rows[1].time_to * 1000)
+                        ),
                         start,
                     };
                 });
@@ -6288,7 +6291,11 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 for (let index = 0; index < 2; index++) {
                     const row = page.locator("#it" + index);
                     await expect(row).toContainText(expected.dates[index]);
-                    await expect(row).toContainText("10:00 - 10:30");
+                    await expect(row).toContainText(
+                        index
+                            ? "10:00 - " + expected.endingDate + " 00:30"
+                            : "10:00 - 10:30"
+                    );
                     await expect(row.locator('span[dir="auto"]')).toHaveCSS(
                         "color",
                         index === 0 ? "rgb(17, 33, 25)" : "rgb(0, 255, 255)"
@@ -6346,6 +6353,55 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     "color",
                     "rgb(0, 255, 255)"
                 );
+                const wideRowWidths = [];
+                for (const width of [1280, 960]) {
+                    await page.setViewportSize({
+                        height: (width * 9) / 16,
+                        width,
+                    });
+                    for (let index = 0; index < 2; index++) {
+                        const row = page.locator("#it" + index);
+                        const title = row.locator(".ott-channel-label");
+                        await expect(title).toContainText("برنامج طويل");
+                        await expect(title).toHaveCSS(
+                            "text-overflow",
+                            "ellipsis"
+                        );
+                        await expect
+                            .poll(() =>
+                                row.evaluate((element, wideWidth) => {
+                                    const bounds =
+                                        element.getBoundingClientRect();
+                                    const time = element
+                                        .querySelector('span[dir="auto"]')
+                                        .getBoundingClientRect();
+                                    const title =
+                                        element.querySelector(
+                                            ".ott-channel-label"
+                                        );
+                                    const label = title.getBoundingClientRect();
+                                    return (
+                                        bounds.left >= 0 &&
+                                        bounds.right <= window.innerWidth &&
+                                        (!wideWidth ||
+                                            bounds.width < wideWidth) &&
+                                        time.left >= bounds.left &&
+                                        time.right <= bounds.right &&
+                                        label.width > 0 &&
+                                        label.left >= bounds.left &&
+                                        label.right <= bounds.right &&
+                                        title.scrollWidth > title.clientWidth
+                                    );
+                                }, wideRowWidths[index] || 0)
+                            )
+                            .toBe(true);
+                        if (width === 1280)
+                            wideRowWidths[index] = await row.evaluate(
+                                (element) =>
+                                    element.getBoundingClientRect().width
+                            );
+                    }
+                }
                 const identity = await page.evaluate(() =>
                     window.listArray.map(
                         ({ programmeId, providerId, time }) => ({
