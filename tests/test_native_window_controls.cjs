@@ -789,11 +789,13 @@ test("native window messages retain exact fallback text without a translator", a
         "Lock window to 16:9: Error!",
     ]);
     assert.equal(
-        f.calls.filter(([command]) => command === "get_window_aspect_lock").length,
+        f.calls.filter(([command]) => command === "get_window_aspect_lock")
+            .length,
         2
     );
     assert.equal(
-        f.calls.filter(([command]) => command === "set_window_aspect_lock").length,
+        f.calls.filter(([command]) => command === "set_window_aspect_lock")
+            .length,
         0
     );
 });
