@@ -132,6 +132,22 @@ jobs:
           python-version: '3.12'
       - run: 'python3 -m pip install --require-hashes --only-binary=:all: -r .github/requirements-workflow-contracts.txt'
       - run: python3 -m unittest discover -s .github/release-tests -p 'test_*.py' -v
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Test bounded release CLI download retries
+        timeout-minutes: 3
+        env:
+          GOTOOLCHAIN: local
+          GO111MODULE: 'off'
+          GOWORK: 'off'
+          GOENV: 'off'
+          CGO_ENABLED: '0'
+          GODEBUG: fips140=on
+          GOMAXPROCS: '2'
+          GOFLAGS: -p=2
+        run: go test -v -count=1 -timeout=60s scripts/download_release_gh.go scripts/download_release_gh_test.go
       - name: Check every committed version field
         run: python3 scripts/version_plan.py check-base
     needs:
