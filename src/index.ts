@@ -2247,7 +2247,10 @@ function onStbReady(): void {
         // Device UUID for remote control / swop allowlist; optional /local/swop.json
         if (typeof (window as any).ensureDeviceClientId === "function")
             (window as any).ensureDeviceClientId();
-        (window as any).__ottControlDiscovery.start();
+        // A pending command-server change owns the connection until recovery
+        // settles. Blank desired settings can be a disconnect, not a new install.
+        if (!recoverySettings.command_server)
+            (window as any).__ottControlDiscovery.start();
         if (typeof (window as any).applyLocalSwopConfig === "function")
             (window as any).applyLocalSwopConfig();
         if ((window as any).__ottNasLibrary)

@@ -36,9 +36,13 @@ module.exports = async function observeAspectReadiness(
                             : "unknown",
                         event,
                         pageClosed: page.isClosed(),
-                        phase: ["initial", "replay", "next", "reload"].includes(
-                            labels.phase
-                        )
+                        phase: [
+                            "initial",
+                            "replay",
+                            "next",
+                            "reload",
+                            "open-channels",
+                        ].includes(labels.phase)
                             ? labels.phase
                             : "unknown",
                     })

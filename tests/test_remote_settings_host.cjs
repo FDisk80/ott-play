@@ -285,7 +285,7 @@ test("boot retains prior connection routes while the recovery module is unavaila
     const text = fs.readFileSync("src/index.ts", "utf8");
     const start = text.indexOf("        var recoverySettings: any =");
     const end = text.indexOf(
-        "        // Start connection-authorized diagnostics",
+        "        if (typeof (window as any).applyLocalSwopConfig",
         start
     );
     const bootCode = ts.transpileModule(text.slice(start, end), {
@@ -293,7 +293,8 @@ test("boot retains prior connection routes while the recovery module is unavaila
     }).outputText;
     const commandCalls = [],
         localCalls = [],
-        loads = [];
+        loads = [],
+        discoveries = [];
     const previous = {
         commandServerAddress: "https://old.example",
         commandServerEnabled: 1,
@@ -304,6 +305,7 @@ test("boot retains prior connection routes while the recovery module is unavaila
     };
     const w = {
         __ottCommandServer: { configure: (...args) => commandCalls.push(args) },
+        __ottControlDiscovery: { start: () => discoveries.push(true) },
         __ottLocalHttpRemote: {
             configure: (...args) => {
                 localCalls.push(args);
@@ -311,14 +313,19 @@ test("boot retains prior connection routes while the recovery module is unavaila
             },
             init: () => assert.fail("must retain the prior tuple"),
         },
+        __ottRemoteDiagnostics: {},
         __ottRemoteNotifications: { setEnabled: () => {} },
     };
-    vm.runInNewContext(bootCode, {
+    const context = {
         getScriptDOM: (...args) => loads.push(args),
         hostUrl: "https://player.example",
         PLAYER_VERSION: "test",
         readNotificationsEnabled: () => true,
-        settings: { commandServerAddress: "https://new.example" },
+        settings: {
+            commandServerAddress: "",
+            commandServerEnabled: 0,
+            commandServerToken: "",
+        },
         storage: {
             get: (key) =>
                 /command_server|local_http/.test(key)
@@ -326,12 +333,35 @@ test("boot retains prior connection routes while the recovery module is unavaila
                     : null,
         },
         window: w,
-    });
+    };
+    vm.runInNewContext(bootCode, context);
     assert.equal(commandCalls[0][0].address, previous.commandServerAddress);
     assert.equal(commandCalls[0][1], false);
     assert.equal(localCalls[0][0].url, previous.localCmdUrl);
     assert.equal(localCalls[0][1], false);
     assert.equal(loads.length, 1);
+    assert.equal(
+        discoveries.length,
+        0,
+        "pending disconnect cannot be mistaken for a fresh installation"
+    );
+    assert.equal(context.settings.commandServerAddress, "");
+    assert.equal(context.settings.commandServerToken, "");
+    assert.equal(context.settings.commandServerEnabled, 0);
+
+    // A different recovering subsystem must not suppress first-time discovery.
+    context.storage.get = (key) =>
+        key.endsWith("local_http")
+            ? JSON.stringify({ previous, state: "pending", version: 1 })
+            : null;
+    vm.runInNewContext(bootCode, context);
+    assert.equal(discoveries.length, 1);
+
+    // Neither does an ordinary new installation without any recovery journal.
+    w.__ottLocalHttpRemote.init = () => {};
+    context.storage.get = () => null;
+    vm.runInNewContext(bootCode, context);
+    assert.equal(discoveries.length, 2);
 });
 test("overlapping dictionary loads settle the old request without disturbing the new owner", () => {
     const text = fs.readFileSync("src/index.ts", "utf8");

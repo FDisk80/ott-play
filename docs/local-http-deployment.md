@@ -1,5 +1,8 @@
 # Local HTTP player deployment
 
+For website reloads versus application updates, explicit command-server discovery
+profiles and preservation checks, see [discovery delivery](discovery-deployment.md).
+
 This page describes the repository's source-build installation scripts and
 their default four-HTTP-listener layout. For coordinated replacement of an
 existing macOS app, local server and web files, see the

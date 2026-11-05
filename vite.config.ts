@@ -15,6 +15,53 @@ import { basename, dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 
+function createControlDiscoveryBootstrap(
+    url: string | undefined,
+    sha256: string | undefined
+): string {
+    if (url === undefined && sha256 === undefined) return "";
+    const invalid = () => new Error("Invalid control discovery build profile");
+    if (
+        typeof url !== "string" ||
+        !url ||
+        url.length > 2048 ||
+        /[\s\\?#]/.test(url) ||
+        typeof sha256 !== "string" ||
+        !/^[0-9a-f]{64}$/.test(sha256)
+    )
+        throw invalid();
+    let parsed: URL;
+    try {
+        parsed = new URL(url);
+    } catch {
+        throw invalid();
+    }
+    if (
+        parsed.protocol !== "https:" ||
+        !parsed.hostname ||
+        parsed.username ||
+        parsed.password ||
+        parsed.search ||
+        parsed.hash
+    )
+        throw invalid();
+    // The digest is build provenance, not runtime response verification.
+    // Preserve every explicit deployment override, including null/empty.
+    return (
+        'if(typeof window.__OTT_CONTROL_DISCOVERY_URL__==="undefined"){\n' +
+        "window.__OTT_CONTROL_DISCOVERY_URL__=" +
+        JSON.stringify(url) +
+        ";\nwindow.__OTT_CONTROL_DISCOVERY_SHA256__=" +
+        JSON.stringify(sha256) +
+        ";\n}\n"
+    );
+}
+
+const controlDiscoveryBootstrap = createControlDiscoveryBootstrap(
+    process.env.OTTPLAY_CONTROL_DISCOVERY_URL,
+    process.env.OTTPLAY_CONTROL_DISCOVERY_SHA256
+);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Load the helper from its own CommonJS module so Vite's config bundler does
 // not rewrite its TypeScript dependency into a file-URL require.
@@ -431,6 +478,11 @@ export default defineConfig(({ mode }) => ({
                     androidFlavor ? androidCompileRoot : __dirname,
                     CLASSIC_MAIN_MODULES
                 );
+
+                // All shipped stages consume this common bundle. Bind the
+                // explicit profile to its identity before native/browser copies.
+                if (controlDiscoveryBootstrap)
+                    bundle = controlDiscoveryBootstrap + bundle;
 
                 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
                 const version = pkg.version || "local";

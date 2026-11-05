@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Build OttPlay FOSS Capacitor iOS archive / unsigned IPA for sideload.
 # Pattern mirrors inverter-desktop/build-ios-local.sh (Cap Xcode project under ios/).
-set -uo pipefail
+set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(dirname "$0")"
+ROOT="$(cd "$SCRIPT_DIR" && pwd)"
 cd "$ROOT"
 
 OUTPUT_DIR="dist/ios"
@@ -48,7 +49,8 @@ echo "  version=$VERSION bundle=$BUNDLE_ID"
 echo ""
 
 command -v xcodebuild >/dev/null 2>&1 || { echo "  ✗ xcodebuild missing"; exit 1; }
-echo "  ✓ $(xcodebuild -version | head -1)"
+XCODE_VERSION="$(xcodebuild -version)"
+echo "  ✓ ${XCODE_VERSION%%$'\n'*}"
 
 if [[ "$CLEAN" == true ]]; then
   echo "===> Cleaning..."
@@ -57,7 +59,8 @@ if [[ "$CLEAN" == true ]]; then
 fi
 
 if [[ "$UPDATE_DEPS" == true ]]; then
-  npm update && npm install
+  npm update
+  npm install
 else
   npm ci
 fi

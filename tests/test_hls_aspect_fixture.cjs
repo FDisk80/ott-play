@@ -302,3 +302,174 @@ test("a readiness result after the diagnostic deadline still succeeds unchanged"
     assert.equal(f.timers.size, 0);
     assert.equal(f.page.listenerCount("crash"), 0);
 });
+
+function channelOpeningFixture({ error, pending = false } = {}) {
+    const f = readinessObservationFixture();
+    const calls = [];
+    const evaluations = [];
+    let enter;
+    const entered = new Promise((resolve) => {
+        enter = resolve;
+    });
+    let rejectTransition;
+    const transition = pending
+        ? new Promise((resolve, reject) => {
+              rejectTransition = reject;
+          })
+        : null;
+    const source = fs.readFileSync(
+        path.join(__dirname, "browser/plex-provider.spec.cjs"),
+        "utf8"
+    );
+    const start = source.indexOf("async function openPlexChannels(");
+    const end = source.indexOf("async function selectPlexChannel(", start);
+    assert.ok(start >= 0 && end > start);
+    const window = {
+        _: (text) => text,
+        __ottActiveProviderDriver: {
+            catalogLoading: () => false,
+            libraryReady: () => true,
+        },
+        __ottMedia: {
+            open: (value) => calls.push(["open", value]),
+            useSource: (value) => calls.push(["useSource", value]),
+        },
+        closeList: () => calls.push(["closeList"]),
+        providerMediaClient: {},
+        stbStop: () => calls.push(["stop"]),
+    };
+    f.page.waitForFunction = async (predicate) => {
+        assert.equal(predicate(), true);
+    };
+    f.page.evaluate = async (callback) => {
+        evaluations.push(callback.toString());
+        if (callback.toString().includes("window.stbStop")) {
+            if (error) {
+                f.page.emit("crash");
+                throw error;
+            }
+            callback();
+            enter();
+            return transition;
+        }
+        return callback();
+    };
+    f.page.locator = (selector) => selector;
+    const assertions = [];
+    const expect = (selector) => ({
+        not: {
+            toContainText: async (value) =>
+                assertions.push([selector, "not", value]),
+        },
+        toContainText: async (value) => assertions.push([selector, value]),
+        toHaveCount: async (value) => assertions.push([selector, value]),
+    });
+    const open = require("node:vm").runInNewContext(
+        source.slice(start, end) + "\nopenPlexChannels",
+        { expect, observeAspectReadiness: f.observe, window }
+    );
+    return {
+        ...f,
+        assertions,
+        calls,
+        entered,
+        evaluations,
+        open,
+        rejectTransition,
+    };
+}
+
+test("channel opening observes the original single-evaluate transition without changing calls", async () => {
+    const f = channelOpeningFixture();
+    const external = () => {};
+    f.page.on("crash", external);
+    assert.equal(await f.open(f.page, "video.js"), undefined);
+    assert.deepEqual(f.calls, [
+        ["stop"],
+        ["closeList"],
+        ["useSource", null],
+        ["open", null],
+    ]);
+    assert.equal(f.evaluations.length, 2);
+    for (const call of ["stbStop", "closeList", "useSource", "open(null)"])
+        assert.ok(f.evaluations[0].includes(call));
+    assert.deepEqual(f.assertions, [
+        ["#listCaption", "Channel list. Category: "],
+        ["#mediaPlaybackControls", 0],
+        ["#listPodval", "not", "Filter"],
+    ]);
+    assert.equal(f.unrefed(), 1);
+    assert.equal(f.timers.size, 0);
+    assert.deepEqual(f.page.listeners("crash"), [external]);
+    assert.deepEqual(f.records, []);
+});
+
+test("channel opening crash retains the original error and identifies the pre-playback phase", async () => {
+    const error = new Error(
+        "Target crashed: private details must not be logged"
+    );
+    const f = channelOpeningFixture({ error });
+    await assert.rejects(
+        f.open(f.page, "video.js"),
+        (actual) => actual === error
+    );
+    assert.deepEqual(f.records, [
+        {
+            browserConnected: true,
+            crashed: true,
+            elapsedMs: 0,
+            engine: "video.js",
+            event: "rejected",
+            pageClosed: false,
+            phase: "open-channels",
+        },
+    ]);
+    assert.equal(f.evaluations.length, 1);
+    assert.deepEqual(f.assertions, []);
+    assert.equal(f.timers.size, 0);
+    assert.equal(f.page.listenerCount("crash"), 0);
+});
+
+test("channel opening host deadline observes once without settling or retrying the transition", async () => {
+    const f = channelOpeningFixture({ pending: true });
+    const result = f.open(f.page, "hls.js");
+    let settled = false;
+    result.then(
+        () => {
+            settled = true;
+        },
+        () => {
+            settled = true;
+        }
+    );
+    await f.entered;
+    assert.equal(f.calls.length, 4);
+    f.advance(14999);
+    const before = f.records.slice();
+    f.advance(1);
+    await Promise.resolve();
+    const settledAtDeadline = settled;
+    const atDeadline = f.records.slice();
+    f.advance(60000);
+    const error = new Error("Original transition timeout");
+    f.rejectTransition(error);
+    await assert.rejects(result, (actual) => actual === error);
+    assert.deepEqual(before, []);
+    assert.equal(settledAtDeadline, false);
+    assert.equal(atDeadline.length, 1);
+    assert.deepEqual(atDeadline[0], {
+        browserConnected: true,
+        crashed: false,
+        elapsedMs: 15000,
+        engine: "hls.js",
+        event: "pending",
+        pageClosed: false,
+        phase: "open-channels",
+    });
+    assert.equal(f.records.length, 1);
+    assert.equal(f.evaluations.length, 1);
+    assert.equal(f.calls.length, 4);
+    assert.deepEqual(f.assertions, []);
+    assert.equal(f.timers.size, 0);
+    assert.equal(f.page.listenerCount("crash"), 0);
+});

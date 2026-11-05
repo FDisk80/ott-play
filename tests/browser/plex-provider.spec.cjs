@@ -421,19 +421,21 @@ for (const format of ["JSON", "XML"]) {
 }
 
 // Exercise the actual channel-style provider UI, including production routing.
-async function openPlexChannels(page) {
+async function openPlexChannels(page, engine) {
     await page.waitForFunction(
         () =>
             window.__ottActiveProviderDriver?.libraryReady() &&
             window.providerMediaClient &&
             !window.__ottActiveProviderDriver.catalogLoading()
     );
-    await page.evaluate(() => {
-        window.stbStop();
-        window.closeList();
-        window.__ottMedia.useSource(null);
-        window.__ottMedia.open(null);
-    });
+    await observeAspectReadiness(page, { engine, phase: "open-channels" }, () =>
+        page.evaluate(() => {
+            window.stbStop();
+            window.closeList();
+            window.__ottMedia.useSource(null);
+            window.__ottMedia.open(null);
+        })
+    );
     await expect(page.locator("#listCaption")).toContainText(
         await page.evaluate(() => window._("Channel list. Category: "))
     );
@@ -1520,7 +1522,7 @@ for (const { engine, strict } of [
             await page.setViewportSize({ height: 720, width: 960 });
             await page.goto(engine === "video.js" ? "/f/pc2/" : "/f/pc/");
             await page.keyboard.press("Shift");
-            await openPlexChannels(page);
+            await openPlexChannels(page, engine);
             await selectPlexChannel(page, films[0].title);
             let previousReadySource = null;
             async function ready(id, phase) {
