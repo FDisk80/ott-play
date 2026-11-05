@@ -365,6 +365,7 @@ var keyStrings = {
     "Drag window": "Lohistage aken",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO seaded",
+    "Drop one video file at a time": "Lohistage korraga üks videofail",
     Duration: "Kestus",
     Edit: "Muuda",
     "Edit access key": "Muutke juurdepääsuvõtit",

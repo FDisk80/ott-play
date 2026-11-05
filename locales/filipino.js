@@ -376,6 +376,8 @@ var keyStrings = {
     "Drag window": "I-drag ang window",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO na mga setting",
+    "Drop one video file at a time":
+        "Mag-drag at mag-drop ng isang video file sa bawat pagkakataon",
     Duration: "Tagal",
     Edit: "I-edit",
     "Edit access key": "I-edit ang access key",

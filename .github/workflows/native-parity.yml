@@ -3,12 +3,22 @@ name: Native Shells
 on:
   workflow_call: {}
   workflow_dispatch:
+    inputs:
+      desktop_acceptance:
+        description: Capture packaged Finder Open With and drag evidence for manual review
+        type: boolean
+        default: false
+      desktop_preflight_only:
+        description: Check hosted macOS GUI capability only; skip all builds
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   shared-guide:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}
     name: Shared guide / ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -31,6 +41,7 @@ jobs:
         run: cargo test --locked --manifest-path tests/librqbit-resource-regression/Cargo.toml --no-default-features --features rust-tls --lib resource_bounds_tests
 
   windows-installers:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}
     name: Windows installer lifecycle
     runs-on: windows-latest
     timeout-minutes: 45
@@ -89,6 +100,8 @@ jobs:
         run: cargo test --locked -p ottplay-tauri window_preferences::tests
       - name: Test fullscreen confirmation contracts on Windows
         run: cargo test --locked -p ottplay-tauri fullscreen_confirmation_tests
+      - name: Test local drop and OS file-open contracts on Windows
+        run: "cargo test --locked -p ottplay-tauri commands::local_drop::tests::"
       - name: Check owned-window smoke runner
         run: python tests/test_window_controls_smoke.py
       - name: Test isolated window fixture watchdog contracts on Windows
@@ -119,6 +132,7 @@ jobs:
           retention-days: 14
 
   android:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}
     name: Android native plugins
     runs-on: ${{ fromJSON((vars.CI_RUNNER_MODE == 'self-hosted' || vars.CI_RUNNER_MODE == 'k3s') && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (contains(fromJSON('["push","schedule","workflow_dispatch"]'), github.event_name) && github.ref == format('refs/heads/{0}', github.event.repository.default_branch))) && (vars.CI_RUNNER_LABELS || '[]') || '["ubuntu-latest"]') }}
     timeout-minutes: 30
@@ -190,6 +204,7 @@ jobs:
           python3 tests/test_runtime_diagnostics_native.py --platform android
 
   apple:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}
     name: iOS and Tauri native code
     runs-on: macos-latest
     timeout-minutes: 40
@@ -349,6 +364,7 @@ jobs:
         run: python3 tests/macos-drag-regression/run.py
 
   favorites-native:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}
     name: Hidden WK Favorites Stage A and Stage B
     runs-on: macos-latest
     timeout-minutes: 40
@@ -427,7 +443,95 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  desktop-preflight:
+    name: Hosted macOS desktop GUI capability
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.desktop_preflight_only == true }}
+    runs-on: macos-15
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Reject conflicting manual modes
+        env:
+          DESKTOP_ACCEPTANCE: ${{ inputs.desktop_acceptance }}
+        run: test "$DESKTOP_ACCEPTANCE" != true
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Check controller contracts without native execution
+        run: python3 tests/test_ci_macos_desktop_preflight.py -v
+      - name: Check GUI capability without building or launching OTTPlay
+        run: python3 scripts/ci-macos-desktop-preflight.py
+      - name: Retain exact capability or refusal evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: desktop-preflight-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ott-desktop-preflight/*.json
+            ${{ runner.temp }}/ott-desktop-preflight/*.log
+          if-no-files-found: error
+          retention-days: 7
+
+  desktop-capture:
+    name: Packaged macOS Finder capture (manual review required)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.desktop_acceptance == true && inputs.desktop_preflight_only != true }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      DESKTOP_ACCEPTANCE: ${{ inputs.desktop_acceptance }}
+      DESKTOP_PREFLIGHT_ONLY: ${{ inputs.desktop_preflight_only }}
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Check pure capture-controller contracts
+        run: |
+          python3 tests/test_ci_macos_desktop_preflight.py -v
+          python3 tests/test_ci_macos_desktop.py -v
+      - name: Verify full helper permission identity before dependencies or product build
+        run: python3 scripts/ci-macos-desktop.py preflight
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-on-failure: true
+      - run: npm ci --ignore-scripts
+      - name: Build isolated package once and capture three actual Finder actions
+        run: python3 scripts/ci-macos-desktop.py capture
+      - name: Preserve exact capture or refusal evidence (not a playback verdict)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-capture-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ott-desktop-qa/*.json
+            ${{ runner.temp }}/ott-desktop-qa/*.log
+            ${{ runner.temp }}/ott-desktop-qa/*.png
+          if-no-files-found: error
+          retention-days: 7
+
   linux-window-controls:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}
     name: GTK X11 window constraint acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 35

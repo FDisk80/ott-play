@@ -370,6 +370,8 @@ var keyStrings = {
     "Drag window": "Paceyê kaş bikin",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Mîhengên Dragon Media PRO",
+    "Drop one video file at a time":
+        "Her carê tenê pelek vîdyoyê bikişîne û berde",
     Duration: "Dem",
     Edit: "Biguherîne",
     "Edit access key": "Mifteya gihîştinê biguherînin",

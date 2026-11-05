@@ -369,6 +369,7 @@ var keyStrings = {
     "Drag window": "Træk vinduet",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO indstillinger",
+    "Drop one video file at a time": "Træk og slip én videofil ad gangen",
     Duration: "Varighed",
     Edit: "Rediger",
     "Edit access key": "Rediger adgangsnøgle",

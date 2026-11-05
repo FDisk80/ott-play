@@ -367,6 +367,8 @@ var keyStrings = {
     "Drag window": "Alihkan tetingkap",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Tetapan Dragon Media PRO",
+    "Drop one video file at a time":
+        "Seret dan lepaskan satu fail video pada satu masa",
     Duration: "Tempoh",
     Edit: "Sunting",
     "Edit access key": "Sunting kunci akses",

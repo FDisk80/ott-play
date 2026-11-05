@@ -20,5 +20,5 @@
       "asset://localhost/*"
     ]
   },
-  "permissions": ["allow-local-media-control"]
+  "permissions": ["allow-local-media-control", "allow-local-media-drop"]
 }

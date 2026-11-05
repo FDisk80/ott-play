@@ -371,6 +371,8 @@ var keyStrings = {
     "Drag window": "Pencereyi taşı",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ayarları",
+    "Drop one video file at a time":
+        "Her seferinde bir video dosyasını sürükleyip bırakın",
     Duration: "Süre",
     Edit: "Düzenle",
     "Edit access key": "Erişim anahtarını düzenle",

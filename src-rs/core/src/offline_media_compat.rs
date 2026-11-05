@@ -45,14 +45,15 @@ fn delivery_body(
     bytes: Bytes,
     permit: tokio::sync::OwnedSemaphorePermit,
     work: crate::background_work::WorkLease,
+    live: Option<Arc<AtomicBool>>,
 ) -> Body {
     Body::from_stream(stream::unfold(
-        (Some(bytes), permit, work),
-        |(bytes, permit, work)| async move {
-            if work.check().is_err() {
+        (Some(bytes), permit, work, live),
+        |(bytes, permit, work, live)| async move {
+            if work.check().is_err() || live.as_ref().is_some_and(|v| !v.load(Ordering::Acquire)) {
                 return None;
             }
-            bytes.map(|bytes| (Ok::<_, std::io::Error>(bytes), (None, permit, work)))
+            bytes.map(|bytes| (Ok::<_, std::io::Error>(bytes), (None, permit, work, live)))
         },
     ))
 }
@@ -75,25 +76,18 @@ async fn input(
     l: Library,
     id: String,
     work: &crate::background_work::WorkLease,
-) -> Result<Input, Error> {
+) -> Result<(Input, Option<Arc<AtomicBool>>), Error> {
     if !valid_id(&id) {
         return Err(Error::Source);
     }
     owned_read(work, move |owner| async move {
-        let record = l.read_record(&id, Some(&owner)).await?;
+        let (record, _file, metadata, live) = l.open_record(&id, Some(&owner)).await?;
         if !matches!(record.extension.as_str(), "avi" | "mkv") {
             return Err((
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
                 "Unsupported compatibility source",
             ));
         }
-        let path = l.read_path(&record, Some(&owner)).await?;
-        let file = checked(Some(&owner), fs::File::open(path))
-            .await?
-            .map_err(storage_error)?;
-        let metadata = checked(Some(&owner), file.metadata())
-            .await?
-            .map_err(storage_error)?;
         let modified = metadata
             .modified()
             .ok()
@@ -107,13 +101,16 @@ async fn input(
         };
         #[cfg(not(unix))]
         let identity = String::new();
-        Ok(Input {
-            source_id: record.source_id.clone().unwrap_or_else(|| id.clone()),
-            id,
-            fingerprint: format!("{}:{modified}:{identity}", metadata.len()),
-            extension: record.extension,
-            size: metadata.len(),
-        })
+        Ok((
+            Input {
+                source_id: record.source_id.clone().unwrap_or_else(|| id.clone()),
+                id,
+                fingerprint: format!("{}:{modified}:{identity}", metadata.len()),
+                extension: record.extension,
+                size: metadata.len(),
+            },
+            live,
+        ))
     })
     .await
     .map_err(|e| {
@@ -134,7 +131,7 @@ pub(super) async fn compat_prepare(
     if let Err(e) = l.authorize(&token) {
         return e.into_response();
     }
-    let _admission = match DELIVERIES.clone().try_acquire_owned() {
+    let admission = match DELIVERIES.clone().try_acquire_owned() {
         Ok(p) => p,
         Err(_) => return failure(Error::Busy),
     };
@@ -147,12 +144,28 @@ pub(super) async fn compat_prepare(
     };
     let base = l.endpoint();
     let result = async {
-        let value = input(l, id, &work).await?;
-        m.prepare(value, &base, &work).await
+        let (value, live) = input(l, id.clone(), &work).await?;
+        let prepared = m.prepare(value, &base, &work).await?;
+        if live.as_ref().is_some_and(|v| !v.load(Ordering::Acquire)) {
+            m.cancel_item(&id);
+            return Err(Error::Cancelled);
+        }
+        Ok((prepared, live))
     }
     .await;
     let mut response = match result {
-        Ok(v) => Json(v).into_response(),
+        Ok((v, None)) => Json(v).into_response(),
+        Ok((v, live)) => {
+            let bytes = match serde_json::to_vec(&v) {
+                Ok(v) => Bytes::from(v),
+                Err(_) => return failure(Error::Source),
+            };
+            (
+                [("content-type", "application/json")],
+                delivery_body(bytes, admission, work.clone(), live),
+            )
+                .into_response()
+        }
         Err(e) => return failure(e),
     };
     cors(&mut response);
@@ -204,14 +217,14 @@ pub(super) async fn compat_playlist(
     };
     let base = format!("{}/compat/{id}/{lease}", l.endpoint());
     let result = async {
-        let value = input(l, id, &work).await?;
-        m.playlist(&value, &lease, &name, &base, &work)
+        let (value, live) = input(l, id, &work).await?;
+        Ok((m.playlist(&value, &lease, &name, &base, &work)?, live))
     }
     .await;
     let mut response = match result {
-        Ok(v) => (
+        Ok((v, live)) => (
             [("content-type", "application/vnd.apple.mpegurl")],
-            delivery_body(Bytes::from(v), delivery, work.clone()),
+            delivery_body(Bytes::from(v), delivery, work.clone(), live),
         )
             .into_response(),
         Err(e) => return failure(e),
@@ -250,11 +263,11 @@ pub(super) async fn compat_segment(
         return failure(Error::Cancelled);
     };
     let result = async {
-        let value = input(l, id, &work).await?;
-        m.segment(value, &lease, &track, index, &work).await
+        let (value, live) = input(l, id, &work).await?;
+        Ok((m.segment(value, &lease, &track, index, &work).await?, live))
     }
     .await;
-    let data = match result {
+    let (data, live) = match result {
         Ok(v) => v,
         Err(e) => return failure(e),
     };
@@ -269,7 +282,7 @@ pub(super) async fn compat_segment(
         Body::empty()
     } else {
         let bytes = Bytes::from(data[start as usize..=end as usize].to_vec());
-        delivery_body(bytes, delivery, work.clone())
+        delivery_body(bytes, delivery, work.clone(), live)
     }
     .into_response();
     *response.status_mut() = if range.is_some() {
@@ -299,6 +312,36 @@ pub(super) async fn compat_segment(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn buffered_compatibility_body_is_revoked_with_the_dropped_file() {
+        let background = crate::background_work::BackgroundWork::default();
+        let permits = Arc::new(Semaphore::new(1));
+        for bytes in [
+            b"#EXTM3U".as_slice(),
+            b"segment bytes".as_slice(),
+            b"{\"url\":\"opaque\"}".as_slice(),
+        ] {
+            let live = Arc::new(AtomicBool::new(true));
+            let body = delivery_body(
+                Bytes::copy_from_slice(bytes),
+                permits.clone().acquire_owned().await.unwrap(),
+                background.enter().unwrap(),
+                Some(live.clone()),
+            );
+            live.store(false, Ordering::Release);
+            assert!(axum::body::to_bytes(body, 64).await.unwrap().is_empty());
+            let body = delivery_body(
+                Bytes::copy_from_slice(bytes),
+                permits.clone().acquire_owned().await.unwrap(),
+                background.enter().unwrap(),
+                None,
+            );
+            assert_eq!(
+                axum::body::to_bytes(body, 64).await.unwrap().as_ref(),
+                bytes
+            );
+        }
+    }
     async fn media_tool(program: PathBuf, args: &[&str], bytes: &[u8]) -> std::process::Output {
         let mut child = tokio::process::Command::new(program)
             .args(args)

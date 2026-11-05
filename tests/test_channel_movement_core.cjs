@@ -424,13 +424,23 @@ const loadNode = providerSource.statements.find(
         ts.isFunctionDeclaration(node) && node.name?.text === "loadChannels"
 );
 assert(loadNode);
+const readyNode = providerSource.statements.find(
+    (node) =>
+        ts.isFunctionDeclaration(node) && node.name?.text === "desktopReady"
+);
+assert(readyNode);
 const loadCode = ts
-    .transpileModule(loadNode.getText(providerSource), {
-        compilerOptions: {
-            module: ts.ModuleKind.ES2015,
-            target: ts.ScriptTarget.ES5,
-        },
-    })
+    .transpileModule(
+        readyNode.getText(providerSource) +
+            "\n" +
+            loadNode.getText(providerSource),
+        {
+            compilerOptions: {
+                module: ts.ModuleKind.ES2015,
+                target: ts.ScriptTarget.ES5,
+            },
+        }
+    )
     .outputText.replace(/^export /gm, "");
 for (const [view, launchVisible] of [
     ["category", true],

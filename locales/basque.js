@@ -374,6 +374,8 @@ var keyStrings = {
     "Drag window": "Arrastatu leihoa",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ezarpenak",
+    "Drop one video file at a time":
+        "Arrastatu eta jaregin bideo-fitxategi bakarra aldi bakoitzean",
     Duration: "Iraupena",
     Edit: "Editatu",
     "Edit access key": "Editatu sarbide-gakoa",

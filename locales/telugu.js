@@ -355,6 +355,7 @@ var keyStrings = {
     "Drag window": "విండోను లాగండి",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO సెట్టింగ్‌లు",
+    "Drop one video file at a time": "ఒకేసారి ఒక వీడియో ఫైల్‌ను లాగి వదలండి",
     Duration: "వ్యవధి",
     Edit: "సవరించు",
     "Edit access key": "ఎడిట్ యాక్సెస్ కీ",

@@ -377,6 +377,8 @@ var keyStrings = {
     "Drag window": "Arrossega la finestra",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Configuració de Dragon Media PRO",
+    "Drop one video file at a time":
+        "Arrossegueu i deixeu anar un sol fitxer de vídeo cada vegada",
     Duration: "Durada",
     Edit: "Edita",
     "Edit access key": "Edita la clau d’accés",

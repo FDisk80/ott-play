@@ -363,6 +363,8 @@ var keyStrings = {
     "Drag window": "کړکۍ کش کړئ",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ترتیبات",
+    "Drop one video file at a time":
+        "په یو وخت کې یوازې یو ویډیو فایل راکش او خوشې کړئ",
     Duration: "موده",
     Edit: "تدوین",
     "Edit access key": "د لاسرسي کیلي سمول",

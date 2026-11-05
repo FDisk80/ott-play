@@ -362,6 +362,8 @@ var keyStrings = {
     "Drag window": "Dọrọ windo",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Ntọala Dragon Media PRO",
+    "Drop one video file at a time":
+        "Dọrọ ma tụnye naanị otu faịlụ vidiyo n'otu oge",
     Duration: "Ogologo oge",
     Edit: "Dezie",
     "Edit access key": "Dezie igodo nnweta",

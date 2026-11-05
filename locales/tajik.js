@@ -373,6 +373,8 @@ var keyStrings = {
     "Drag window": "Равзанаро кашед",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Танзимоти Dragon Media PRO",
+    "Drop one video file at a time":
+        "Ҳар дафъа як файли видеоро кашида партоед",
     Duration: "Давомнокӣ",
     Edit: "Таҳрир кунед",
     "Edit access key": "Калиди дастрасиро таҳрир кунед",

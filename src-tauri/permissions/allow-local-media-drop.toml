@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-local-media-drop"
+description = "Consume or release opaque OS drop grants in the main player window"
+commands.allow = ["local_media_drop_ready", "local_media_take_drop", "local_media_release_drop"]

@@ -373,6 +373,8 @@ var keyStrings = {
     "Drag window": "Терезени сүйрөө",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO жөндөөлөрү",
+    "Drop one video file at a time":
+        "Бир убакта бир видеофайлды сүйрөп таштаңыз",
     Duration: "Узактыгы",
     Edit: "Түзөтүү",
     "Edit access key": "Кирүү ачкычын түзөтүү",

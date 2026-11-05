@@ -381,6 +381,8 @@ var keyStrings = {
     "Drag window": "Déplacer la fenêtre",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Paramètres de Dragon Media PRO",
+    "Drop one video file at a time":
+        "Glissez-déposez un seul fichier vidéo à la fois",
     Duration: "Durée",
     Edit: "Modifier",
     "Edit access key": "Modifier la clé d'accès",

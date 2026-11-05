@@ -369,6 +369,7 @@ var keyStrings = {
     "Drag window": "Sleep venster",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO-instellings",
+    "Drop one video file at a time": "Sleep en los een videolêer op 'n slag",
     Duration: "Duur",
     Edit: "Wysig",
     "Edit access key": "Wysig toegangsleutel",

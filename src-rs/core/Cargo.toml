@@ -37,6 +37,7 @@ system-configuration = "=0.7.0"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "=0.55.0"
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 
 [build-dependencies]
 sha2 = "0.10"

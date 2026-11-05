@@ -358,6 +358,7 @@ var keyStrings = {
     "Drag window": "කවුළුව අදින්න",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO සැකසුම්",
+    "Drop one video file at a time": "වරකට එක් වීඩියෝ ගොනුවක් ඇද දමන්න",
     Duration: "කාලසීමාව",
     Edit: "සංස්කරණය කරන්න",
     "Edit access key": "සංස්කරණ ප්‍රවේශ යතුර",

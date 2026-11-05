@@ -365,6 +365,8 @@ var keyStrings = {
     "Drag window": "சாளரத்தை இழுக்கவும்",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO அமைப்புகள்",
+    "Drop one video file at a time":
+        "ஒரு நேரத்தில் ஒரு வீடியோ கோப்பை இழுத்து விடுங்கள்",
     Duration: "கால அளவு",
     Edit: "திருத்து",
     "Edit access key": "திருத்த அணுகல் விசை",

@@ -361,6 +361,8 @@ var keyStrings = {
     "Drag window": "드래그 창",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO 설정",
+    "Drop one video file at a time":
+        "동영상 파일을 한 번에 하나씩 드래그하여 놓으세요",
     Duration: "기간",
     Edit: "수정",
     "Edit access key": "접속키 수정",

@@ -372,6 +372,8 @@ var keyStrings = {
     "Drag window": "Oynani ko‘chirish",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO sozlamalari",
+    "Drop one video file at a time":
+        "Har safar bittadan video faylni sudrab tashlang",
     Duration: "Davomiylik",
     Edit: "Tahrirlash",
     "Edit access key": "Kirish kalitini tahrirlash",

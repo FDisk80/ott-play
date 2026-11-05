@@ -368,7 +368,10 @@ function fixture(
         compile(
             selectedSource("src/storage/index.ts", ["providerGetNum"]) +
                 "\n" +
-                selectedSource("src/provider/index.ts", ["loadChannels"])
+                selectedSource("src/provider/index.ts", [
+                    "desktopReady",
+                    "loadChannels",
+                ])
         ),
         w
     );

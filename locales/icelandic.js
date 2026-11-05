@@ -361,6 +361,8 @@ var keyStrings = {
     "Drag window": "Draga glugga",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Stillingar fyrir Dragon Media PRO",
+    "Drop one video file at a time":
+        "Dragðu og slepptu einni myndskeiðsskrá í einu",
     Duration: "Lengd",
     Edit: "Breyta",
     "Edit access key": "Breyta aðgangslykli",

@@ -379,6 +379,8 @@ var keyStrings = {
     "Drag window": "Arrastrar a xanela",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Configuración de Dragon Media PRO",
+    "Drop one video file at a time":
+        "Arrastre e solte un só ficheiro de vídeo cada vez",
     Duration: "Duración",
     Edit: "Editar",
     "Edit access key": "Editar a clave de acceso",

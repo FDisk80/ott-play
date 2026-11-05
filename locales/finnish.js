@@ -368,6 +368,8 @@ var keyStrings = {
     "Drag window": "Vedä ikkunaa",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO asetukset",
+    "Drop one video file at a time":
+        "Vedä ja pudota yksi videotiedosto kerrallaan",
     Duration: "Kesto",
     Edit: "Muokkaa",
     "Edit access key": "Muokkaa pääsyavainta",

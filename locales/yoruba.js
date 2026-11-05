@@ -362,6 +362,8 @@ var keyStrings = {
     "Drag window": "Fa fèrèsé",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Ètò Dragon Media PRO",
+    "Drop one video file at a time":
+        "Fa fáìlì fídíò kan ṣoṣo sílẹ̀ ní ìgbà kọ̀ọ̀kan",
     Duration: "Àkókò gígùn",
     Edit: "Ṣàtúnṣe",
     "Edit access key": "Ṣàtúnṣe kọ́kọ́rọ́ ìwọlé",

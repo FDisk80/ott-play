@@ -1,6 +1,8 @@
 {
   "portable": [
     ["tests/test_ci_apt_mirror.py"],
+    ["tests/test_ci_macos_desktop.py"],
+    ["tests/test_ci_macos_desktop_preflight.py"],
     ["tests/test_global_favorites_browser_evidence.py"],
     ["tests/test_localization_unicode_generator.py"],
     ["tests/test_android_security_config.py"],

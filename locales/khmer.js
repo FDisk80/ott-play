@@ -358,6 +358,7 @@ var keyStrings = {
     "Drag window": "អូសបង្អួច",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "ការកំណត់ Dragon Media PRO",
+    "Drop one video file at a time": "អូសហើយទម្លាក់ឯកសារវីដេអូម្តងមួយ",
     Duration: "រយៈពេល",
     Edit: "កែសម្រួល",
     "Edit access key": "កែសម្រួលសោចូល",

@@ -358,6 +358,7 @@ var keyStrings = {
     "Drag window": "विन्डो तान्नुहोस्",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO सेटिङहरू",
+    "Drop one video file at a time": "एक पटकमा एउटा भिडियो फाइल तानेर छोड्नुहोस्",
     Duration: "अवधि",
     Edit: "सम्पादन गर्नुहोस्",
     "Edit access key": "पहुँच कुञ्जी सम्पादन गर्नुहोस्",

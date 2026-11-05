@@ -322,6 +322,7 @@ function integrationFixture(id, initial = {}) {
         true
     );
     const names = [
+        "desktopReady",
         "loadProv",
         "loadChannels",
         "syncFromWindow",

@@ -367,6 +367,8 @@ var keyStrings = {
     "Drag window": "Տեղափոխել պատուհանը",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO կարգավորումներ",
+    "Drop one video file at a time":
+        "Միաժամանակ քաշեք և գցեք միայն մեկ տեսանյութի ֆայլ",
     Duration: "Տևողություն",
     Edit: "Խմբագրել",
     "Edit access key": "Խմբագրել մուտքի բանալին",

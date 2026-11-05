@@ -371,6 +371,7 @@ var keyStrings = {
     "Drag window": "Ablak mozgatása",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO beállításai",
+    "Drop one video file at a time": "Egyszerre csak egy videofájlt húzzon ide",
     Duration: "Időtartam",
     Edit: "Szerkesztés",
     "Edit access key": "Hozzáférési kulcs szerkesztése",

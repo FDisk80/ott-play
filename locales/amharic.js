@@ -351,6 +351,7 @@ var keyStrings = {
     "Drag window": "መስኮቱን ጎትት",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "የDragon Media PRO ቅንብሮች",
+    "Drop one video file at a time": "በአንድ ጊዜ አንድ የቪዲዮ ፋይል ይጎትቱና ይጣሉ",
     Duration: "ቆይታ",
     Edit: "አርትዕ",
     "Edit access key": "የመዳረሻ ቁልፍ አርትዕ",

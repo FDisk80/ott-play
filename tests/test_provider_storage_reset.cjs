@@ -67,6 +67,7 @@ const code = bundle
           ...lz.names,
           ...storage.names,
           "__spreadArray",
+          "desktopReady",
           "loadProv",
           "pdsa",
           ...policyNames,
@@ -77,6 +78,7 @@ const code = bundle
           lz.code,
           storage.code,
           declarations("src/provider/index.ts", [
+              "desktopReady",
               "loadProv",
               "pdsa",
               ...policyNames,

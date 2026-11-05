@@ -376,6 +376,8 @@ var keyStrings = {
     "Drag window": "Venster verplaatsen",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Instellingen voor Dragon Media PRO",
+    "Drop one video file at a time":
+        "Sleep één videobestand tegelijk en zet het neer",
     Duration: "Duur",
     Edit: "Bewerken",
     "Edit access key": "Toegangssleutel bewerken",

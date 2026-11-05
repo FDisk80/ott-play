@@ -774,6 +774,15 @@ const NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE = Object.freeze({
     bytes: 3141,
     gzipBytes: 929,
 });
+// One-file desktop drop keeps gesture handling out of shared startup. The
+// shared temporary-session and OS-startup hooks add 3987 raw / 1078 gzip bytes
+// on Node 26.8.2. The optional desktop bundle measures 5356 / 2109 bytes.
+// Evidence: docs/evidence/desktop-video-drop-size.json. Preserve bounded
+// compiler/compressor variation; no provider allowance is changed.
+const DESKTOP_DROP_ALLOWANCE = Object.freeze({
+    entry: Object.freeze({ bytes: 4000, gzipBytes: 1200 }),
+    optional: Object.freeze({ bytes: 5400, gzipBytes: 2200 }),
+});
 // Bounded recovery after relay failure adds 425 raw and at most 259 gzip bytes.
 // Existing raw caps cover the change. Count the measured gzip cost once per
 // entry and aggregate; preserve identity headroom and unrelated asset caps.
@@ -784,6 +793,7 @@ const AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE = Object.freeze({
 });
 const BUDGET = Object.freeze({
     bytes:
+        DESKTOP_DROP_ALLOWANCE.entry.bytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
@@ -819,6 +829,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
         AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
@@ -1034,6 +1045,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        DESKTOP_DROP_ALLOWANCE.entry.bytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
@@ -1082,6 +1094,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
         AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
@@ -1182,6 +1195,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
     // existing code off startup. Every emitted asset remains counted once.
     // Isolated raw/gzip: compatibility3527/1529, UI8453/3297, runner2460/1155.
     "local-compatibility": LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE.optional,
+    "local-drop": DESKTOP_DROP_ALLOWANCE.optional,
     "local-media-ui": Object.freeze({ bytes: 8500, gzipBytes: 3400 }),
     "media-companion": Object.freeze({
         bytes:
@@ -1279,6 +1293,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        DESKTOP_DROP_ALLOWANCE.entry.bytes +
+        DESKTOP_DROP_ALLOWANCE.optional.bytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.favorites.bytes +
@@ -1363,6 +1379,8 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
+        DESKTOP_DROP_ALLOWANCE.optional.gzipBytes +
         AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.gzipBytes +
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
@@ -2104,6 +2122,7 @@ module.exports = {
     COMPANION_DIAGNOSTICS_ALLOWANCE,
     clearBuildSizeReports,
     collectBundleMeasurement,
+    DESKTOP_DROP_ALLOWANCE,
     DESKTOP_FAVORITES_KEY_ALLOWANCE,
     EPG_PRESENTATION_ENTRY_ALLOWANCE,
     FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,

@@ -348,6 +348,7 @@ var keyStrings = {
     "Drag window": "拖动窗口",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO设定",
+    "Drop one video file at a time": "每次只拖放一个视频文件",
     Duration: "持续时间",
     Edit: "编辑",
     "Edit access key": "编辑访问密钥",

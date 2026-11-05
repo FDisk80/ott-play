@@ -61,7 +61,10 @@ export interface StorageAdapter {
         preview(
             identity: () => string
         ): { current(): boolean; commit(): boolean; discard(): void } | null;
-        begin(identity: () => string): () => void;
+        begin(
+            identity: () => string,
+            options?: { temporaryLibrary?: boolean }
+        ): () => void;
         end(persist?: boolean, extra?: { key: string; value: string }): boolean;
         profile(
             writes: JournalWrite[],
@@ -827,6 +830,7 @@ export function installLocalPlaybackSession(
         identity: () => string;
         captured: string;
         preview?: boolean;
+        temporaryLibrary?: boolean;
     } | null = null;
     function playbackKey(key: string): boolean {
         return /^(?:ottplayprovs?|localMediaPlaybackSelection|localMediaPendingFile|offline(?:primaryIndex|catIndex|prevArr|continueWatch|lastcid|sSortAbc|playbackJournal(?:Source|:[^\r\n]{1,1024})?))$/.test(
@@ -908,6 +912,8 @@ export function installLocalPlaybackSession(
         var shadowed =
             scoped &&
             Object.prototype.hasOwnProperty.call(session!.values, key);
+        if (scoped && libraryKey(key) && session!.temporaryLibrary)
+            return shadowed ? session!.values[key] : null;
         if (scoped && libraryKey(key)) {
             var stored = read(key);
             if (shadowed) return selectedOnly(stored, session!.values[key]);
@@ -922,14 +928,14 @@ export function installLocalPlaybackSession(
     };
     adapter.set = function (key, value) {
         if (guarded(key)) {
-            if (libraryKey(key))
+            if (libraryKey(key) && !session!.temporaryLibrary)
                 write(key, selectedOnly(String(value), read(key)));
             session!.values[key] = String(value);
         } else write(key, value);
     };
     adapter.del = function (key) {
         if (guarded(key)) {
-            if (libraryKey(key))
+            if (libraryKey(key) && !session!.temporaryLibrary)
                 throw new Error(
                     "Choose a Local file before resetting its library"
                 );
@@ -937,6 +943,35 @@ export function installLocalPlaybackSession(
         } else remove(key);
     };
     adapter.transaction = function (writes, admitted) {
+        if (session?.temporaryLibrary) {
+            var temporary = session;
+            if (
+                !current() ||
+                !admitted() ||
+                writes.some(function (entry) {
+                    return adapter.get(entry.key) !== entry.before;
+                })
+            )
+                return false;
+            var persistent = writes.filter(function (entry) {
+                return !sessionKey(entry.key);
+            });
+            if (
+                persistent.length &&
+                (!transaction ||
+                    !transaction(persistent, function () {
+                        return session === temporary && current() && admitted();
+                    }))
+            )
+                return false;
+            if (session !== temporary || !current() || !admitted())
+                return false;
+            writes.forEach(function (entry) {
+                if (sessionKey(entry.key))
+                    temporary.values[entry.key] = entry.after;
+            });
+            return true;
+        }
         if (
             session &&
             (session.preview ||
@@ -1034,10 +1069,11 @@ export function installLocalPlaybackSession(
         active: function () {
             return !!session;
         },
-        begin: function (identity) {
+        begin: function (identity, options) {
             var owner = {
                 captured: identity(),
                 identity: identity,
+                temporaryLibrary: options?.temporaryLibrary === true,
                 values: { ottplayprov: "offline" },
             };
             session = owner;
@@ -1057,7 +1093,8 @@ export function installLocalPlaybackSession(
                 session = null;
                 return true;
             }
-            if (!current() || !transaction) return false;
+            if (session.temporaryLibrary || !current() || !transaction)
+                return false;
             var owner = session;
             var values = { ...owner.values };
             if (extra) values[extra.key] = extra.value;
@@ -1099,7 +1136,13 @@ export function installLocalPlaybackSession(
             };
         },
         profile: function (writes, admitted, playback = false) {
-            if (!session || !current() || !transaction) return false;
+            if (
+                !session ||
+                session.temporaryLibrary ||
+                !current() ||
+                !transaction
+            )
+                return false;
             var owner = session;
             var saved = playback
                 ? Object.keys(owner.values)

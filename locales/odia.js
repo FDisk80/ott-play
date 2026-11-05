@@ -351,6 +351,7 @@ var keyStrings = {
     "Drag window": "ୱିଣ୍ଡୋ ଟାଣନ୍ତୁ",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ସେଟିଂସ୍",
+    "Drop one video file at a time": "ଏକ ଥରରେ ଗୋଟିଏ ଭିଡିଓ ଫାଇଲ୍ ଟାଣି ଛାଡ଼ନ୍ତୁ",
     Duration: "ଅବଧି",
     Edit: "ସମ୍ପାଦନ କରନ୍ତୁ",
     "Edit access key": "ପ୍ରବେଶ କୀ ସମ୍ପାଦନ କରନ୍ତୁ",

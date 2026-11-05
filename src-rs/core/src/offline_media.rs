@@ -142,6 +142,7 @@ pub struct Library {
     background: crate::background_work::BackgroundWork,
     read_only_paths: Option<Arc<Vec<PathBuf>>>,
     compatibility: Option<crate::local_compatibility::Manager>,
+    transient: Arc<std::sync::Mutex<HashMap<String, Arc<TransientRecord>>>>,
     #[cfg(test)]
     original_checks: Arc<std::sync::Mutex<Vec<PathBuf>>>,
     #[cfg(test)]
@@ -396,6 +397,175 @@ struct Record {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     source_id: Option<String>,
 }
+// Transient OS drops are never serialized into the library or its source index.
+// Pin the opened original, not merely its filename, for every subsequent request.
+#[derive(PartialEq, Eq)]
+struct FileStamp {
+    size: u64,
+    modified: Option<std::time::SystemTime>,
+    created: Option<std::time::SystemTime>,
+    #[cfg(unix)]
+    identity: (u64, u64, i64, i64),
+}
+impl FileStamp {
+    fn new(metadata: &std::fs::Metadata) -> Self {
+        Self {
+            size: metadata.len(),
+            modified: metadata.modified().ok(),
+            created: metadata.created().ok(),
+            #[cfg(unix)]
+            identity: {
+                use std::os::unix::fs::MetadataExt;
+                (
+                    metadata.dev(),
+                    metadata.ino(),
+                    metadata.ctime(),
+                    metadata.ctime_nsec(),
+                )
+            },
+        }
+    }
+}
+#[cfg(windows)]
+type WindowsFileIdentity = (u64, [u8; 16]);
+
+// Metadata timestamps and length do not identify a Windows file: they can be
+// copied onto a replacement. Query the opened handle, never the path or the
+// unstable std::os::windows::fs::MetadataExt identity methods.
+#[cfg(windows)]
+fn windows_file_identity(
+    file: &impl std::os::windows::io::AsRawHandle,
+) -> std::io::Result<WindowsFileIdentity> {
+    use windows_sys::Win32::Storage::FileSystem::{
+        FileIdInfo, GetFileInformationByHandleEx, FILE_ID_INFO,
+    };
+    let mut info = FILE_ID_INFO::default();
+    // SAFETY: the borrowed file keeps its handle live; info is the correctly
+    // sized/aligned output for FileIdInfo and is read only after API success.
+    let ok = unsafe {
+        GetFileInformationByHandleEx(
+            file.as_raw_handle(),
+            FileIdInfo,
+            (&mut info as *mut FILE_ID_INFO).cast(),
+            std::mem::size_of::<FILE_ID_INFO>() as u32,
+        )
+    };
+    if ok == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok((info.VolumeSerialNumber, info.FileId.Identifier))
+}
+
+#[cfg(windows)]
+async fn read_windows_file_identity(
+    file: &fs::File,
+    work: Option<&ReadWork>,
+) -> Result<WindowsFileIdentity, Failure> {
+    let unavailable = |_| (StatusCode::GONE, "Dropped video identity unavailable");
+    let file = checked(work, file.try_clone())
+        .await?
+        .map_err(unavailable)?;
+    // The blocking task owns both the duplicate handle and a read-owner clone,
+    // even if its JoinHandle is dropped. Keep standby work counted until the
+    // syscall drains; checked() refuses cancelled/expired result publication.
+    let owner = work.cloned();
+    checked(work, async move {
+        tokio::task::spawn_blocking(move || {
+            let result = windows_file_identity(&file);
+            drop(owner);
+            result
+        })
+        .await
+    })
+    .await?
+    .map_err(|_| (StatusCode::GONE, "Dropped video identity unavailable"))?
+    .map_err(unavailable)
+}
+
+struct TransientRecord {
+    // Retain the original descriptor, so its filesystem identity cannot be
+    // recycled while this capability remains live. Requests still revalidate.
+    _original: fs::File,
+    record: Record,
+    stamp: FileStamp,
+    #[cfg(windows)]
+    windows_identity: WindowsFileIdentity,
+    live: Arc<AtomicBool>,
+}
+/// A memory-only capability for a single original video. Dropping it revokes
+/// new reads, in-flight stream chunks and compatibility leases. It never copies
+/// media or changes the persistent Local source list.
+pub struct TransientVideo {
+    library: Library,
+    entry: Arc<TransientRecord>,
+}
+impl Drop for TransientVideo {
+    fn drop(&mut self) {
+        self.entry.live.store(false, Ordering::Release);
+        self.library
+            .transient
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&self.entry.record.id);
+        if let Some(manager) = &self.library.compatibility {
+            manager.cancel_item(&self.entry.record.id);
+        }
+    }
+}
+impl TransientVideo {
+    /// `endpoint` is the existing native listener's absolute endpoint, not a
+    /// renderer-supplied address. All returned paths are opaque HTTP URLs.
+    pub fn catalog(&self, endpoint: &str) -> Result<Catalog, &'static str> {
+        let suffix = self.library.endpoint();
+        let port = endpoint
+            .strip_prefix("http://127.0.0.1:")
+            .and_then(|s| s.strip_suffix(&suffix))
+            .and_then(|s| s.parse::<u16>().ok());
+        if port.is_none_or(|p| p == 0) || !self.entry.live.load(Ordering::Acquire) {
+            return Err("Local drop is no longer available");
+        }
+        let r = &self.entry.record;
+        Ok(Catalog {
+            available: true,
+            items: vec![Item {
+                id: r.id.clone(),
+                name: r.name.clone(),
+                directory: String::new(),
+                relative_path: None,
+                size: r.size,
+                mime: r.mime.clone(),
+                url: format!("{endpoint}/{}", r.id),
+                available: true,
+                source: "linked",
+                source_id: r.id.clone(),
+                playback: matches!(r.extension.as_str(), "avi" | "mkv")
+                    .then(|| crate::local_compatibility::Playback::new(endpoint, &r.id, true)),
+            }],
+            storage: "device".into(),
+            persistent: false,
+            upload_url: String::new(),
+            direct_sources: false,
+            read_only: true,
+            sources: vec![Source {
+                id: r.id.clone(),
+                name: r.name.clone(),
+                kind: "file".into(),
+                available: true,
+                access: "granted",
+            }],
+            source_scans: Vec::new(),
+            scanning: false,
+            scanned: 1,
+            total: Some(1),
+            scan_error: None,
+            preferred: None,
+            compatibility: crate::local_compatibility::Capability::new(
+                self.library.compatibility.is_some(),
+            ),
+        })
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 struct SourceRecord {
     id: String,
@@ -677,6 +847,29 @@ async fn checked<T>(
     }
     Ok(value)
 }
+/// Validate the original OS-drop file off the event thread, under the same
+/// tracked, bounded reader as native Local sources. No catalog is opened.
+pub async fn validate_dropped_file(
+    path: PathBuf,
+    work: &crate::background_work::WorkLease,
+) -> Result<(), &'static str> {
+    owned_read_until(
+        work,
+        Some(std::time::Instant::now() + NATIVE_SOURCE_PROBE_TIMEOUT),
+        move |owner| async move {
+            let metadata = checked(Some(&owner), fs::symlink_metadata(path))
+                .await?
+                .map_err(|_| (StatusCode::NOT_FOUND, "Dropped video unavailable"))?;
+            if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() == 0 {
+                return Err((StatusCode::BAD_REQUEST, "Drop one regular video file"));
+            }
+            Ok(())
+        },
+    )
+    .await
+    .map_err(|e| e.1)
+}
+
 impl Library {
     pub async fn new(root: PathBuf, token: String, storage: &str) -> anyhow::Result<Self> {
         anyhow::ensure!(
@@ -701,6 +894,7 @@ impl Library {
             background: Default::default(),
             read_only_paths: None,
             compatibility: None,
+            transient: Arc::default(),
             #[cfg(test)]
             original_checks: Arc::default(),
             #[cfg(test)]
@@ -843,6 +1037,122 @@ impl Library {
             crate::local_compatibility::Manager::new(tools, address, token, bridge).ok();
         self
     }
+    /// Admit one explicit OS-selected video, without scanning or registering a
+    /// durable source. Two slots allow preparing a replacement before revoking
+    /// the active grant. The caller owns the returned capability's lifetime.
+    pub async fn transient_video(&self, path: PathBuf) -> Result<TransientVideo, &'static str> {
+        if self.read_only_paths.is_some() {
+            return Err("Local drops are unavailable in this library");
+        }
+        let extension = path
+            .extension()
+            .and_then(|v| v.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if !matches!(
+            extension.as_str(),
+            "mp4" | "m4v" | "webm" | "avi" | "mkv" | "ogv"
+        ) {
+            return Err("Unsupported dropped video");
+        }
+        let name = path
+            .file_name()
+            .and_then(|v| v.to_str())
+            .filter(|v| !v.is_empty() && !v.chars().any(char::is_control))
+            .ok_or("Invalid dropped video")?
+            .to_string();
+        if !path.is_absolute() || path.as_os_str().len() > 4096 {
+            return Err("Invalid dropped video");
+        }
+        if matches!(extension.as_str(), "avi" | "mkv") && self.compatibility.is_none() {
+            return Err("Local compatibility tools are unavailable");
+        }
+        let work = self
+            .background
+            .enter()
+            .map_err(|_| "Player is in standby")?;
+        let library = self.clone();
+        owned_read_until(
+            &work,
+            Some(std::time::Instant::now() + NATIVE_SOURCE_PROBE_TIMEOUT),
+            move |owner| async move {
+                let before = checked(Some(&owner), fs::symlink_metadata(&path))
+                    .await?
+                    .map_err(|_| (StatusCode::NOT_FOUND, "Dropped video unavailable"))?;
+                if !before.is_file() || before.file_type().is_symlink() || before.len() == 0 {
+                    return Err((StatusCode::BAD_REQUEST, "Drop one regular video file"));
+                }
+                // On Windows, retain a handle to the selected name while
+                // resolving and opening the canonical path. Both opens must
+                // identify the same file as well as pass the metadata checks.
+                #[cfg(windows)]
+                let (selected_file, selected_identity) = {
+                    let file = checked(Some(&owner), fs::File::open(&path))
+                        .await?
+                        .map_err(storage_error)?;
+                    let metadata = checked(Some(&owner), file.metadata())
+                        .await?
+                        .map_err(storage_error)?;
+                    if !metadata.is_file() || FileStamp::new(&before) != FileStamp::new(&metadata) {
+                        return Err((StatusCode::GONE, "Dropped video changed"));
+                    }
+                    let identity = read_windows_file_identity(&file, Some(&owner)).await?;
+                    (file, identity)
+                };
+                let path = checked(Some(&owner), fs::canonicalize(path))
+                    .await?
+                    .map_err(|_| (StatusCode::NOT_FOUND, "Dropped video unavailable"))?;
+                let file = checked(Some(&owner), fs::File::open(&path))
+                    .await?
+                    .map_err(storage_error)?;
+                let metadata = checked(Some(&owner), file.metadata())
+                    .await?
+                    .map_err(storage_error)?;
+                if !metadata.is_file() || FileStamp::new(&before) != FileStamp::new(&metadata) {
+                    return Err((StatusCode::GONE, "Dropped video changed"));
+                }
+                #[cfg(windows)]
+                let windows_identity = read_windows_file_identity(&file, Some(&owner)).await?;
+                #[cfg(windows)]
+                if windows_identity != selected_identity {
+                    return Err((StatusCode::GONE, "Dropped video changed"));
+                }
+                #[cfg(windows)]
+                drop(selected_file);
+                let id = uuid::Uuid::new_v4().simple().to_string();
+                let entry = Arc::new(TransientRecord {
+                    _original: file,
+                    record: Record {
+                        id: id.clone(),
+                        name,
+                        size: metadata.len(),
+                        mime: media_type(&extension).unwrap().into(),
+                        extension,
+                        linked_path: Some(path),
+                        source_id: Some(id.clone()),
+                    },
+                    stamp: FileStamp::new(&metadata),
+                    #[cfg(windows)]
+                    windows_identity,
+                    live: Arc::new(AtomicBool::new(true)),
+                });
+                owner.publish(|| {
+                    let mut entries = library.transient.lock().unwrap_or_else(|e| e.into_inner());
+                    if entries.len() >= 2 {
+                        return Err((StatusCode::CONFLICT, "Another local drop is pending"));
+                    }
+                    entries.insert(id, entry.clone());
+                    Ok(TransientVideo {
+                        library: library.clone(),
+                        entry,
+                    })
+                })?
+            },
+        )
+        .await
+        .map_err(|e| e.1)
+    }
+
     pub fn endpoint(&self) -> String {
         format!("/offline-media/{}", self.token)
     }
@@ -1114,6 +1424,46 @@ impl Library {
             return Err((StatusCode::NOT_FOUND, "Media not found"));
         }
         Ok(path)
+    }
+    // Both direct media and compatibility input use the same opened-file
+    // validation. A revoked transient ID never falls back to a physical path.
+    async fn open_record(
+        &self,
+        id: &str,
+        work: Option<&ReadWork>,
+    ) -> Result<(Record, fs::File, std::fs::Metadata, Option<Arc<AtomicBool>>), Failure> {
+        let transient = self
+            .transient
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(id)
+            .cloned();
+        let record = match &transient {
+            Some(entry) => entry.record.clone(),
+            None => self.read_record(id, work).await?,
+        };
+        let path = self.read_path(&record, work).await?;
+        let file = checked(work, fs::File::open(path))
+            .await?
+            .map_err(storage_error)?;
+        let metadata = checked(work, file.metadata())
+            .await?
+            .map_err(storage_error)?;
+        let live = if let Some(entry) = transient {
+            if !entry.live.load(Ordering::Acquire) || entry.stamp != FileStamp::new(&metadata) {
+                return Err((StatusCode::GONE, "Dropped video changed or was released"));
+            }
+            #[cfg(windows)]
+            if read_windows_file_identity(&file, work).await? != entry.windows_identity
+                || !entry.live.load(Ordering::Acquire)
+            {
+                return Err((StatusCode::GONE, "Dropped video changed or was released"));
+            }
+            Some(entry.live.clone())
+        } else {
+            None
+        };
+        Ok((record, file, metadata, live))
     }
     async fn record(&self, id: &str) -> Result<Record, Failure> {
         self.read_record(id, None).await
@@ -3942,19 +4292,11 @@ async fn media(
             .background
             .enter()
             .map_err(|_| (StatusCode::SERVICE_UNAVAILABLE, "Player is in standby"))?;
-        let (record, file, size) = owned_read(&work, |owner| async move {
-            let record = l.read_record(&id, Some(&owner)).await?;
-            let path = l.read_path(&record, Some(&owner)).await?;
-            let file = checked(Some(&owner), fs::File::open(path))
-                .await?
-                .map_err(storage_error)?;
-            let size = checked(Some(&owner), file.metadata())
-                .await?
-                .map_err(storage_error)?
-                .len();
-            Ok((record, file, size))
+        let (record, file, metadata, live) = owned_read(&work, |owner| async move {
+            l.open_record(&id, Some(&owner)).await
         })
         .await?;
+        let size = metadata.len();
         let range = match byte_range(headers.get("range").and_then(|v| v.to_str().ok()), size) {
             Ok(r) => r,
             Err(e) => {
@@ -3978,14 +4320,20 @@ async fn media(
             Body::empty()
         } else {
             Body::from_stream(stream::try_unfold(
-                (file, length, work),
-                |(file, left, work)| async move {
+                (file, length, work, live),
+                |(file, left, work, live)| async move {
                     if left == 0 {
                         return Ok::<_, std::io::Error>(None);
+                    }
+                    if live.as_ref().is_some_and(|v| !v.load(Ordering::Acquire)) {
+                        return Err(std::io::Error::other("Local drop released"));
                     }
                     let (file, bytes) = read_media_chunk(file, left, &work)
                         .await
                         .map_err(|error| std::io::Error::other(error.1))?;
+                    if live.as_ref().is_some_and(|v| !v.load(Ordering::Acquire)) {
+                        return Err(std::io::Error::other("Local drop released"));
+                    }
                     let read = bytes.len();
                     if read == 0 {
                         return Err(std::io::Error::new(
@@ -3993,7 +4341,10 @@ async fn media(
                             "Local media truncated",
                         ));
                     }
-                    Ok(Some((Bytes::from(bytes), (file, left - read as u64, work))))
+                    Ok(Some((
+                        Bytes::from(bytes),
+                        (file, left - read as u64, work, live),
+                    )))
                 },
             ))
         };
@@ -4027,6 +4378,264 @@ async fn media(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    async fn drop_fixture() -> (PathBuf, Library, PathBuf) {
+        let root = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir_all(&root).await.unwrap();
+        let path = root.join("Video ü with spaces.mp4");
+        fs::write(&path, b"0123456789").await.unwrap();
+        let library = Library::new(root.join("library"), "a".repeat(64), "device")
+            .await
+            .unwrap();
+        (root, library, path)
+    }
+    async fn dropped_response(l: &Library, id: &str, range: Option<&str>) -> Response {
+        let mut headers = HeaderMap::new();
+        if let Some(range) = range {
+            headers.insert("range", range.parse().unwrap());
+        }
+        media(
+            State(l.clone()),
+            Path((l.token.clone(), id.into())),
+            headers,
+            Method::GET,
+        )
+        .await
+    }
+    #[tokio::test]
+    async fn transient_drop_reads_original_range_without_persisting_paths_or_sources() {
+        let (root, library, path) = drop_fixture().await;
+        let video = library.transient_video(path.clone()).await.unwrap();
+        let endpoint = format!("http://127.0.0.1:12345{}", library.endpoint());
+        let catalog = video.catalog(&endpoint).unwrap();
+        let json = serde_json::to_string(&catalog).unwrap();
+        assert!(!json.contains(root.to_str().unwrap()));
+        assert!(!catalog.persistent && catalog.read_only && !catalog.direct_sources);
+        assert_eq!(catalog.sources.len(), 1);
+        assert_eq!(catalog.items.len(), 1);
+        assert_eq!(catalog.items[0].name, "Video ü with spaces.mp4");
+        assert!(catalog.items[0].url.starts_with(&endpoint));
+        assert_eq!(catalog.items[0].relative_path, None);
+        let id = catalog.items[0].id.clone();
+        let response = dropped_response(&library, &id, Some("bytes=2-5")).await;
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(response.headers()["content-range"], "bytes 2-5/10");
+        assert_eq!(
+            axum::body::to_bytes(response.into_body(), 32)
+                .await
+                .unwrap()
+                .as_ref(),
+            b"2345"
+        );
+        assert!(fs::read_dir(&library.root)
+            .await
+            .unwrap()
+            .next_entry()
+            .await
+            .unwrap()
+            .is_none());
+        drop(video);
+        assert_eq!(
+            dropped_response(&library, &id, None).await.status(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(fs::read(path).await.unwrap(), b"0123456789");
+        fs::remove_dir_all(root).await.unwrap();
+    }
+    #[tokio::test]
+    async fn transient_drop_rejects_nonvideo_directory_and_unavailable_compat_without_retiring_active(
+    ) {
+        let (root, library, path) = drop_fixture().await;
+        let active = library.transient_video(path).await.unwrap();
+        for name in ["audio.mp3", "archive.mkv", "legacy.avi"] {
+            let path = root.join(name);
+            fs::write(&path, b"data").await.unwrap();
+            assert!(library.transient_video(path).await.is_err());
+        }
+        let directory = root.join("directory.mp4");
+        fs::create_dir(&directory).await.unwrap();
+        assert!(library.transient_video(directory).await.is_err());
+        #[cfg(unix)]
+        {
+            let alias = root.join("alias.mp4");
+            std::os::unix::fs::symlink(root.join("Video ü with spaces.mp4"), &alias).unwrap();
+            assert!(library.transient_video(alias).await.is_err());
+        }
+        assert_eq!(
+            dropped_response(&library, &active.entry.record.id, None)
+                .await
+                .status(),
+            StatusCode::OK
+        );
+        drop(active);
+        fs::remove_dir_all(root).await.unwrap();
+    }
+    #[tokio::test]
+    async fn transient_drop_is_bounded_and_old_grant_release_does_not_touch_replacement() {
+        let (root, library, path) = drop_fixture().await;
+        let first = library.transient_video(path.clone()).await.unwrap();
+        let first_id = first.entry.record.id.clone();
+        let second = library.transient_video(path.clone()).await.unwrap();
+        assert!(library.transient_video(path.clone()).await.is_err());
+        drop(first);
+        assert_eq!(
+            dropped_response(&library, &first_id, None).await.status(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            dropped_response(&library, &second.entry.record.id, None)
+                .await
+                .status(),
+            StatusCode::OK
+        );
+        let third = library.transient_video(path).await.unwrap();
+        drop(third);
+        drop(second);
+        fs::remove_dir_all(root).await.unwrap();
+    }
+    #[tokio::test]
+    async fn transient_drop_replacement_and_inflight_revoke_cannot_serve_new_file_bytes() {
+        let (root, library, path) = drop_fixture().await;
+        let video = library.transient_video(path.clone()).await.unwrap();
+        let id = video.entry.record.id.clone();
+        let response = dropped_response(&library, &id, None).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        drop(video);
+        assert!(axum::body::to_bytes(response.into_body(), 32)
+            .await
+            .is_err());
+        let video = library.transient_video(path.clone()).await.unwrap();
+        fs::rename(&path, root.join("old.mp4")).await.unwrap();
+        fs::write(&path, b"abcdefghij").await.unwrap();
+        assert_eq!(
+            dropped_response(&library, &video.entry.record.id, None)
+                .await
+                .status(),
+            StatusCode::GONE
+        );
+        drop(video);
+        fs::remove_dir_all(root).await.unwrap();
+    }
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn transient_drop_windows_rejects_same_metadata_replacement() {
+        use std::os::windows::fs::FileTimesExt;
+
+        let (root, library, path) = drop_fixture().await;
+        let video = library.transient_video(path.clone()).await.unwrap();
+        let id = video.entry.record.id.clone();
+        let original = video.entry._original.metadata().await.unwrap();
+        let response = dropped_response(&library, &id, Some("bytes=2-5")).await;
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(
+            axum::body::to_bytes(response.into_body(), 32)
+                .await
+                .unwrap()
+                .as_ref(),
+            b"2345"
+        );
+
+        fs::rename(&path, root.join("original.mp4")).await.unwrap();
+        fs::write(&path, b"abcdefghij").await.unwrap();
+        let replacement = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        replacement
+            .set_times(
+                std::fs::FileTimes::new()
+                    .set_created(original.created().unwrap())
+                    .set_modified(original.modified().unwrap()),
+            )
+            .unwrap();
+        drop(replacement);
+        let replaced = fs::metadata(&path).await.unwrap();
+        assert_eq!(original.len(), replaced.len());
+        assert_eq!(original.created().unwrap(), replaced.created().unwrap());
+        assert_eq!(original.modified().unwrap(), replaced.modified().unwrap());
+        assert!(FileStamp::new(&original) == FileStamp::new(&replaced));
+        let replacement = std::fs::File::open(&path).unwrap();
+        assert_ne!(
+            windows_file_identity(&video.entry._original).unwrap(),
+            windows_file_identity(&replacement).unwrap()
+        );
+        drop(replacement);
+        assert!(video.entry.live.load(Ordering::Acquire));
+        let mut retained = video.entry._original.try_clone().await.unwrap();
+        let mut bytes = Vec::new();
+        retained.read_to_end(&mut bytes).await.unwrap();
+        assert_eq!(bytes, b"0123456789");
+        drop(retained);
+        assert_eq!(
+            dropped_response(&library, &id, None).await.status(),
+            StatusCode::GONE
+        );
+        drop(video);
+        fs::remove_dir_all(root).await.unwrap();
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn transient_drop_windows_still_rejects_metadata_change() {
+        let (root, library, path) = drop_fixture().await;
+        let video = library.transient_video(path.clone()).await.unwrap();
+        let original = windows_file_identity(&video.entry._original).unwrap();
+        fs::write(&path, b"same file, different size")
+            .await
+            .unwrap();
+        let changed = std::fs::File::open(&path).unwrap();
+        assert_eq!(original, windows_file_identity(&changed).unwrap());
+        assert_ne!(video.entry.stamp.size, changed.metadata().unwrap().len());
+        drop(changed);
+        assert_eq!(
+            dropped_response(&library, &video.entry.record.id, None)
+                .await
+                .status(),
+            StatusCode::GONE
+        );
+        drop(video);
+        fs::remove_dir_all(root).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn drop_offer_validation_obeys_the_existing_background_generation() {
+        let (root, library, path) = drop_fixture().await;
+        let old = library.background.enter().unwrap();
+        library.background.set_standby(true);
+        assert!(library.background.enter().is_err());
+        library.background.set_standby(false);
+        assert_eq!(
+            validate_dropped_file(path.clone(), &old).await.unwrap_err(),
+            BACKGROUND_CANCELLED.1
+        );
+        let fresh = library.background.enter().unwrap();
+        assert!(validate_dropped_file(path, &fresh).await.is_ok());
+        drop(old);
+        drop(fresh);
+        fs::remove_dir_all(root).await.unwrap();
+    }
+    #[tokio::test]
+    async fn transient_drop_survives_standby_but_old_stream_does_not() {
+        let (root, library, path) = drop_fixture().await;
+        let video = library.transient_video(path).await.unwrap();
+        let id = video.entry.record.id.clone();
+        let old = dropped_response(&library, &id, None).await;
+        library.background.set_standby(true);
+        assert_eq!(
+            dropped_response(&library, &id, None).await.status(),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        library.background.set_standby(false);
+        assert!(axum::body::to_bytes(old.into_body(), 32).await.is_err());
+        let fresh = dropped_response(&library, &id, None).await;
+        assert_eq!(fresh.status(), StatusCode::OK);
+        assert_eq!(
+            axum::body::to_bytes(fresh.into_body(), 32)
+                .await
+                .unwrap()
+                .as_ref(),
+            b"0123456789"
+        );
+        drop(video);
+        fs::remove_dir_all(root).await.unwrap();
+    }
 
     fn relative_path_record(source: &SourceRecord, path: PathBuf) -> Record {
         Record {

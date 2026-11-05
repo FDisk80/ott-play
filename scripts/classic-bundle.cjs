@@ -109,6 +109,7 @@ const CLASSIC_MODULES = [
     "build/provider/xtream-media.js",
     "build/provider/drivers.js",
     "build/offline/browser-local-media.js",
+    "build/offline/dropped-video.js",
     "build/offline/local-media-progress.js",
     "build/offline/playback-selection.js",
     "build/offline/local-item-path.js",
@@ -117,6 +118,7 @@ const CLASSIC_MODULES = [
     "build/plugins/media-companion-loader.js",
     "build/plugins/local-compatibility.js",
     "build/plugins/local-media-ui.js",
+    "build/plugins/local-drop.js",
     "build/plugins/local-media.js",
     "build/provider/assets.js",
     "build/provider/index.js",
@@ -294,6 +296,10 @@ const CLASSIC_OPTIONAL_BUNDLES = Object.freeze({
     "local-compatibility": [
         "build/plugins/local-compatibility.js",
         "build/commands/remote-local-source-diagnostics.js",
+    ],
+    "local-drop": [
+        "build/offline/dropped-video.js",
+        "build/plugins/local-drop.js",
     ],
     "local-media-ui": ["build/plugins/local-media-ui.js"],
     "media-companion": ["build/plugins/media-companion.js"],

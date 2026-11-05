@@ -371,6 +371,8 @@ var keyStrings = {
     "Drag window": "ونڈو کو گھسیٹیں۔",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ترتیبات",
+    "Drop one video file at a time":
+        "ایک وقت میں ایک ویڈیو فائل گھسیٹ کر چھوڑیں",
     Duration: "دورانیہ",
     Edit: "ترمیم کریں۔",
     "Edit access key": "رسائی کلید میں ترمیم کریں۔",

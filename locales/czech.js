@@ -362,6 +362,7 @@ var keyStrings = {
     "Drag window": "Přesunout okno",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Nastavení Dragon Media PRO",
+    "Drop one video file at a time": "Přetáhněte vždy jen jeden videosoubor",
     Duration: "Délka",
     Edit: "Upravit",
     "Edit access key": "Upravit přístupový klíč",

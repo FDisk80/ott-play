@@ -1,5 +1,7 @@
 # Tauri direct local sources
 
+For a single temporary video, see [Drop a video into the desktop player](desktop-video-drop.md).
+
 The desktop Local videos provider uses the operating system file/folder picker.
 Selected videos remain in their original location: app data stores only small
 JSON records, not copies of media. A folder selection scans media recursively;

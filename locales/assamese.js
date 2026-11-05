@@ -357,6 +357,7 @@ var keyStrings = {
     "Drag window": "উইণ্ড’ টানি নিয়ক",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ছেটিংছ",
+    "Drop one video file at a time": "এবাৰত এটা ভিডিঅ' ফাইল টানি এৰি দিয়ক",
     Duration: "সময়কাল",
     Edit: "সম্পাদনা কৰক",
     "Edit access key": "প্ৰৱেশ চাবি সম্পাদনা কৰক",

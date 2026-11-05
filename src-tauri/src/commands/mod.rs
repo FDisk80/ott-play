@@ -19,3 +19,5 @@ pub mod tmdb;
 pub mod offline_media;
 pub mod local_source_diagnostics;
 pub mod window_controls;
+
+pub mod local_drop;

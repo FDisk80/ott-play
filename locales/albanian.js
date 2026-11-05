@@ -374,6 +374,8 @@ var keyStrings = {
     "Drag window": "Zvarrit dritaren",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Cilësimet Dragon Media PRO",
+    "Drop one video file at a time":
+        "Tërhiqni dhe lëshoni vetëm një skedar video në të njëjtën kohë",
     Duration: "Kohëzgjatja",
     Edit: "Redakto",
     "Edit access key": "Redakto çelësin e hyrjes",

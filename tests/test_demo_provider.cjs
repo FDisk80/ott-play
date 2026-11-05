@@ -84,7 +84,12 @@ const providerUi =
 const providerLoad =
     (process.argv.includes("--bundle")
         ? declarations(providerSource, ["__spreadArray"])
-        : "") + declarations(providerSource, ["loadProv", "syncFromWindow"]);
+        : "") +
+    declarations(providerSource, [
+        "desktopReady",
+        "loadProv",
+        "syncFromWindow",
+    ]);
 
 function storage() {
     return new Map([
@@ -278,6 +283,28 @@ function sessionFixture(backing) {
     vm.runInContext(providerLoad, f.w);
     return { ...f, adapter };
 }
+test("retained dropped video resumes before URL-pinned provider and explicit selection retires it", () => {
+    const backing = storage();
+    backing.set("ottplayprov", "m3u");
+    const before = new Map(backing);
+    const f = sessionFixture(backing);
+    f.w.location.search = "?m3u";
+    f.adapter.localPlayback.begin(() => "drop", { temporaryLibrary: true });
+    let retained = true;
+    f.w.__ottLocalMedia.hasDroppedVideo = () => retained;
+    f.w.__ottLocalMedia.cancelDroppedVideo = () => {
+        retained = false;
+        f.adapter.localPlayback.end(false);
+    };
+    f.w.loadProv();
+    assert.equal(f.w.__ottActiveProviderDriver.id, "offline");
+    assert.deepEqual(f.saved, before);
+    f.w.loadProv("m3u");
+    assert.equal(retained, false);
+    assert.equal(f.w.__ottActiveProviderDriver.id, "m3u");
+    assert.deepEqual(f.saved, before);
+});
+
 test("one-off Local never replaces the startup provider, saved Local profile or playback intent", () => {
     for (const provider of ["m3u", "offline", "demo"]) {
         const backing = storage();
@@ -368,19 +395,27 @@ test("explicit provider choices discard a one-off or promote the same Local sele
                 ts.ScriptTarget.Latest,
                 true
             );
-            let actual;
+            let actual, release;
             function visit(node) {
                 if (
                     ts.isFunctionDeclaration(node) &&
                     node.name?.text === "finishSession"
                 )
                     actual = node.getText(tree);
+                if (
+                    ts.isFunctionDeclaration(node) &&
+                    node.name?.text === "releaseDrop"
+                )
+                    release = node.getText(tree);
                 ts.forEachChild(node, visit);
             }
             visit(tree);
             assert(actual, "real Local session finish function");
+            assert(release, "real dropped-file cleanup function");
             const factory = ts.transpileModule(
                 "(function(w, retireRemotePlayback, playbackIntentContext) { " +
+                    "var droppedPlayback = null; " +
+                    release +
                     actual +
                     "; return finishSession; })",
                 { compilerOptions: { target: ts.ScriptTarget.ES5 } }

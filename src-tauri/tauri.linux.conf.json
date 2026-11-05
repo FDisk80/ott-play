@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "fileAssociations": [
+      {
+        "ext": [
+          "mp4",
+          "m4v"
+        ],
+        "mimeType": "video/mp4",
+        "name": "MP4 video",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "webm"
+        ],
+        "mimeType": "video/webm",
+        "name": "WebM video",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "avi"
+        ],
+        "mimeType": "video/x-msvideo",
+        "name": "AVI video",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "mkv"
+        ],
+        "mimeType": "video/x-matroska",
+        "name": "Matroska video",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "ogv"
+        ],
+        "mimeType": "video/ogg",
+        "name": "Ogg video",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "desktop/video-handler.desktop"
+      },
+      "rpm": {
+        "desktopTemplate": "desktop/video-handler.desktop"
+      }
+    }
+  }
+}

@@ -367,6 +367,8 @@ var keyStrings = {
     "Drag window": "Pārvietot logu",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO iestatījumi",
+    "Drop one video file at a time":
+        "Velciet un nometiet pa vienam video failam",
     Duration: "Ilgums",
     Edit: "Rediģēt",
     "Edit access key": "Rediģēt piekļuves atslēgu",

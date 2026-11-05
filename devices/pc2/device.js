@@ -63,6 +63,14 @@ var keys = {
             return "";
         };
     function sourceType(url) {
+        if (
+            /^blob:/.test(url) &&
+            w.__ottLocalMedia &&
+            w.__ottLocalMedia.playbackMime
+        ) {
+            var mime = w.__ottLocalMedia.playbackMime(url);
+            if (mime && /^video\//.test(mime)) return mime;
+        }
         if (/\.mpd(?:[?#]|$)/i.test(url)) return "application/dash+xml";
         if (/\.(mp4|m4v|mov)(?:[?#]|$)/i.test(url)) return "video/mp4";
         if (/\.webm(?:[?#]|$)/i.test(url)) return "video/webm";
@@ -403,3 +411,13 @@ var keys = {
         });
     });
 })(window);
+
+// Desktop-only gesture support is loaded outside the shared startup bundle.
+if (typeof getScriptDOM === "function")
+    getScriptDOM(
+        (window.host || "") +
+            "/dist/local-drop.js?" +
+            encodeURIComponent(window.__cv || ""),
+        null,
+        null
+    );

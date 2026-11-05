@@ -376,6 +376,8 @@ var keyStrings = {
     "Drag window": "Hudula iwindi",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Izilungiselelo ze-Dragon Media PRO",
+    "Drop one video file at a time":
+        "Hudula bese udedela ifayela levidiyo elilodwa ngesikhathi",
     Duration: "Ubude besikhathi",
     Edit: "Hlela",
     "Edit access key": "Hlela ukhiye wokufinyelela",

@@ -49,3 +49,13 @@ var keys = {
     YELLOW: 67,
     ZOOM: 69,
 };
+
+// Desktop-only gesture support is loaded outside the shared startup bundle.
+if (typeof getScriptDOM === "function")
+    getScriptDOM(
+        (window.host || "") +
+            "/dist/local-drop.js?" +
+            encodeURIComponent(window.__cv || ""),
+        null,
+        null
+    );

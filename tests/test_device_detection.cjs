@@ -188,6 +188,13 @@ function runFixture(fixture, detector, legacy, nativeOverride) {
                 );
             } else if (requestPath === "/js/video.min.js") {
                 context.videojs = function () {};
+            } else if (requestPath === "/dist/local-drop.js") {
+                assert(
+                    ["pc", "pc2"].includes(fixture.expectedDevice),
+                    "Only desktop adapters request the optional drop module"
+                );
+                // Isolate device routing here, as for the media runtime above.
+                // test_local_drop_packaging executes the actual optional module.
             } else {
                 const adapterMatch = requestPath.match(
                     /^\/devices\/(.+)\/device\.js$/
@@ -300,6 +307,9 @@ function runFixture(fixture, detector, legacy, nativeOverride) {
         ...(fixture.expectedDevice === "pc2" ? ["/js/video.min.js"] : []),
         "/dist/player.js",
         "/devices/" + fixture.expectedDevice + "/device.js",
+        ...(["pc", "pc2"].includes(fixture.expectedDevice)
+            ? ["/dist/local-drop.js"]
+            : []),
     ]);
     for (const key of ["UP", "DOWN", "LEFT", "RIGHT", "ENTER", "RETURN"]) {
         assert.equal(typeof context.keys[key], "number", "Loaded key " + key);

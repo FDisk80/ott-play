@@ -364,6 +364,8 @@ var keyStrings = {
     "Drag window": "پنجره را بکشید",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "تنظیمات Dragon Media PRO",
+    "Drop one video file at a time":
+        "هر بار یک فایل ویدئویی را بکشید و رها کنید",
     Duration: "مدت",
     Edit: "ویرایش",
     "Edit access key": "ویرایش کلید دسترسی",

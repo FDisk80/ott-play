@@ -376,6 +376,8 @@ var keyStrings = {
     "Drag window": "Kurura idirishya",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Igenamiterere rya Dragon Media PRO",
+    "Drop one video file at a time":
+        "Kurura dosiye imwe ya videwo uyirekure, imwe imwe",
     Duration: "Igihe bimara",
     Edit: "Hindura",
     "Edit access key": "Hindura urufunguzo rwo kwinjira",

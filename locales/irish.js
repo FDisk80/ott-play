@@ -374,6 +374,8 @@ var keyStrings = {
     "Drag window": "Tarraing an fhuinneog",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Socruithe Dragon Media PRO",
+    "Drop one video file at a time":
+        "Tarraing agus scaoil comhad físe amháin ag an am",
     Duration: "Fad",
     Edit: "Cuir in eagar",
     "Edit access key": "Cuir an eochair rochtana in eagar",

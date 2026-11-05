@@ -669,7 +669,7 @@ function createOfflineDriver(
                     return false;
                 }
                 try {
-                    if (profiles) {
+                    if (profiles && !media.isDroppedCatalog?.(value)) {
                         if (profileCurrent && !profileCurrent()) {
                             recover(localMessage2, false);
                             return false;
@@ -2739,8 +2739,12 @@ function mountProviderDriver(
     if (
         id === "offline" &&
         driverField(host.__ottLocalMedia, "bindPlaybackOwner")
-    )
-        host.__ottLocalMedia.bindPlaybackOwner(owner.active);
+    ) {
+        var releaseDropped = host.__ottLocalMedia.bindPlaybackOwner(
+            owner.active
+        );
+        if (typeof releaseDropped === "function") owner.own(releaseDropped);
+    }
     host.p_pref = profile.prefix;
     host.ottplayDemoActive = id === "demo";
     function storageKey(key: string): string {

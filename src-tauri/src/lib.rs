@@ -75,6 +75,7 @@ pub fn run() {
         .manage(commands::window_controls::AlwaysOnTopPersistence::default())
         .manage(window_aspect::WindowAspectLock::default())
         .manage(commands::offline_media::OfflineMediaState::default())
+        .manage(commands::local_drop::LocalDropState::default())
         .manage(commands::companion::CompanionState::default())
         .manage(commands::queue::QueueHttpRuntime::default())
         .manage(MediaSessionState::default())
@@ -96,6 +97,9 @@ pub fn run() {
             commands::companion::companion_endpoint,
             commands::background::background_standby_status,
             commands::background::set_background_standby,
+            commands::local_drop::local_media_drop_ready,
+            commands::local_drop::local_media_take_drop,
+            commands::local_drop::local_media_release_drop,
             commands::offline_media::offline_media_endpoint,
             commands::offline_media::offline_media_import_files,
             commands::offline_media::offline_media_import_folder,
@@ -148,10 +152,17 @@ pub fn run() {
             commands::misc::feedback_post,
             commands::stalker::stalker_portal_fetch,
         ])
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
+                commands::local_drop::offer(window.app_handle(), window.label(), paths);
+            }
+        })
         .on_page_load(|window, payload| {
             if window.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started
             {
                 let app = window.app_handle().clone();
+                app.state::<commands::local_drop::LocalDropState>()
+                    .advance_page();
                 let generation = app
                     .state::<commands::companion::CompanionState>()
                     .advance_page();
@@ -220,6 +231,8 @@ pub fn run() {
                 builder = instance::apply_isolation(builder, &data_dir);
             }
             builder.build()?;
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            commands::local_drop::initial_arguments(app.handle());
             if let Some(webview) = app.get_webview_window("main") {
                 let window = webview.as_ref().window();
                 let handle = app.handle().clone();
@@ -247,6 +260,12 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                commands::local_drop::opened(_app, &urls);
+            }
+        });
 }

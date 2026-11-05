@@ -374,6 +374,8 @@ var keyStrings = {
     "Drag window": "Повлечи прозорец",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Поставки за Dragon Media PRO",
+    "Drop one video file at a time":
+        "Повлечете и пуштете по една видеодатотека",
     Duration: "Времетраење",
     Edit: "Уреди",
     "Edit access key": "Уреди клуч за пристап",

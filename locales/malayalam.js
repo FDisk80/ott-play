@@ -360,6 +360,7 @@ var keyStrings = {
     "Drag window": "വിൻഡോ വലിച്ചിടുക",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO ക്രമീകരണങ്ങൾ",
+    "Drop one video file at a time": "ഒരേസമയം ഒരു വീഡിയോ ഫയൽ മാത്രം വലിച്ചിടുക",
     Duration: "ദൈർഘ്യം",
     Edit: "എഡിറ്റ്",
     "Edit access key": "എഡിറ്റ് ആക്സസ് കീ",

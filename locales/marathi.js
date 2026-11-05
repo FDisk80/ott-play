@@ -357,6 +357,7 @@ var keyStrings = {
     "Drag window": "विंडो ड्रॅग करा",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO सेटिंग्ज",
+    "Drop one video file at a time": "एका वेळी एक व्हिडिओ फाइल ओढून सोडा",
     Duration: "कालावधी",
     Edit: "संपादित करा",
     "Edit access key": "प्रवेश की संपादित करा",

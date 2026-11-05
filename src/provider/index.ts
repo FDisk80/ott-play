@@ -896,6 +896,12 @@ declare var confirmBox: (
 
 // ─── Load provider ────────────────────────────────────────────────────────────
 
+function desktopReady(commandLoad: object): void {
+    if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+    (window as any).__ottDesktopOpenReady = true;
+    (window as any).__ottLocalDrop?.ready?.();
+}
+
 /**
  * Mount a registered provider instance or load its retained compatibility script.
  * Resets global function overrides (playChannel, channelsList, etc.) to
@@ -927,9 +933,12 @@ export function loadProv(
         if ((window as any).__ottActiveProviderDriver) return;
         providerId = kiosk.snapshot().provider;
     }
+    if (providerId && !localSession)
+        (window as any).__ottLocalMedia?.cancelDroppedVideo?.();
     var commandLoad = {};
     (window as any).__ottCommandChannelLoad = commandLoad;
     (window as any).commandChannelsReady = false;
+    (window as any).__ottDesktopOpenReady = false;
     var nativeCompanion = (window as any).__ottMediaCompanion;
     if (
         (providerId || stbGetItem("ottplayprov")) === "torrent" &&
@@ -1048,6 +1057,7 @@ export function loadProv(
                 .append("<br/><b>" + _("Failed to load!") + "</b>")
                 .hide();
             firstRun();
+            desktopReady(commandLoad);
         }
 
         if (!$("#launch").is(":visible")) {
@@ -1115,7 +1125,9 @@ export function loadProv(
         }
 
         var matchResult =
-            localSession || (kiosk && kiosk.enabled())
+            localSession ||
+            (window as any).__ottLocalMedia?.hasDroppedVideo?.() ||
+            (kiosk && kiosk.enabled())
                 ? null
                 : window.location.search.match(/\?([^&]+)/);
         // Keep an explicitly selected demo after restarting a URL-pinned player.
@@ -1328,6 +1340,8 @@ export function loadProv(
                         ", typeof " +
                         typeof e
                 );
+            } finally {
+                desktopReady(commandLoad);
             }
         }
         function mountDriver(): void {
@@ -1421,110 +1435,119 @@ export function loadChannels(): void {
     var commandLoad = {};
     (window as any).__ottCommandChannelLoad = commandLoad;
     (window as any).commandChannelsReady = false;
-    var idMigration = beginPortChannelIdMigration();
-    (window as any).__ottPlayerState?.changed();
-    if (libraryLoading || !$("#launch").is(":visible")) {
-        if (stbIsPlaying()) stopSourcePlayback();
-        $("#dialogbox")
-            .html(
-                '<center><div class="ott-spinner" aria-hidden="true"><span class="blob"></span><span class="blob"></span><span class="blob"></span><span class="blob"></span></div></center>'
-            )
-            .show();
-        launch_id = "#dialogbox";
-        closeList();
-        if (libraryLoading) {
-            $("#launch").hide();
+    try {
+        var idMigration = beginPortChannelIdMigration();
+        (window as any).__ottPlayerState?.changed();
+        if (libraryLoading || !$("#launch").is(":visible")) {
+            if (stbIsPlaying()) stopSourcePlayback();
+            $("#dialogbox")
+                .html(
+                    '<center><div class="ott-spinner" aria-hidden="true"><span class="blob"></span><span class="blob"></span><span class="blob"></span><span class="blob"></span></div></center>'
+                )
+                .show();
+            launch_id = "#dialogbox";
+            closeList();
+            if (libraryLoading) {
+                $("#launch").hide();
+                if (typeof (window as any).clearBootHide === "function")
+                    (window as any).clearBootHide();
+            }
+        }
+
+        // A selector can be opened while the startup overlay is still visible.
+        // Retire its old catalog rows before replacing their identities below.
+        if (
+            (window as any).isListVisible &&
+            (window as any).listKeyHandlerFn === bucketsKeyHandler
+        )
+            closeList(false);
+
+        primaryIndex = providerGetNum("primaryIndex", 0);
+        cList = [];
+        // Clear channel data in-place to keep window.channels and channels references in sync
+        for (var _ck in channels) {
+            delete channels[_ck];
+        }
+        invalidateEpgCache();
+        curList = [];
+        catsArray = [];
+        cats = {};
+        parentalArray = [];
+        favoritesArray = [];
+        prevArr = providerGetJson("prevArr", []);
+        medHistory = providerGetJson("medHistory", []);
+        medFavorites = providerGetJson("medFavorites", []);
+        mediaUrls = null;
+        catIndex = providerGetNum("catIndex", 0);
+        aAspects = providerGetJson("aAspects", {});
+        aAudios = providerGetJson("aAudios", {});
+        aZooms = providerGetJson("aZooms", {});
+        aSubs = providerGetJson("aSubs", {});
+        loadProviderSettings(getDefaultPlayerMode());
+        (window as any).settings.players = normalizePlayerMode(
+            (window as any).settings.players
+        );
+        setPlayerMode((window as any).settings.players);
+        if (typeof setPlayer === "function") setPlayer();
+
+        $(launch_id).append(
+            '<br/><span data-load-phase="">' +
+                (libraryLoading
+                    ? _("Loading. Please wait...")
+                    : "Loading channel list...") +
+                "</span>" +
+                (libraryLoading ? "<br/>" : "")
+        );
+        var loadTimer: ReturnType<typeof setTimeout> | number = -1;
+        var dismissLoading = function (): void {
+            if (!loadTimer) return;
+            clearTimeout(loadTimer);
+            loadTimer = 0;
+            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+            $("#dialogbox,#buffering,#launch").hide();
             if (typeof (window as any).clearBootHide === "function")
                 (window as any).clearBootHide();
-        }
-    }
-
-    // A selector can be opened while the startup overlay is still visible.
-    // Retire its old catalog rows before replacing their identities below.
-    if (
-        (window as any).isListVisible &&
-        (window as any).listKeyHandlerFn === bucketsKeyHandler
-    )
-        closeList(false);
-
-    primaryIndex = providerGetNum("primaryIndex", 0);
-    cList = [];
-    // Clear channel data in-place to keep window.channels and channels references in sync
-    for (var _ck in channels) {
-        delete channels[_ck];
-    }
-    invalidateEpgCache();
-    curList = [];
-    catsArray = [];
-    cats = {};
-    parentalArray = [];
-    favoritesArray = [];
-    prevArr = providerGetJson("prevArr", []);
-    medHistory = providerGetJson("medHistory", []);
-    medFavorites = providerGetJson("medFavorites", []);
-    mediaUrls = null;
-    catIndex = providerGetNum("catIndex", 0);
-    aAspects = providerGetJson("aAspects", {});
-    aAudios = providerGetJson("aAudios", {});
-    aZooms = providerGetJson("aZooms", {});
-    aSubs = providerGetJson("aSubs", {});
-    loadProviderSettings(getDefaultPlayerMode());
-    (window as any).settings.players = normalizePlayerMode(
-        (window as any).settings.players
-    );
-    setPlayerMode((window as any).settings.players);
-    if (typeof setPlayer === "function") setPlayer();
-
-    $(launch_id).append(
-        '<br/><span data-load-phase="">' +
-            (libraryLoading
-                ? _("Loading. Please wait...")
-                : "Loading channel list...") +
-            "</span>" +
-            (libraryLoading ? "<br/>" : "")
-    );
-    var loadTimer: ReturnType<typeof setTimeout> | number = -1;
-    function dismissLoading(): void {
-        if (!loadTimer) return;
-        clearTimeout(loadTimer);
-        loadTimer = 0;
-        if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
-        $("#dialogbox,#buffering,#launch").hide();
-        if (typeof (window as any).clearBootHide === "function")
-            (window as any).clearBootHide();
-    }
-    (window as any).__ottCommandChannelCancel = {
-        cancel: function () {
-            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
-            catalogSession.dispose();
-            dismissLoading();
-        },
-        owner: commandLoad,
-    };
-    // Managed drivers settle explicitly, including credential editors. Only
-    // dealer scripts that may omit their callback need the compatibility timer.
-    if (!driverOwned) loadTimer = setTimeout(dismissLoading, 3000);
-    catalogSession.own(dismissLoading);
-    catalogSession.run(function () {
-        getChannelsArray(
-            catalogSession.guard(function () {
-                dismissLoading();
+        };
+        (window as any).__ottCommandChannelCancel = {
+            cancel: function () {
                 if ((window as any).__ottCommandChannelLoad !== commandLoad)
                     return;
-                finishPortChannelIdMigration(idMigration);
-                onChannelsLoaded();
-                // Startup callbacks may synchronously switch provider or reload channels.
-                if ((window as any).__ottCommandChannelLoad === commandLoad) {
-                    (window as any).commandChannelsReady = true;
-                    (window as any).__ottPlayerState?.changed();
-                    var kiosk = (window as any).__ottKiosk;
-                    if (kiosk && typeof kiosk.restoreMedia === "function")
-                        kiosk.restoreMedia();
-                }
-            }),
-            dismissLoading
-        );
-    });
+                catalogSession.dispose();
+                dismissLoading();
+            },
+            owner: commandLoad,
+        };
+        // Managed drivers settle explicitly, including credential editors. Only
+        // dealer scripts that may omit their callback need the compatibility timer.
+        if (!driverOwned) loadTimer = setTimeout(dismissLoading, 3000);
+        catalogSession.own(dismissLoading);
+        catalogSession.run(function () {
+            getChannelsArray(
+                catalogSession.guard(function () {
+                    dismissLoading();
+                    if ((window as any).__ottCommandChannelLoad !== commandLoad)
+                        return;
+                    finishPortChannelIdMigration(idMigration);
+                    onChannelsLoaded();
+                    // Startup callbacks may synchronously switch provider or reload channels.
+                    if (
+                        (window as any).__ottCommandChannelLoad === commandLoad
+                    ) {
+                        (window as any).commandChannelsReady = true;
+                        (window as any).__ottPlayerState?.changed();
+                        var kiosk = (window as any).__ottKiosk;
+                        if (kiosk && typeof kiosk.restoreMedia === "function")
+                            kiosk.restoreMedia();
+                    }
+                }),
+                dismissLoading
+            );
+        });
+    } finally {
+        // Release startup files after synchronous setup, without waiting for
+        // catalog I/O or publishing readiness for a superseded generation.
+        desktopReady(commandLoad);
+    }
 }
 
 // ─── Provider selection UI ────────────────────────────────────────────────────

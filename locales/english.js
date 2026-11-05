@@ -360,6 +360,7 @@ var keyStrings = {
     "Drag window": "Drag window",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO settings",
+    "Drop one video file at a time": "Drop one video file at a time",
     Duration: "Duration",
     Edit: "Edit",
     "Edit access key": "Edit access key",

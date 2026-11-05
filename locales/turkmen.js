@@ -367,6 +367,8 @@ var keyStrings = {
     "Drag window": "Penjiräni süýşür",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO sazlamalary",
+    "Drop one video file at a time":
+        "Her gezek diňe bir wideo faýlyny süýräp taşlaň",
     Duration: "Dowamlylygy",
     Edit: "Redaktirle",
     "Edit access key": "Giriş açaryny redaktirle",

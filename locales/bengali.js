@@ -357,6 +357,7 @@ var keyStrings = {
     "Drag window": "উইন্ডো টেনে আনুন",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO সেটিংস",
+    "Drop one video file at a time": "একবারে একটি ভিডিও ফাইল টেনে এনে ছেড়ে দিন",
     Duration: "সময়কাল",
     Edit: "সম্পাদনা করুন",
     "Edit access key": "অ্যাক্সেস কী সম্পাদনা করুন",

@@ -376,6 +376,8 @@ var keyStrings = {
     "Drag window": "Mutați fereastra",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Setări Dragon Media PRO",
+    "Drop one video file at a time":
+        "Trageți și plasați câte un fișier video pe rând",
     Duration: "Durată",
     Edit: "Editează",
     "Edit access key": "Editează cheia de acces",

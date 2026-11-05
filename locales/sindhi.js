@@ -359,6 +359,7 @@ var keyStrings = {
     "Drag window": "ونڊو ڇڪيو",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO جون سيٽنگون",
+    "Drop one video file at a time": "هڪ وقت ۾ هڪ وڊيو فائل ڇڪي ڇڏيو",
     Duration: "مدو",
     Edit: "سنواريو",
     "Edit access key": "رسائي چاٻي سنواريو",

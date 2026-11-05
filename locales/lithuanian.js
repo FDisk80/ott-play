@@ -368,6 +368,8 @@ var keyStrings = {
     "Drag window": "Perkelti langą",
     "Dragon Media PRO": "Dragon Media PRO",
     "Dragon Media PRO settings": "Dragon Media PRO nustatymai",
+    "Drop one video file at a time":
+        "Vilkite ir numeskite po vieną vaizdo failą",
     Duration: "Trukmė",
     Edit: "Redaguoti",
     "Edit access key": "Redaguoti prieigos raktą",

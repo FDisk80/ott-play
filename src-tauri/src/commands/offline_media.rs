@@ -6,9 +6,9 @@ use tauri_plugin_dialog::DialogExt;
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
-struct Runtime {
-    endpoint: String,
-    library: ottplay_core::offline_media::Library,
+pub(super) struct Runtime {
+    pub(super) endpoint: String,
+    pub(super) library: ottplay_core::offline_media::Library,
 }
 #[derive(Default)]
 pub struct OfflineMediaState(
@@ -35,7 +35,7 @@ pub struct Endpoint {
     picker_cancelled: Option<bool>,
 }
 
-async fn runtime(
+pub(super) async fn runtime(
     app: &AppHandle,
     state: &OfflineMediaState,
     preferred_id: Option<&str>,
@@ -453,7 +453,53 @@ mod tests {
         assert_eq!(capability["windows"], serde_json::json!(["main"]));
         assert_eq!(
             capability["permissions"],
-            serde_json::json!(["allow-local-media-control"])
+            serde_json::json!(["allow-local-media-control", "allow-local-media-drop"])
+        );
+        assert_eq!(
+            capability["remote"]["urls"],
+            serde_json::json!([
+                "http://127.0.0.1:8443/*",
+                "http://127.0.0.1:8444/*",
+                "http://127.0.0.1:8445/*",
+                "http://127.0.0.1:8446/*",
+                "http://localhost:8443/*",
+                "http://localhost:8444/*",
+                "http://localhost:8445/*",
+                "http://localhost:8446/*",
+                "http://tauri.localhost/*",
+                "https://tauri.localhost/*",
+                "http://asset.localhost/*",
+                "https://asset.localhost/*",
+                "tauri://localhost/*",
+                "asset://localhost/*"
+            ])
+        );
+        let drop_permission = include_str!("../../permissions/allow-local-media-drop.toml");
+        assert_eq!(
+            drop_permission
+                .lines()
+                .filter(|line| line.trim() == "[[permission]]")
+                .count(),
+            1
+        );
+        assert!(drop_permission
+            .lines()
+            .any(|line| line.trim() == "identifier = \"allow-local-media-drop\""));
+        // This permission uses a JSON-compatible, one-line TOML string array.
+        // Require exactly one declaration and its complete authorized command set.
+        let drop_commands: Vec<_> = drop_permission
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix("commands.allow = "))
+            .collect();
+        assert_eq!(drop_commands.len(), 1);
+        let drop_commands: serde_json::Value = serde_json::from_str(drop_commands[0]).unwrap();
+        assert_eq!(
+            drop_commands,
+            serde_json::json!([
+                "local_media_drop_ready",
+                "local_media_take_drop",
+                "local_media_release_drop"
+            ])
         );
         assert_eq!(
             serde_json::to_value(LocalMediaCapabilities {
