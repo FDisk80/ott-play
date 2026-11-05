@@ -167,6 +167,7 @@ const names = sourceNames("src/provider/index.ts", [
     "isProviderAllowed",
     "arrayProvaiders",
     "provArray",
+    "isOwner",
     "desktopReady",
     "loadProv",
     "firstRun",

@@ -369,6 +369,7 @@ function fixture(
             selectedSource("src/storage/index.ts", ["providerGetNum"]) +
                 "\n" +
                 selectedSource("src/provider/index.ts", [
+                    "isOwner",
                     "desktopReady",
                     "loadChannels",
                 ])

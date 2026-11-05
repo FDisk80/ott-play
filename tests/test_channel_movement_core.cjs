@@ -429,9 +429,15 @@ const readyNode = providerSource.statements.find(
         ts.isFunctionDeclaration(node) && node.name?.text === "desktopReady"
 );
 assert(readyNode);
+const currentNode = providerSource.statements.find(
+    (node) => ts.isFunctionDeclaration(node) && node.name?.text === "isOwner"
+);
+assert(currentNode);
 const loadCode = ts
     .transpileModule(
-        readyNode.getText(providerSource) +
+        currentNode.getText(providerSource) +
+            "\n" +
+            readyNode.getText(providerSource) +
             "\n" +
             loadNode.getText(providerSource),
         {

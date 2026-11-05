@@ -104,7 +104,11 @@ vm.runInContext(
                 "loadEpgTimers",
                 "startEpgTimer",
             ]),
-            source("src/provider/index.ts", ["desktopReady", "loadChannels"]),
+            source("src/provider/index.ts", [
+                "isOwner",
+                "desktopReady",
+                "loadChannels",
+            ]),
         ].join("\n"),
         {
             compilerOptions: {

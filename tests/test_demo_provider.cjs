@@ -86,6 +86,7 @@ const providerLoad =
         ? declarations(providerSource, ["__spreadArray"])
         : "") +
     declarations(providerSource, [
+        "isOwner",
         "desktopReady",
         "loadProv",
         "syncFromWindow",

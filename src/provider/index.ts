@@ -896,8 +896,13 @@ declare var confirmBox: (
 
 // ─── Load provider ────────────────────────────────────────────────────────────
 
+// Read the current owner at every fence; callbacks may replace it.
+function isOwner(commandLoad: object): boolean {
+    return (window as any).__ottCommandChannelLoad === commandLoad;
+}
+
 function desktopReady(commandLoad: object): void {
-    if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+    if (!isOwner(commandLoad)) return;
     (window as any).__ottDesktopOpenReady = true;
     (window as any).__ottLocalDrop?.ready?.();
 }
@@ -945,8 +950,7 @@ export function loadProv(
         nativeCompanion?.nativePending()
     ) {
         nativeCompanion.capabilities().then(function () {
-            if ((window as any).__ottCommandChannelLoad === commandLoad)
-                loadProv(providerId, localSession);
+            if (isOwner(commandLoad)) loadProv(providerId, localSession);
         });
         return;
     }
@@ -954,13 +958,13 @@ export function loadProv(
     (window as any).__ottPlayerState?.changed();
     (window as any).__ottCatalogSelectedId = undefined;
     (window as any).__ottParental.revoke();
-    if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+    if (!isOwner(commandLoad)) return;
     if (localSession && (window as any).__ottClassicPlayback)
         (window as any).__ottClassicPlayback.checkpointNow();
-    if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+    if (!isOwner(commandLoad)) return;
     if ((window as any).__ottClassicPlayback)
         (window as any).__ottClassicPlayback.cancel();
-    if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+    if (!isOwner(commandLoad)) return;
     var providerRuntime = (window as any).__ottProviderRuntime.classic;
     var previousDriver = (window as any).__ottActiveProviderDriver;
     if (previousDriver) {
@@ -970,13 +974,13 @@ export function loadProv(
         if ((window as any).__ottClassicScreenPort)
             (window as any).__ottClassicScreenPort.invalidate();
         previousDriver.dispose();
-        if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+        if (!isOwner(commandLoad)) return;
     }
     // Legacy scripts execute into shared globals. Delay the next reset until
     // any previously requested script has finished evaluating, then run only
     // the latest selection. Session disposal is immediate, before that wait.
     providerRuntime.replace(function (providerSession: any) {
-        if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+        if (!isOwner(commandLoad)) return;
         var rollback: (() => void) | void;
         try {
             rollback = localSession && localSession();
@@ -987,7 +991,7 @@ export function loadProv(
         providerSession.own(function () {
             rollback = undefined;
         });
-        if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+        if (!isOwner(commandLoad)) return;
         if (!isProviderAllowed((window as any)._pendingProvId || ""))
             (window as any)._pendingProvId = "";
         // An explicit choice made from Demo wins for this load only. The stored
@@ -1039,12 +1043,12 @@ export function loadProv(
          */
         function onError(): void {
             if (!providerSession.active()) return;
-            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+            if (!isOwner(commandLoad)) return;
             var cancel = rollback;
             rollback = undefined;
             if (cancel) cancel();
             if (!providerSession.active()) return;
-            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+            if (!isOwner(commandLoad)) return;
             (window as any)._pendingProvId = "";
             var failedProvider = typeof s === "undefined" ? "" : s;
             if (failedProvider !== "no") {
@@ -1198,7 +1202,7 @@ export function loadProv(
             return;
         }
         function providerReady() {
-            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+            if (!isOwner(commandLoad)) return;
             // OTTPLAY_FULL_ONLY_BEGIN
             // Future guide/media/stream requests keep their provider ownership even when
             // invoked later from UI callbacks. Catalog fetches have a separate
@@ -1346,7 +1350,7 @@ export function loadProv(
         }
         function mountDriver(): void {
             if (!providerSession.active()) return;
-            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+            if (!isOwner(commandLoad)) return;
             driverRegistry.mount(window, s, providerSession);
             if (providerSession.active()) providerReady();
         }
@@ -1366,11 +1370,7 @@ export function loadProv(
                     mountDriver,
                     function (error: any) {
                         if (!providerSession.active()) return;
-                        if (
-                            (window as any).__ottCommandChannelLoad !==
-                            commandLoad
-                        )
-                            return;
+                        if (!isOwner(commandLoad)) return;
                         console.error(error);
                         onError();
                     }
@@ -1503,15 +1503,14 @@ export function loadChannels(): void {
             if (!loadTimer) return;
             clearTimeout(loadTimer);
             loadTimer = 0;
-            if ((window as any).__ottCommandChannelLoad !== commandLoad) return;
+            if (!isOwner(commandLoad)) return;
             $("#dialogbox,#buffering,#launch").hide();
             if (typeof (window as any).clearBootHide === "function")
                 (window as any).clearBootHide();
         };
         (window as any).__ottCommandChannelCancel = {
             cancel: function () {
-                if ((window as any).__ottCommandChannelLoad !== commandLoad)
-                    return;
+                if (!isOwner(commandLoad)) return;
                 catalogSession.dispose();
                 dismissLoading();
             },
@@ -1525,14 +1524,11 @@ export function loadChannels(): void {
             getChannelsArray(
                 catalogSession.guard(function () {
                     dismissLoading();
-                    if ((window as any).__ottCommandChannelLoad !== commandLoad)
-                        return;
+                    if (!isOwner(commandLoad)) return;
                     finishPortChannelIdMigration(idMigration);
                     onChannelsLoaded();
                     // Startup callbacks may synchronously switch provider or reload channels.
-                    if (
-                        (window as any).__ottCommandChannelLoad === commandLoad
-                    ) {
+                    if (isOwner(commandLoad)) {
                         (window as any).commandChannelsReady = true;
                         (window as any).__ottPlayerState?.changed();
                         var kiosk = (window as any).__ottKiosk;
