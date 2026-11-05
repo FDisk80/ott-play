@@ -18,6 +18,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+import release_control
 import version_plan
 import version_receipt
 
@@ -338,26 +339,6 @@ class CurrentBuildInputsTests(unittest.TestCase):
 
 
 class RequiredBuildReceiptsTests(unittest.TestCase):
-    def test_policy_receipt_names_fit_the_asset_staging_limit(self):
-        """Reject an impossible receipt inventory before publication begins."""
-        import release_control
-        for size in (199, 200, 201):
-            name = "release-inputs-" + "a" * (size - len("release-inputs-.json")) + ".json"
-            policy = {"versioning": {"schema": 1, "promotion": "final-build",
-                      "files": [{"path": "VERSION", "format": "text", "value": "package"}],
-                      "required_build_receipts": [name]}}
-            with self.subTest(size=size):
-                if size <= 200:
-                    self.assertIsNotNone(release_control.NAME_RE.fullmatch(name))
-                    self.assertEqual(version_plan.validate_policy(policy)["required_build_receipts"], [name])
-                    version_receipt.verify_required_build_receipts([{"name": name}], policy)
-                else:
-                    self.assertIsNone(release_control.NAME_RE.fullmatch(name))
-                    with self.assertRaises(version_plan.VersionError):
-                        version_plan.validate_policy(policy)
-                    with self.assertRaises(version_plan.VersionError):
-                        version_receipt.verify_required_build_receipts([{"name": name}], policy)
-
     def test_legacy_policy_keeps_its_existing_contract(self):
         version_receipt.verify_required_build_receipts([], {"versioning": {}})
 
@@ -386,6 +367,44 @@ class RequiredBuildReceiptsTests(unittest.TestCase):
                 version_plan.VersionError, "duplicate"
             ):
                 version_plan.validate_policy(policy)
+
+    def test_200_character_receipt_name_passes_policy_and_actual_staging(self):
+        name = "release-inputs-" + "x" * 180 + ".json"
+        self.assertEqual(len(name), 200)
+        policy = {"versioning": {"schema": 1, "promotion": "final-build",
+                  "files": [{"path": "VERSION", "format": "text", "value": "package"}],
+                  "required_build_receipts": [name]}}
+        self.assertEqual(version_plan.validate_policy(policy)["required_build_receipts"], [name])
+        version_receipt.verify_required_build_receipts([{"name": name}], policy)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, staged = root / "source", root / "staged"
+            source.mkdir()
+            staged.mkdir()
+            (source / name).write_bytes(b"{}")
+            assets = release_control.stage_assets(source, staged)
+            self.assertEqual([item["name"] for item in assets], [name])
+            self.assertEqual((staged / name).read_bytes(), b"{}")
+
+    def test_201_character_receipt_name_fails_policy_before_staging(self):
+        name = "release-inputs-" + "x" * 181 + ".json"
+        self.assertEqual(len(name), 201)
+        policy = {"versioning": {"schema": 1, "promotion": "final-build",
+                  "files": [{"path": "VERSION", "format": "text", "value": "package"}],
+                  "required_build_receipts": [name]}}
+        with self.assertRaisesRegex(version_plan.VersionError, "200"):
+            version_plan.validate_policy(policy)
+        with self.assertRaisesRegex(version_plan.VersionError, "200"):
+            version_receipt.verify_required_build_receipts([{"name": name}], policy)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, staged = root / "source", root / "staged"
+            source.mkdir()
+            staged.mkdir()
+            (source / name).write_bytes(b"{}")
+            with self.assertRaisesRegex(release_control.ReleaseError, "Unsafe"):
+                release_control.stage_assets(source, staged)
+            self.assertEqual(list(staged.iterdir()), [])
 
     def test_noncolliding_policy_retains_exact_receipt_spelling(self):
         """Casefold detects collisions without normalizing legitimate names."""

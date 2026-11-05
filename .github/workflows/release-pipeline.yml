@@ -121,10 +121,13 @@ jobs:
       actions: read
   checks:
     needs: prepare
-    if: ${{ needs.prepare.outputs.build == 'true' || needs.prepare.outputs.status == 'version-required' }}
+    if: ${{ !cancelled() && ((needs.prepare.result == 'success' && (needs.prepare.outputs.build == 'true' || needs.prepare.outputs.status
+      == 'version-required')) || (needs.prepare.result == 'failure' && github.repository == 'open-ott-play/ottplay-foss'
+      && github.ref == 'refs/heads/main')) }}
     uses: ./.github/workflows/release-quality-gate.yml
     with:
-      channel: ${{ needs.prepare.outputs.channel }}
+      channel: ${{ needs.prepare.outputs.channel || (github.event_name == 'push' && 'beta' || github.event_name
+        == 'schedule' && 'nightly' || inputs.channel) }}
     permissions:
       contents: read
       actions: read
@@ -361,9 +364,9 @@ jobs:
     if: ${{ needs.prepare.outputs.build == 'true' && github.event.repository.private == false && github.event_name
       == 'workflow_dispatch' && github.event.inputs.channel == 'rc' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       }}
-    uses: victron-venus/venus-os-ci-toolkit/.github/workflows/fuzz.yml@d441b3c364087fdadb346fc412092e1f55d00d81 # main
+    uses: victron-venus/venus-os-ci-toolkit/.github/workflows/fuzz.yml@16a1c30ab1b865d5f960cf15d65858987718c1a2 # main
     with:
-      toolkit-ref: d441b3c364087fdadb346fc412092e1f55d00d81
+      toolkit-ref: 16a1c30ab1b865d5f960cf15d65858987718c1a2
       release-plan-artifact: ${{ needs.prepare.outputs.plan_artifact }}
     permissions:
       contents: read
