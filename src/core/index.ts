@@ -2885,75 +2885,32 @@ export function applyAspectRatio(): void {
     // Explicit geometry: WKWebView often top-aligns letterboxed <video> frames
     // despite object-position:center. Size the element to the fitted frame and
     // let flex (#vdiv) center it (contain) or absolute-center the cover crop.
-    if (cw > 0 && ch > 0 && vw > 0 && vh > 0) {
-        var scale =
-            fit === "contain"
-                ? Math.min(cw / vw, ch / vh)
-                : Math.max(cw / vw, ch / vh);
-        var w = Math.max(1, Math.round(vw * scale));
-        var h = Math.max(1, Math.round(vh * scale));
-        if (fit === "contain") {
-            $("#video").css({
-                bottom: "",
-                height: h + "px",
-                left: "",
-                "max-height": "100%",
-                "max-width": "100%",
-                "object-fit": "fill",
-                "object-position": "center center",
-                position: "relative",
-                right: "",
-                top: "",
-                width: w + "px",
-            });
-        } else {
-            $("#video").css({
-                bottom: "",
-                height: h + "px",
-                left: Math.round((cw - w) / 2) + "px",
-                "max-height": "",
-                "max-width": "",
-                "object-fit": "fill",
-                "object-position": "center center",
-                position: "absolute",
-                right: "",
-                top: Math.round((ch - h) / 2) + "px",
-                width: w + "px",
-            });
-        }
-        refreshSubtitleStyle();
-        return;
+    var measured = cw > 0 && ch > 0 && vw > 0 && vh > 0;
+    var contain = fit === "contain";
+    var w = 0;
+    var h = 0;
+    if (measured) {
+        var scale = contain
+            ? Math.min(cw / vw, ch / vh)
+            : Math.max(cw / vw, ch / vh);
+        w = Math.max(1, Math.round(vw * scale));
+        h = Math.max(1, Math.round(vh * scale));
     }
     // Fallback before metadata: CSS contain max-box / cover fill + flex center.
-    if (fit === "contain") {
-        $("#video").css({
-            bottom: "",
-            height: "auto",
-            left: "",
-            "max-height": "100%",
-            "max-width": "100%",
-            "object-fit": "contain",
-            "object-position": "center center",
-            position: "relative",
-            right: "",
-            top: "",
-            width: "auto",
-        });
-    } else {
-        $("#video").css({
-            bottom: 0,
-            height: "100%",
-            left: 0,
-            "max-height": "",
-            "max-width": "",
-            "object-fit": "cover",
-            "object-position": "center center",
-            position: "absolute",
-            right: 0,
-            top: 0,
-            width: "100%",
-        });
-    }
+    // Keep crop offsets inside the object: selecting #video precedes their math.
+    $("#video").css({
+        bottom: measured || contain ? "" : 0,
+        height: measured ? h + "px" : contain ? "auto" : "100%",
+        left: contain ? "" : measured ? Math.round((cw - w) / 2) + "px" : 0,
+        "max-height": contain ? "100%" : "",
+        "max-width": contain ? "100%" : "",
+        "object-fit": measured ? "fill" : contain ? "contain" : "cover",
+        "object-position": "center center",
+        position: contain ? "relative" : "absolute",
+        right: measured || contain ? "" : 0,
+        top: contain ? "" : measured ? Math.round((ch - h) / 2) + "px" : 0,
+        width: measured ? w + "px" : contain ? "auto" : "100%",
+    });
     refreshSubtitleStyle();
 }
 

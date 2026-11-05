@@ -49,12 +49,17 @@ const coreCode = functions("src/core/index.ts", [
     "setZoom",
 ]);
 
-function fixture({ durable = new Map(), mediaOnly = false } = {}) {
+function fixture({
+    durable = new Map(),
+    mediaOnly = false,
+    videoHeight = 1080,
+    videoWidth = 1920,
+} = {}) {
     const dom = new JSDOM('<div id="vdiv"><video id="video"></video></div>');
     const video = dom.window.document.getElementById("video");
     Object.defineProperties(video, {
-        videoHeight: { value: 1080 },
-        videoWidth: { value: 1920 },
+        videoHeight: { value: videoHeight },
+        videoWidth: { value: videoWidth },
     });
     const session = new Map(durable);
     let source = "plex@account-one",
@@ -349,6 +354,194 @@ assert.equal(
 );
 assert.equal(restarted.host.captureAspectTarget().set("fit"), true);
 assert.equal(restarted.host.captureAspectTarget().savedMode, "fit");
+
+function geometryFixture(options) {
+    const rig = fixture(options);
+    const events = [];
+    const styles = [];
+    const select = rig.host.$;
+    rig.host.$ = (selector) => {
+        events.push("select:" + selector);
+        const selected = select(selector);
+        return {
+            css(value) {
+                events.push("css");
+                styles.push({ ...value });
+                selected.css(value);
+            },
+        };
+    };
+    rig.host.applySubtitleAppearance = () => events.push("subtitle");
+    return { ...rig, events, styles };
+}
+
+const measuredContain = {
+    bottom: "",
+    height: "720px",
+    left: "",
+    "max-height": "100%",
+    "max-width": "100%",
+    "object-fit": "fill",
+    "object-position": "center center",
+    position: "relative",
+    right: "",
+    top: "",
+    width: "1280px",
+};
+const measuredCover = {
+    bottom: "",
+    height: "800px",
+    left: "-71px",
+    "max-height": "",
+    "max-width": "",
+    "object-fit": "fill",
+    "object-position": "center center",
+    position: "absolute",
+    right: "",
+    top: "0px",
+    width: "1422px",
+};
+const fallbackContain = {
+    bottom: "",
+    height: "auto",
+    left: "",
+    "max-height": "100%",
+    "max-width": "100%",
+    "object-fit": "contain",
+    "object-position": "center center",
+    position: "relative",
+    right: "",
+    top: "",
+    width: "auto",
+};
+const fallbackCover = {
+    bottom: 0,
+    height: "100%",
+    left: 0,
+    "max-height": "",
+    "max-width": "",
+    "object-fit": "cover",
+    "object-position": "center center",
+    position: "absolute",
+    right: 0,
+    top: 0,
+    width: "100%",
+};
+
+for (const [mode, options, expected] of [
+    [0, {}, measuredContain],
+    [1, {}, measuredCover],
+    [0, { videoWidth: 0 }, fallbackContain],
+    [1, { videoHeight: 0 }, fallbackCover],
+]) {
+    const rig = geometryFixture(options);
+    rig.host.aspectRatio = mode;
+    rig.host.applyAspectRatio();
+    assert.deepEqual(rig.styles, [expected]);
+    assert.deepEqual(Object.keys(rig.styles[0]), Object.keys(expected));
+    assert.deepEqual(rig.events, ["select:#video", "css", "subtitle"]);
+}
+
+// A viewport without dimensions uses the same fallback as missing metadata.
+for (const [mode, expected] of [
+    [0, fallbackContain],
+    [1, fallbackCover],
+]) {
+    const rig = geometryFixture();
+    rig.host.aspectRatio = mode;
+    rig.host.innerWidth = 0;
+    rig.host.applyAspectRatio();
+    assert.deepEqual(rig.styles, [expected]);
+}
+
+// Both measured and metadata-pending transitions must clear old crop styles.
+for (const options of [{}, { videoWidth: 0 }]) {
+    const rig = geometryFixture(options);
+    rig.host.aspectRatio = 1;
+    rig.host.applyAspectRatio();
+    rig.host.aspectRatio = 0;
+    rig.host.applyAspectRatio();
+    assert.deepEqual(
+        rig.styles[1],
+        options.videoWidth === 0 ? fallbackContain : measuredContain
+    );
+    assert.equal(rig.host.video.style.left, "");
+    assert.equal(rig.host.video.style.top, "");
+    assert.equal(rig.host.video.style.position, "relative");
+    assert.deepEqual(rig.events, [
+        "select:#video",
+        "css",
+        "subtitle",
+        "select:#video",
+        "css",
+        "subtitle",
+    ]);
+}
+
+{
+    const rig = geometryFixture();
+    const box = rig.host.document.getElementById("vdiv");
+    Object.defineProperties(box, {
+        clientHeight: { value: 480 },
+        clientWidth: { value: 640 },
+    });
+    rig.host.isFullscreen = false;
+    rig.host.applyAspectRatio();
+    assert.deepEqual(rig.styles, [
+        {
+            ...measuredContain,
+            height: "360px",
+            width: "640px",
+        },
+    ]);
+}
+
+{
+    const rig = geometryFixture();
+    const media = rig.host.video;
+    const wrapper = rig.host.document.createElement("div");
+    wrapper.id = "video";
+    media.removeAttribute("id");
+    media.replaceWith(wrapper);
+    wrapper.append(media);
+    Object.defineProperties(wrapper, {
+        videoHeight: { value: 100 },
+        videoWidth: { value: 100 },
+    });
+    rig.host.applyAspectRatio();
+    assert.deepEqual(rig.styles, [measuredContain]);
+    assert.equal(wrapper.style.width, "1280px");
+    assert.equal(media.style.width, "");
+}
+
+{
+    const rig = geometryFixture();
+    const box = rig.host.document.getElementById("vdiv");
+    Object.defineProperty(box, "offsetWidth", {
+        get() {
+            rig.events.push("layout");
+            return 1280;
+        },
+    });
+    rig.host.Math = Object.create(Math);
+    rig.host.Math.round = (value) => {
+        rig.events.push("round");
+        return Math.round(value);
+    };
+    rig.host.aspectRatio = 1;
+    rig.host.applyAspectRatio();
+    assert.deepEqual(rig.styles, [measuredCover]);
+    assert.deepEqual(rig.events, [
+        "layout",
+        "round",
+        "round",
+        "select:#video",
+        "round",
+        "round",
+        "css",
+        "subtitle",
+    ]);
+}
 
 console.log(
     "PASS aspect: ES5, fit/cover geometry, durable writes, target fencing, per-channel and Plex media-only restart"
