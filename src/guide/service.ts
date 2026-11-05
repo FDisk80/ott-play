@@ -494,6 +494,8 @@ function createGuideService(ports: GuideServicePorts) {
                         reference: state.reference,
                         selectedAt: now,
                     };
+                    // A pending replacement is not a completed empty response.
+                    states[id].projection.retryAt = 0;
                     observe(state.reference);
                 }
             });
@@ -558,6 +560,8 @@ function createGuideService(ports: GuideServicePorts) {
             if (initial) {
                 project(reference, []);
                 state = states[id];
+                // Cancellation must allow the first observation to be retried.
+                state.projection.retryAt = 0;
             }
             state.listeners.push(notify);
             var cancel =
