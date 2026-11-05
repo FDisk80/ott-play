@@ -632,6 +632,7 @@ var keyStrings = {
     "Local source unavailable": "Sumber lokal tidak tersedia",
     "Local URL": "URL lokal",
     "Local videos": "Video lokal",
+    "Lock window to 16:9": "Kunci rasio jendela ke 16:9",
     Login: "Nama pengguna",
     lang: "Bahasa Indonesia",
     large: "besar",

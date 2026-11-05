@@ -620,6 +620,7 @@ var keyStrings = {
     "Local source unavailable": "പ്രാദേശിക ഉറവിടം ലഭ്യമല്ല",
     "Local URL": "പ്രാദേശിക URL",
     "Local videos": "പ്രാദേശിക വീഡിയോകൾ",
+    "Lock window to 16:9": "വിൻഡോ അനുപാതം 16:9 ആയി ലോക്ക് ചെയ്യുക",
     Login: "ഉപയോക്തൃനാമം",
     lang: "മലയാളം",
     large: "വലുത്",

@@ -652,6 +652,7 @@ var keyStrings = {
     "Local source unavailable": "Η τοπική πηγή δεν είναι διαθέσιμη",
     "Local URL": "Τοπικό URL",
     "Local videos": "Τοπικά βίντεο",
+    "Lock window to 16:9": "Κλείδωμα αναλογίας παραθύρου σε 16:9",
     Login: "Όνομα χρήστη",
     lang: "Ελληνικά",
     large: "μεγάλο",

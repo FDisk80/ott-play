@@ -630,6 +630,7 @@ var keyStrings = {
     "Local source unavailable": "Ýerli çeşme elýeterli däl",
     "Local URL": "Ýerli URL",
     "Local videos": "Ýerli wideolar",
+    "Lock window to 16:9": "Penjiräniň gatnaşygyny 16:9 edip gulpla",
     Login: "Ulanyjy ady",
     lang: "Türkmençe",
     large: "uly",

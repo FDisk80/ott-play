@@ -605,6 +605,7 @@ var keyStrings = {
     "Local source unavailable": "ସ୍ଥାନୀୟ ଉତ୍ସ ଉପଲବ୍ଧ ନାହିଁ",
     "Local URL": "ସ୍ଥାନୀୟ URL",
     "Local videos": "ସ୍ଥାନୀୟ ଭିଡିଓ",
+    "Lock window to 16:9": "ୱିଣ୍ଡୋର ଅନୁପାତ 16:9 ରେ ଲକ୍ କରନ୍ତୁ",
     Login: "ବ୍ୟବହାରକାରୀ ନାମ",
     lang: "ଓଡ଼ିଆ",
     large: "ବଡ଼",

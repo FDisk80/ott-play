@@ -652,6 +652,7 @@ var keyStrings = {
     "Local source unavailable": "A fonte local non está dispoñible",
     "Local URL": "URL local",
     "Local videos": "Vídeos locais",
+    "Lock window to 16:9": "Fixar a proporción da xanela en 16:9",
     Login: "Nome de usuario",
     lang: "Galego",
     large: "grande",

@@ -635,6 +635,7 @@ var keyStrings = {
     "Local source unavailable": "Lokalni izvor nije dostupan",
     "Local URL": "Lokalni URL",
     "Local videos": "Lokalni videozapisi",
+    "Lock window to 16:9": "Zaključaj omjer prozora na 16:9",
     Login: "Korisničko ime",
     lang: "Bosanski",
     large: "velika",

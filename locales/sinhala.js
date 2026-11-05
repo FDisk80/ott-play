@@ -618,6 +618,7 @@ var keyStrings = {
     "Local source unavailable": "දේශීය මූලාශ්‍රය ලබා ගත නොහැක",
     "Local URL": "දේශීය URL",
     "Local videos": "දේශීය වීඩියෝ",
+    "Lock window to 16:9": "කවුළුවේ අනුපාතය 16:9 ලෙස අගුළු දමන්න",
     Login: "පරිශීලක නාමය",
     lang: "සිංහල",
     large: "විශාල",

@@ -625,6 +625,7 @@ var keyStrings = {
     "Local source unavailable": "منبع محلی در دسترس نیست",
     "Local URL": "محلی URL",
     "Local videos": "ویدیوهای محلی",
+    "Lock window to 16:9": "قفل کردن نسبت ابعاد پنجره روی 16:9",
     Login: "نام کاربری",
     lang: "فارسی",
     large: "بزرگ",

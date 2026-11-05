@@ -633,6 +633,7 @@ var keyStrings = {
     "Local source unavailable": "Жергілікті дереккөз қолжетімсіз",
     "Local URL": "Жергілікті URL",
     "Local videos": "Жергілікті бейнелер",
+    "Lock window to 16:9": "Терезе арақатынасын 16:9 етіп бекіту",
     Login: "Пайдаланушы аты",
     lang: "Қазақша",
     large: "үлкен",

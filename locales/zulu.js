@@ -651,6 +651,7 @@ var keyStrings = {
     "Local source unavailable": "Umthombo wendawo awutholakali",
     "Local URL": "I-URL yendawo",
     "Local videos": "Amavidiyo akudivayisi",
+    "Lock window to 16:9": "Khiya isilinganiso sewindi ku-16:9",
     Login: "Igama lomsebenzisi",
     lang: "isiZulu",
     large: "okukhulu",

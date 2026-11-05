@@ -622,6 +622,7 @@ var keyStrings = {
     "Local source unavailable": "Staðbundin uppspretta er ekki tiltæk",
     "Local URL": "Staðbundin vefslóð",
     "Local videos": "Staðbundin myndskeið",
+    "Lock window to 16:9": "Læsa stærðarhlutfalli gluggans í 16:9",
     Login: "Notandanafn",
     lang: "Íslenska",
     large: "stórt",

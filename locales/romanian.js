@@ -647,6 +647,7 @@ var keyStrings = {
     "Local source unavailable": "Sursa locală nu este disponibilă",
     "Local URL": "URL local",
     "Local videos": "Videoclipuri locale",
+    "Lock window to 16:9": "Blochează raportul ferestrei la 16:9",
     Login: "Nume de utilizator",
     lang: "Română",
     large: "mare",

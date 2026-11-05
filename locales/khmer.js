@@ -617,6 +617,7 @@ var keyStrings = {
     "Local source unavailable": "ប្រភពក្នុងឧបករណ៍មិនអាចប្រើបាន",
     "Local URL": "URL ក្នុងស្រុក",
     "Local videos": "វីដេអូមូលដ្ឋាន",
+    "Lock window to 16:9": "ចាក់សោសមាមាត្របង្អួរត្រឹម 16:9",
     Login: "ឈ្មោះអ្នកប្រើប្រាស់",
     lang: "ខ្មែរ",
     large: "ធំ",

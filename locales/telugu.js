@@ -612,6 +612,7 @@ var keyStrings = {
     "Local source unavailable": "స్థానిక మూలం అందుబాటులో లేదు",
     "Local URL": "స్థానిక URL",
     "Local videos": "స్థానిక వీడియోలు",
+    "Lock window to 16:9": "విండో నిష్పత్తిని 16:9 వద్ద లాక్ చేయండి",
     Login: "వినియోగదారు పేరు",
     lang: "తెలుగు",
     large: "పెద్దది",

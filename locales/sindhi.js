@@ -621,6 +621,7 @@ var keyStrings = {
     "Local source unavailable": "مقامي ماخذ موجود ناهي",
     "Local URL": "مقامي URL",
     "Local videos": "مقامي وڊيوز",
+    "Lock window to 16:9": "ونڊو جو تناسب 16:9 تي لاڪ ڪريو",
     Login: "يوزر نالو",
     lang: "سنڌي",
     large: "وڏو",

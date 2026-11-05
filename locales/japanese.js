@@ -631,6 +631,7 @@ var keyStrings = {
     "Local source unavailable": "ローカルソースを利用できません",
     "Local URL": "ローカル URL",
     "Local videos": "ローカル動画",
+    "Lock window to 16:9": "ウィンドウの縦横比を16:9に固定",
     Login: "ユーザー名",
     lang: "日本語",
     large: "大",

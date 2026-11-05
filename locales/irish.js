@@ -643,6 +643,7 @@ var keyStrings = {
     "Local source unavailable": "Níl an fhoinse áitiúil ar fáil",
     "Local URL": "URL áitiúil",
     "Local videos": "Físeáin áitiúla",
+    "Lock window to 16:9": "Glasáil cóimheas na fuinneoige ag 16:9",
     Login: "Ainm úsáideora",
     lang: "Gaeilge",
     large: "mór",

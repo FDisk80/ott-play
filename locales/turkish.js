@@ -634,6 +634,7 @@ var keyStrings = {
     "Local source unavailable": "Yerel kaynak kullanılamıyor",
     "Local URL": "Yerel URL",
     "Local videos": "Yerel videolar",
+    "Lock window to 16:9": "Pencere oranını 16:9 olarak kilitle",
     Login: "Kullanıcı adı",
     lang: "Türkçe",
     large: "büyük",

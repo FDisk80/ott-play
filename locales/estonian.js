@@ -629,6 +629,7 @@ var keyStrings = {
     "Local source unavailable": "Kohalik allikas pole saadaval",
     "Local URL": "Kohalik URL",
     "Local videos": "Kohalikud videod",
+    "Lock window to 16:9": "Lukusta akna kuvasuhe 16:9",
     Login: "Kasutajanimi",
     lang: "Eesti",
     large: "suur",

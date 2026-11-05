@@ -640,6 +640,7 @@ var keyStrings = {
     "Local source unavailable": "Lokalni vir ni na voljo",
     "Local URL": "Lokalno URL",
     "Local videos": "Lokalni videoposnetki",
+    "Lock window to 16:9": "Zakleni razmerje stranic okna na 16:9",
     Login: "Uporabniško ime",
     lang: "Slovenščina",
     large: "velik",

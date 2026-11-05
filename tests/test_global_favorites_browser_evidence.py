@@ -1,4 +1,5 @@
 """Inert fixtures for the CI verifier; never start a browser or invoke Git."""
+import base64
 import contextlib
 import copy
 import importlib.util
@@ -214,6 +215,91 @@ class BrowserEvidenceTests(unittest.TestCase):
         self.assertEqual(identity["source_sha256"][verifier.SPEC],
                          verifier.sha((verifier.SPEC + "\n").encode()))
         self.assertEqual(identity["event_sha256"], verifier.sha(event_path.read_bytes()))
+
+    def capture_inputs(self, event_raw=None, raw_commit=None):
+        env = environment()
+        event_path = self.root / "event.json"
+        event_path.write_bytes(event_raw if event_raw is not None else json.dumps(pr_event()).encode())
+        env["GITHUB_EVENT_PATH"] = str(event_path)
+        env["UNRELATED_SECRET"] = "not-for-provenance"
+        raw_commit = commit() if raw_commit is None else raw_commit
+
+        def git(_root, args, _deadline):
+            if args == ["rev-parse", "--verify", "HEAD"]:
+                return (HEAD + "\n").encode()
+            if args == ["cat-file", "-p", HEAD]:
+                return raw_commit
+            self.fail("unexpected Git operation: " + repr(args))
+        return env, git
+
+    def test_early_capture_preserves_exact_event_commit_and_context_only(self):
+        event_raw = (json.dumps(pr_event(), indent=2) + "\r\n").encode()
+        raw_commit = commit() + b"\noriginal message\n"
+        env, git = self.capture_inputs(event_raw, raw_commit)
+        output = self.root / "nested" / "provenance.json"
+        stdout = io.StringIO()
+        with mock.patch.object(verifier, "run_git", side_effect=git), contextlib.redirect_stdout(stdout):
+            code = verifier.capture_provenance(self.root, output, env)
+        saved = json.loads(output.read_bytes())
+        self.assertEqual(code, 0)
+        self.assertEqual(saved["status"], "captured")
+        self.assertNotIn("identity", saved)
+        self.assertEqual(saved["observed"], {"head": HEAD, "tree": TREE, "parents": [BASE, TIP]})
+        self.assertEqual(saved["expected_pr_parents"], [BASE, TIP])
+        for name, raw in (("event", event_raw), ("commit", raw_commit)):
+            self.assertEqual(base64.b64decode(saved["raw"][name]["base64"], validate=True), raw)
+            self.assertEqual(saved["raw"][name]["sha256"], verifier.sha(raw))
+            self.assertEqual(saved["raw"][name]["bytes"], len(raw))
+        self.assertNotIn("UNRELATED_SECRET", saved["context"])
+        self.assertNotIn("not-for-provenance", output.read_text() + stdout.getvalue())
+        self.assertEqual(stdout.getvalue(), "Mixed Favorites provenance: captured\n")
+
+    def test_capture_retains_old_event_base_but_final_guard_still_rejects(self):
+        event = pr_event()
+        event["pull_request"]["base"]["sha"] = "e" * 40
+        env, git = self.capture_inputs(json.dumps(event).encode())
+        output, verdict = self.root / "provenance.json", self.root / "verdict.json"
+        with mock.patch.object(verifier, "run_git", side_effect=git), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(verifier.capture_provenance(self.root, output, env), 0)
+            self.assertEqual(verifier.verify(self.root, self.root / "missing-report.json", verdict,
+                                             "skipped", env), 1)
+        saved = json.loads(output.read_bytes())
+        self.assertEqual(saved["observed"]["parents"], [BASE, TIP])
+        self.assertEqual(saved["expected_pr_parents"], ["e" * 40, TIP])
+        rejected = json.loads(verdict.read_bytes())
+        self.assertEqual(rejected["status"], "failed")
+        self.assertEqual(rejected["code"], "pr_merge_parents_mismatch")
+        self.assertNotIn("cases", rejected)
+
+    def test_capture_malformed_or_oversized_event_fails_without_console_dump(self):
+        for raw, expected in ((b'{"private": "opaque', "invalid_json"),
+                              (b"x" * (4 * 1024 * 1024 + 1), "file_too_large")):
+            with self.subTest(expected=expected):
+                env, git = self.capture_inputs(raw)
+                output = self.root / "provenance.json"
+                output.write_text('{"status":"passed","stale":true}')
+                stdout = io.StringIO()
+                with mock.patch.object(verifier, "run_git", side_effect=git), contextlib.redirect_stdout(stdout):
+                    self.assertEqual(verifier.capture_provenance(self.root, output, env), 1)
+                saved = json.loads(output.read_bytes())
+                self.assertEqual(saved["status"], "failed")
+                self.assertEqual(saved["code"], expected)
+                self.assertNotIn("stale", saved)
+                self.assertNotIn("opaque", stdout.getvalue())
+                if expected == "invalid_json":
+                    self.assertEqual(base64.b64decode(saved["raw"]["event"]["base64"]), raw)
+                else:
+                    self.assertNotIn("raw", saved)
+
+    def test_capture_write_error_is_not_success(self):
+        env, git = self.capture_inputs()
+        stdout = io.StringIO()
+        with mock.patch.object(verifier, "run_git", side_effect=git), \
+                mock.patch.object(verifier, "write_verdict", side_effect=OSError("private")), \
+                contextlib.redirect_stdout(stdout):
+            code = verifier.capture_provenance(self.root, self.root / "provenance.json", env)
+        self.assertEqual(code, 1)
+        self.assertEqual(stdout.getvalue(), "Mixed Favorites provenance: capture_write_failed\n")
 
     def run_verifier(self, raw, outcome="success", identity_error=None):
         path = self.root / "report.json"

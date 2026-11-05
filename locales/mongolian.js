@@ -640,6 +640,7 @@ var keyStrings = {
     "Local source unavailable": "Төхөөрөмжийн эх үүсвэр ашиглах боломжгүй",
     "Local URL": "Дотоод URL",
     "Local videos": "Төхөөрөмжийн видеонууд",
+    "Lock window to 16:9": "Цонхны харьцааг 16:9 болгох",
     Login: "Хэрэглэгчийн нэр",
     lang: "Монгол",
     large: "том",

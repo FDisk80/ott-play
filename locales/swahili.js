@@ -643,6 +643,7 @@ var keyStrings = {
     "Local source unavailable": "Chanzo cha ndani hakipatikani",
     "Local URL": "Karibu URL",
     "Local videos": "Video za ndani",
+    "Lock window to 16:9": "Funga uwiano wa dirisha kuwa 16:9",
     Login: "Jina la mtumiaji",
     lang: "Kiswahili",
     large: "kubwa",

@@ -646,6 +646,7 @@ var keyStrings = {
     "Local source unavailable": "Burimi lokal nuk është i disponueshëm",
     "Local URL": "URL lokale",
     "Local videos": "Video lokale",
+    "Lock window to 16:9": "Blloko raportin e dritares në 16:9",
     Login: "Emri i përdoruesit",
     lang: "Shqip",
     large: "i madh",

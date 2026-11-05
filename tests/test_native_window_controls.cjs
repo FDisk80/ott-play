@@ -36,6 +36,7 @@ function fixture() {
     let locked = false;
     let topmost = false;
     let fullscreen = false;
+    let aspectLock = false;
     const calls = [],
         messages = [];
     const host = {
@@ -72,6 +73,22 @@ function fixture() {
             if (command === "toggle_fullscreen") {
                 fullscreen = !fullscreen;
                 return Promise.resolve({ fullscreen, ok: true });
+            }
+            if (command === "get_window_aspect_lock")
+                return Promise.resolve({
+                    active: aspectLock,
+                    enabled: aspectLock,
+                    ok: true,
+                    supported: true,
+                });
+            if (command === "set_window_aspect_lock") {
+                aspectLock = args.enabled;
+                return Promise.resolve({
+                    active: aspectLock,
+                    enabled: aspectLock,
+                    ok: true,
+                    supported: true,
+                });
             }
             assert.equal(command, "set_always_on_top");
             topmost = args.alwaysOnTop;
@@ -113,7 +130,7 @@ function fixture() {
     };
 }
 
-test("native main window has one provider-independent pair in both presentation modes", () => {
+test("native main window has provider-independent window controls in both presentation modes", () => {
     const f = fixture();
     for (const mode of [0, 1]) {
         f.host.sInterfaceMode = mode;
@@ -122,7 +139,7 @@ test("native main window has one provider-independent pair in both presentation 
             const rows = f.open().rows;
             assert.deepEqual(
                 Array.from(rows, (row) => row.id),
-                ["window.fullscreen", "window.alwaysOnTop"]
+                ["window.fullscreen", "window.alwaysOnTop", "window.aspectLock"]
             );
             assert.match(rows[0].name, />L<.*Full screen/);
             assert.equal(rows[1].name, "Always on top");
@@ -131,7 +148,7 @@ test("native main window has one provider-independent pair in both presentation 
     f.host.sHideMenus = ["window.alwaysOnTop"];
     assert.deepEqual(
         Array.from(f.open().rows, (row) => row.id),
-        ["window.fullscreen"]
+        ["window.fullscreen", "window.aspectLock"]
     );
     assert.deepEqual(f.host.popupActions, []);
     assert.deepEqual(f.calls, [], "opening a menu has no native side effects");
@@ -178,7 +195,7 @@ test("browser, mobile, PiP and missing native APIs expose no native window actio
     delete f.current.isAlwaysOnTop;
     assert.deepEqual(
         Array.from(f.open().rows, (row) => row.id),
-        ["window.fullscreen"]
+        ["window.fullscreen", "window.aspectLock"]
     );
 });
 
@@ -579,7 +596,204 @@ test("applied L toggle with failed native readback never replays through interna
     assert.deepEqual(f.calls, []);
     assert.equal(
         menu.rows.length,
-        2,
+        3,
         "failure does not replace the current Menu"
+    );
+});
+
+test("aspect lock reads the persisted preference and confirms each explicit change", async () => {
+    const f = fixture();
+    await f.action(f.open(), "aspectLock");
+    await f.action(f.open(), "aspectLock");
+    assert.deepEqual(f.calls, [
+        ["get_window_aspect_lock", undefined],
+        ["set_window_aspect_lock", { enabled: true }],
+        ["close"],
+        ["get_window_aspect_lock", undefined],
+        ["set_window_aspect_lock", { enabled: false }],
+        ["close"],
+    ]);
+    assert.deepEqual(f.messages, [
+        "Lock window to 16:9: on",
+        "Lock window to 16:9: off",
+    ]);
+});
+
+test("aspect lock uses enabled preference while the native constraint is suspended", async () => {
+    const f = fixture();
+    f.native.invoke = (command, args) => {
+        f.calls.push([command, args && JSON.parse(JSON.stringify(args))]);
+        return command === "get_window_aspect_lock"
+            ? { active: false, enabled: true, ok: true, supported: true }
+            : { active: false, enabled: false, ok: true, supported: true };
+    };
+    await f.action(f.open(), "aspectLock");
+    assert.deepEqual(f.calls[1], [
+        "set_window_aspect_lock",
+        { enabled: false },
+    ]);
+    assert.deepEqual(f.messages, ["Lock window to 16:9: off"]);
+});
+
+test("malformed aspect state never dispatches a mutation", async () => {
+    for (const reply of [
+        undefined,
+        {},
+        { active: true, enabled: false, ok: true, supported: false },
+        { active: false, enabled: false, ok: true, supported: "false" },
+        { active: false, enabled: "false", ok: true, supported: true },
+        { enabled: false, ok: true, supported: true },
+    ]) {
+        const f = fixture();
+        f.native.invoke = (command) => {
+            f.calls.push([command]);
+            return reply;
+        };
+        await f.action(f.open(), "aspectLock");
+        assert.deepEqual(f.calls, [["get_window_aspect_lock"]]);
+        assert.deepEqual(f.messages, ["Lock window to 16:9: ERROR!"]);
+    }
+});
+
+test("unsupported aspect capability is translated without dispatching a preference change", async () => {
+    for (const enabled of [false, true]) {
+        const f = fixture();
+        const preference = { enabled };
+        f.host._ = (key) => (key === "Unavailable" ? "No disponible" : key);
+        f.native.invoke = (command) => {
+            f.calls.push([command]);
+            return {
+                active: false,
+                enabled: preference.enabled,
+                ok: true,
+                supported: false,
+            };
+        };
+        const menu = f.open();
+        await f.action(menu, "aspectLock");
+        await f.action(menu, "aspectLock");
+        assert.deepEqual(f.calls, [
+            ["get_window_aspect_lock"],
+            ["get_window_aspect_lock"],
+        ]);
+        assert.equal(preference.enabled, enabled);
+        assert.deepEqual(f.messages, [
+            "Lock window to 16:9: No disponible",
+            "Lock window to 16:9: No disponible",
+        ]);
+    }
+});
+
+test("aspect setter rejection does not retry or report the requested value", async () => {
+    for (const reply of [
+        undefined,
+        {},
+        { active: false, enabled: false, ok: true, supported: true },
+        { active: true, enabled: true, ok: true, supported: false },
+        Error("denied"),
+    ]) {
+        const f = fixture();
+        f.native.invoke = (command) => {
+            f.calls.push([command]);
+            if (command === "get_window_aspect_lock")
+                return {
+                    active: false,
+                    enabled: false,
+                    ok: true,
+                    supported: true,
+                };
+            return reply instanceof Error ? Promise.reject(reply) : reply;
+        };
+        await f.action(f.open(), "aspectLock");
+        assert.deepEqual(f.calls, [
+            ["get_window_aspect_lock"],
+            ["set_window_aspect_lock"],
+        ]);
+        assert.deepEqual(f.messages, ["Lock window to 16:9: ERROR!"]);
+    }
+});
+
+test("an aspect read cannot mutate after the menu loses ownership", async () => {
+    for (const leave of [
+        (f) => f.close(),
+        (f) => f.replace(),
+        (f) => f.lock(),
+    ]) {
+        const f = fixture(),
+            wait = deferred();
+        f.native.invoke = (command) => {
+            f.calls.push([command]);
+            return wait.promise;
+        };
+        const pending = f.action(f.open(), "aspectLock");
+        await Promise.resolve();
+        leave(f);
+        wait.resolve({
+            active: false,
+            enabled: false,
+            ok: true,
+            supported: true,
+        });
+        await pending;
+        assert.deepEqual(f.calls, [["get_window_aspect_lock"]]);
+        assert.deepEqual(f.messages, []);
+    }
+});
+
+test("late unsupported capability cannot notify a replaced, closed or locked Menu", async () => {
+    for (const leave of [
+        (f) => f.close(),
+        (f) => f.replace(),
+        (f) => f.lock(),
+    ]) {
+        const f = fixture();
+        const wait = deferred();
+        f.native.invoke = (command) => {
+            f.calls.push([command]);
+            return wait.promise;
+        };
+        const pending = f.action(f.open(), "aspectLock");
+        await Promise.resolve();
+        leave(f);
+        wait.resolve({
+            active: false,
+            enabled: false,
+            ok: true,
+            supported: false,
+        });
+        await pending;
+        assert.deepEqual(f.calls, [["get_window_aspect_lock"]]);
+        assert.deepEqual(f.messages, []);
+    }
+});
+
+test("native window messages retain exact fallback text without a translator", async () => {
+    const f = fixture();
+    delete f.host._;
+    await f.action(f.open(), "fullscreen");
+    await f.action(f.open(), "fullscreen");
+    f.native.invoke = (command) => {
+        f.calls.push([command]);
+        return { active: false, enabled: false, ok: true, supported: false };
+    };
+    await f.action(f.open(), "aspectLock");
+    f.native.invoke = (command) => {
+        f.calls.push([command]);
+        return {};
+    };
+    await f.action(f.open(), "aspectLock");
+    assert.deepEqual(f.messages, [
+        "Full screen: on",
+        "Full screen: off",
+        "Lock window to 16:9: Unavailable",
+        "Lock window to 16:9: Error!",
+    ]);
+    assert.equal(
+        f.calls.filter(([command]) => command === "get_window_aspect_lock").length,
+        2
+    );
+    assert.equal(
+        f.calls.filter(([command]) => command === "set_window_aspect_lock").length,
+        0
     );
 });

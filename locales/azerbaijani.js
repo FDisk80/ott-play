@@ -633,6 +633,7 @@ var keyStrings = {
     "Local source unavailable": "Yerli mənbə əlçatan deyil",
     "Local URL": "Yerli URL",
     "Local videos": "Yerli videolar",
+    "Lock window to 16:9": "Pəncərə nisbətini 16:9 olaraq kilidlə",
     Login: "İstifadəçi adı",
     lang: "Azərbaycanca",
     large: "böyük",

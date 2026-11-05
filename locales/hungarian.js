@@ -639,6 +639,7 @@ var keyStrings = {
     "Local source unavailable": "A helyi forrás nem érhető el",
     "Local URL": "Helyi URL-cím",
     "Local videos": "Helyi videók",
+    "Lock window to 16:9": "Ablak képarányának rögzítése 16:9-re",
     Login: "Felhasználónév",
     lang: "Magyar",
     large: "nagy",

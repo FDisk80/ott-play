@@ -614,6 +614,7 @@ var keyStrings = {
     "Local source unavailable": "แหล่งข้อมูลในเครื่องไม่พร้อมใช้งาน",
     "Local URL": "URL ท้องถิ่น",
     "Local videos": "วิดีโอในเครื่อง",
+    "Lock window to 16:9": "ล็อกอัตราส่วนหน้าต่างเป็น 16:9",
     Login: "ชื่อผู้ใช้",
     lang: "ไทย",
     large: "ใหญ่",

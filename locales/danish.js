@@ -634,6 +634,7 @@ var keyStrings = {
     "Local source unavailable": "Den lokale kilde er ikke tilgængelig",
     "Local URL": "Lokal URL",
     "Local videos": "Lokale videoer",
+    "Lock window to 16:9": "Lås vinduets format til 16:9",
     Login: "Brugernavn",
     lang: "Dansk",
     large: "store",

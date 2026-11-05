@@ -625,6 +625,7 @@ var keyStrings = {
     "Local source unavailable": "로컬 소스를 사용할 수 없습니다",
     "Local URL": "로컬 URL",
     "Local videos": "로컬 동영상",
+    "Lock window to 16:9": "창 비율을 16:9로 고정",
     Login: "사용자 이름",
     lang: "한국어",
     large: "대형",

@@ -614,6 +614,7 @@ var keyStrings = {
     "Local source unavailable": "স্থানীয় উৎস উপলব্ধ নহয়",
     "Local URL": "স্থানীয় URL",
     "Local videos": "স্থানীয় ভিডিঅ'",
+    "Lock window to 16:9": "উইণ্ডোৰ অনুপাত 16:9-ত লক কৰক",
     Login: "ব্যৱহাৰকাৰীৰ নাম",
     lang: "অসমীয়া",
     large: "ডাঙৰ",

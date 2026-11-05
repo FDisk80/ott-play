@@ -609,6 +609,7 @@ var keyStrings = {
     "Local source unavailable": "המקור המקומי אינו זמין",
     "Local URL": "כתובת מקומית",
     "Local videos": "סרטונים מקומיים",
+    "Lock window to 16:9": "נעילת יחס החלון ל־16:9",
     Login: "שם משתמש",
     lang: "עברית",
     large: "גדול",

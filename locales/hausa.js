@@ -633,6 +633,7 @@ var keyStrings = {
     "Local source unavailable": "Ba a samun tushen cikin na’ura",
     "Local URL": "URL na gida",
     "Local videos": "Bidiyoyin gida",
+    "Lock window to 16:9": "Kulle rabon taga zuwa 16:9",
     Login: "Sunan mai amfani",
     lang: "Hausa",
     large: "babba",

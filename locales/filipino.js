@@ -648,6 +648,7 @@ var keyStrings = {
     "Local source unavailable": "Hindi available ang lokal na pinagmulan",
     "Local URL": "Lokal URL",
     "Local videos": "Mga lokal na video",
+    "Lock window to 16:9": "I-lock ang proporsyon ng window sa 16:9",
     Login: "Pangalan ng gumagamit",
     lang: "Filipino",
     large: "malaki",

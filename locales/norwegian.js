@@ -631,6 +631,7 @@ var keyStrings = {
     "Local source unavailable": "Lokal kilde er utilgjengelig",
     "Local URL": "Lokal URL",
     "Local videos": "Lokale videoer",
+    "Lock window to 16:9": "Lås vinduets sideforhold til 16:9",
     Login: "Brukernavn",
     lang: "Norsk bokmål",
     large: "store",

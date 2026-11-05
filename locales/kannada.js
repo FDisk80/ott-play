@@ -615,6 +615,7 @@ var keyStrings = {
     "Local source unavailable": "ಸ್ಥಳೀಯ ಮೂಲ ಲಭ್ಯವಿಲ್ಲ",
     "Local URL": "ಸ್ಥಳೀಯ URL",
     "Local videos": "ಸ್ಥಳೀಯ ವೀಡಿಯೊಗಳು",
+    "Lock window to 16:9": "ವಿಂಡೋ ಅನುಪಾತವನ್ನು 16:9 ಕ್ಕೆ ಲಾಕ್ ಮಾಡಿ",
     Login: "ಬಳಕೆದಾರಹೆಸರು",
     lang: "ಕನ್ನಡ",
     large: "ದೊಡ್ಡದು",

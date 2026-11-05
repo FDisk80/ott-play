@@ -628,6 +628,7 @@ var keyStrings = {
     "Local source unavailable": "உள்ளூர் மூலம் கிடைக்கவில்லை",
     "Local URL": "உள்ளூர் URL",
     "Local videos": "உள்ளூர் காணொளிகள்",
+    "Lock window to 16:9": "சாளர விகிதத்தை 16:9 ஆகப் பூட்டவும்",
     Login: "பயனர்பெயர்",
     lang: "தமிழ்",
     large: "பெரியது",

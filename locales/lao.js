@@ -602,6 +602,7 @@ var keyStrings = {
     "Local source unavailable": "ແຫຼ່ງຂໍ້ມູນໃນເຄື່ອງບໍ່ພ້ອມໃຊ້ງານ",
     "Local URL": "URL ພາຍໃນ",
     "Local videos": "ວິດີໂອພາຍໃນເຄື່ອງ",
+    "Lock window to 16:9": "ລັອກອັດຕາສ່ວນໜ້າຕ່າງເປັນ 16:9",
     Login: "ຊື່ຜູ້ໃຊ້",
     lang: "ລາວ",
     large: "ໃຫຍ່",

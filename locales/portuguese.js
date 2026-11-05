@@ -643,6 +643,7 @@ var keyStrings = {
     "Local source unavailable": "Fonte local indisponível",
     "Local URL": "URL local",
     "Local videos": "Vídeos locais",
+    "Lock window to 16:9": "Fixar a proporção da janela em 16:9",
     Login: "Nome de utilizador",
     lang: "Português",
     large: "grande",

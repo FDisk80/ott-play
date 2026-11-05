@@ -615,6 +615,7 @@ var keyStrings = {
     "Local source unavailable": "ਸਥਾਨਕ ਸਰੋਤ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
     "Local URL": "ਸਥਾਨਕ URL",
     "Local videos": "ਸਥਾਨਕ ਵੀਡੀਓ",
+    "Lock window to 16:9": "ਵਿੰਡੋ ਦਾ ਅਨੁਪਾਤ 16:9 ਉੱਤੇ ਲਾਕ ਕਰੋ",
     Login: "ਵਰਤੋਂਕਾਰ ਨਾਮ",
     lang: "ਪੰਜਾਬੀ",
     large: "ਵੱਡਾ",

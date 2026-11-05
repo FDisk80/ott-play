@@ -638,6 +638,7 @@ var keyStrings = {
     "Local source unavailable": "Манбаи маҳаллӣ дастрас нест",
     "Local URL": "URL-и маҳаллӣ",
     "Local videos": "Видеоҳои маҳаллӣ",
+    "Lock window to 16:9": "Таносуби тирезаро ба 16:9 маҳкам кунед",
     Login: "Номи корбар",
     lang: "Тоҷикӣ",
     large: "калон",

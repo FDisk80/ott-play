@@ -293,7 +293,7 @@ mod tests {
         );
         assert_eq!(
             controls["permissions"],
-            serde_json::json!(["allow-set-always-on-top"])
+            serde_json::json!(["allow-set-always-on-top", "allow-window-aspect-lock"])
         );
         assert_eq!(controls["remote"], default["remote"]);
         assert!(controls.get("webviews").is_none());
@@ -302,7 +302,8 @@ mod tests {
             .unwrap()
             .iter()
             .any(|permission| {
-                permission == "allow-set-always-on-top"
+                permission == "allow-window-aspect-lock"
+                    || permission == "allow-set-always-on-top"
                     || permission == "core:window:allow-set-always-on-top"
             }));
     }

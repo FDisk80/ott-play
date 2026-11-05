@@ -647,6 +647,7 @@ var keyStrings = {
     "Local source unavailable": "Lokale Quelle nicht verfügbar",
     "Local URL": "Lokale URL",
     "Local videos": "Lokale Videos",
+    "Lock window to 16:9": "Fensterformat auf 16:9 fixieren",
     Login: "Benutzername",
     lang: "Deutsch",
     large: "groß",

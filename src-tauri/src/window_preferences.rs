@@ -5,13 +5,22 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+const ASPECT_FILE: &str = "window-aspect-lock";
 const TOPMOST_FILE: &str = "window-always-on-top";
 static NEXT_TEMPORARY: AtomicU64 = AtomicU64::new(0);
 
 /// A missing preference keeps the normal window default. Other invalid input
 /// is reported to the caller, which can warn and use the same default.
 pub fn read_always_on_top(root: &Path) -> io::Result<bool> {
-    let path = root.join(TOPMOST_FILE);
+    read_bool(root, TOPMOST_FILE)
+}
+
+pub fn read_aspect_lock(root: &Path) -> io::Result<bool> {
+    read_bool(root, ASPECT_FILE)
+}
+
+fn read_bool(root: &Path, name: &str) -> io::Result<bool> {
+    let path = root.join(name);
     let metadata = match fs::symlink_metadata(&path) {
         Ok(metadata) => metadata,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
@@ -23,14 +32,14 @@ pub fn read_always_on_top(root: &Path) -> io::Result<bool> {
     if !metadata.is_file() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "Always-on-top preference must be a regular file",
+            "Window preference must be a regular file",
         ));
     }
     let file = File::open(path)?;
     if !file.metadata()?.is_file() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "Opened always-on-top preference must be a regular file",
+            "Opened window preference must be a regular file",
         ));
     }
     let mut value = Vec::with_capacity(4);
@@ -40,18 +49,15 @@ pub fn read_always_on_top(root: &Path) -> io::Result<bool> {
         b"0\n" => Ok(false),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "Invalid always-on-top preference",
+            "Invalid window preference",
         )),
     }
 }
 
-fn create_temporary(root: &Path) -> io::Result<(PathBuf, File)> {
+fn create_temporary(root: &Path, name: &str) -> io::Result<(PathBuf, File)> {
     for _ in 0..16 {
         let number = NEXT_TEMPORARY.fetch_add(1, Ordering::Relaxed);
-        let path = root.join(format!(
-            ".{TOPMOST_FILE}.{}.{number}.tmp",
-            std::process::id()
-        ));
+        let path = root.join(format!(".{name}.{}.{number}.tmp", std::process::id()));
         match OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(file) => return Ok((path, file)),
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
@@ -68,13 +74,21 @@ fn create_temporary(root: &Path) -> io::Result<(PathBuf, File)> {
 /// Separate temporaries prevent two instances sharing a data root from
 /// truncating each other's writes. The last complete replacement wins.
 pub fn write_always_on_top(root: &Path, enabled: bool) -> io::Result<()> {
+    write_bool(root, TOPMOST_FILE, enabled)
+}
+
+pub fn write_aspect_lock(root: &Path, enabled: bool) -> io::Result<()> {
+    write_bool(root, ASPECT_FILE, enabled)
+}
+
+fn write_bool(root: &Path, name: &str, enabled: bool) -> io::Result<()> {
     fs::create_dir_all(root)?;
-    let (temporary, mut file) = create_temporary(root)?;
+    let (temporary, mut file) = create_temporary(root, name)?;
     let result = (|| {
         file.write_all(if enabled { b"1\n" } else { b"0\n" })?;
         file.sync_all()?;
         drop(file);
-        fs::rename(&temporary, root.join(TOPMOST_FILE))?;
+        fs::rename(&temporary, root.join(name))?;
         #[cfg(unix)]
         File::open(root)?.sync_all()?;
         Ok(())
@@ -108,6 +122,35 @@ mod tests {
         fn drop(&mut self) {
             fs::remove_dir_all(&self.0).unwrap();
         }
+    }
+
+    #[test]
+    fn aspect_preference_is_off_by_default_independent_and_instance_scoped() {
+        let root = TestDirectory::new();
+        assert!(!read_aspect_lock(&root.0).unwrap());
+        write_always_on_top(&root.0, true).unwrap();
+        assert!(!read_aspect_lock(&root.0).unwrap());
+        for enabled in [true, true, false] {
+            write_aspect_lock(&root.0, enabled).unwrap();
+            assert_eq!(read_aspect_lock(&root.0).unwrap(), enabled);
+            assert!(read_always_on_top(&root.0).unwrap());
+            assert!(!read_aspect_lock(&root.0.join("other")).unwrap());
+        }
+    }
+
+    #[test]
+    fn aspect_rejects_malformed_and_nonregular_preferences() {
+        let root = TestDirectory::new();
+        fs::write(root.0.join(ASPECT_FILE), b"true").unwrap();
+        assert_eq!(
+            read_aspect_lock(&root.0).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::remove_file(root.0.join(ASPECT_FILE)).unwrap();
+        fs::create_dir(root.0.join(ASPECT_FILE)).unwrap();
+        assert!(read_aspect_lock(&root.0).is_err());
+        assert!(write_aspect_lock(&root.0, true).is_err());
+        assert_eq!(fs::read_dir(&root.0).unwrap().count(), 1);
     }
 
     #[test]

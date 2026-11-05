@@ -633,6 +633,7 @@ var keyStrings = {
     "Local source unavailable": "Paikallinen lähde ei ole käytettävissä",
     "Local URL": "Paikallinen URL",
     "Local videos": "Paikalliset videot",
+    "Lock window to 16:9": "Lukitse ikkunan kuvasuhteeksi 16:9",
     Login: "Käyttäjätunnus",
     lang: "Suomi",
     large: "suuri",

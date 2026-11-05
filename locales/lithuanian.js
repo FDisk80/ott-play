@@ -635,6 +635,7 @@ var keyStrings = {
     "Local source unavailable": "Vietinis šaltinis nepasiekiamas",
     "Local URL": "Vietinis URL",
     "Local videos": "Vietiniai vaizdo įrašai",
+    "Lock window to 16:9": "Užrakinti lango kraštinių santykį 16:9",
     Login: "Naudotojo vardas",
     lang: "Lietuvių",
     large: "didelis",

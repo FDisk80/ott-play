@@ -655,6 +655,7 @@ var keyStrings = {
     "Local source unavailable": "La font local no està disponible",
     "Local URL": "URL local",
     "Local videos": "Vídeos locals",
+    "Lock window to 16:9": "Fixa la proporció de la finestra a 16:9",
     Login: "Nom d’usuari",
     lang: "Català",
     large: "gran",

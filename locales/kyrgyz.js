@@ -643,6 +643,7 @@ var keyStrings = {
     "Local source unavailable": "Жергиликтүү булак жеткиликсиз",
     "Local URL": "Жергиликтүү URL",
     "Local videos": "Жергиликтүү видеолор",
+    "Lock window to 16:9": "Терезенин катышын 16:9 кылып бекитүү",
     Login: "Колдонуучунун аты",
     lang: "Кыргызча",
     large: "чоң",

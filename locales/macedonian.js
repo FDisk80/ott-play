@@ -644,6 +644,7 @@ var keyStrings = {
     "Local source unavailable": "Локалниот извор е недостапен",
     "Local URL": "Локален URL",
     "Local videos": "Локални видеа",
+    "Lock window to 16:9": "Заклучи го соодносот на прозорецот на 16:9",
     Login: "Корисничко име",
     lang: "Македонски",
     large: "голем",

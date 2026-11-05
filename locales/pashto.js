@@ -629,6 +629,7 @@ var keyStrings = {
     "Local source unavailable": "ځايي سرچینه د لاسرسي وړ نه ده",
     "Local URL": "ځایی URL",
     "Local videos": "ځايي ویډیوګانې",
+    "Lock window to 16:9": "د کړکۍ نسبت په 16:9 قلف کړئ",
     Login: "د کارن نوم",
     lang: "پښتو",
     large: "لوی",

@@ -661,6 +661,7 @@ var keyStrings = {
     "Local source unavailable": "Tsy misy ny loharano eo an-toerana",
     "Local URL": "URL eo an-toerana",
     "Local videos": "Horonan-tsary ao amin'ny fitaovana",
+    "Lock window to 16:9": "Hidio ho 16:9 ny refin’ny varavarankely",
     Login: "Anaran'ny mpampiasa",
     lang: "Malagasy",
     large: "lehibe",

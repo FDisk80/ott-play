@@ -624,6 +624,7 @@ var keyStrings = {
     "Local source unavailable": "Local source unavailable",
     "Local URL": "Local URL",
     "Local videos": "Local videos",
+    "Lock window to 16:9": "Lock window to 16:9",
     Login: "Username",
     lang: "English",
     large: "large",

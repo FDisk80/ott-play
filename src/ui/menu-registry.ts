@@ -47,28 +47,29 @@ function createDesktopWindowControls(host: any) {
         }
     }
     function title(kind: string): string {
-        return kind === "fullscreen"
-            ? host._
-                ? host._("Full screen")
-                : "Full screen"
-            : host._
-              ? host._("Always on top")
-              : "Always on top";
+        var key =
+            kind === "aspectLock"
+                ? "Lock window to 16:9"
+                : kind === "fullscreen"
+                  ? "Full screen"
+                  : "Always on top";
+        return host._ ? host._(key) : key;
     }
-    function notify(kind: string, state: boolean | null): void {
+    function notify(kind: string, state: boolean | "unsupported" | null): void {
         try {
-            var status =
-                state === null
-                    ? host._
-                        ? host._("ERROR!")
-                        : "Error!"
-                    : state
-                      ? host._
-                          ? host._("on")
-                          : "on"
-                      : host._
-                        ? host._("off")
+            var statusKey =
+                state === "unsupported"
+                    ? "Unavailable"
+                    : state === null
+                      ? "ERROR!"
+                      : state
+                        ? "on"
                         : "off";
+            var status = host._
+                ? host._(statusKey)
+                : state === null
+                  ? "Error!"
+                  : statusKey;
             if (typeof host.showPopup === "function")
                 host.showPopup(title(kind) + ": " + status);
         } catch (_) {}
@@ -96,16 +97,50 @@ function createDesktopWindowControls(host: any) {
                         result.ok !== true ||
                         typeof result.fullscreen !== "boolean"
                     )
-                        throw new Error("Unconfirmed fullscreen state");
+                        throw new Error();
                     return result.fullscreen;
                 });
             }
+            if (kind === "aspectLock") {
+                return Promise.resolve(
+                    native.owner.invoke("get_window_aspect_lock")
+                ).then(function (current: any) {
+                    if (
+                        !current ||
+                        current.ok !== true ||
+                        typeof current.supported !== "boolean" ||
+                        typeof current.enabled !== "boolean" ||
+                        typeof current.active !== "boolean"
+                    )
+                        throw new Error();
+                    if (!admitted(context)) return null;
+                    if (!current.supported) {
+                        if (current.active) throw new Error();
+                        return "unsupported";
+                    }
+                    var desired = !current.enabled;
+                    return Promise.resolve(
+                        native.owner.invoke("set_window_aspect_lock", {
+                            enabled: desired,
+                        })
+                    ).then(function (result: any) {
+                        if (
+                            !result ||
+                            result.ok !== true ||
+                            result.supported !== true ||
+                            result.enabled !== desired ||
+                            typeof result.active !== "boolean"
+                        )
+                            throw new Error();
+                        return result.enabled;
+                    });
+                });
+            }
             if (typeof native.current.isAlwaysOnTop !== "function")
-                throw new Error("Always-on-top query unavailable");
+                throw new Error();
             return Promise.resolve(native.current.isAlwaysOnTop()).then(
                 function (current: any) {
-                    if (typeof current !== "boolean")
-                        throw new Error("Unconfirmed window state");
+                    if (typeof current !== "boolean") throw new Error();
                     if (!admitted(context)) return null;
                     var desired = !current;
                     return Promise.resolve(
@@ -118,7 +153,7 @@ function createDesktopWindowControls(host: any) {
                             result.ok !== true ||
                             result.alwaysOnTop !== desired
                         )
-                            throw new Error("Unconfirmed always-on-top state");
+                            throw new Error();
                         return result.alwaysOnTop;
                     });
                 }
@@ -136,6 +171,7 @@ function createDesktopWindowControls(host: any) {
                 // a newer screen. The row never displays an optimistic checked state.
                 if (!admitted(context)) return;
                 notify(kind, state);
+                if (state === "unsupported") return;
                 try {
                     if (typeof host.closeList === "function") host.closeList();
                 } catch (_) {}
@@ -158,6 +194,7 @@ function createDesktopWindowControls(host: any) {
             return !!(
                 native &&
                 (kind === "fullscreen" ||
+                    kind === "aspectLock" ||
                     typeof native.current.isAlwaysOnTop === "function")
             );
         },
@@ -403,20 +440,22 @@ function createScreenMenuRegistry() {
         var records = importClassic(host);
         var context: any = { owner: null };
         var controls = desktopControls(host);
-        ["fullscreen", "alwaysOnTop"].forEach(function (kind, index) {
-            if (!controls.available(kind)) return;
-            records.push({
-                action: function () {
-                    return controls.run(kind, context);
-                },
-                detail: controls.title(kind),
-                hint: kind === "fullscreen" ? "L" : undefined,
-                id: "window." + kind,
-                legacyId: "window." + kind,
-                sourceIndex: -2 - index,
-                title: controls.title(kind),
-            });
-        });
+        ["fullscreen", "alwaysOnTop", "aspectLock"].forEach(
+            function (kind, index) {
+                if (!controls.available(kind)) return;
+                records.push({
+                    action: function () {
+                        return controls.run(kind, context);
+                    },
+                    detail: controls.title(kind),
+                    hint: kind === "fullscreen" ? "L" : undefined,
+                    id: "window." + kind,
+                    legacyId: "window." + kind,
+                    sourceIndex: -2 - index,
+                    title: controls.title(kind),
+                });
+            }
+        );
         var hidden = host.sHideMenus || [];
         var focus = 0;
         var rows = records

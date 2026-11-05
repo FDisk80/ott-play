@@ -652,6 +652,7 @@ var keyStrings = {
     "Local source unavailable": "Umthombo wasekuhlaleni awufumaneki",
     "Local URL": "I-URL yasekuhlaleni",
     "Local videos": "Iividiyo ezikwisixhobo",
+    "Lock window to 16:9": "Tshixa umlinganiselo wefestile ku-16:9",
     Login: "Igama lomsebenzisi",
     lang: "isiXhosa",
     large: "enkulu",

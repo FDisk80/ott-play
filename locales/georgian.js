@@ -635,6 +635,7 @@ var keyStrings = {
     "Local source unavailable": "ლოკალური წყარო მიუწვდომელია",
     "Local URL": "ადგილობრივი URL",
     "Local videos": "ლოკალური ვიდეოები",
+    "Lock window to 16:9": "ფანჯრის პროპორციების 16:9-ზე დაფიქსირება",
     Login: "მომხმარებლის სახელი",
     lang: "ქართული",
     large: "დიდი",

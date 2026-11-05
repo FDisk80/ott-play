@@ -33,6 +33,15 @@ updates are marked session-only to avoid feeding Stop back into JavaScript.
 Tauri's second-channel PiP starts muted, matching the browser video. Window drag
 chrome and drag initiation are disabled during native fullscreen.
 
+## Desktop window aspect lock
+
+The Tauri main-window Menu includes **Lock window to 16:9** in both Classic and
+Modern presentation. It defaults to off and is saved separately for each desktop
+instance. It constrains the native content area during interactive resizing;
+video aspect ratio and the independent PiP window keep their existing controls.
+This feature requires native acceptance before release; see the
+[implementation, platform limits and smoke checks](native-window-aspect-lock.md).
+
 ## Android plugin wiring
 
 The Android app compiles its local Kotlin plugins and registers all six with the

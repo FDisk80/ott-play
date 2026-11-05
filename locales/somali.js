@@ -647,6 +647,7 @@ var keyStrings = {
     "Local source unavailable": "Isha maxalliga ah lama heli karo",
     "Local URL": "URL-ka maxalliga ah",
     "Local videos": "Fiidyowyada qalabka",
+    "Lock window to 16:9": "Ku xir saamiga daaqadda 16:9",
     Login: "Magaca isticmaalaha",
     lang: "Soomaali",
     large: "weyn",

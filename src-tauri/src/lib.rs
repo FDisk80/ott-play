@@ -5,11 +5,14 @@ mod commands;
 #[doc(hidden)]
 pub mod native_window_smoke_commands {
     pub use crate::commands::{tauri_commands, window_controls};
+    pub use crate::window_aspect;
 }
 mod instance;
 #[cfg(target_os = "linux")]
 mod linux_media_compat;
 mod preferred_languages;
+#[doc(hidden)]
+pub mod window_aspect;
 mod window_preferences;
 
 use commands::media_session::MediaSessionState;
@@ -70,6 +73,7 @@ pub fn run() {
         .manage(background.clone())
         .manage(commands::background::BackgroundPersistence::default())
         .manage(commands::window_controls::AlwaysOnTopPersistence::default())
+        .manage(window_aspect::WindowAspectLock::default())
         .manage(commands::offline_media::OfflineMediaState::default())
         .manage(commands::companion::CompanionState::default())
         .manage(commands::queue::QueueHttpRuntime::default())
@@ -117,6 +121,8 @@ pub fn run() {
             commands::tauri_commands::set_fullscreen,
             commands::tauri_commands::toggle_fullscreen,
             commands::window_controls::set_always_on_top,
+            window_aspect::get_window_aspect_lock,
+            window_aspect::set_window_aspect_lock,
             commands::tauri_commands::prevent_sleep,
             commands::tauri_commands::allow_sleep,
             commands::tauri_commands::play_pip,
@@ -146,7 +152,9 @@ pub fn run() {
             if window.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started
             {
                 let app = window.app_handle().clone();
-                let generation = app.state::<commands::companion::CompanionState>().advance_page();
+                let generation = app
+                    .state::<commands::companion::CompanionState>()
+                    .advance_page();
                 tauri::async_runtime::spawn(async move {
                     app.state::<commands::companion::CompanionState>()
                         .stop_before(generation)
@@ -212,6 +220,15 @@ pub fn run() {
                 builder = instance::apply_isolation(builder, &data_dir);
             }
             builder.build()?;
+            if let Some(webview) = app.get_webview_window("main") {
+                let window = webview.as_ref().window();
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(error) = window_aspect::initialize(handle, window).await {
+                        tracing::warn!(%error, "Native aspect preference restore failed");
+                    }
+                });
+            }
 
             if let Some(window) = app.get_webview_window("main") {
                 if let Some(url) = web_url {

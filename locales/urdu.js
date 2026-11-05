@@ -635,6 +635,7 @@ var keyStrings = {
     "Local source unavailable": "مقامی ماخذ دستیاب نہیں ہے",
     "Local URL": "مقامی URL",
     "Local videos": "مقامی ویڈیوز",
+    "Lock window to 16:9": "ونڈو کا تناسب 16:9 پر مقفل کریں",
     Login: "صارف نام",
     lang: "اردو",
     large: "بڑا",

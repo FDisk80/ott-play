@@ -598,6 +598,7 @@ var keyStrings = {
     "Local source unavailable": "本地来源不可用",
     "Local URL": "本地URL",
     "Local videos": "本地视频",
+    "Lock window to 16:9": "将窗口比例锁定为 16:9",
     Login: "用户名",
     lang: "简体中文",
     large: "大",

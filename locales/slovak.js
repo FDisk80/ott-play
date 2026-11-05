@@ -640,6 +640,7 @@ var keyStrings = {
     "Local source unavailable": "Lokálny zdroj nie je dostupný",
     "Local URL": "Miestne URL",
     "Local videos": "Miestne videá",
+    "Lock window to 16:9": "Uzamknúť pomer strán okna na 16:9",
     Login: "Používateľské meno",
     lang: "Slovenčina",
     large: "veľký",

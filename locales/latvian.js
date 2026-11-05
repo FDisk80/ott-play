@@ -636,6 +636,7 @@ var keyStrings = {
     "Local source unavailable": "Vietējais avots nav pieejams",
     "Local URL": "Lokālais URL",
     "Local videos": "Vietējie videoklipi",
+    "Lock window to 16:9": "Fiksēt loga malu attiecību 16:9",
     Login: "Lietotājvārds",
     lang: "Latviešu",
     large: "liels",

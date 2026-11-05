@@ -56,11 +56,17 @@ jobs:
         with:
           shared-key: windows-installer-lifecycle
       - run: npm ci --ignore-scripts
+      - name: Test Windows native-check failure propagation and text encoding
+        timeout-minutes: 4
+        run: python tests/test_windows_native_checks.py
       - name: Check installer harness and native dependency constraints
         run: |
           python tests/test_windows_installers.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python scripts/check-updater-backport.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python scripts/check-updater-features.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exercise updater ZIP extraction on Windows
         run: cargo test --locked --manifest-path tests/updater-zip-regression/Cargo.toml
       - name: Bundle MSI and NSIS without signing or publishing
@@ -77,12 +83,16 @@ jobs:
           python scripts/check-windows-manifest.py --cargo-json build/windows-window-controls-report/test-artifacts.jsonl --binary target/release/ottplay-tauri.exe --output build/windows-window-controls-report/test-manifests.json
       - name: Test main-window control contracts on Windows
         run: cargo test --locked -p ottplay-tauri window_controls::tests
+      - name: Test native aspect command and geometry contracts
+        run: "cargo test --locked -p ottplay-tauri window_aspect::"
       - name: Test saved window preferences
         run: cargo test --locked -p ottplay-tauri window_preferences::tests
       - name: Test fullscreen confirmation contracts on Windows
         run: cargo test --locked -p ottplay-tauri fullscreen_confirmation_tests
       - name: Check owned-window smoke runner
         run: python tests/test_window_controls_smoke.py
+      - name: Test isolated window fixture watchdog contracts on Windows
+        run: cargo test --locked -p ottplay-tauri --example window_controls_smoke
       - name: Build isolated window controls fixture
         run: cargo build --locked -p ottplay-tauri --example window_controls_smoke
       - name: Verify isolated fixture manifest before launch
@@ -250,6 +260,74 @@ jobs:
         run: node scripts/check-block-backport.cjs --runtime
       - name: Test compiled Tauri HTTP bridge
         run: cargo test --locked -p ottplay-tauri
+      - name: Check native window smoke runner contracts
+        run: python3 tests/test_window_controls_smoke.py
+      - name: Build isolated AppKit window controls fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          report="$RUNNER_TEMP/ott-macos-window-controls"
+          mkdir "$report"
+          git rev-parse HEAD > "$report/source-commit.txt"
+          sw_vers > "$report/host.txt"
+          uname -m >> "$report/host.txt"
+          git diff --binary HEAD -- > "$report/tracked-before-build.diff"
+          # Earlier cap sync rewrites only these iOS project metadata files.
+          # All native sources remain clean; the complete diff must then stay fixed.
+          git diff --exit-code HEAD -- . \
+            ':(exclude)ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved' \
+            ':(exclude)ios/App/CapApp-SPM/Package.swift'
+          cargo build --locked -p ottplay-tauri --example window_controls_smoke
+          git diff --binary HEAD -- > "$report/tracked-after-build.diff"
+          cmp "$report/tracked-before-build.diff" "$report/tracked-after-build.diff"
+      - name: Exercise AppKit aspect constraints through native IPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          report="$RUNNER_TEMP/ott-macos-window-controls"
+          git diff --binary HEAD -- > "$report/tracked-before-smoke.diff"
+          cmp "$report/tracked-before-build.diff" "$report/tracked-before-smoke.diff"
+          shasum -a 256 target/debug/examples/window_controls_smoke > "$report/binary-before.sha256"
+          set +e
+          python3 scripts/check-window-controls.py --output "$report"
+          outcome=$?
+          set -e
+          shasum -a 256 target/debug/examples/window_controls_smoke > "$report/binary-after.sha256"
+          cmp "$report/binary-before.sha256" "$report/binary-after.sha256"
+          git diff --binary HEAD -- > "$report/tracked-after-smoke.diff"
+          cmp "$report/tracked-before-build.diff" "$report/tracked-after-smoke.diff"
+          exit "$outcome"
+      - name: Prepare bounded AppKit failure logs
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/ott-macos-window-controls"
+          if [ -d "$report" ]; then
+            shopt -s nullglob
+            for log in "$report"/*.log; do
+              shasum -a 256 "$log" >> "$report/logs.sha256"
+              wc -c "$log" >> "$report/log-bytes.txt"
+              tail -c 2097152 "$log" > "$log.tail"
+            done
+          fi
+      - name: Preserve AppKit window controls evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-window-controls-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ott-macos-window-controls/*.json
+            ${{ runner.temp }}/ott-macos-window-controls/*.sha256
+            ${{ runner.temp }}/ott-macos-window-controls/*.txt
+            ${{ runner.temp }}/ott-macos-window-controls/*.diff
+            ${{ runner.temp }}/ott-macos-window-controls/*.log.tail
+          if-no-files-found: warn
+          retention-days: 14
       - name: Exercise screenshot permissions through real native IPC
         run: |
           screenshot_smoke_dir="$RUNNER_TEMP/ottplay-screenshot-ipc"
@@ -346,5 +424,92 @@ jobs:
             ${{ runner.temp }}/ottplay-favorites-${{ github.run_id }}-${{ github.run_attempt }}/evidence/stage-b-runtime/capabilities-slot2.json
             ${{ runner.temp }}/ottplay-favorites-${{ github.run_id }}-${{ github.run_attempt }}/evidence/stage-b-runtime/capabilities-slot3.json
             ${{ runner.temp }}/ottplay-favorites-${{ github.run_id }}-${{ github.run_attempt }}/evidence/stage-b-runtime/capabilities-slot4.json
+          if-no-files-found: error
+          retention-days: 7
+
+  linux-window-controls:
+    name: GTK X11 window constraint acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: "2"
+      GDK_BACKEND: x11
+      GDK_SCALE: "1"
+      GDK_DPI_SCALE: "1"
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Install existing Linux dependencies and owned X11 session tools
+        run: |
+          bash scripts/ci-tauri-linux-deps.sh
+          sudo apt-get install -y xvfb xauth dbus-x11 openbox x11-utils
+      - run: npm ci --ignore-scripts
+      - run: npm run build --ignore-scripts
+      - name: Validate window evidence checker contracts
+        run: |
+          python3 tests/test_window_controls_smoke.py
+          python3 tests/test_window_controls_x11.py
+      - name: Test the unchanged total deadline on Linux
+        run: cargo test --locked -p ottplay-tauri --example window_controls_smoke
+      - name: Compile the real GTK X11 branch and isolated window fixture
+        run: cargo build --locked -p ottplay-tauri --example window_controls_smoke
+      - name: Exercise X11 native hints, geometry, IPC and saved preferences
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code HEAD --
+          export REPORT="$RUNNER_TEMP/ott-x11-window-controls"
+          mkdir "$REPORT"
+          git rev-parse HEAD > "$REPORT/source-commit.txt"
+          uname -a > "$REPORT/host.txt"
+          dpkg-query -W libgtk-3-0t64 libwebkit2gtk-4.1-0 openbox xvfb >> "$REPORT/host.txt"
+          sha256sum target/debug/examples/window_controls_smoke > "$REPORT/binary-before.sha256"
+          set +e
+          timeout 240s dbus-run-session -- xvfb-run -a -e "$REPORT/xvfb.log" -s "-screen 0 1280x800x24" bash -euo pipefail <<'X11'
+          openbox --sm-disable > "$REPORT/openbox.log" 2>&1 &
+          wm=$!
+          trap 'status=$?; kill "$wm" 2>/dev/null || true; wait "$wm" 2>/dev/null || true; exit "$status"' EXIT
+          ready=false
+          for attempt in $(seq 1 30); do
+            if xprop -root _NET_SUPPORTING_WM_CHECK | grep -Eq "window id # 0x[1-9a-fA-F]"; then
+              ready=true
+              break
+            fi
+            kill -0 "$wm"
+            sleep 0.1
+          done
+          test "$ready" = true
+          python3 scripts/check-window-controls.py --output "$REPORT"
+          X11
+          outcome=$?
+          set -e
+          sha256sum target/debug/examples/window_controls_smoke > "$REPORT/binary-after.sha256"
+          cmp "$REPORT/binary-before.sha256" "$REPORT/binary-after.sha256"
+          git diff --exit-code HEAD --
+          exit "$outcome"
+      - name: Preserve owned X11 acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-x11-window-controls-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ott-x11-window-controls/
           if-no-files-found: error
           retention-days: 7

@@ -614,6 +614,7 @@ var keyStrings = {
     "Local source unavailable": "စက်တွင်းရင်းမြစ် မရရှိနိုင်ပါ",
     "Local URL": "ပြည်တွင်း URL",
     "Local videos": "စက်တွင်း ဗီဒီယိုများ",
+    "Lock window to 16:9": "ဝင်းဒိုးအချိုးကို 16:9 တွင် လော့ခ်ချပါ",
     Login: "အသုံးပြုသူအမည်",
     lang: "မြန်မာ",
     large: "ကြီးမားသည်။",

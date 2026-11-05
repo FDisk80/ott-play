@@ -640,6 +640,7 @@ var keyStrings = {
     "Local source unavailable": "Локалният източник е недостъпен",
     "Local URL": "Локален URL",
     "Local videos": "Локални видеоклипове",
+    "Lock window to 16:9": "Заключване на пропорциите на прозореца на 16:9",
     Login: "Потребителско име",
     lang: "Български",
     large: "голям",

@@ -631,6 +631,7 @@ var keyStrings = {
     "Local source unavailable": "Sumber setempat tidak tersedia",
     "Local URL": "URL setempat",
     "Local videos": "Video setempat",
+    "Lock window to 16:9": "Kunci nisbah tetingkap kepada 16:9",
     Login: "Nama pengguna",
     lang: "Bahasa Melayu",
     large: "besar",

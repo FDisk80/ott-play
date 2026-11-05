@@ -632,6 +632,7 @@ var keyStrings = {
     "Local source unavailable": "Տեղային աղբյուրը հասանելի չէ",
     "Local URL": "Տեղային URL",
     "Local videos": "Տեղական տեսանյութեր",
+    "Lock window to 16:9": "Ամրագրել պատուհանի 16:9 հարաբերակցությունը",
     Login: "Օգտանուն",
     lang: "Հայերեն",
     large: "մեծ",

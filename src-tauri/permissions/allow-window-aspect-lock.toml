@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-window-aspect-lock"
+description = "Allows the main window to query and set its own native interactive aspect constraint."
+commands.allow = ["get_window_aspect_lock", "set_window_aspect_lock"]

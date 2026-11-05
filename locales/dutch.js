@@ -641,6 +641,7 @@ var keyStrings = {
     "Local source unavailable": "Lokale bron niet beschikbaar",
     "Local URL": "Lokale URL",
     "Local videos": "Lokale video's",
+    "Lock window to 16:9": "Vensterverhouding vergrendelen op 16:9",
     Login: "Gebruikersnaam",
     lang: "Nederlands",
     large: "groot",

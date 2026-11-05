@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify saved mixed-Favorites browser evidence against the CI checkout/event."""
 import argparse
+import base64
 import hashlib
 import json
 import math
@@ -162,6 +163,62 @@ def collect_identity(root, env, deadline):
     return identity
 
 
+def capture_provenance(root, output, env):
+    """Save original observations before tests, without certifying acceptance."""
+    receipt = {"version": 1, "status": "failed", "code": "capture_unavailable",
+               "scope": "raw checkout/event observations, not browser qualification"}
+    deadline = time.monotonic() + 30
+    try:
+        head = oid(run_git(root, ["rev-parse", "--verify", "HEAD"], deadline)
+                   .decode("ascii").strip())
+        commit = run_git(root, ["cat-file", "-p", head], deadline)
+        event_raw = read_bounded(field(env, "GITHUB_EVENT_PATH", 4096), 4 * 1024 * 1024)
+        # Base64 retains the exact bytes, including whitespace and line endings.
+        # Keep them in the artifact only, never in the console or the verdict.
+        receipt["raw"] = {
+            "commit": {"sha256": sha(commit), "bytes": len(commit),
+                       "base64": base64.b64encode(commit).decode("ascii")},
+            "event": {"sha256": sha(event_raw), "bytes": len(event_raw),
+                      "base64": base64.b64encode(event_raw).decode("ascii")},
+        }
+        receipt["context"] = {
+            key: field(env, key) for key in (
+                "GITHUB_SHA", "GITHUB_EVENT_NAME", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT",
+                "GITHUB_REPOSITORY", "GITHUB_WORKFLOW", "GITHUB_WORKFLOW_REF",
+                "GITHUB_WORKFLOW_SHA", "GITHUB_JOB",
+            )
+        }
+        headers = commit.decode("utf-8").split("\n\n", 1)[0].splitlines()
+        trees = [oid(line[5:]) for line in headers if line.startswith("tree ")]
+        parents = [oid(line[7:]) for line in headers if line.startswith("parent ")]
+        require(len(trees) == 1, "invalid_commit_object")
+        receipt["observed"] = {"head": head, "tree": trees[0], "parents": parents}
+        event = parse_json(event_raw)
+        require(type(event) is dict, "invalid_event")
+        if "pull_request" in event:
+            pr = event["pull_request"]
+            require(type(pr) is dict and type(pr.get("base")) is dict
+                    and type(pr.get("head")) is dict, "invalid_pr_event")
+            receipt["expected_pr_parents"] = [
+                oid(pr["base"].get("sha")), oid(pr["head"].get("sha")),
+            ]
+        # Deliberately do not bind_revision here: retain a mismatch and let the
+        # final unchanged verifier reject it after the browser step.
+        require(time.monotonic() < deadline, "capture_deadline")
+        receipt.update(status="captured", code="captured")
+    except EvidenceError as error:
+        receipt["code"] = str(error)
+    except (OSError, ValueError, TypeError, KeyError, RecursionError):
+        receipt["code"] = "capture_unavailable_or_malformed"
+    try:
+        write_verdict(output, receipt)
+    except OSError:
+        print("Mixed Favorites provenance: capture_write_failed", flush=True)
+        return 1
+    print("Mixed Favorites provenance: " + receipt["code"], flush=True)
+    return 0 if receipt["status"] == "captured" else 1
+
+
 def validate_report(report, root):
     require(type(report) is dict and report.get("errors") == [], "report_errors")
     config = report.get("config")
@@ -269,12 +326,19 @@ def verify(root, report_path, output, browser_outcome, env):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--browser-outcome", required=True)
+    parser.add_argument("--capture-provenance", type=Path)
+    parser.add_argument("--report", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--browser-outcome")
     args = parser.parse_args()
-    return verify(Path(__file__).resolve().parents[1], args.report, args.output,
-                  args.browser_outcome, os.environ)
+    root = Path(__file__).resolve().parents[1]
+    if args.capture_provenance is not None:
+        if any(value is not None for value in (args.report, args.output, args.browser_outcome)):
+            parser.error("capture and verification arguments cannot be combined")
+        return capture_provenance(root, args.capture_provenance, os.environ)
+    if any(value is None for value in (args.report, args.output, args.browser_outcome)):
+        parser.error("verification requires --report, --output and --browser-outcome")
+    return verify(root, args.report, args.output, args.browser_outcome, os.environ)
 
 
 if __name__ == "__main__":

@@ -630,6 +630,7 @@ var keyStrings = {
     "Local source unavailable": "Локальне джерело недоступне",
     "Local URL": "Локальна адреса",
     "Local videos": "Локальні відео",
+    "Lock window to 16:9": "Зафіксувати пропорції вікна 16:9",
     Login: "Ім’я користувача",
     lang: "Українська",
     large: "великий",

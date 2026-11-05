@@ -644,6 +644,7 @@ var keyStrings = {
     "Local source unavailable": "Is-sors lokali mhux disponibbli",
     "Local URL": "URL lokali",
     "Local videos": "Vidjows lokali",
+    "Lock window to 16:9": "Illokkja l-proporzjon tat-tieqa għal 16:9",
     Login: "Isem tal-utent",
     lang: "Malti",
     large: "kbir",

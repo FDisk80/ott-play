@@ -614,6 +614,7 @@ var keyStrings = {
     "Local source unavailable": "स्थानीय स्रोत उपलब्ध नहीं है",
     "Local URL": "स्थानीय URL",
     "Local videos": "स्थानीय वीडियो",
+    "Lock window to 16:9": "विंडो का अनुपात 16:9 पर लॉक करें",
     Login: "उपयोगकर्ता नाम",
     lang: "हिन्दी",
     large: "बड़ा",

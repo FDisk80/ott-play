@@ -621,6 +621,7 @@ var keyStrings = {
     "Local source unavailable": "Orísun inú ẹ̀rọ kò sí lárọ̀ọ́wọ́tó",
     "Local URL": "URL inú ẹ̀rọ",
     "Local videos": "Àwọn fídíò inú ẹ̀rọ",
+    "Lock window to 16:9": "Tì ìwọ̀n fèrèsé sí 16:9",
     Login: "Orúkọ olùlò",
     lang: "Yorùbá",
     large: "ńlá",

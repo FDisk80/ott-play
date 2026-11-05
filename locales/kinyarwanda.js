@@ -651,6 +651,7 @@ var keyStrings = {
     "Local source unavailable": "Inkomoko iri ku gikoresho ntiboneka",
     "Local URL": "URL yo ku gikoresho",
     "Local videos": "Amashusho ari ku gikoresho",
+    "Lock window to 16:9": "Funga igipimo cy’idirishya kuri 16:9",
     Login: "Izina ry'ukoresha",
     lang: "Ikinyarwanda",
     large: "binini",

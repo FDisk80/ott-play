@@ -626,6 +626,7 @@ var keyStrings = {
     "Local source unavailable": "Ebe data dị na ngwaọrụ adịghị",
     "Local URL": "URL mpaghara",
     "Local videos": "Vidiyo dị na ngwaọrụ",
+    "Lock window to 16:9": "Kpọchie oke windo na 16:9",
     Login: "Aha njirimara",
     lang: "Igbo",
     large: "nnukwu",

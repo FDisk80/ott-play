@@ -626,6 +626,7 @@ var keyStrings = {
     "Local source unavailable": "Místní zdroj není dostupný",
     "Local URL": "Místní URL",
     "Local videos": "Místní videa",
+    "Lock window to 16:9": "Uzamknout poměr stran okna na 16:9",
     Login: "Uživatelské jméno",
     lang: "Čeština",
     large: "velký",

@@ -615,6 +615,7 @@ var keyStrings = {
     "Local source unavailable": "স্থানীয় উৎস উপলব্ধ নেই",
     "Local URL": "স্থানীয় URL",
     "Local videos": "স্থানীয় ভিডিও",
+    "Lock window to 16:9": "উইন্ডোর অনুপাত 16:9-এ লক করুন",
     Login: "ব্যবহারকারীর নাম",
     lang: "বাংলা",
     large: "বড়",

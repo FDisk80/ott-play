@@ -635,6 +635,7 @@ var keyStrings = {
     "Local source unavailable": "Çavkaniya herêmî ne berdest e",
     "Local URL": "Herêmî URL",
     "Local videos": "Vîdyoyên herêmî",
+    "Lock window to 16:9": "Rêjeya pencereyê li 16:9 kilît bike",
     Login: "Navê bikarhêner",
     lang: "Kurdî",
     large: "mezin",

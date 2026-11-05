@@ -641,6 +641,7 @@ var keyStrings = {
     "Local source unavailable": "Tokiko iturria ez dago erabilgarri",
     "Local URL": "URL lokala",
     "Local videos": "Tokiko bideoak",
+    "Lock window to 16:9": "Blokeatu leihoaren proportzioa 16:9-ra",
     Login: "Erabiltzaile-izena",
     lang: "Euskara",
     large: "handia",

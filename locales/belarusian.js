@@ -628,6 +628,7 @@ var keyStrings = {
     "Local source unavailable": "Лакальная крыніца недаступная",
     "Local URL": "Лакальны адрас",
     "Local videos": "Лакальныя відэа",
+    "Lock window to 16:9": "Зафіксаваць прапорцыі акна 16:9",
     Login: "Імя карыстальніка",
     lang: "Беларуская",
     large: "вялікі",

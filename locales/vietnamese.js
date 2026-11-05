@@ -626,6 +626,7 @@ var keyStrings = {
     "Local source unavailable": "Nguồn cục bộ không khả dụng",
     "Local URL": "URL cục bộ",
     "Local videos": "Video cục bộ",
+    "Lock window to 16:9": "Khóa tỷ lệ cửa sổ ở 16:9",
     Login: "Tên người dùng",
     lang: "Tiếng Việt",
     large: "lớn",
