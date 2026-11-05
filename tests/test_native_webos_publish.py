@@ -89,10 +89,10 @@ class ReleaseNotesTests(unittest.TestCase):
             return publish.release_body(checked)
 
     def test_exact_version_uses_commit_bytes_not_changed_or_untracked_notes(self):
-        expected = self.notes.read_text(encoding="utf-8").strip()
+        expected = self.notes.read_text(encoding="utf-8")
         self.notes.write_text("Changed checkout text\n", encoding="utf-8")
         self.assertEqual(self.body(), expected)
-        self.assertEqual(self.body("0.2.0"), "Future version")
+        self.assertEqual(self.body("0.2.0"), "Future version\n")
         self.notes.with_name("0.3.0.md").write_text("Untracked text\n", encoding="utf-8")
         self.assertEqual(self.body("0.3.0"), publish.DEFAULT_RELEASE_BODY)
 
@@ -100,13 +100,50 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual(self.body("0.9.0"), publish.DEFAULT_RELEASE_BODY)
 
     def test_later_commit_and_replace_ref_cannot_change_verified_notes(self):
-        expected = self.notes.read_text(encoding="utf-8").strip()
+        expected = self.notes.read_text(encoding="utf-8")
         original = self.sha
         self.notes.write_text("Later commit text\n", encoding="utf-8")
         self.commit()
         self.git("replace", original, self.sha)
         self.sha = original
         self.assertEqual(self.body(), expected)
+
+    def test_committed_notes_preserve_whitespace_line_endings_and_utf8(self):
+        raw = "\n \t# Native résumé\r\n\r\nVerified changes.  \r\n\t\n".encode("utf-8")
+        self.notes.write_bytes(raw)
+        self.commit()
+        self.assertEqual(self.body().encode("utf-8"), raw)
+
+    def test_explicit_preparation_notices_are_not_publishable(self):
+        for notice in ("**Release preparation:**", "Release preparation:", "**RELEASE PREPARATION**:"):
+            with self.subTest(notice=notice):
+                self.notes.write_text("# Native release\n\n" + notice + " Package verification is pending.\n", encoding="utf-8")
+                self.commit()
+                with self.assertRaisesRegex(publish.PromotionError, "release preparation notice"):
+                    self.body()
+
+    def test_preparation_notice_removal_requires_a_new_verified_commit(self):
+        self.notes.write_text("**Release preparation:** verification is pending.\n", encoding="utf-8")
+        self.commit()
+        final_notes = "# Native release\n\nRelease preparation completed before publication.\nPackage and source are included; device limits remain documented.\n"
+        self.notes.write_text(final_notes, encoding="utf-8")
+        with self.assertRaisesRegex(publish.PromotionError, "release preparation notice"):
+            self.body()
+        self.commit()
+        self.assertEqual(self.body(), final_notes)
+
+    def test_preparation_notice_stops_publish_before_tag_or_release_writes(self):
+        self.notes.write_text("**Release preparation:** verification is pending.\n", encoding="utf-8")
+        self.commit()
+        checked = publish.validate_inputs(17, self.sha, VERSION, TAG)
+        with patch.object(publish, "ROOT", self.root), \
+                patch.object(publish, "load_receipt", return_value={"inputs": checked}), \
+                patch.object(publish, "verify_source_receipt"), \
+                patch.object(publish, "api_json", return_value=None) as api, \
+                self.assertRaisesRegex(publish.PromotionError, "release preparation notice"):
+            publish.publish(SimpleNamespace(bundle=self.root))
+        self.assertEqual(len(api.call_args_list), 2)
+        self.assertTrue(all(call.kwargs.get("method", "GET") == "GET" for call in api.call_args_list))
 
     def test_exact_size_limit_is_accepted(self):
         self.notes.write_bytes(b"x" * (64 * 1024))
@@ -120,7 +157,7 @@ class ReleaseNotesTests(unittest.TestCase):
             self.body()
 
     def test_empty_invalid_utf8_and_nul_notes_are_rejected(self):
-        for raw in (b"", b" \n", b"\xff", b"text\x00text"):
+        for raw in (b"", b" \n", b"\t\r\n", b"\xff", b"text\x00text"):
             with self.subTest(raw=raw):
                 self.notes.write_bytes(raw)
                 self.commit()
@@ -755,6 +792,18 @@ class ZipTests(unittest.TestCase):
         publish.safe_extract(self.archive, self.output, VERSION)
         self.assertEqual({p.name for p in self.output.iterdir()}, set(publish.candidate_names(VERSION)))
 
+    def test_current_exact_ten_files_and_wrong_same_size_set(self):
+        names = list(publish.candidate_names(VERSION, compilation=True))
+        self.write(names)
+        publish.safe_extract(self.archive, self.output, VERSION)
+        self.assertEqual({p.name for p in self.output.iterdir()}, set(names))
+        for path in self.output.iterdir():
+            path.unlink()
+        self.write(names[:-1] + ["unexpected.txt"])
+        with self.assertRaisesRegex(publish.PromotionError, "inventory"):
+            publish.safe_extract(self.archive, self.output, VERSION)
+        self.assertEqual(list(self.output.iterdir()), [])
+
     def test_traversal_nested_absolute_duplicate_and_unknown_are_rejected_before_writing(self):
         names = list(publish.candidate_names(VERSION))
         for replacement in ("../escape", "/tmp/escape", "folder/" + names[0], names[1], "unknown.txt"):
@@ -878,12 +927,18 @@ class PromotionPipelineTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        source = self.root / "source"
-        source.mkdir()
-        self.fixture = fixtures.Bundle(source)
+        self.start(patch("socket.socket.connect", side_effect=AssertionError("Unexpected network connection")))
+        self.start(patch.dict(globals(), VERSION="0.3.0", TAG="native-webos-v0.3.0-beta.1"))
+        # Reuse the real current-producer archive fixture, including compilation
+        # files; the production verifier still runs on every promotion phase.
+        current = fixtures.CurrentNativeReleaseTests()
+        current.setUp()
+        self.addCleanup(current.doCleanups)
+        self.fixture = current.bundle
+        source = self.fixture.root
         raw = io.BytesIO()
         with zipfile.ZipFile(raw, "w", zipfile.ZIP_DEFLATED) as archive:
-            for name in publish.candidate_names(VERSION):
+            for name in publish.candidate_names(VERSION, compilation=True):
                 archive.writestr(name, (source / name).read_bytes())
         self.gh = FakeGitHub(raw.getvalue())
         self.directory = self.root / "prepared"
@@ -929,7 +984,7 @@ class PromotionPipelineTests(unittest.TestCase):
             self.prepare()
             self.do_publish()
         self.assertEqual(sum("/actions/artifacts/" in path for path, _header in requests), 2)
-        self.assertEqual(sum("/releases/assets/" in path for path, _header in requests), 10)
+        self.assertEqual(sum("/releases/assets/" in path for path, _header in requests), 12)
 
     def prepare(self):
         return publish.prepare(self.args)
@@ -939,7 +994,7 @@ class PromotionPipelineTests(unittest.TestCase):
 
     def test_prepare_full_verifier_generates_feed_bound_to_exact_tag(self):
         receipt = self.prepare()
-        self.assertEqual(set(receipt["files"]), set(publish.release_names(VERSION)))
+        self.assertEqual(set(receipt["files"]), set(publish.release_names(VERSION, compilation=True)))
         self.assertEqual(receipt["artifact"], {key: self.gh.artifact[key] for key in ("id", "digest")})
         report = publish.verify_bundle(self.directory, VERSION)
         self.assertEqual(report["bundle_validation"], "PASS")
@@ -947,6 +1002,36 @@ class PromotionPipelineTests(unittest.TestCase):
         feed = json.loads((self.directory / "ottplay-native-webos-manifest.json").read_text())
         self.assertIn("/releases/download/" + TAG + "/", feed["ipkUrl"])
         self.assertIn("/v1/" + TAG + "/", feed["iconUri"])
+
+    def test_compilation_evidence_survives_all_promotion_and_public_downloads(self):
+        names = ("ottplay-native-webos-" + VERSION + "-cargo-artifacts.jsonl",
+                 "ottplay-native-webos-" + VERSION + "-build-config.txt")
+        expected = {name: (self.fixture.root / name).read_bytes() for name in names}
+        receipt = self.prepare()
+        for name in names:
+            self.assertEqual(receipt["files"][name]["sha256"], hashlib.sha256(expected[name]).hexdigest())
+        self.do_publish()
+        for name in names:
+            self.assertEqual(self.gh.assets[name], expected[name])
+        with patch.object(publish, "fetch_worker", side_effect=lambda url, limit: self.gh.assets[url.rsplit("/", 1)[1]]):
+            self.assertEqual(publish.verify_public(SimpleNamespace(bundle=self.directory))["public_assets"], "PASS")
+
+    def test_corrupt_or_missing_compile_evidence_never_mutates_release(self):
+        original = self.gh.archive
+        target = "ottplay-native-webos-" + VERSION + "-cargo-artifacts.jsonl"
+        for missing in (False, True):
+            raw = io.BytesIO()
+            with zipfile.ZipFile(io.BytesIO(original)) as source, zipfile.ZipFile(raw, "w") as archive:
+                for name in source.namelist():
+                    if missing and name == target:
+                        continue
+                    archive.writestr(name, b"changed" if name == target else source.read(name))
+            self.gh.archive = raw.getvalue()
+            self.gh.artifact = artifact(self.gh.archive)
+            self.args.output = self.root / ("bad-missing" if missing else "bad-corrupt")
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                self.prepare()
+            self.assertFalse(any(event[0] in ("POST", "PATCH", "UPLOAD") for event in self.gh.events))
 
     def test_candidate_digest_tamper_rejected_before_extraction(self):
         self.gh.artifact["digest"] = "sha256:" + "0" * 64
@@ -970,17 +1055,17 @@ class PromotionPipelineTests(unittest.TestCase):
         result = self.do_publish()
         self.assertTrue(result["published"])
         self.assertFalse(self.gh.release["draft"])
-        self.assertEqual(set(self.gh.assets), set(publish.release_names(VERSION)))
+        self.assertEqual(set(self.gh.assets), set(publish.release_names(VERSION, compilation=True)))
         public = next(i for i, event in enumerate(self.gh.events) if event[0] == "PATCH")
         downloads = [i for i, event in enumerate(self.gh.events) if event[0] == "DOWNLOAD" and "/releases/assets/" in event[1]]
-        self.assertEqual(len(downloads), 10)
+        self.assertEqual(len(downloads), 12)
         self.assertLess(max(downloads), public)
         self.assertEqual(sum(event[0] == "DOWNLOAD" and event[1].endswith("/zip") for event in self.gh.events), 2)
         self.assertFalse(any(event[0] == "DELETE" for event in self.gh.events))
 
     def test_version_notes_are_published_with_the_verified_bundle(self):
         self.prepare()
-        self.notes.return_value = "# Native changes\n\nVerified package notes."
+        self.notes.return_value = "\n  # Native changes\n\nVerified package notes.  \n\n"
         self.do_publish()
         self.assertEqual(self.gh.release["body"], self.notes.return_value)
         self.notes.assert_called_once_with(inputs())
@@ -1062,7 +1147,7 @@ class PromotionPipelineTests(unittest.TestCase):
 
     def test_corrupt_uploaded_bytes_leave_release_draft(self):
         self.prepare()
-        self.gh.corrupt = publish.candidate_names(VERSION)[0]
+        self.gh.corrupt = publish.candidate_names(VERSION, compilation=True)[0]
         with self.assertRaisesRegex(publish.PromotionError, "bytes differ"):
             self.do_publish()
         self.assertTrue(self.gh.release["draft"])
@@ -1123,7 +1208,7 @@ class PromotionPipelineTests(unittest.TestCase):
             publish.verify_public(SimpleNamespace(bundle=self.directory))
         self.environment.assert_called_once_with(inputs(), require_current_main=False)
         anonymous = [event for event in self.gh.events if event[0] == "PUBLIC_DOWNLOAD"]
-        self.assertEqual(len(anonymous), 10)
+        self.assertEqual(len(anonymous), 12)
         self.assertFalse(any(event[0] == "DOWNLOAD" for event in self.gh.events),
                          "public validation must not substitute authenticated asset bytes")
 

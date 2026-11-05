@@ -141,6 +141,53 @@ class OfficialReleaseValidationTests(unittest.TestCase):
         self.assertEqual(result["sha256"], hashlib.sha256(self.ipk.read_bytes()).hexdigest())
         self.assertEqual(result["source_sha"], "d" * 40)
 
+    def test_current_twelve_asset_release_keeps_the_bounded_four_file_contract(self):
+        # Reuse the complete current producer fixture. The updater still only
+        # authenticates its four files, never claiming full source validation.
+        spec = importlib.util.spec_from_file_location("native_update_current_fixture", ROOT / "tests/test_webos_native_release.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        current = module.CurrentNativeReleaseTests()
+        current.setUp()
+        self.addCleanup(current.doCleanups)
+        bundle = current.bundle
+        bundle.feed()
+        tag = "native-webos-v0.3.0-beta.1"
+        required = [bundle.stem + suffix for suffix in (".ipk", ".json", ".sha256", "-source-set.json")]
+        source = {path.name: path.read_bytes() for path in bundle.root.iterdir() if path.is_file()}
+        self.assertEqual(len(source), 12)
+        release_info = {"id": 123, "tag_name": tag, "draft": False,
+                        "html_url": f"https://github.com/{update.REPOSITORY}/releases/tag/{tag}", "assets": [
+            {"id": i+1, "name": name, "state": "uploaded", "size": len(data),
+             "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+             "browser_download_url": f"https://github.com/{update.REPOSITORY}/releases/download/{tag}/{name}"}
+            for i, (name, data) in enumerate(source.items())]}
+        ref = {"ref": "refs/tags/" + tag, "object": {"type": "commit", "sha": "d" * 40}}
+        downloads = []
+        def fetch(url, destination, limit, *, expected_sha256, expected_size):
+            name = url.rsplit("/", 1)[1]
+            self.assertIn(name, required)
+            self.assertLessEqual(len(source[name]), limit)
+            self.assertEqual(expected_sha256, hashlib.sha256(source[name]).hexdigest())
+            self.assertEqual(expected_size, len(source[name]))
+            downloads.append(name)
+            destination.write_bytes(source[name])
+        from types import SimpleNamespace
+        publisher = SimpleNamespace(api_json=lambda path: ref if "/git/ref/" in path else release_info,
+                                    fetch_public_asset=fetch)
+        original = update.load_module
+        destination = self.root / "current-download"
+        with patch.object(update, "load_module", side_effect=lambda name: publisher if name == "publish-webos-native.py" else original(name)), \
+                patch("socket.socket.connect", side_effect=AssertionError("Unexpected network connection")):
+            result = update.official_release(tag, destination)
+        self.assertEqual(result["version"], "0.3.0")
+        self.assertEqual(downloads, required)
+        self.assertEqual({path.name for path in destination.iterdir()}, set(required))
+        release_info["assets"].append(dict(next(row for row in release_info["assets"] if row["name"] == required[0]), id=999))
+        with self.assertRaises(update.UpdateError) as caught:
+            update.verify_release_files(destination, tag, release_info, ref)
+        self.assertEqual(caught.exception.code, "missing_or_duplicate_release_asset")
+
     def test_same_size_modified_ipk_fails_official_hash(self):
         payload = bytearray(self.ipk.read_bytes())
         payload[-1] ^= 1

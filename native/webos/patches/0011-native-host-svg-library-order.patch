@@ -1,0 +1,251 @@
+diff --git a/rust-modules/appkit/build.rs b/rust-modules/appkit/build.rs
+--- a/rust-modules/appkit/build.rs
++++ b/rust-modules/appkit/build.rs
+@@ -1,16 +1,11 @@
+-//! Host link configuration for the appkit layer's own test binary, and nothing else.
++//! Host system-library configuration for the appkit layer's test binary.
+ //!
+-//! `plx_appkit` draws through `plx_ui` and `plx_gfx`, which declare the GLES2, EGL, SDL2_ttf and
+-//! nanosvg symbols their drawing code calls. This crate's `--test` binary is a real executable that
+-//! reaches them (the HUD and menu tests measure text and rasterize icons), and a
+-//! `cargo:rustc-link-arg` line, which carries the nanosvg object, reaches only the package that
+-//! prints it, so `plx_gfx`'s own script does not cover this binary. The lines are the same ones,
+-//! from the same file (`../build_support/host_link.rs`), so the crates cannot disagree.
++//! Drawing tests reach the GL/SDL_ttf/nanosvg declarations in the mandatory gfx dependency.
++//! The shared helper emits system libraries here; gfx alone owns the SVG archive, which
++//! Cargo carries through its rlib to this crate's tests and other dependent executables.
+ //!
+-//! On the television this script prints no `rustc-link-*` line at all: the ARM build is a
+-//! staticlib the Makefile links, and `host_link::emit` returns before emitting anything for
+-//! `target_arch = "arm"`. No environment variable is read except cargo's own target description,
+-//! so an ordinary rebuild never re-runs it.
++//! On the television `host_link::emit` returns before emitting any link or archiver
++//! directives: the ARM32 staticlib is linked by the Makefile instead.
+ 
+ #[path = "../build_support/host_link.rs"]
+ mod host_link;
+@@ -18,5 +13,5 @@
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));
++    host_link::emit(None);
+ }
+diff --git a/rust-modules/build.rs b/rust-modules/build.rs
+--- a/rust-modules/build.rs
++++ b/rust-modules/build.rs
+@@ -39,9 +39,9 @@
+     emit_version();
+     emit_build_sha();
+ 
+-    // Host link configuration (SDL, GL, the nanosvg object): shared with the gfx layer's build
+-    // script, which needs the same lines for its own test binary.
+-    host_link::emit(Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("rust-modules has a parent"));
++    // System host libraries are shared with the drawing crates. The gfx dependency owns
++    // the nanosvg archive and propagates it to this crate through Cargo.
++    host_link::emit(None);
+ }
+ 
+ /// Publish `PLX_VERSION` — the version this build REPORTS, which is not always the version it was
+diff --git a/rust-modules/build_support/host_link.rs b/rust-modules/build_support/host_link.rs
+--- a/rust-modules/build_support/host_link.rs
++++ b/rust-modules/build_support/host_link.rs
+@@ -1,17 +1,18 @@
+ //! Link configuration for everything cargo itself LINKS on the developer's own machine, shared by
+-//! the build scripts of the application crate (`build.rs`) and the gfx layer crate
+-//! (`gfx/build.rs`): both produce a host executable (the simulator, a `--test` binary) that
+-//! reaches the `extern "C"` GL/SDL_ttf/nanosvg declarations in `plx_gfx`, and a `cargo:rustc-link-*`
+-//! line reaches only the package whose build script prints it (`rustc-link-lib` also flows to the
+-//! packages that depend on it; `rustc-link-arg`, which carries the nanosvg object, does not).
++//! the build scripts of the application and drawing-layer crates. Their host executables
++//! (the simulator and `--test` binaries) reach the `extern "C"` GL/SDL_ttf/nanosvg declarations
++//! in `plx_gfx`, which alone supplies the rasterizer archive. Native libraries are declared
++//! with `cargo:rustc-link-lib`, so cargo carries them through dependent crates and places
++//! them with the normal library inputs.
+ //!
+ //! A no-op for the build that ships: the television binary is linked by the Makefile, not by cargo.
+ 
+ use std::path::{Path, PathBuf};
+ use std::process::Command;
+ 
+-/// Emit the host link configuration; `repo` is the repository root (where `src/svg.c` lives).
+-pub fn emit(repo: &Path) {
++/// Emit shared host libraries; only gfx passes the repository root to own the SVG archive.
++/// Other crates pass `None` and receive the archive through their gfx dependency.
++pub fn emit(svg_repo: Option<&Path>) {
+     // The television target is the one build cargo does not link, so it is the one that wants
+     // none of this. It is identified by ARCHITECTURE rather than by the full triple: the target is
+     // `armv7-unknown-linux-gnueabi` (32-bit ARM, `target_arch = "arm"`), while every host that runs
+@@ -41,6 +42,11 @@
+         );
+     }
+ 
++    // The gfx owner declares the rasterizer before its system-library dependencies.
++    if let Some(repo) = svg_repo {
++        compile_svg(repo);
++    }
++
+     println!("cargo:rustc-link-lib=dylib=SDL2");
+     println!("cargo:rustc-link-lib=dylib=SDL2_ttf");
+ 
+@@ -61,8 +67,6 @@
+             println!("cargo:rustc-link-lib=dylib=GL");
+         }
+     }
+-
+-    compile_svg(repo);
+ }
+ 
+ /// Put the pinned nanosvg headers in `vendor/nanosvg` (gitignored): they are not in the repository.
+@@ -104,7 +108,8 @@
+ fn compile_svg(repo: &Path) {
+     stage_nanosvg(repo);
+     let src = repo.join("src/svg.c");
+-    let out = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("svg.o");
++    let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
++    let out = out_dir.join("svg.o");
+     println!("cargo:rerun-if-changed={}", src.display());
+ 
+     let cc = std::env::var("CC").unwrap_or_else(|_| "cc".into());
+@@ -130,21 +135,28 @@
+         "host link: compiling {} failed ({st})",
+         src.display()
+     );
+-    // Link the object directly; no intermediate archive, so no `ar` involved.
+-    //
+-    // The UNSUFFIXED form, which covers binaries, examples, benches and TESTS alike. It used to be
+-    // `-bins`, which reaches the simulator executable and nothing else, so the host test binary was
+-    // left without `svg.o`. That was invisible for as long as no test made `svg::rasterize`
+-    // reachable, and it stopped being invisible in restructure phase 5b, when `app/bridge.rs`'s
+-    // tests began mounting real screens that draw real icons: the hostsim test pass then failed on
+-    // `_svg_free`/`_svg_rasterize_rgba` ALONE, having already got SDL and GL from the
+-    // `rustc-link-lib` lines above, which do cover every target kind.
+-    //
+-    // Not `-tests` either, which looks like the precise answer and is not one: cargo rejects it
+-    // outright here ("does not have a test target"), because that suffix addresses declared
+-    // `[[test]]` integration targets and this crate has none — its tests are the LIB target
+-    // rebuilt with `--test`, which only the unsuffixed form reaches.
+-    println!("cargo:rustc-link-arg={}", out.display());
++    // A raw rustc-link-arg object is appended after libc, too late for its stack-canary
++    // and other C runtime references on Linux. An ordinary static library is carried
++    // with Rust's library dependencies, including when this crate is itself an rlib.
++    // Keep normal lazy extraction: no whole-archive/force-load for the shared rasterizer.
++    println!("cargo:rerun-if-env-changed=AR");
++    let ar = std::env::var("AR").unwrap_or_else(|_| "ar".into());
++    let archive = out_dir.join("libplxnative_host_svg.a");
++    // Recreate it so an earlier build cannot leave unrelated members in the archive.
++    match std::fs::remove_file(&archive) {
++        Ok(()) => {}
++        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
++        Err(error) => panic!("host link: could not replace {}: {error}", archive.display()),
++    }
++    let st = Command::new(&ar)
++        .arg("crs")
++        .arg(&archive)
++        .arg(&out)
++        .status()
++        .unwrap_or_else(|e| panic!("host link: could not run {ar:?} to archive {}: {e}", out.display()));
++    assert!(st.success(), "host link: archiving {} failed ({st})", out.display());
++    println!("cargo:rustc-link-search=native={}", out_dir.display());
++    println!("cargo:rustc-link-lib=static=plxnative_host_svg");
+ }
+ 
+ /// Host library directories supplied by the host's package manager.
+diff --git a/rust-modules/gfx/build.rs b/rust-modules/gfx/build.rs
+--- a/rust-modules/gfx/build.rs
++++ b/rust-modules/gfx/build.rs
+@@ -1,15 +1,11 @@
+-//! Host link configuration for the gfx layer's own test binary, and nothing else.
++//! Host link configuration and SVG archive ownership for the gfx layer.
+ //!
+-//! `plx_gfx` declares the GLES2, EGL, SDL2_ttf and nanosvg symbols its drawing code calls. Its
+-//! `--test` binary is a real executable that reaches them (the drawing tests make `gfx` and `text`
+-//! live), so on the host it needs the same SDL, GL and nanosvg object the application crate's build
+-//! script supplies to the application's binaries. The lines are the same ones, from the same file
+-//! (`../build_support/host_link.rs`), so the two cannot disagree.
++//! This crate declares the rasterizer's C symbols, so it alone builds the nanosvg archive.
++//! The shared helper declares it as an ordinary native static library. Cargo carries it
++//! through the gfx rlib to dependent tests and executables without whole-archive flags.
+ //!
+-//! On the television this script prints no `rustc-link-*` line at all: the ARM build is a
+-//! staticlib the Makefile links, and `host_link::emit` returns before emitting anything for
+-//! `target_arch = "arm"`. No environment variable is read except cargo's own target description,
+-//! so an ordinary rebuild never re-runs it.
++//! On the television `host_link::emit` returns before emitting any link or archiver
++//! directives: the ARM32 staticlib is linked by the Makefile instead.
+ 
+ #[path = "../build_support/host_link.rs"]
+ mod host_link;
+@@ -17,5 +13,5 @@
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));
++    host_link::emit(Some(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")));
+ }
+diff --git a/rust-modules/screens/build.rs b/rust-modules/screens/build.rs
+--- a/rust-modules/screens/build.rs
++++ b/rust-modules/screens/build.rs
+@@ -1,16 +1,11 @@
+-//! Host link configuration for the screens layer's own test binary, and nothing else.
++//! Host system-library configuration for the screens layer's test binary.
+ //!
+-//! `plx_screens` draws through `plx_ui` and `plx_gfx`, which declare the GLES2, EGL, SDL2_ttf and
+-//! nanosvg symbols their drawing code calls. This crate's `--test` binary is a real executable that
+-//! reaches them (the screens' draw tests measure text and rasterize icons), and a
+-//! `cargo:rustc-link-arg` line, which carries the nanosvg object, reaches only the package that
+-//! prints it, so `plx_gfx`'s own script does not cover this binary. The lines are the same ones,
+-//! from the same file (`../build_support/host_link.rs`), so the crates cannot disagree.
++//! Drawing tests reach the GL/SDL_ttf/nanosvg declarations in the mandatory gfx dependency.
++//! The shared helper emits system libraries here; gfx alone owns the SVG archive, which
++//! Cargo carries through its rlib to this crate's tests and other dependent executables.
+ //!
+-//! On the television this script prints no `rustc-link-*` line at all: the ARM build is a
+-//! staticlib the Makefile links, and `host_link::emit` returns before emitting anything for
+-//! `target_arch = "arm"`. No environment variable is read except cargo's own target description,
+-//! so an ordinary rebuild never re-runs it.
++//! On the television `host_link::emit` returns before emitting any link or archiver
++//! directives: the ARM32 staticlib is linked by the Makefile instead.
+ 
+ #[path = "../build_support/host_link.rs"]
+ mod host_link;
+@@ -18,5 +13,5 @@
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));
++    host_link::emit(None);
+ }
+diff --git a/rust-modules/ui/build.rs b/rust-modules/ui/build.rs
+--- a/rust-modules/ui/build.rs
++++ b/rust-modules/ui/build.rs
+@@ -1,16 +1,11 @@
+-//! Host link configuration for the ui layer's own test binary, and nothing else.
++//! Host system-library configuration for the ui layer's test binary.
+ //!
+-//! `plx_ui` draws through `plx_gfx`, which declares the GLES2, EGL, SDL2_ttf and nanosvg symbols
+-//! its drawing code calls. This crate's `--test` binary is a real executable that reaches them (the
+-//! widget tests rasterize icons and measure text), and a `cargo:rustc-link-arg` line, which carries
+-//! the nanosvg object, reaches only the package that prints it, so `plx_gfx`'s own script does not
+-//! cover this binary. The lines are the same ones, from the same file
+-//! (`../build_support/host_link.rs`), so the crates cannot disagree.
++//! Drawing tests reach the GL/SDL_ttf/nanosvg declarations in the mandatory gfx dependency.
++//! The shared helper emits system libraries here; gfx alone owns the SVG archive, which
++//! Cargo carries through its rlib to this crate's tests and other dependent executables.
+ //!
+-//! On the television this script prints no `rustc-link-*` line at all: the ARM build is a
+-//! staticlib the Makefile links, and `host_link::emit` returns before emitting anything for
+-//! `target_arch = "arm"`. No environment variable is read except cargo's own target description,
+-//! so an ordinary rebuild never re-runs it.
++//! On the television `host_link::emit` returns before emitting any link or archiver
++//! directives: the ARM32 staticlib is linked by the Makefile instead.
+ 
+ #[path = "../build_support/host_link.rs"]
+ mod host_link;
+@@ -18,5 +13,5 @@
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));
++    host_link::emit(None);
+ }

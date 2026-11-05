@@ -1,0 +1,179 @@
+diff --git a/rust-modules/src/app/ott_remote/discovery.rs b/rust-modules/src/app/ott_remote/discovery.rs
+--- a/rust-modules/src/app/ott_remote/discovery.rs
++++ b/rust-modules/src/app/ott_remote/discovery.rs
+@@ -111,7 +111,7 @@
+ #[derive(Deserialize)]
+ struct Envelope { version: u8, servers: Vec<serde_json::Value> }
+ #[derive(Deserialize)]
+-struct Descriptor { id: String, address: String, domain: Option<String> }
++struct Descriptor { id: String, address: String, domain: Option<serde_json::Value> }
+ 
+ pub(super) fn parse_controller(bytes: &[u8]) -> Result<Vec<Candidate>, &'static str> {
+     if bytes.len() > CONTROLLER_BODY_LIMIT { return Err("No command server was discovered"); }
+@@ -124,11 +124,13 @@
+     value.servers.into_iter().map(|item| {
+         let item: Descriptor = serde_json::from_value(item)
+             .map_err(|_| "Invalid command server discovery response")?;
++        let domain = item.domain.as_ref().and_then(serde_json::Value::as_str);
+         // Pairing and discovery share the exact same identity admission rule.
+         if !protocol::valid_server_id(&item.id)
+-            || !ids.insert(item.id.clone()) || (require_domain && item.domain.is_none())
++            || !ids.insert(item.id.clone()) || (require_domain && domain.is_none())
+         { return Err("Invalid command server discovery response"); }
+-        let domain = item.domain.unwrap_or_default();
++        // Manual descriptors historically ignored non-string optional metadata.
++        let domain = domain.unwrap_or_default().to_owned();
+         // A manual controller response does not require a catalog-style domain.
+         // Keep the stricter domain contract for the digest-bound public catalog.
+         if require_domain
+diff --git a/rust-modules/src/app/ott_remote/discovery_tests.rs b/rust-modules/src/app/ott_remote/discovery_tests.rs
+--- a/rust-modules/src/app/ott_remote/discovery_tests.rs
++++ b/rust-modules/src/app/ott_remote/discovery_tests.rs
+@@ -317,3 +317,55 @@
+     assert_eq!(candidates[0].id, "one");
+     assert_eq!(candidates[0].address, "https://control.invalid:443/team");
+ }
++
++
++#[test]
++fn manual_singleton_ignores_non_string_optional_domains() {
++    for domain in [json!(17), json!(true), json!(["legacy"]), json!({"name":"legacy"}), Value::Null] {
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[{
++            "id":"one","domain":domain,"address":"https://control.invalid/team"
++        }]})).unwrap();
++        let mut remote = Remote::disabled_for_test("dev_test", "runtime");
++        remote.discover_and_pair("https://control.invalid/team", 0).unwrap();
++        assert!(matches!(remote.discover_address.take(), Some(DiscoveryTarget::ControllerBase(_))));
++        remote.finish(Kind::Discovery, response(body), 1);
++        let request = remote.pairing.as_ref()
++            .expect("manual discovery must ignore a non-string optional domain").request(false);
++        assert_eq!(request.url, "https://control.invalid:443/team/api/pairings");
++        assert_eq!(serde_json::from_str::<Value>(request.body.as_deref().unwrap()).unwrap(),
++            json!({"device_id":"dev_test","server_id":"one"}));
++        assert!(!remote.config.enabled && remote.pending_save.is_none());
++    }
++}
++
++#[test]
++fn catalog_rejects_non_string_domains_atomically() {
++    let valid = json!({"id":"one","domain":"example.invalid","address":"https://one.invalid"});
++    for domain in [json!(17), json!(true), json!(["legacy"]), json!({"name":"legacy"}), Value::Null] {
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[valid,{
++            "id":"two","domain":domain,"address":"https://two.invalid"
++        }]})).unwrap();
++        assert_eq!(profile(&body).parse(&body).unwrap_err(), "Invalid discovery catalog");
++    }
++}
++
++#[test]
++fn manual_discovery_retains_identity_and_endpoint_validation() {
++    let valid = json!({"id":"one","domain":null,"address":"https://one.invalid"});
++    let baseline = serde_json::to_vec(&json!({"version":1,"servers":[valid]})).unwrap();
++    assert_eq!(discovery::parse_controller(&baseline).unwrap().len(), 1);
++    for (id, address) in [
++        ("", "https://two.invalid"),
++        ("one", "https://two.invalid"),
++        ("bad id", "https://two.invalid"),
++        ("two", "http://two.invalid"),
++        ("two", "https://user:password@two.invalid"),
++        ("two", "https://two.invalid/path?token=synthetic"),
++        ("two", "https://two.invalid/../path"),
++    ] {
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[valid,{
++            "id":id,"domain":null,"address":address
++        }]})).unwrap();
++        assert!(discovery::parse_controller(&body).is_err(), "{id:?} {address}");
++    }
++}
+diff --git a/rust-modules/src/app/ott_remote/mod.rs b/rust-modules/src/app/ott_remote/mod.rs
+--- a/rust-modules/src/app/ott_remote/mod.rs
++++ b/rust-modules/src/app/ott_remote/mod.rs
+@@ -224,6 +224,21 @@
+         Ok(())
+     }
+ 
++    /// Complete manual discovery through real admission and response handling, without IO.
++    #[cfg(all(test, feature = "hostsim"))]
++    pub(crate) fn find_manual_for_test(&mut self, address: &str, body: &[u8], now_ms: u64)
++        -> Result<(), &'static str>
++    {
++        self.discover_and_pair(address, now_ms)?;
++        let Some(DiscoveryTarget::ControllerBase(_)) = self.discover_address.take() else {
++            return Err("Fixture manual discovery was not queued");
++        };
++        self.finish(Kind::Discovery, Outcome::Http {
++            response: Ok(protocol::Response { status: 200, body: body.to_vec() }), elapsed_ms: 0,
++        }, now_ms);
++        Ok(())
++    }
++
+     /// Inspect the actual delivery result, without starting transport.
+     #[cfg(all(test, feature = "hostsim"))]
+     pub(crate) fn response_for_id_for_test(&self, id: &str) -> Option<Value> {
+@@ -444,7 +459,9 @@
+     }
+     fn publish_candidates(&mut self, candidates: Vec<discovery::Candidate>) {
+         self.discovered = candidates.into_iter().enumerate().map(|(index, row)| {
+-            json!({"id":row.id,"domain":row.domain,"address":row.address,
++            // Labels are display metadata; identity and the pairing endpoint remain exact.
++            let domain = display::text(&row.domain, 253).unwrap_or_default();
++            json!({"id":row.id,"domain":domain,"address":row.address,
+                 "choice":format!("{:016x}:{:02x}",self.generation,index)})
+         }).collect();
+     }
+diff --git a/rust-modules/src/app/ott_runtime_tests/remote_address.rs b/rust-modules/src/app/ott_runtime_tests/remote_address.rs
+--- a/rust-modules/src/app/ott_runtime_tests/remote_address.rs
++++ b/rust-modules/src/app/ott_runtime_tests/remote_address.rs
+@@ -735,3 +735,52 @@
+     assert!(!runtime.saving);
+     assert!(!visible(&app));
+ }
++
++
++#[test]
++fn manual_multi_server_rows_bound_domain_labels_without_changing_choices() {
++    let _serial = plx_base::testlock::serial();
++    let mut runtime = runtime_fixture();
++    runtime.page = "settings";
++    let domains = [
++        ("Living\nroom".to_owned(), String::new()),
++        ("界".repeat(200), "界".repeat(84)),
++        ("x".repeat(600), "x".repeat(253)),
++        ("Living room".to_owned(), "Living room".to_owned()),
++        ("token=synthetic".to_owned(), String::new()),
++    ];
++    let servers: Vec<_> = domains.iter().enumerate().map(|(index, (domain, _))| json!({
++        "id":format!("server-{index}"), "domain":domain,
++        "address":format!("https://server-{index}.invalid/team")
++    })).collect();
++    let body = serde_json::to_vec(&json!({"version":1,"servers":servers})).unwrap();
++    runtime.remote.find_manual_for_test("https://control.invalid/team", &body, 0).unwrap();
++    runtime.remote_snapshot = runtime.remote.snapshot();
++    assert_eq!(runtime.remote_snapshot["state"], "choose");
++    let snapshot = runtime.remote_snapshot.clone();
++    let view = runtime.raw_view();
++    let choices: Vec<_> = view.rows.iter().filter(|row| row.id.starts_with("remote.server:")).collect();
++    assert_eq!(choices.len(), domains.len());
++    for (index, (_, label)) in domains.iter().enumerate() {
++        let id = format!("server-{index}");
++        let address = format!("https://server-{index}.invalid:443/team");
++        let server = &snapshot["servers"][index];
++        assert_eq!(server["id"], id);
++        assert_eq!(server["address"], address);
++        assert!(label.len() <= 253);
++        assert_eq!(choices[index].title, address);
++        assert_eq!(choices[index].detail,
++            if label.is_empty() { id } else { format!("{label} · {id}") });
++        assert_eq!(server["domain"].as_str(), Some(label.as_str()));
++        assert!(!choices[index].detail.chars().any(char::is_control));
++        assert_eq!(choices[index].action, OttAction::EditSetting(format!("remote.choice:{}",
++            server["choice"].as_str().unwrap())));
++    }
++    let choice = snapshot["servers"][1]["choice"].as_str().unwrap();
++    runtime.remote.select_discovered_choice(choice, 1).unwrap();
++    let selected = runtime.remote.snapshot();
++    assert_eq!(selected["state"], "pairing");
++    assert_eq!(selected["pairing_server"], "https://server-1.invalid:443/team");
++    assert_eq!(selected["enabled"], false);
++    assert_eq!(selected["saving"], false);
++}

@@ -1,0 +1,322 @@
+diff --git a/rust-modules/screens/src/player/mod.rs b/rust-modules/screens/src/player/mod.rs
+--- a/rust-modules/screens/src/player/mod.rs
++++ b/rust-modules/screens/src/player/mod.rs
+@@ -2801,6 +2801,8 @@
+             page.slot = slot;
+             page.busy = busy;
+             page.transport = true;
++            // A finite, painted timeline: unknown-duration media deliberately has no pointer stop.
++            page.model.duration_ns = 100_000_000_000;
+             let cx = cx();
+             let mut f = DrawFrame::new(&cx, plx_ui::Painter::root());
+             page.record_stops(&mut f, true);
+@@ -2818,8 +2820,10 @@
+             let gaps = pointer_gaps(&mut map, ENTRY, &placed);
+             assert!(gaps.is_empty(), "{name}: controls the pointer cannot click:\n{}", gaps.join("\n"));
+             if !player_hud::failure_row_drawn(busy) {
+-                let band = player_hud::classic::frame_geometry().grab;
+-                let hit = map.resolve(Some(ENTRY), PointerKind::Click, band.cx(), band.cy(), None);
++                let geometry = page.hud_geometry(&cx);
++                assert!(geometry.grab.contains(geometry.playbar.cx(), geometry.playbar.cy()));
++                let hit = map.resolve(Some(ENTRY), PointerKind::Click,
++                    geometry.playbar.cx(), geometry.playbar.cy(), None);
+                 assert_eq!(hit.activate.map(|(k, _)| k.elem), Some(ELEM_SCRUB), "{name}: the scrubber");
+             }
+             // …and a click on each one ACTS, never falling through to the picture's play/pause.
+@@ -3386,6 +3390,15 @@
+         let mut page = PlayerScreen::new(ENTRY);
+         page.hud.visible_at_press = true;
+         page.hud.nav.focus = GROUP_SCRUB;
++        // The app supplies this per-frame snapshot before rendering/input. Setting only the
++        // decoder globals leaves the painted timeline unknown and correctly unclickable.
++        page.model = HudModel {
++            duration_ns: plx_media::player::duration_ns(),
++            playpos_ns: plx_media::player::playpos_ns(),
++            paused: plx_media::player::TX.paused.load(std::sync::atomic::Ordering::Relaxed),
++            ..HudModel::default()
++        };
++        assert_eq!(page.model.duration_ns, DUR);
+         page
+     }
+ 
+@@ -3458,10 +3471,43 @@
+             .collect()
+     }
+ 
+-    /// A point on the scrubber's registered band, `frac` of the way along it.
+-    fn on_the_bar(frac: f32) -> (f32, f32) {
+-        let r = player_hud::classic::frame_geometry().grab;
+-        (r.x + r.w * frac, r.y + r.h * 0.5)
++    /// A point on the current painted rail, proved clickable by the real stop registration.
++    fn on_the_bar(page: &PlayerScreen, frac: f32) -> (f32, f32) {
++        use plx_ui::hit::{HitMap, PointerKind};
++        use plx_ui::screen::DrawFrame;
++        let cx = cx();
++        let geometry = page.hud_geometry(&cx);
++        let point = (geometry.playbar.x + geometry.playbar.w * frac, geometry.playbar.cy());
++        assert!(geometry.grab.contains(point.0, point.1));
++        let mut frame = DrawFrame::new(&cx, plx_ui::Painter::root());
++        page.record_stops(&mut frame, true);
++        let mut map = HitMap::new();
++        map.fill(frame.into_stops());
++        map.swap();
++        let hit = map.resolve(Some(ENTRY), PointerKind::Click, point.0, point.1, None);
++        assert_eq!(hit.activate.map(|(key, _)| key.elem), Some(player_hud::ELEM_SCRUB),
++            "the gesture must begin on a real, presented scrubber");
++        point
++    }
++
++    #[test]
++    fn pointer_requires_presented_duration_even_when_decoder_duration_is_known() {
++        use plx_ui::screen::DrawFrame;
++        let _g = plx_base::testlock::serial();
++        let _f = Fixture::new(false);
++        let mut page = page_on_the_bar();
++        page.model.duration_ns = 0;
++        let cx = cx();
++        let mut frame = DrawFrame::new(&cx, plx_ui::Painter::root());
++        page.record_stops(&mut frame, true);
++        assert!(!frame.into_stops().iter().any(|stop| stop.key.elem == player_hud::ELEM_SCRUB));
++        // Even a stale hit from the prior frame must not admit a seek on an unknown timeline.
++        let x = page.hud_geometry(&cx).playbar.cx();
++        let (_, reqs) = pointer(&mut page,
++            InputKind::Click { x, y: 0.0, hit: Some(player_hud::ELEM_SCRUB) }, 1_000);
++        assert!(reqs.is_empty());
++        assert!(!page.scrub.drag && page.scrub.ns == -1);
++        assert!(seeks(key(&mut page, SDLK_RETURN, Edge::Up, 1_080).1).is_empty());
+     }
+ 
+     /// **(a) A tap only MOVES the target; OK is the ONE seek.**
+@@ -3550,7 +3596,7 @@
+         let _f = Fixture::new(true);
+         let mut page = page_on_the_bar();
+ 
+-        let (mx, my) = on_the_bar(0.75);
++        let (mx, my) = on_the_bar(&page, 0.75);
+         pointer(&mut page, InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) }, 1_000);
+         let target = page.scrub.ns;
+         let (_, reqs) = key(&mut page, SDLK_RETURN, Edge::Up, 1_080);
+@@ -3703,7 +3749,7 @@
+         let _f = Fixture::new(false);
+         let mut page = page_on_the_bar();
+ 
+-        let (mx, my) = on_the_bar(0.75);
++        let (mx, my) = on_the_bar(&page, 0.75);
+         pointer(
+             &mut page,
+             InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) },
+@@ -3926,6 +3972,8 @@
+         let was = plx_media::player::swap_state_for_test(plx_media::player::PlaybackState::Playing);
+         for y in [870.0, 890.0] {
+             let mut page = page_on_the_bar();
++            assert!(page.hud_geometry(&cx()).grab.contains(1400.0, y),
++                "the recorded session coordinates must still name the actual grab band");
+             page.hud.dismissed = true;
+             let mut map = HitMap::new();
+             let cx = cx();
+@@ -3974,7 +4022,7 @@
+         let mut page = page_on_the_bar();
+         let tol = DUR / 1_000; // 100 ms: the band's own f32 arithmetic, not a behaviour
+ 
+-        let (mx, my) = on_the_bar(0.5);
++        let (mx, my) = on_the_bar(&page, 0.5);
+         let (handled, reqs) = pointer(
+             &mut page,
+             InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) },
+@@ -3991,7 +4039,7 @@
+             page.scrub.ns,
+         );
+ 
+-        let (dx, dy) = on_the_bar(0.25);
++        let (dx, dy) = on_the_bar(&page, 0.25);
+         let (_, reqs) = pointer(
+             &mut page,
+             InputKind::Drag { x: dx, y: dy, hit: Some(player_hud::ELEM_SCRUB) },
+@@ -4097,7 +4145,7 @@
+         let _f = Fixture::new(false);
+         playhead(50 * S);
+         let mut page = page_on_the_bar();
+-        let (mx, my) = on_the_bar(0.75);
++        let (mx, my) = on_the_bar(&page, 0.75);
+         pointer(&mut page, InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) }, 1_000);
+         assert!(page.scrub.drag && page.scrub.ns > 0, "the fixture: a drag is seated");
+ 
+@@ -4154,7 +4202,7 @@
+         assert!(page.hud.dismissed);
+ 
+         let mut page = page_on_the_bar();
+-        let (mx, my) = on_the_bar(0.9);
++        let (mx, my) = on_the_bar(&page, 0.9);
+         pointer(&mut page, InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) }, 10_000);
+         let target = page.scrub.ns;
+         assert_eq!(seeks(key(&mut page, SDLK_RETURN, Edge::Up, 10_080).1), vec![PlayerReq::CommitSeek(target)]);
+@@ -4409,7 +4457,7 @@
+             let _f = Fixture::new(paused);
+             playhead(50 * S);
+             let mut page = page_on_the_bar();
+-            let (mx, my) = on_the_bar(0.75);
++            let (mx, my) = on_the_bar(&page, 0.75);
+             pointer(&mut page, InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) }, 1_000);
+             let target = page.scrub.ns;
+             let (_, reqs) = key(&mut page, SDLK_RETURN, Edge::Up, 1_080);
+@@ -4426,7 +4474,7 @@
+         let _f = Fixture::new(true);
+         playhead(50 * S);
+         let mut page = page_on_the_bar();
+-        let (mx, my) = on_the_bar(0.75);
++        let (mx, my) = on_the_bar(&page, 0.75);
+         pointer(&mut page, InputKind::Click { x: mx, y: my, hit: Some(player_hud::ELEM_SCRUB) }, 1_000);
+         let target = page.scrub.ns;
+         let (_, reqs) = key(&mut page, SDLK_RETURN, Edge::Up, 1_080);
+diff --git a/rust-modules/screens/src/player/hud_pins_tests.rs b/rust-modules/screens/src/player/hud_pins_tests.rs
+--- a/rust-modules/screens/src/player/hud_pins_tests.rs
++++ b/rust-modules/screens/src/player/hud_pins_tests.rs
+@@ -52,10 +52,10 @@
+ //! id, length and extent, and every probed element's group and placement, for each occupant of
+ //! the row, with and without chapters, and for a failed read-out, plus the overscan audit's rects.
+ //! Rects are compared to a thousandth of a pixel so an equivalent re-derivation of the same
+-//! constants cannot trip them.
+-//!
+-//! It names no appkit item but `slot_for`, `ControlSlot`, `Controls`, `Busy` and `overscan_rects`,
+-//! and no private method of the screen, so it compiles against both sides of the split.
++//! constants cannot trip them. These literal pins predate the intentional Classic/Modern
++//! layouts. They still grade the retained legacy geometry through the screen's geometry
++//! consumers; a separate census grades both current modes through public Focusable and the
++//! real pointer map. The historical literals and key/ownership assertions remain unchanged.
+ 
+ use super::{test_store, TestHost, ENTRY};
+ use crate::player::PlayerScreen;
+@@ -63,7 +63,7 @@
+ use plx_appkit::player_hud::{overscan_rects, slot_for, Busy, ControlSlot, Controls};
+ use plx_machine::machine::{
+     Cx, Effects, EntryId, GroupId, Handled, InputEvent, InputOwner, InstanceId, Key, MachineId,
+-    NavOp, TimerId,
++    Host, NavOp, TimerId, UiMode,
+ };
+ use plx_machine::present::Present;
+ use plx_ui::dispatch::{CxParts, Dispatcher, NoTap, Rig, Split};
+@@ -503,13 +503,44 @@
+     screen
+ }
+ 
++/// Explicit presentation input for geometry checks; key-walk fixtures keep their original host.
++struct CensusHost;
++impl Host for CensusHost {
++    type Arg = FixtureArg;
++    type Fx = AppFx;
++    type Msg = AppMsg;
++    type Elem = u32;
++    type Views<'a> = UiMode;
++    type Init = FixtureArg;
++    type Memory = PageMemory;
++    fn ui_mode(views: &Self::Views<'_>) -> UiMode { *views }
++}
++impl crate::registry::PlayerLike for CensusHost {
++    fn session<'a>(_: &Cx<'a, Self>) -> &'a plx_media::route::PlaybackSession {
++        plx_media::route::idle_session_for_test()
++    }
++}
++impl crate::registry::MetadataLike for CensusHost {
++    fn metadata<'a>(_: &Cx<'a, Self>) -> plx_data::metadata::MetadataView<'a> {
++        test_store().view()
++    }
++}
++fn census_cx(mode: UiMode) -> Cx<'static, CensusHost> {
++    Cx { views: mode, tick: Default::default(), measure: &FixtureMeasure,
++        focus: Default::default(), press: Default::default(), owner: InputOwner::Entry(ENTRY) }
++}
++
+ fn check_census(case: &Census) {
+     assert_idle_playhead();
+     let _chapters = case.chapters.then(Chaptered::install);
+     let screen = census_screen(case.occupant, case.failed);
+-    let cx: Cx<'static, TestHost> = super::cx();
++    let cx = census_cx(UiMode::Classic);
++    // Keep the PRE-mode numeric characterization. Current presentation intentionally moves
++    // these rectangles; test its actual focus/hits separately rather than rewriting the pins.
++    let geometry = plx_appkit::player_hud::classic::geometry(
++        screen.slot, &screen.row, if case.chapters { 2 } else { 1 }, cx.measure);
+     let mut groups: Vec<GroupSpec> = Vec::new();
+-    Focusable::<TestHost>::groups(&screen, &cx, &mut groups);
++    screen.groups_in(&geometry, &cx, &mut groups);
+     let ids: Vec<u32> = groups.iter().map(|g| g.id.0).collect();
+     let want_ids: Vec<u32> = case.groups.iter().map(|g| g.0).collect();
+     assert_eq!(ids, want_ids, "{}: the groups declared, in z-order", case.name);
+@@ -523,9 +554,9 @@
+     let tabled: Vec<u32> = case.places.iter().map(|p| p.0).collect();
+     assert_eq!(tabled, PROBES, "{}: the table must hold every probe, in order", case.name);
+     for &(elem, group, rect) in case.places {
+-        let in_group = Focusable::<TestHost>::group_of(&screen, &elem, &cx).map(|g| g.0);
++        let in_group = Focusable::<CensusHost>::group_of(&screen, &elem, &cx).map(|g| g.0);
+         assert_eq!(in_group, group, "{}: element {elem}'s group", case.name);
+-        let placed = Focusable::<TestHost>::place(&screen, &elem, &cx, At::Drawn);
++        let placed = screen.place_in(&geometry, &elem, &cx);
+         match (placed, rect) {
+             (None, None) => {}
+             (Some(got), Some(want)) => {
+@@ -603,6 +634,65 @@
+     let _g = plx_base::testlock::serial();
+     for case in CENSUSES {
+         check_census(case);
++    }
++}
++
++/// Current layouts keep every control identity and clickable drawn placement, even though
++/// their row extents no longer match the historical pre-mode constants above.
++#[test]
++fn current_modes_keep_the_censused_controls_and_presented_hits() {
++    use plx_appkit::player_hud::{ELEM_SCRUB, row_index};
++    use plx_ui::hit::{HitMap, PointerKind};
++    use plx_ui::screen::DrawFrame;
++    let _g = plx_base::testlock::serial();
++    assert_idle_playhead();
++    for case in CENSUSES {
++        let _chapters = case.chapters.then(Chaptered::install);
++        for mode in [UiMode::Classic, UiMode::Modern] {
++            let cx = census_cx(mode);
++            let mut screen = census_screen(case.occupant, case.failed);
++            // A known duration is part of the presented frame, not an inferred decoder global.
++            screen.model.duration_ns = 100_000_000_000;
++            let geometry = screen.hud_geometry(&cx);
++            let mut groups = Vec::new();
++            Focusable::<CensusHost>::groups(&screen, &cx, &mut groups);
++            assert_eq!(groups.iter().map(|g| (g.id.0, g.len)).collect::<Vec<_>>(),
++                case.groups.iter().map(|g| (g.0, g.1)).collect::<Vec<_>>(), "{} {mode:?}", case.name);
++            for &(elem, group, rect) in case.places {
++                assert_eq!(Focusable::<CensusHost>::group_of(&screen, &elem, &cx).map(|g| g.0), group);
++                let placed = Focusable::<CensusHost>::place(&screen, &elem, &cx, At::Drawn);
++                assert_eq!(placed.is_some(), rect.is_some(), "{} {mode:?} {elem}", case.name);
++                if let Some(placed) = placed {
++                    assert_eq!(placed.rest_rect, placed.rect);
++                    assert_eq!(placed.index, None);
++                    let clip = if mode == UiMode::Modern && matches!(screen.slot, ControlSlot::Discs(_))
++                        && row_index(elem).is_some() { geometry.row } else { plx_ui::Rect::FULL };
++                    assert_eq!(placed.clip, clip, "{} {mode:?} {elem}", case.name);
++                }
++            }
++            let mut frame = DrawFrame::new(&cx, plx_ui::Painter::root());
++            screen.record_stops(&mut frame, true);
++            let stops = frame.into_stops();
++            let expected: Vec<_> = case.places.iter().filter(|(_, group, rect)| rect.is_some()
++                && if case.failed { *group == Some(3) } else { matches!(*group, Some(0..=2)) })
++                .map(|(elem, _, _)| *elem).collect();
++            assert_eq!(stops.iter().map(|s| s.key.elem).collect::<Vec<_>>(), expected,
++                "{} {mode:?}: only drawn controls are registered", case.name);
++            let mut map = HitMap::new();
++            map.fill(stops.clone());
++            map.swap();
++            for stop in stops {
++                let placed = Focusable::<CensusHost>::place(&screen, &stop.key.elem, &cx, At::Drawn).unwrap();
++                assert_eq!((stop.rect, stop.clip), (placed.rect, placed.clip));
++                let (x, y) = if stop.key.elem == ELEM_SCRUB {
++                    (geometry.playbar.cx(), geometry.playbar.cy())
++                } else { (stop.rect.cx(), stop.rect.cy()) };
++                assert!(stop.rect.contains(x, y) && stop.clip.contains(x, y));
++                let hit = map.resolve(Some(ENTRY), PointerKind::Click, x, y, None);
++                assert_eq!(hit.activate.map(|(key, _)| key.elem), Some(stop.key.elem),
++                    "{} {mode:?}: presented control {} is clickable", case.name, stop.key.elem);
++            }
++        }
+     }
+ }
+ 

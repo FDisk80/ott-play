@@ -1,0 +1,1511 @@
+diff --git a/Makefile b/Makefile
+index 52225e3..a7c9be3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -40,6 +40,32 @@
+ # `make RELEASE=1 && make deploy`, which rebuilds as dev and deploys that. Both targets echo
+ # which configuration they are shipping.
+ 
++# Public catalog inputs are ENVIRONMENT values, not Make expressions. The
++# integration builder validates its explicit flags before providing this pair.
++# Direct Make callers must also use the environment; reject command-line/file
++# overrides without ever expanding their contents. Freeze imported recursive
++# variables through value so even a rejected $(shell ...) string stays data.
++ifneq ($(origin PLX_CONTROL_DISCOVERY_URL),undefined)
++ifneq ($(origin PLX_CONTROL_DISCOVERY_URL),environment)
++$(error Supply PLX_CONTROL_DISCOVERY_URL in the environment, not as a Make assignment)
++endif
++override PLX_CONTROL_DISCOVERY_URL := $(value PLX_CONTROL_DISCOVERY_URL)
++export PLX_CONTROL_DISCOVERY_URL
++endif
++ifneq ($(origin PLX_CONTROL_DISCOVERY_SHA256),undefined)
++ifneq ($(origin PLX_CONTROL_DISCOVERY_SHA256),environment)
++$(error Supply PLX_CONTROL_DISCOVERY_SHA256 in the environment, not as a Make assignment)
++endif
++override PLX_CONTROL_DISCOVERY_SHA256 := $(value PLX_CONTROL_DISCOVERY_SHA256)
++export PLX_CONTROL_DISCOVERY_SHA256
++endif
++# The fixed command reads the original process environment. No input value is
++# interpolated into shell syntax. A missing helper or invalid pair fails closed.
++override CONTROL_DISCOVERY_CFG := $(shell python3 -B ci/ottplay-integration/control_discovery_config.py stamp)
++ifeq ($(CONTROL_DISCOVERY_CFG),)
++$(error Invalid control discovery build inputs or missing configuration helper)
++endif
++
+ # Which television. `make TV=1.2.3.4 …` overrides for one invocation; otherwise it comes from the
+ # gitignored `.tv-host` (one line, an IP or hostname), so this repository carries nobody's home
+ # network. `tools/` reads the same files via $TV_HOST. Absent, the targets that need a TV say so.
+@@ -749,7 +775,7 @@ TELEMETRY_CFG  = $(shell printf '%s|%s|%s|%s' '$(PLX_SENTRY_DSN)' '$(PLX_POSTHOG
+ # byte-for-byte what it always was. `+rc:<n>` is the same argument for a release candidate: the
+ # number is what `ci/check-package.py` grades the binary's `X.Y.Z-rc.<n>` against, and an rc.1 and
+ # an rc.2 of one tree must not share a link.
+-RUST_CFG       = features:$(RUST_FEATFLAGS)$(if $(filter-out release,$(ARM_PROFILE)),+profile:$(ARM_PROFILE),)$(if $(SYMBOLS),+symbols,)$(if $(filter nightly,$(FLAVOR)),+nightly:$(PLX_NIGHTLY_DATE),)$(if $(PLX_RC),+rc:$(PLX_RC),)+tel:$(TELEMETRY_CFG)
++RUST_CFG       = features:$(RUST_FEATFLAGS)$(if $(filter-out release,$(ARM_PROFILE)),+profile:$(ARM_PROFILE),)$(if $(SYMBOLS),+symbols,)$(if $(filter nightly,$(FLAVOR)),+nightly:$(PLX_NIGHTLY_DATE),)$(if $(PLX_RC),+rc:$(PLX_RC),)+tel:$(TELEMETRY_CFG)+control:$(CONTROL_DISCOVERY_CFG)
+ # Handled by $(shell) during PARSING, and by DELETING the output rather than by timestamps.
+ # Both choices are load-bearing, and both were arrived at by measuring the failures:
+ #   * A rule cannot do it. macOS ships GNU make 3.81, which decides whether a target is up to date
+diff --git a/ci/list-caps.ini b/ci/list-caps.ini
+index 272748c..f1287e6 100644
+--- a/ci/list-caps.ini
++++ b/ci/list-caps.ini
+@@ -1668,3 +1668,11 @@ reason = The recovery wire contract returns sixteen rows per page with an exact
+ [src/app/ott_favorites_recovery.rs::RECORD_LIMIT]
+ class = format
+ reason = The existing protected Favorites receipt journal admits at most thirty-two records; inspection rejects an oversized journal whole.
++
++[src/app/ott_remote/discovery.rs::CATALOG_BODY_LIMIT]
++class = format
++reason = Public discovery catalogs are bounded to 8192 bytes during transfer and parsing; oversized documents are rejected atomically.
++
++[src/app/ott_remote/discovery.rs::CONTROLLER_BODY_LIMIT]
++class = format
++reason = Manual command-server discovery retains its 65536-byte document bound and rejects oversized envelopes atomically.
+diff --git a/docs/native-media-sources.md b/docs/native-media-sources.md
+index bd3123f..2ad7eeb 100644
+--- a/docs/native-media-sources.md
++++ b/docs/native-media-sources.md
+@@ -1,7 +1,6 @@
+ # Native M3U media, Torrent and Stremio sources
+ 
+-These instructions describe the native integration source at
+-`232c2ccd8e55edabf33f81f021f76de64ea4dd15`. They do not certify an installed
++These instructions describe the native integration source. They do not certify an installed
+ package, a published release, a particular TV, or compatibility with every
+ provider. The frozen 0.2.1 package evidence in
+ [the installation guide](ott-native-delivery.md) belongs to an earlier source
+@@ -14,13 +13,26 @@ these sources do not require signing in to Plex. This is separate from the
+ harness's `--guest` option, which selects a test identity and is not a setup step
+ for an ordinary installation.
+ 
+-For remote control, open **Settings → Remote control server** and save the
+-HTTPS base address of your command server. After the address save completes,
+-the player discovers servers; select one if more than one is offered. Approve
+-the displayed pairing code with your controller and wait for **Remote control
+-connected**. Saving an address or seeing a pairing code alone does not establish
+-a durable authenticated connection. **Cancel pairing** stops a pending request;
+-**Disable remote control** is the separate action for an enabled connection.
++For remote control, builds configured with a public discovery catalog offer
++**Settings → Find command server**. Choose it, review the displayed server address
++and identity, then select the intended server. Selection is required even when
++there is only one result. Opening Settings does not start discovery or pairing.
++If discovery fails or finds no servers, choose **Find command server** again or
++use manual setup.
++
++Without a configured catalog, **Remote control server** explains that discovery
++is not configured. Open that entry and save the HTTPS base address of your
++command server. After the address save completes, the player discovers servers;
++select one if more than one is offered. This manual path remains available on
++builds with discovery as well.
++
++Approve the displayed pairing code with your controller and wait for **Remote
++control connected**. Saving an address, finding a server or seeing a pairing code
++alone does not establish a durable authenticated connection. **Cancel pairing**
++stops a pending attempt and preserves the previous saved connection. **Disable
++remote control** is the separate action for an enabled connection. A discovery
++catalog contains public server identities and addresses; it never supplies or
++approves a device token.
+ 
+ Controllers must inspect the installed player's capabilities and setting schema.
+ Native uses its native decoder, so `players` is read-only. The `interfaceMode`
+diff --git a/locales/be/ott_remote_discovery.json b/locales/be/ott_remote_discovery.json
+new file mode 100644
+index 0000000..ffdaddf
+--- /dev/null
++++ b/locales/be/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Знайсці сервер кіравання",
++  "ott.remote_unconfigured": "Пошук сервераў не наладжаны",
++  "ott.remote_invalid_profile": "Памылка налад пошуку",
++  "ott.remote_finding": "Пошук сервераў кіравання…",
++  "ott.remote_choose": "Выберыце сервер кіравання",
++  "ott.remote_empty": "Серверы не знойдзены. Паўтарыце пошук.",
++  "ott.remote_failed": "Памылка пошуку. Паспрабуйце зноў.",
++  "ott.remote_choice_expired": "Спіс змяніўся. Паўтарыце пошук."
++}
+diff --git a/locales/de/ott_remote_discovery.json b/locales/de/ott_remote_discovery.json
+new file mode 100644
+index 0000000..1844e62
+--- /dev/null
++++ b/locales/de/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Steuerungsserver suchen",
++  "ott.remote_unconfigured": "Serversuche nicht eingerichtet",
++  "ott.remote_invalid_profile": "Serversuche falsch konfiguriert",
++  "ott.remote_finding": "Steuerungsserver werden gesucht…",
++  "ott.remote_choose": "Steuerungsserver auswählen",
++  "ott.remote_empty": "Keine Server gefunden. Erneut suchen.",
++  "ott.remote_failed": "Suche fehlgeschlagen. Erneut versuchen.",
++  "ott.remote_choice_expired": "Serverliste geändert. Erneut suchen."
++}
+diff --git a/locales/en/ott_remote_discovery.json b/locales/en/ott_remote_discovery.json
+new file mode 100644
+index 0000000..552b375
+--- /dev/null
++++ b/locales/en/ott_remote_discovery.json
+@@ -0,0 +1,34 @@
++{
++  "ott.remote_find": {
++    "value": "Find command server",
++    "description": "Native remote-control Settings action. Reads the explicitly configured public discovery catalog; does not approve pairing."
++  },
++  "ott.remote_unconfigured": {
++    "value": "Discovery not configured",
++    "description": "Hint on manual Remote control server entry when no discovery catalog is configured. Manual entry remains available."
++  },
++  "ott.remote_invalid_profile": {
++    "value": "Discovery configuration invalid",
++    "description": "Hint on manual Remote control server entry when the build discovery profile is invalid. Manual entry remains available."
++  },
++  "ott.remote_finding": {
++    "value": "Finding command servers…",
++    "description": "Native discovery progress, shown in the Find row and status."
++  },
++  "ott.remote_choose": {
++    "value": "Select a command server",
++    "description": "Native discovery result prompt. The viewer must choose a visible server before pairing."
++  },
++  "ott.remote_empty": {
++    "value": "No servers found. Try again.",
++    "description": "Native discovery found no servers. The same Find action retries; manual address entry remains available."
++  },
++  "ott.remote_failed": {
++    "value": "Discovery failed. Try again.",
++    "description": "Native discovery failed. The same Find action retries; manual address entry remains available."
++  },
++  "ott.remote_choice_expired": {
++    "value": "Server list changed. Find again.",
++    "description": "A previously displayed discovery choice is no longer current. Find again instead of guessing another server."
++  }
++}
+diff --git a/locales/es/ott_remote_discovery.json b/locales/es/ott_remote_discovery.json
+new file mode 100644
+index 0000000..3aa8ec3
+--- /dev/null
++++ b/locales/es/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Buscar servidor de control",
++  "ott.remote_unconfigured": "Búsqueda sin configurar",
++  "ott.remote_invalid_profile": "Configuración de búsqueda no válida",
++  "ott.remote_finding": "Buscando servidores de control…",
++  "ott.remote_choose": "Seleccionar servidor de control",
++  "ott.remote_empty": "No se encontraron servidores. Reintentar.",
++  "ott.remote_failed": "Error de búsqueda. Reintentar.",
++  "ott.remote_choice_expired": "La lista cambió. Volver a buscar."
++}
+diff --git a/locales/fr/ott_remote_discovery.json b/locales/fr/ott_remote_discovery.json
+new file mode 100644
+index 0000000..43ce727
+--- /dev/null
++++ b/locales/fr/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Rechercher un serveur de contrôle",
++  "ott.remote_unconfigured": "Recherche non configurée",
++  "ott.remote_invalid_profile": "Configuration de recherche invalide",
++  "ott.remote_finding": "Recherche de serveurs de contrôle…",
++  "ott.remote_choose": "Choisir un serveur de contrôle",
++  "ott.remote_empty": "Aucun serveur trouvé. Réessayer.",
++  "ott.remote_failed": "Échec de la recherche. Réessayer.",
++  "ott.remote_choice_expired": "La liste a changé. Relancer la recherche."
++}
+diff --git a/locales/hu/ott_remote_discovery.json b/locales/hu/ott_remote_discovery.json
+new file mode 100644
+index 0000000..25166a8
+--- /dev/null
++++ b/locales/hu/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Vezérlőszerver keresése",
++  "ott.remote_unconfigured": "A keresés nincs beállítva",
++  "ott.remote_invalid_profile": "Hibás keresési beállítás",
++  "ott.remote_finding": "Vezérlőszerverek keresése…",
++  "ott.remote_choose": "Válasszon vezérlőszervert",
++  "ott.remote_empty": "Nincs találat. Próbálja újra.",
++  "ott.remote_failed": "Sikertelen keresés. Próbálja újra.",
++  "ott.remote_choice_expired": "A lista megváltozott. Keressen újra."
++}
+diff --git a/locales/it/ott_remote_discovery.json b/locales/it/ott_remote_discovery.json
+new file mode 100644
+index 0000000..a054a10
+--- /dev/null
++++ b/locales/it/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Cerca server di controllo",
++  "ott.remote_unconfigured": "Ricerca non configurata",
++  "ott.remote_invalid_profile": "Configurazione di ricerca non valida",
++  "ott.remote_finding": "Ricerca dei server di controllo…",
++  "ott.remote_choose": "Scegli un server di controllo",
++  "ott.remote_empty": "Nessun server trovato. Riprova.",
++  "ott.remote_failed": "Ricerca non riuscita. Riprova.",
++  "ott.remote_choice_expired": "Elenco modificato. Ripeti la ricerca."
++}
+diff --git a/locales/pl/ott_remote_discovery.json b/locales/pl/ott_remote_discovery.json
+new file mode 100644
+index 0000000..57f3c79
+--- /dev/null
++++ b/locales/pl/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Znajdź serwer sterowania",
++  "ott.remote_unconfigured": "Wyszukiwanie nieskonfigurowane",
++  "ott.remote_invalid_profile": "Błędna konfiguracja wyszukiwania",
++  "ott.remote_finding": "Wyszukiwanie serwerów sterowania…",
++  "ott.remote_choose": "Wybierz serwer sterowania",
++  "ott.remote_empty": "Nie znaleziono serwerów. Spróbuj ponownie.",
++  "ott.remote_failed": "Wyszukiwanie nieudane. Spróbuj ponownie.",
++  "ott.remote_choice_expired": "Lista się zmieniła. Wyszukaj ponownie."
++}
+diff --git a/locales/pt/ott_remote_discovery.json b/locales/pt/ott_remote_discovery.json
+new file mode 100644
+index 0000000..72ce2e3
+--- /dev/null
++++ b/locales/pt/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Procurar servidor de controlo",
++  "ott.remote_unconfigured": "Pesquisa não configurada",
++  "ott.remote_invalid_profile": "Configuração de pesquisa inválida",
++  "ott.remote_finding": "A procurar servidores de controlo…",
++  "ott.remote_choose": "Selecionar servidor de controlo",
++  "ott.remote_empty": "Nenhum servidor encontrado. Tentar de novo.",
++  "ott.remote_failed": "Falha na pesquisa. Tentar de novo.",
++  "ott.remote_choice_expired": "A lista mudou. Pesquisar de novo."
++}
+diff --git a/locales/ru/ott_remote_discovery.json b/locales/ru/ott_remote_discovery.json
+new file mode 100644
+index 0000000..15c6fc5
+--- /dev/null
++++ b/locales/ru/ott_remote_discovery.json
+@@ -0,0 +1,10 @@
++{
++  "ott.remote_find": "Найти сервер управления",
++  "ott.remote_unconfigured": "Поиск серверов не настроен",
++  "ott.remote_invalid_profile": "Ошибка настройки поиска",
++  "ott.remote_finding": "Поиск серверов управления…",
++  "ott.remote_choose": "Выберите сервер управления",
++  "ott.remote_empty": "Серверы не найдены. Повторите поиск.",
++  "ott.remote_failed": "Ошибка поиска. Повторите попытку.",
++  "ott.remote_choice_expired": "Список изменился. Повторите поиск."
++}
+diff --git a/rust-modules/src/app/ott_remote/discovery.rs b/rust-modules/src/app/ott_remote/discovery.rs
+new file mode 100644
+index 0000000..35b768c
+--- /dev/null
++++ b/rust-modules/src/app/ott_remote/discovery.rs
+@@ -0,0 +1,139 @@
++//! Public discovery values only. No IO, settings writes, credentials or fallback origin.
++use super::protocol::{self, Request};
++use serde::Deserialize;
++use std::collections::HashSet;
++
++pub(super) const CATALOG_BODY_LIMIT: usize = 8192;
++pub(super) const CONTROLLER_BODY_LIMIT: usize = 65536;
++pub(super) const UNCONFIGURED: &str = "Discovery is not configured. Enter a server address.";
++pub(super) const INVALID_PROFILE: &str = "Discovery configuration is invalid. Enter a server address.";
++pub(super) const FINDING: &str = "Finding command servers…";
++pub(super) const CHOOSE: &str = "Select a command server";
++pub(super) const EMPTY: &str = "No servers found. Try again or enter an address.";
++pub(super) const FAILED: &str = "Discovery failed. Try again or enter an address.";
++pub(super) const EXPIRED_CHOICE: &str = "Server choices changed. Find servers again.";
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub(super) struct CatalogProfile {
++    url: String,
++    digest: [u8; 32],
++}
++impl CatalogProfile {
++    pub(super) fn configured() -> Result<Option<Self>, &'static str> {
++        Self::from_config(option_env!("PLX_CONTROL_DISCOVERY_URL"),
++            option_env!("PLX_CONTROL_DISCOVERY_SHA256"))
++    }
++
++    pub(super) fn from_config(url: Option<&str>, digest: Option<&str>)
++        -> Result<Option<Self>, &'static str>
++    {
++        let url = url.filter(|value| !value.is_empty());
++        let digest = digest.filter(|value| !value.is_empty());
++        if url.is_none() && digest.is_none() { return Ok(None); }
++        let (Some(url), Some(digest)) = (url, digest) else { return Err(INVALID_PROFILE); };
++        if !catalog_url(url) || digest.len() != 64
++            || !digest.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
++        { return Err(INVALID_PROFILE); }
++        let mut bytes = [0; 32];
++        for (i, byte) in bytes.iter_mut().enumerate() {
++            *byte = u8::from_str_radix(&digest[i * 2..i * 2 + 2], 16)
++                .map_err(|_| INVALID_PROFILE)?;
++        }
++        Ok(Some(Self { url: url.into(), digest: bytes }))
++    }
++
++    pub(super) fn parse(&self, bytes: &[u8]) -> Result<Vec<Candidate>, &'static str> {
++        if bytes.is_empty() || bytes.len() > CATALOG_BODY_LIMIT {
++            return Err("Discovery catalog exceeds its size limit");
++        }
++        // Bind the exact fetched bytes before interpreting any nominated endpoint.
++        if plx_base::sha256::sha256(bytes) != self.digest {
++            return Err("Discovery catalog digest mismatch");
++        }
++        parse(bytes, true).map_err(|_| "Invalid discovery catalog")
++    }
++}
++
++// Deliberately narrower than a general URL parser: this public build input must
++// identify one exact HTTPS catalog, without shell syntax or normalized aliases.
++fn catalog_url(value: &str) -> bool {
++    if value.len() > 2048 || !value.is_ascii() { return false; }
++    let Some(rest) = value.strip_prefix("https://") else { return false; };
++    let Some((authority, path)) = rest.split_once('/') else { return false; };
++    let (host, port) = authority.split_once(':').map_or((authority, None),
++        |(host, port)| (host, Some(port)));
++    if host.is_empty() || host.len() > 253 || !host.contains('.') { return false; }
++    if host.bytes().all(|b| b.is_ascii_digit() || b == b'.') {
++        if !host.parse::<std::net::Ipv4Addr>().is_ok_and(|ip| ip.to_string() == host) { return false; }
++    } else if !host.split('.').all(|label| !label.is_empty() && label.len() <= 63
++        && label.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
++        && !label.starts_with('-') && !label.ends_with('-'))
++    { return false; }
++    if port.is_some_and(|port| !port.parse::<u16>().is_ok_and(|n| n != 0 && n.to_string() == port)) {
++        return false;
++    }
++    path.split('/').all(|part| !part.is_empty() && part != "." && part != ".."
++        && part.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~')))
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub(super) struct ControllerBase(String);
++impl ControllerBase {
++    pub(super) fn new(value: &str) -> Result<Self, &'static str> {
++        protocol::normalize_base(value, false).map(Self)
++    }
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub(super) enum DiscoveryTarget {
++    ControllerBase(ControllerBase),
++    CatalogUrl(CatalogProfile),
++}
++impl DiscoveryTarget {
++    pub(super) fn request(&self) -> Request {
++        Request { method: "GET", token: String::new(), body: None, url: match self {
++            Self::ControllerBase(base) => format!("{}/api/discovery", base.0),
++            Self::CatalogUrl(profile) => profile.url.clone(),
++        } }
++    }
++    pub(super) fn body_limit(&self) -> usize {
++        match self { Self::ControllerBase(_) => CONTROLLER_BODY_LIMIT,
++            Self::CatalogUrl(_) => CATALOG_BODY_LIMIT }
++    }
++}
++
++#[derive(Debug)]
++pub(super) struct Candidate {
++    pub(super) id: String,
++    pub(super) domain: String,
++    pub(super) address: String,
++}
++#[derive(Deserialize)]
++struct Envelope { version: u8, servers: Vec<serde_json::Value> }
++#[derive(Deserialize)]
++struct Descriptor { id: String, address: String, domain: Option<String> }
++
++pub(super) fn parse_controller(bytes: &[u8]) -> Result<Vec<Candidate>, &'static str> {
++    if bytes.len() > CONTROLLER_BODY_LIMIT { return Err("No command server was discovered"); }
++    parse(bytes, false)
++}
++fn parse(bytes: &[u8], require_domain: bool) -> Result<Vec<Candidate>, &'static str> {
++    let value: Envelope = serde_json::from_slice(bytes).map_err(|_| "No command server was discovered")?;
++    if value.version != 1 || value.servers.len() > 16 { return Err("No command server was discovered"); }
++    let mut ids = HashSet::new();
++    value.servers.into_iter().map(|item| {
++        let item: Descriptor = serde_json::from_value(item)
++            .map_err(|_| "Invalid command server discovery response")?;
++        // Pairing and discovery share the exact same identity admission rule.
++        if !protocol::valid_server_id(&item.id)
++            || !ids.insert(item.id.clone()) || (require_domain && item.domain.is_none())
++        { return Err("Invalid command server discovery response"); }
++        let domain = item.domain.unwrap_or_default();
++        if domain.len() > 253 || domain.chars().any(|c| c.is_control() || c.is_whitespace()) {
++            return Err("Invalid command server discovery response");
++        }
++        let address = protocol::normalize_base(&item.address, false)
++            .map_err(|_| "Invalid command server discovery response")?;
++        Ok(Candidate { id: item.id, domain, address })
++    }).collect()
++}
+diff --git a/rust-modules/src/app/ott_remote/discovery_compat_tests.rs b/rust-modules/src/app/ott_remote/discovery_compat_tests.rs
+new file mode 100644
+index 0000000..d779333
+--- /dev/null
++++ b/rust-modules/src/app/ott_remote/discovery_compat_tests.rs
+@@ -0,0 +1,25 @@
++//! Existing-API regression for an advertised identity the pairing validator cannot accept.
++use super::*;
++
++#[test]
++fn manual_discovery_rejects_unpairable_identity_atomically() {
++    for length in [254, 255] {
++        let mut remote = Remote::disabled_for_test("dev_test", "runtime");
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[
++            {"id":"one","address":"https://one.invalid"},
++            {"id":"x".repeat(length),"address":"https://two.invalid"}
++        ]})).unwrap();
++        remote.finish(Kind::Discovery, Outcome::Http {
++            response:Ok(protocol::Response { status:200,body }),elapsed_ms:1,
++        },0);
++        let state = remote.snapshot();
++        if length == 254 {
++            assert_eq!(state["state"], "choose");
++            assert_eq!(state["servers"].as_array().unwrap().len(), 2);
++        } else {
++            assert_eq!(state["state"], "error");
++            assert!(state["servers"].as_array().unwrap().is_empty());
++        }
++        assert!(remote.pairing.is_none() && remote.pending_save.is_none());
++    }
++}
+diff --git a/rust-modules/src/app/ott_remote/discovery_tests.rs b/rust-modules/src/app/ott_remote/discovery_tests.rs
+new file mode 100644
+index 0000000..1e06b42
+--- /dev/null
++++ b/rust-modules/src/app/ott_remote/discovery_tests.rs
+@@ -0,0 +1,275 @@
++//! New discovery API regressions shipped with the production cut.
++//! No socket, storage, native process or clock is started.
++use super::*;
++use discovery::{CatalogProfile, ControllerBase, DiscoveryTarget};
++
++fn document() -> Vec<u8> {
++    br#"{"version":1,"servers":[{"id":"one._ottplay-ctrl._tcp.test.","domain":"test","address":"https://control.invalid/team"}]}"#.to_vec()
++}
++fn profile(body: &[u8]) -> CatalogProfile {
++    let digest = plx_base::sha256::sha256(body).iter()
++        .map(|byte| format!("{byte:02x}")).collect::<String>();
++    CatalogProfile::from_config(Some("https://catalog.invalid/discovery.json"), Some(&digest))
++        .unwrap().unwrap()
++}
++fn response(body: Vec<u8>) -> Outcome {
++    Outcome::Http { response: Ok(protocol::Response { status: 200, body }), elapsed_ms: 1 }
++}
++fn configured(body: &[u8]) -> Remote {
++    let mut remote = Remote::disabled_for_test("dev_test", "test-runtime");
++    remote.catalog_profile = Ok(Some(profile(body)));
++    remote
++}
++fn finish_find(remote: &mut Remote, body: Vec<u8>) {
++    let Some(DiscoveryTarget::CatalogUrl(profile)) = remote.discover_address.take() else {
++        panic!("Find must queue the typed catalog target");
++    };
++    remote.finish(Kind::Catalog(profile), response(body), 10);
++}
++fn paired_config() -> Config {
++    Config::parse(json!({"enabled":true,"address":"https://old.invalid/control",
++        "token":"A".repeat(32),"device_id":"dev_test"})).unwrap()
++}
++
++#[test]
++fn discovery_profile_is_explicit_and_rejects_partial_or_unsafe_input() {
++    assert!(CatalogProfile::from_config(None, None).unwrap().is_none());
++    assert!(CatalogProfile::from_config(Some(""), Some("")).unwrap().is_none());
++    let digest = "a".repeat(64);
++    assert!(CatalogProfile::from_config(Some("https://catalog.invalid/file.json"), None).is_err());
++    assert!(CatalogProfile::from_config(None, Some(&digest)).is_err());
++    for url in ["http://catalog.invalid/file.json", "https://user@catalog.invalid/file.json",
++        "https://catalog.invalid/file.json?token=x", "https://catalog.invalid/file.json#x",
++        "https://catalog.invalid/%66ile", "https://catalog.invalid/../file", "https://catalog.invalid//file",
++        "https://catalog.invalid/file/", "https://catalog.invalid/$(id)", "https://catalog.invalid/`id`",
++        "https://catalog.invalid/a'b", "https://catalog.invalid/a\nb", "https://catalog.invalid:0443/file",
++        "https://localhost/file", "https://127.00.0.1/file", "https://1.2.3/file"] {
++        assert!(CatalogProfile::from_config(Some(url), Some(&digest)).is_err(), "{url}");
++    }
++    for hash in ["A".repeat(64), "a".repeat(63), "g".repeat(64)] {
++        assert!(CatalogProfile::from_config(Some("https://catalog.invalid/file.json"), Some(&hash)).is_err());
++    }
++}
++
++#[test]
++fn discovery_targets_preserve_exact_catalog_url_and_manual_api_suffix() {
++    let catalog = DiscoveryTarget::CatalogUrl(profile(&document()));
++    let request = catalog.request();
++    assert_eq!(request.url, "https://catalog.invalid/discovery.json");
++    assert_eq!(request.method, "GET");
++    assert!(request.token.is_empty() && request.body.is_none());
++    assert_eq!(catalog.body_limit(), 8192);
++    let manual = DiscoveryTarget::ControllerBase(ControllerBase::new("https://control.invalid/team/").unwrap());
++    assert_eq!(manual.request().url, "https://control.invalid:443/team/api/discovery");
++    assert_eq!(manual.body_limit(), 65536);
++}
++
++#[test]
++fn catalog_digest_precedes_json_and_descriptor_validation() {
++    let trusted = document();
++    let configured = profile(&trusted);
++    assert_eq!(configured.parse(b"not json").unwrap_err(), "Discovery catalog digest mismatch");
++    let malformed = b"not json";
++    assert_eq!(profile(malformed).parse(malformed).unwrap_err(), "Invalid discovery catalog");
++    let parsed = configured.parse(&trusted).unwrap();
++    assert_eq!(parsed[0].id, "one._ottplay-ctrl._tcp.test.");
++    assert_eq!(parsed[0].domain, "test");
++    assert_eq!(parsed[0].address, "https://control.invalid:443/team");
++    let oversized = vec![b' '; 8193];
++    assert!(profile(&oversized).parse(&oversized).is_err());
++}
++
++#[test]
++fn discovery_descriptor_refusals_are_atomic_and_match_pairing_id_bound() {
++    let valid = json!({"id":"one","domain":"test","address":"https://control.invalid"});
++    for invalid in [json!({"id":"","domain":"test","address":"https://control.invalid"}),
++        json!({"id":"x".repeat(255),"domain":"test","address":"https://control.invalid"}),
++        json!({"id":"two","domain":"bad\ndomain","address":"https://control.invalid"}),
++        json!({"id":"two","address":"https://control.invalid"}),
++        json!({"id":"two","domain":"test","address":"http://control.invalid"}),
++        valid.clone()] {
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[valid,invalid]})).unwrap();
++        assert!(profile(&body).parse(&body).is_err());
++    }
++    let boundary = serde_json::to_vec(&json!({"version":1,"servers":[
++        {"id":"x".repeat(254),"domain":"test","address":"https://control.invalid"}]})).unwrap();
++    assert!(profile(&boundary).parse(&boundary).is_ok());
++    let too_many = serde_json::to_vec(&json!({"version":1,"servers":(0..17)
++        .map(|i| json!({"id":format!("id{i}"),"domain":"test","address":"https://control.invalid"}))
++        .collect::<Vec<_>>()})).unwrap();
++    assert!(profile(&too_many).parse(&too_many).is_err());
++}
++
++#[test]
++fn find_singleton_waits_for_explicit_bound_choice_without_enabling_control() {
++    let body = document();
++    let mut remote = configured(&body);
++    remote.find_servers(0).unwrap();
++    finish_find(&mut remote, body);
++    let snapshot = remote.snapshot();
++    assert_eq!(snapshot["find_state"], "choose");
++    assert!(remote.pairing.is_none() && remote.pending_save.is_none() && remote.flight.is_none());
++    assert!(!remote.config.enabled && remote.config.token.is_empty());
++    let choice = snapshot["servers"][0]["choice"].as_str().unwrap();
++    assert!(!choice.contains("control.invalid") && !choice.contains("one."));
++    remote.select_discovered_choice(choice, 20).unwrap();
++    let request = remote.pairing.as_ref().unwrap().request(false);
++    assert_eq!(request.url, "https://control.invalid:443/team/api/pairings");
++    assert_eq!(request.method, "POST");
++    assert!(request.token.is_empty());
++    assert_eq!(serde_json::from_str::<Value>(request.body.as_deref().unwrap()).unwrap(),
++        json!({"device_id":"dev_test","server_id":"one._ottplay-ctrl._tcp.test."}));
++    assert_eq!(remote.snapshot()["find_message"], "");
++    assert!(!remote.config.enabled);
++}
++
++#[test]
++fn manual_singleton_preserves_existing_pairing_behavior() {
++    let mut remote = Remote::disabled_for_test("dev_test", "runtime");
++    remote.discover_and_pair("https://control.invalid", 0).unwrap();
++    remote.discover_address.take();
++    // Legacy/manual v1 responses did not require the domain field.
++    remote.finish(Kind::Discovery, response(br#"{"version":1,"servers":[{"id":"one","address":"https://control.invalid"}]}"#.to_vec()), 1);
++    assert!(remote.pairing.is_some());
++    assert_eq!(remote.snapshot()["find_message"], "");
++}
++
++#[test]
++fn find_status_survives_old_connection_polling_and_bad_results_keep_saved_config() {
++    let body = document();
++    let mut remote = configured(&body);
++    remote.apply(paired_config(), true);
++    let original = serde_json::to_value(&remote.config).unwrap();
++    remote.find_servers(0).unwrap();
++    finish_find(&mut remote, body);
++    let choices = remote.snapshot()["servers"].clone();
++    remote.finish(Kind::Delivery(SendKind::Poll), Outcome::Http {
++        response: Ok(protocol::Response { status: 503, body: b"private error".to_vec() }), elapsed_ms: 1,
++    }, 11);
++    assert_eq!(remote.snapshot()["find_state"], "choose");
++    assert_eq!(remote.snapshot()["servers"], choices);
++    remote.finish(Kind::Delivery(SendKind::Poll), response(serde_json::to_vec(
++        &json!({"commands":[],"requests":[],"server_time":1000})).unwrap()), 12);
++    assert_eq!(remote.snapshot()["find_state"], "choose");
++    assert_eq!(remote.snapshot()["servers"], choices);
++    remote.find_servers(13).unwrap();
++    finish_find(&mut remote, b"malformed and digest mismatch".to_vec());
++    assert_eq!(remote.snapshot()["find_state"], "error");
++    assert_eq!(serde_json::to_value(&remote.config).unwrap(), original);
++    assert!(remote.pairing.is_none() && remote.pending_save.is_none());
++    assert!(remote.snapshot()["servers"].as_array().unwrap().is_empty());
++}
++
++#[test]
++fn stale_choice_after_retry_cancel_or_config_change_cannot_pair() {
++    for transition in 0..5 {
++        let body = document();
++        let mut remote = configured(&body);
++        remote.find_servers(0).unwrap();
++        finish_find(&mut remote, body.clone());
++        let old = remote.snapshot()["servers"][0]["choice"].as_str().unwrap().to_owned();
++        match transition {
++            0 => { remote.find_servers(1).unwrap(); finish_find(&mut remote, body); }
++            1 => remote.cancel_pairing(),
++            2 => remote.configure(serde_json::to_value(paired_config()).unwrap()).unwrap(),
++            3 => remote.disable().unwrap(),
++            _ => remote.retire_for_erasure(),
++        }
++        assert!(remote.select_discovered_choice(&old, 2).is_err());
++        if transition == 0 {
++            assert_eq!(remote.snapshot()["find_message"], discovery::EXPIRED_CHOICE);
++            assert!(remote.snapshot()["servers"].as_array().unwrap().is_empty());
++        }
++        assert!(remote.pairing.is_none());
++    }
++}
++
++#[test]
++fn find_empty_catalog_is_retryable_and_does_not_fallback() {
++    let body = br#"{"version":1,"servers":[]}"#.to_vec();
++    let mut remote = configured(&body);
++    remote.find_servers(0).unwrap();
++    finish_find(&mut remote, body);
++    assert_eq!(remote.snapshot()["find_state"], "empty");
++    assert!(remote.discover_address.is_none() && remote.pairing.is_none() && remote.pending_save.is_none());
++    remote.find_servers(20).unwrap();
++    assert!(matches!(remote.discover_address, Some(DiscoveryTarget::CatalogUrl(_))));
++}
++
++#[test]
++fn find_needs_persisted_identity_and_valid_profile_without_disturbing_pairing() {
++    let body = document();
++    let mut remote = configured(&body);
++    remote.persisted = false;
++    assert!(remote.find_servers(0).is_err());
++    assert!(remote.discover_address.is_none());
++    remote.persisted = true;
++    remote.begin_pairing("https://chosen.invalid", "chosen", 1).unwrap();
++    remote.catalog_profile = Err("Discovery configuration is invalid. Enter a server address.");
++    assert!(remote.find_servers(2).is_err());
++    assert_eq!(remote.pairing.as_ref().unwrap().base, "https://chosen.invalid:443");
++    assert_eq!(remote.snapshot()["find_configured"], false);
++}
++
++#[test]
++fn selected_approval_requires_protected_save_before_replacing_saved_connection() {
++    for saved in [false, true] {
++        let body = document();
++        let mut remote = configured(&body);
++        remote.apply(paired_config(), true);
++        let original = serde_json::to_value(&remote.config).unwrap();
++        remote.find_servers(0).unwrap();
++        finish_find(&mut remote, body);
++        let choice = remote.snapshot()["servers"][0]["choice"].as_str().unwrap().to_owned();
++        remote.select_discovered_choice(&choice, 20).unwrap();
++        remote.finish(Kind::Pairing, Outcome::Http { response: Ok(protocol::Response { status:201,
++            body:serde_json::to_vec(&json!({"id":"0123456789abcdef0123456789abcdef",
++                "secret":"B".repeat(32),"code":"ABCD1234","expires_in":60})).unwrap() }),elapsed_ms:1 },21);
++        remote.finish(Kind::Pairing, response(serde_json::to_vec(&json!({"status":"approved",
++            "device_id":"dev_test","address":"https://control.invalid/team","token":"C".repeat(32)})).unwrap()),22);
++        assert_eq!(serde_json::to_value(&remote.config).unwrap(), original);
++        assert!(!remote.snapshot().to_string().contains(&"B".repeat(32)));
++        assert!(!remote.snapshot().to_string().contains(&"C".repeat(32)));
++        let candidate = remote.pending_save.take().expect("approved config waits for writer");
++        remote.finish(Kind::Save(candidate), Outcome::Saved(if saved { Ok(()) } else { Err("Protected control storage is unavailable") }),23);
++        if saved { assert_eq!(remote.config.address, "https://control.invalid:443/team"); }
++        else { assert_eq!(serde_json::to_value(&remote.config).unwrap(), original); }
++    }
++}
++
++#[cfg(feature = "hostsim")]
++#[test]
++fn canceled_catalog_completion_cannot_resurrect_choice_or_launch_another_worker() {
++    let body = document();
++    let mut remote = configured(&body);
++    remote.find_servers(0).unwrap();
++    let Some(DiscoveryTarget::CatalogUrl(profile)) = remote.discover_address.take() else { panic!("catalog") };
++    let (task, sender) = transport::Task::pending_for_test();
++    remote.flight = Some(Flight { kind:Kind::Catalog(profile),generation:remote.generation,task });
++    remote.find_servers(1).unwrap();
++    assert!(remote.tick(2,json!({})).is_empty());
++    assert!(remote.flight.is_some(), "canceled worker retains the single slot until completion");
++    remote.cancel_pairing();
++    sender.send(response(body)).unwrap_or_else(|_| panic!("held receiver"));
++    assert!(remote.tick(3,json!({})).is_empty());
++    assert!(remote.flight.is_none() && remote.discover_address.is_none());
++    assert_eq!(remote.snapshot()["find_message"], "");
++    assert!(remote.snapshot()["servers"].as_array().unwrap().is_empty());
++}
++
++#[test]
++fn unavailable_profile_and_refused_worker_never_start_fallback_work() {
++    let body = document();
++    let mut remote = configured(&body);
++    remote.catalog_profile = Ok(None);
++    assert!(remote.find_servers(0).is_err());
++    assert!(remote.tick(1,json!({})).is_empty());
++    assert!(remote.flight.is_none() && remote.discover_address.is_none());
++    remote.catalog_profile = Ok(Some(profile(&body)));
++    remote.find_servers(2).unwrap();
++    let Some(DiscoveryTarget::CatalogUrl(profile)) = remote.discover_address.take() else { panic!("catalog") };
++    remote.launch(Kind::Catalog(profile),None,3);
++    assert_eq!(remote.snapshot()["find_state"],"error");
++    assert!(remote.tick(4,json!({})).is_empty());
++    assert!(remote.flight.is_none() && remote.discover_address.is_none());
++}
+diff --git a/rust-modules/src/app/ott_remote/mod.rs b/rust-modules/src/app/ott_remote/mod.rs
+index 3e71dc9..97cd128 100644
+--- a/rust-modules/src/app/ott_remote/mod.rs
++++ b/rust-modules/src/app/ott_remote/mod.rs
+@@ -2,6 +2,8 @@
+ //! Models in protocol are pure; this app adapter owns one bounded IO task.
+ pub(crate) use protocol::favorites_rejection;
+ mod protocol;
++mod discovery;
++use discovery::{CatalogProfile, ControllerBase, DiscoveryTarget};
+ mod transport;
+ mod display;
+ pub(super) mod media_tracks;
+@@ -57,6 +59,7 @@ enum Kind {
+     Save(Config),
+     Delivery(SendKind),
+     Discovery,
++    Catalog(CatalogProfile),
+     Pairing,
+     CancelPairing,
+ }
+@@ -105,7 +108,11 @@ pub(crate) struct Remote {
+     presence_at: u64,
+     presence_pending: Option<Value>,
+     configuration_receipt: Option<Value>,
+-    discover_address: Option<String>,
++    discover_address: Option<DiscoveryTarget>,
++    catalog_profile: Result<Option<CatalogProfile>, &'static str>,
++    find_state: &'static str,
++    find_message: &'static str,
++    find_diagnostic: String,
+     // Last admitted editor input; distinct from the one-shot discovery queue and
+     // the authenticated persisted endpoint. Unpaired drafts last for this run.
+     address_draft: Option<String>,
+@@ -117,6 +124,7 @@ impl Remote {
+     /// Revoke disk authority before dropping any asynchronous control work.
+     pub(crate) fn retire_for_erasure(&mut self) {
+         self.write_permit.revoke();
++        self.clear_discovery();
+         self.flight.take();
+         self.pending_save = None;
+         self.pairing = None;
+@@ -153,6 +161,10 @@ impl Remote {
+             presence_pending: None,
+             configuration_receipt: None,
+             discover_address: None,
++            catalog_profile: CatalogProfile::configured(),
++            find_state: "",
++            find_message: "",
++            find_diagnostic: String::new(),
+             address_draft: None,
+             discovered: Vec::new(),
+             after_reply: Vec::new(),
+@@ -194,6 +206,24 @@ impl Remote {
+         actions
+     }
+ 
++    /// Stage a hash-bound public catalog through real Find admission/completion.
++    /// Only test bytes are used; no transport or protected writer is launched.
++    #[cfg(all(test, feature = "hostsim"))]
++    pub(crate) fn find_catalog_for_test(&mut self, body: &[u8], now_ms: u64) -> Result<(), &'static str> {
++        let digest = plx_base::sha256::sha256(body).iter()
++            .map(|byte| format!("{byte:02x}")).collect::<String>();
++        self.catalog_profile = CatalogProfile::from_config(
++            Some("https://catalog.invalid/discovery.json"), Some(&digest));
++        self.find_servers(now_ms)?;
++        let Some(DiscoveryTarget::CatalogUrl(profile)) = self.discover_address.take() else {
++            return Err("Fixture catalog was not queued");
++        };
++        self.finish(Kind::Catalog(profile), Outcome::Http {
++            response: Ok(protocol::Response { status: 200, body: body.to_vec() }), elapsed_ms: 0,
++        }, now_ms);
++        Ok(())
++    }
++
+     /// Inspect the actual delivery result, without starting transport.
+     #[cfg(all(test, feature = "hostsim"))]
+     pub(crate) fn response_for_id_for_test(&self, id: &str) -> Option<Value> {
+@@ -234,6 +264,12 @@ impl Remote {
+             else { format!("{} · {}", self.message, self.network_diagnostic) };
+         json!({"version":1,"enabled":self.config.enabled,"device_id":self.config.device_id,
+             "state":self.status,"message":message,"persisted":self.persisted,
++            "find_configured": matches!(&self.catalog_profile, Ok(Some(_))),
++            "find_unavailable": match &self.catalog_profile {
++                Ok(Some(_)) => "", Ok(None) => discovery::UNCONFIGURED, Err(_) => discovery::INVALID_PROFILE,
++            },
++            "find_state":self.find_state,"find_message":self.find_message,"find_diagnostic":self.find_diagnostic,
++            "pairing_server":self.pairing.as_ref().map(|p|p.base.as_str()).unwrap_or(""),
+             "servers":self.discovered,"pairing_code":self.pairing.as_ref().map(|p|p.code.as_str()).unwrap_or(""),
+             "saving":self.pending_save.is_some() || matches!(self.flight.as_ref().map(|f|&f.kind),Some(Kind::Save(_)))})
+     }
+@@ -298,19 +334,46 @@ impl Remote {
+         {
+             return Err("Control configuration is not ready");
+         }
+-        let base = protocol::normalize_base(address, false)?;
++        let base = ControllerBase::new(address)?;
+         // normalize_base already bounds this trimmed input to 2048 bytes and
+         // rejects credentials/query data. Keep it even if discovery later fails.
+         self.address_draft = Some(address.trim().trim_end_matches('/').to_owned());
+         self.cancel_pairing();
+         self.discovered.clear();
+-        self.discover_address = Some(base);
++        self.discover_address = Some(DiscoveryTarget::ControllerBase(base));
+         self.status = "discovering";
+         self.message = "Finding command server";
+         self.next_ms = now_ms;
+         Ok(())
+     }
+-    pub fn select_discovered(&mut self, index: usize, now_ms: u64) -> Result<(), &'static str> {
++    /// An explicitly invoked public profile never pairs until the user selects a row.
++    pub fn find_servers(&mut self, now_ms: u64) -> Result<(), &'static str> {
++        if self.loading || !self.persisted || !self.write_permit.is_valid()
++            || self.pending_save.is_some()
++            || matches!(self.flight.as_ref().map(|f| &f.kind), Some(Kind::Save(_)))
++        { return Err("Control configuration is not ready"); }
++        let profile = self.catalog_profile.clone()?.ok_or(discovery::UNCONFIGURED)?;
++        self.cancel_pairing();
++        self.discover_address = Some(DiscoveryTarget::CatalogUrl(profile));
++        self.find_state = "discovering";
++        self.find_message = discovery::FINDING;
++        self.next_ms = now_ms;
++        Ok(())
++    }
++    /// The opaque token refers only to this generation's immutable validated table.
++    pub fn select_discovered_choice(&mut self, choice: &str, now_ms: u64) -> Result<(), &'static str> {
++        let index = (choice.len() <= 32 && !choice.is_empty()).then(||
++            self.discovered.iter().position(|row| row["choice"].as_str() == Some(choice))).flatten();
++        if let Some(index) = index { return self.select_discovered(index, now_ms); }
++        // Surface this explicit input failure above background control health.
++        // Do not disturb a newer pairing after Find has already relinquished ownership.
++        if !self.find_message.is_empty() {
++            self.fail_find();
++            self.find_message = discovery::EXPIRED_CHOICE;
++        }
++        Err(discovery::EXPIRED_CHOICE)
++    }
++    fn select_discovered(&mut self, index: usize, now_ms: u64) -> Result<(), &'static str> {
+         let selected = self
+             .discovered
+             .get(index)
+@@ -372,7 +435,27 @@ impl Remote {
+     pub fn take_configuration_receipt(&mut self) -> Option<Value> {
+         self.configuration_receipt.take()
+     }
++    fn clear_discovery(&mut self) {
++        self.discover_address = None;
++        self.discovered.clear();
++        self.find_state = "";
++        self.find_message = "";
++        self.find_diagnostic.clear();
++    }
++    fn publish_candidates(&mut self, candidates: Vec<discovery::Candidate>) {
++        self.discovered = candidates.into_iter().enumerate().map(|(index, row)| {
++            json!({"id":row.id,"domain":row.domain,"address":row.address,
++                "choice":format!("{:016x}:{:02x}",self.generation,index)})
++        }).collect();
++    }
++    fn fail_find(&mut self) {
++        self.discovered.clear();
++        self.find_state = "error";
++        self.find_message = discovery::FAILED;
++        self.find_diagnostic.clear();
++    }
+     fn invalidate(&mut self) {
++        self.clear_discovery();
+         self.network_diagnostic.clear();
+         self.generation = self.generation.wrapping_add(1);
+         if let Some(flight) = &self.flight {
+@@ -388,6 +471,7 @@ impl Remote {
+         self.failures = 0;
+     }
+     fn apply(&mut self, config: Config, persisted: bool) {
++        self.clear_discovery();
+         self.network_diagnostic.clear();
+         self.config = config;
+         self.persisted = persisted;
+@@ -429,7 +513,8 @@ impl Remote {
+             if matches!(kind, Kind::Load) {
+                 self.loading = false;
+             }
+-            self.fail(now, "Remote control worker unavailable");
++            if matches!(kind, Kind::Catalog(_)) { self.fail_find(); }
++            else { self.fail(now, "Remote control worker unavailable"); }
+         }
+     }
+     /// Called on the frame thread with a monotonic clock. Returned actions are executed
+@@ -452,7 +537,8 @@ impl Remote {
+                     if matches!(&flight.kind, Kind::Load) {
+                         self.loading = false;
+                     }
+-                    self.fail(now_ms, "Remote control request failed")
++                    if matches!(&flight.kind, Kind::Catalog(_)) { self.fail_find(); }
++                    else { self.fail(now_ms, "Remote control request failed"); }
+                 }
+                 Ok(outcome) => actions = self.finish(flight.kind, outcome, now_ms),
+             }
+@@ -482,17 +568,14 @@ impl Remote {
+             self.launch(Kind::Save(config), task, now_ms);
+         } else if let Some(request) = self.cleanup.take() {
+             self.launch(Kind::CancelPairing, transport::send(request), now_ms);
+-        } else if let Some(base) = self.discover_address.take() {
+-            self.launch(
+-                Kind::Discovery,
+-                transport::send(Request {
+-                    method: "GET",
+-                    url: format!("{base}/api/discovery"),
+-                    token: String::new(),
+-                    body: None,
+-                }),
+-                now_ms,
+-            );
++        } else if let Some(target) = self.discover_address.take() {
++            let request = target.request();
++            let limit = target.body_limit();
++            let kind = match target {
++                DiscoveryTarget::ControllerBase(_) => Kind::Discovery,
++                DiscoveryTarget::CatalogUrl(profile) => Kind::Catalog(profile),
++            };
++            self.launch(kind, transport::send_bounded(request, limit), now_ms);
+         } else if let Some(pairing) = &self.pairing {
+             if now_ms >= pairing.expires_ms {
+                 self.cancel_pairing();
+@@ -612,6 +695,7 @@ impl Remote {
+         }
+     }
+     fn finish(&mut self, kind: Kind, outcome: Outcome, now: u64) -> Vec<Invocation> {
++        let catalog = matches!(&kind, Kind::Catalog(_));
+         let diagnostic = match (&kind, &outcome) {
+             (Kind::CancelPairing, _) => None,
+             (_, Outcome::Http { response, .. }) => Some(match response {
+@@ -628,7 +712,10 @@ impl Remote {
+         let actions = self.finish_outcome(kind, outcome, now);
+         // Pairing errors can invalidate the flow. Retain the safe evidence from
+         // this result after that transition; cleanup responses cannot erase it.
+-        if let Some(diagnostic) = diagnostic { self.network_diagnostic = diagnostic; }
++        if let Some(diagnostic) = diagnostic {
++            if catalog { self.find_diagnostic = diagnostic; }
++            else { self.network_diagnostic = diagnostic; }
++        }
+         actions
+     }
+     fn finish_outcome(&mut self, kind: Kind, outcome: Outcome, now: u64) -> Vec<Invocation> {
+@@ -663,59 +750,46 @@ impl Remote {
+                 }
+             },
+             (Kind::CancelPairing, _) => {}
++            (Kind::Catalog(profile), Outcome::Http { response, .. }) => {
++                let parsed = response.ok().filter(|r| r.status == 200)
++                    .ok_or("Discovery request failed")
++                    .and_then(|r| profile.parse(&r.body));
++                match parsed {
++                    Ok(candidates) => {
++                        self.publish_candidates(candidates);
++                        let empty = self.discovered.is_empty();
++                        self.find_state = if empty { "empty" } else { "choose" };
++                        self.find_message = if empty { discovery::EMPTY } else { discovery::CHOOSE };
++                    }
++                    Err(_) => self.fail_find(),
++                }
++            }
+             (Kind::Discovery, Outcome::Http { response, .. }) => {
+-                let parsed = response.ok()
+-                    .filter(|r| r.status == 200 && r.body.len() <= 65536)
+-                    .and_then(|r| serde_json::from_slice::<Value>(&r.body).ok());
+-                let candidates = parsed
+-                    .as_ref()
+-                    .filter(|v| v["version"] == 1)
+-                    .and_then(|v| v["servers"].as_array());
+-                if let Some(candidates) =
+-                    candidates.filter(|items| !items.is_empty() && items.len() <= 16)
+-                {
+-                    let mut seen = std::collections::HashSet::new();
+-                    let result: Result<Vec<Value>, &str> = candidates
+-                        .iter()
+-                        .map(|candidate| {
+-                            let id = candidate["id"]
+-                                .as_str()
+-                                .filter(|v| {
+-                                    !v.is_empty()
+-                                        && v.len() <= 255
+-                                        && !v.chars().any(|c| c.is_control() || c.is_whitespace())
+-                                })
+-                                .ok_or("Invalid server identity")?;
+-                            if !seen.insert(id) {
+-                                return Err("Duplicate server identity");
++                let parsed = response.ok().filter(|r| r.status == 200)
++                    .ok_or("No command server was discovered")
++                    .and_then(|r| discovery::parse_controller(&r.body));
++                match parsed {
++                    Ok(candidates) if !candidates.is_empty() => {
++                        self.publish_candidates(candidates);
++                        self.status = "choose";
++                        self.message = "Select command server";
++                        if self.discovered.len() == 1 {
++                            if let Err(message) = self.select_discovered(0, now) {
++                                self.status = "error";
++                                self.message = message;
+                             }
+-                            let address = protocol::normalize_base(
+-                                candidate["address"].as_str().unwrap_or(""),
+-                                false,
+-                            )?;
+-                            Ok(json!({"id":id,"address":address}))
+-                        })
+-                        .collect();
+-                    match result {
+-                        Ok(servers) => {
+-                            self.discovered = servers;
+-                            self.status = "choose";
+-                            self.message = "Select command server";
+-                            if self.discovered.len() == 1 {
+-                                if let Err(message) = self.select_discovered(0, now) {
+-                                    self.status = "error";
+-                                    self.message = message;
+-                                }
+-                            }
+-                        }
+-                        Err(_) => {
+-                            self.status = "error";
+-                            self.message = "Invalid command server discovery response";
+                         }
+                     }
+-                } else {
+-                    self.status = "error";
+-                    self.message = "No command server was discovered";
++                    Ok(_) => {
++                        self.discovered.clear();
++                        self.status = "error";
++                        self.message = "No command server was discovered";
++                    }
++                    Err(message) => {
++                        self.discovered.clear();
++                        self.status = "error";
++                        self.message = message;
++                    }
+                 }
+             }
+             (Kind::Pairing, Outcome::Http { response, .. }) => {
+@@ -857,6 +931,7 @@ impl Remote {
+                     };
+                 }
+             }
++            (Kind::Catalog(_), _) => self.fail_find(),
+             _ => self.fail(now, "Invalid control worker response"),
+         }
+         actions
+@@ -1113,3 +1188,9 @@ mod media_tracks_ingress_tests;
+ 
+ #[cfg(all(test, feature = "hostsim"))]
+ mod settings_test_support;
++
++#[cfg(test)]
++mod discovery_tests;
++
++#[cfg(test)]
++mod discovery_compat_tests;
+diff --git a/rust-modules/src/app/ott_remote/protocol.rs b/rust-modules/src/app/ott_remote/protocol.rs
+index b111622..6f740d1 100644
+--- a/rust-modules/src/app/ott_remote/protocol.rs
++++ b/rust-modules/src/app/ott_remote/protocol.rs
+@@ -465,6 +465,11 @@ impl Delivery {
+     }
+ }
+ 
++pub(super) fn valid_server_id(value: &str) -> bool {
++    !value.is_empty() && value.len() <= 254
++        && !value.chars().any(|c| c.is_control() || c.is_whitespace())
++}
++
+ #[derive(Clone)]
+ pub(super) struct Pairing {
+     pub base: String,
+@@ -488,12 +493,7 @@ impl Pairing {
+         device_id: &str,
+         now: u64,
+     ) -> Result<Self, &'static str> {
+-        if server_id.is_empty()
+-            || server_id.len() > 254
+-            || server_id
+-                .chars()
+-                .any(|c| c.is_control() || c.is_whitespace())
+-            || !valid_device(device_id)
++        if !valid_server_id(server_id) || !valid_device(device_id)
+         {
+             return Err("Invalid pairing identity");
+         }
+@@ -698,6 +698,7 @@ mod tests {
+         let mut pair = Pairing::new("https://home.example", "home", "dev_test", 0).unwrap();
+         assert!(matches!(pair.accept(201,&json!({"id":"0123456789abcdef0123456789abcdef","secret":"a".repeat(32),"code":"ABCD1234","expires_in":60}),0),Ok(PairResult::Pending)));
+         assert!(pair.accept(200,&json!({"status":"approved","device_id":"dev_test","address":"https://foreign.example","token":"b".repeat(32)}),1000).is_err());
++        assert!(pair.accept(200,&json!({"status":"approved","device_id":"dev_other","address":"https://home.example","token":"b".repeat(32)}),1000).is_err());
+         assert!(matches!(pair.accept(200,&json!({"status":"approved","device_id":"dev_test","address":"https://home.example","token":"b".repeat(32)}),1000),Ok(PairResult::Approved(_))));
+     }
+ }
+diff --git a/rust-modules/src/app/ott_remote/transport.rs b/rust-modules/src/app/ott_remote/transport.rs
+index 38f1028..98f84bf 100644
+--- a/rust-modules/src/app/ott_remote/transport.rs
++++ b/rust-modules/src/app/ott_remote/transport.rs
+@@ -64,6 +64,9 @@ fn launch(work: impl FnOnce(&OffFrame, &AtomicBool) -> Outcome + Send + 'static)
+     launched.then_some(Task { receiver, canceled })
+ }
+ pub(super) fn send(request: Request) -> Option<Task> {
++    send_bounded(request, BODY_LIMIT)
++}
++pub(super) fn send_bounded(request: Request, body_limit: usize) -> Option<Task> {
+     launch(move |worker, _| {
+         let budget = Budget::start(worker, Duration::from_secs(8));
+         let mut headers = Vec::new();
+@@ -73,7 +76,7 @@ pub(super) fn send(request: Request) -> Option<Task> {
+         if request.body.is_some() {
+             headers.push("Content-Type: application/json".into());
+         }
+-        let response = http_request(&request, &headers)
++        let response = http_request(&request, &headers, body_limit)
+         .map(|r| Response {
+             status: r.status,
+             body: r.body,
+@@ -85,7 +88,7 @@ pub(super) fn send(request: Request) -> Option<Task> {
+     })
+ }
+ 
+-fn http_request(request: &Request, headers: &[String])
++fn http_request(request: &Request, headers: &[String], body_limit: usize)
+     -> Result<plx_net::net::Resp, plx_net::net::RequestFailure>
+ {
+     let timeouts = plx_net::net::Timeouts {
+@@ -100,12 +103,12 @@ fn http_request(request: &Request, headers: &[String])
+         return plx_net::net::request_ca_bundle_evidence(
+             &request.url, headers, request.method,
+             request.body.as_deref().map(str::as_bytes), timeouts, false,
+-            Some(BODY_LIMIT), bundle,
++            Some(body_limit), bundle,
+         );
+     }
+     plx_net::net::request_result_evidence(
+         &request.url, headers, request.method, request.body.as_deref().map(str::as_bytes),
+-        timeouts, false, Some(BODY_LIMIT), None, false,
++        timeouts, false, Some(body_limit), None, false,
+     )
+ }
+ 
+diff --git a/rust-modules/src/app/ott_runtime.rs b/rust-modules/src/app/ott_runtime.rs
+index 709b271..f63f277 100644
+--- a/rust-modules/src/app/ott_runtime.rs
++++ b/rust-modules/src/app/ott_runtime.rs
+@@ -1974,6 +1974,7 @@ impl Runtime {
+                 ("profile.source", "Source address or folder"),
+                 ("profile.history_hours", "Archive hours"),
+                 ("remote.address", "Remote control server"),
++                ("remote.find", "Find command server"),
+                 ("uiFontScale", "Interface text scale (%)"),
+                 ("interfaceMode", "Interface mode"),
+                 ("native.audio", "Audio tracks"),
+@@ -1989,11 +1990,17 @@ impl Runtime {
+             ]
+             .into_iter()
+             .filter(|(id, _)| *id != "profile.history_hours" || self.archive_hours_profile().is_some())
++            .filter(|(id, _)| *id != "remote.find" || self.remote_snapshot["find_configured"] == true)
+             .map(|(id, title)| {
+                 let mut item = row(
+                     id.into(),
+                     title.into(),
+                     if id == "uiFontScale" { format!("{}%", self.font_scale_percent()) }
++                        else if id == "remote.find" { self.remote_snapshot["find_message"].as_str().unwrap_or("").into() }
++                        else if id == "remote.address" && self.remote_snapshot["find_configured"] != true {
++                            self.remote_snapshot["find_unavailable"].as_str().filter(|s| !s.is_empty())
++                                .unwrap_or("Discovery is not configured. Enter a server address.").into()
++                        }
+                         else if id == "interfaceMode" { interface_mode::label(self.interface_mode()).into() }
+                         else if id == "profile.history_hours" { self.archive_hours_label() }
+                         else { String::new() },
+@@ -2001,6 +2008,9 @@ impl Runtime {
+                     false,
+                 );
+                 if id == "interfaceMode" { item.enabled = self.settings_write_refusal().is_none(); }
++                if id == "remote.find" {
++                    item.enabled = self.remote_snapshot["persisted"] != false && self.remote_snapshot["saving"] != true;
++                }
+                 if id == "profile.add" {
+                     let refusal = self.profile_add_refusal();
+                     item.enabled = self.loaded && !self.saving && refusal.is_none();
+@@ -2081,11 +2091,16 @@ impl Runtime {
+             }
+             if let Some(servers) = self.remote_snapshot["servers"].as_array() {
+                 rows.extend(servers.iter().enumerate().map(|(index, server)| {
++                    let address = server["address"].as_str().unwrap_or("");
++                    let id = server["id"].as_str().unwrap_or("");
++                    let domain = server["domain"].as_str().unwrap_or("");
+                     row(
+                         format!("remote.server:{index}"),
+-                        server["name"].as_str().unwrap_or("Command server").into(),
+-                        String::new(),
+-                        OttAction::EditSetting(format!("remote.server:{index}")),
++                        address.into(),
++                        if domain.is_empty() { id.into() } else { format!("{domain} · {id}") },
++                        // The engine binds this opaque token to the validated
++                        // result generation and canonical endpoint. No index fallback.
++                        OttAction::EditSetting(format!("remote.choice:{}", server["choice"].as_str().unwrap_or(""))),
+                         false,
+                     )
+                 }));
+@@ -2144,16 +2159,19 @@ impl Runtime {
+             .into(),
+             description: if self.page == "profile-setup" {
+                 "Enter the connection details supplied by your provider".into()
++            } else if self.page == "settings" && self.remote_snapshot["pairing_server"].as_str().is_some_and(|s| !s.is_empty()) {
++                self.remote_snapshot["pairing_server"].as_str().unwrap_or("").into()
+             } else {
+                 self.effective_profile().map_or_else(String::new, |p| p.name.clone())
+             },
+             status: if let Some(status) = self.protected_state_status() {
+                 status.into()
+             } else if self.page == "settings" {
+-                self.remote_snapshot["pairing_code"]
++                self.remote_snapshot["find_message"].as_str().filter(|s| !s.is_empty()).map(str::to_owned)
++                    .or_else(|| self.remote_snapshot["pairing_code"]
+                     .as_str()
+                     .filter(|code| !code.is_empty())
+-                    .map(|code| format!("Pairing code: {code}"))
++                    .map(|code| format!("Pairing code: {code}")))
+                     .unwrap_or_else(|| {
+                         let message = self.remote_snapshot["message"].as_str().unwrap_or("");
+                         let active_remote_status = matches!(self.remote_snapshot["state"].as_str(),
+@@ -4088,6 +4106,18 @@ fn handle_action(
+                 runtime.status.clear();
+                 return Ok(());
+             }
++            if key == "remote.find" {
++                if runtime.page != "settings" { return Err("Server choices changed. Find servers again."); }
++                runtime.remote.find_servers(runtime.now_ms())?;
++                runtime.status.clear();
++                return Ok(());
++            }
++            if let Some(choice) = key.strip_prefix("remote.choice:") {
++                if runtime.page != "settings" { return Err("Server choices changed. Find servers again."); }
++                runtime.remote.select_discovered_choice(choice, runtime.now_ms())?;
++                runtime.status.clear();
++                return Ok(());
++            }
+             if key == "remote.cancel" {
+                 runtime.remote.cancel_pairing();
+                 return Ok(());
+@@ -4096,12 +4126,8 @@ fn handle_action(
+                 runtime.remote.disable()?;
+                 return Ok(());
+             }
+-            if let Some(index) = key.strip_prefix("remote.server:") {
+-                runtime.remote.select_discovered(
+-                    index.parse().map_err(|_| "Invalid server selection")?,
+-                    runtime.now_ms(),
+-                )?;
+-                return Ok(());
++            if key.starts_with("remote.server:") {
++                return Err("Server choices changed. Find servers again.");
+             }
+             if key == "native.audio" || key == "native.subtitles" {
+                 return native_controls::open(runtime, app, if key == "native.audio" { 0 } else { 1 });
+diff --git a/rust-modules/src/app/ott_runtime_tests/remote_address.rs b/rust-modules/src/app/ott_runtime_tests/remote_address.rs
+index 1025ac0..aff5943 100644
+--- a/rust-modules/src/app/ott_runtime_tests/remote_address.rs
++++ b/rust-modules/src/app/ott_runtime_tests/remote_address.rs
+@@ -310,3 +310,133 @@ fn inactive_remote_status_does_not_hide_current_player_error() {
+         json!({"state":"disabled","message":"Remote control disabled","pairing_code":""});
+     assert_eq!(runtime.view().status, "Current player error");
+ }
++
++
++#[test]
++fn discovered_command_servers_show_their_addresses_before_selection() {
++    let _serial = plx_base::testlock::serial();
++    let mut runtime = runtime_fixture();
++    runtime.page = "settings";
++    // Real v1 descriptors do not carry a friendly name. The addresses are
++    // admitted public endpoint metadata, not tokens or pairing receipts.
++    let addresses = [
++        "https://first-control.invalid:443/team",
++        "https://second-control.invalid:443/home",
++    ];
++    runtime.remote_snapshot = json!({
++        "state":"choose", "message":"Select command server", "pairing_code":"",
++        "servers":[
++            {"id":"first._ottplay-ctrl._tcp.test.","address":addresses[0]},
++            {"id":"second._ottplay-ctrl._tcp.test.","address":addresses[1]}
++        ]
++    });
++    let view = runtime.view();
++    let rows: Vec<_> = view.rows.iter()
++        .filter(|row| row.id.starts_with("remote.server:"))
++        .collect();
++    assert_eq!(rows.len(), 2);
++    for (row, address) in rows.iter().zip(addresses) {
++        assert!(row.enabled);
++        // Ordinary settings rows render title/detail, not description.
++        assert!(row.title.contains(address) || row.detail.contains(address),
++            "a discovered server must show its own address in its row before selection");
++    }
++    assert_eq!(runtime.remote.snapshot()["enabled"], false);
++    assert_eq!(runtime.remote.snapshot()["pairing_code"], "");
++}
++
++
++#[test]
++fn command_server_find_entry_matches_profile_and_shows_unavailable_reason() {
++    let _serial = plx_base::testlock::serial();
++    let mut runtime = runtime_fixture();
++    runtime.page = "settings";
++    runtime.remote_snapshot = json!({"find_configured":false,
++        "find_unavailable":"Discovery is not configured. Enter a server address."});
++    let view = runtime.raw_view();
++    assert!(!view.rows.iter().any(|row| row.id == "remote.find"));
++    let manual = view.rows.iter().find(|row| row.id == "remote.address").unwrap();
++    assert!(manual.enabled);
++    assert_eq!(manual.detail, "Discovery is not configured. Enter a server address.");
++    runtime.remote_snapshot = json!({"find_configured":true, "find_unavailable":""});
++    let view = runtime.raw_view();
++    let find = view.rows.iter().find(|row| row.id == "remote.find").unwrap();
++    assert!(find.enabled);
++    assert_eq!(find.action, OttAction::EditSetting("remote.find".into()));
++    assert!(view.rows.iter().find(|row| row.id == "remote.address").unwrap().detail.is_empty());
++}
++
++#[test]
++fn command_server_choices_forward_captured_tokens_and_disclose_identity() {
++    let _serial = plx_base::testlock::serial();
++    let mut runtime = runtime_fixture();
++    runtime.page = "settings";
++    runtime.remote_snapshot = json!({"find_configured":true, "servers":[
++        {"id":"two._ottplay-ctrl._tcp.test.","domain":"test",
++         "address":"https://two.invalid:443/control","choice":"91:1"},
++        {"id":"one._ottplay-ctrl._tcp.test.","domain":"test",
++         "address":"https://one.invalid:443/control","choice":"91:0"}
++    ]});
++    let view = runtime.raw_view();
++    let choices: Vec<_> = view.rows.iter().filter(|row| row.id.starts_with("remote.server:")).collect();
++    assert_eq!(choices.len(), 2);
++    assert_eq!(choices[0].action, OttAction::EditSetting("remote.choice:91:1".into()));
++    assert_eq!(choices[1].action, OttAction::EditSetting("remote.choice:91:0".into()));
++    assert_eq!(choices[0].title, "https://two.invalid:443/control");
++    assert!(choices[0].detail.contains("two._ottplay-ctrl._tcp.test."));
++    assert!(choices[0].detail.contains("test"));
++}
++
++#[test]
++fn command_server_find_status_survives_old_connection_health() {
++    let _serial = plx_base::testlock::serial();
++    let mut runtime = runtime_fixture();
++    runtime.page = "settings";
++    runtime.status = "Unrelated catalog status".into();
++    for message in ["Select a command server", "Discovery failed. Try again or enter an address."] {
++        runtime.remote_snapshot = json!({"enabled":true,"state":"connected",
++            "message":"Remote control connected","pairing_code":"", "find_configured":true,
++            "find_state":"choose","find_message":message});
++        let view = runtime.raw_view();
++        assert_eq!(view.status, message);
++        // The live Find row carries its own state in either presentation mode.
++        assert_eq!(view.rows.iter().find(|row| row.id == "remote.find").unwrap().detail, message);
++    }
++    runtime.remote_snapshot["find_message"] = json!("");
++    runtime.remote_snapshot["find_state"] = json!("");
++    assert_eq!(runtime.raw_view().status, "Unrelated catalog status");
++}
++
++
++#[test]
++fn stale_discovery_choice_error_is_visible_and_find_can_retry() {
++    let _serial = plx_base::testlock::serial();
++    let mut app = app_fixture();
++    let mut runtime = app.ott.take().unwrap();
++    runtime.loaded = true;
++    runtime.page = "settings";
++    let catalog = |name: &str| serde_json::to_vec(&json!({"version":1,"servers":[{
++        "id":format!("{name}._ottplay-ctrl._tcp.test.invalid."),
++        "domain":"test.invalid", "address":format!("https://{name}.invalid/control")
++    }]})).unwrap();
++    runtime.remote.find_catalog_for_test(&catalog("one"), 100).unwrap();
++    runtime.remote_snapshot = runtime.remote.snapshot();
++    let stale = runtime.raw_view().rows.into_iter()
++        .find(|row| row.id.starts_with("remote.server:")).unwrap().action;
++    runtime.remote.find_catalog_for_test(&catalog("two"), 200).unwrap();
++    runtime.remote_snapshot = runtime.remote.snapshot();
++    let enabled_before = runtime.remote_snapshot["enabled"].clone();
++    let error = handle_action(&mut runtime, &mut app, stale).unwrap_err();
++    // Match the real runner's error and next-snapshot publication boundary.
++    runtime.status = error.into();
++    runtime.remote_snapshot = runtime.remote.snapshot();
++    assert_eq!(error, "Server choices changed. Find servers again.");
++    assert_eq!(runtime.raw_view().status, error);
++    assert_eq!(runtime.remote_snapshot["enabled"], enabled_before);
++    assert_eq!(runtime.remote_snapshot["pairing_code"], "");
++    assert!(runtime.remote_snapshot["servers"].as_array().unwrap().is_empty());
++    handle_action(&mut runtime, &mut app, OttAction::EditSetting("remote.find".into())).unwrap();
++    runtime.remote_snapshot = runtime.remote.snapshot();
++    assert_eq!(runtime.raw_view().status, "Finding command servers…");
++    assert_eq!(runtime.remote_snapshot["pairing_code"], "");
++}
+diff --git a/rust-modules/src/app/ott_ui_text.rs b/rust-modules/src/app/ott_ui_text.rs
+index ffa2026..00fa979 100644
+--- a/rust-modules/src/app/ott_ui_text.rs
++++ b/rust-modules/src/app/ott_ui_text.rs
+@@ -7,6 +7,14 @@ pub(super) fn text(source: &str) -> &str { text_in(source, i18n::current()) }
+ 
+ fn text_in<'a>(source: &'a str, cx: &LocaleContext) -> &'a str {
+     match source {
++        "Find command server" => msg::ott_remote_find_in(cx),
++        "Discovery is not configured. Enter a server address." => msg::ott_remote_unconfigured_in(cx),
++        "Discovery configuration is invalid. Enter a server address." => msg::ott_remote_invalid_profile_in(cx),
++        "Finding command servers…" => msg::ott_remote_finding_in(cx),
++        "Select a command server" => msg::ott_remote_choose_in(cx),
++        "No servers found. Try again or enter an address." => msg::ott_remote_empty_in(cx),
++        "Discovery failed. Try again or enter an address." => msg::ott_remote_failed_in(cx),
++        "Server choices changed. Find servers again." => msg::ott_remote_choice_expired_in(cx),
+         "Reopen the guide list to change its order" => msg::ott_guide_order_reopen_in(cx),
+         "USB selection changed; close this picker" => msg::ott_usb_browser_changed_in(cx),
+         "USB folders" => msg::ott_usb_browser_title_in(cx),
+@@ -151,7 +159,7 @@ fn view_in(mut view: OttView, cx: &LocaleContext) -> OttView {
+             OttAction::ShowSettings => (view.page_id == "menu-items" && row.id == "menu:back")
+                 || (view.page_id == "interface-mode" && row.id == "interface:back"),
+             OttAction::EditSetting(key) => matches!(key.as_str(),
+-                "profile.add" | "profile.name" | "profile.source" | "profile.history_hours" | "remote.address" | "native.settings"
++                "profile.add" | "profile.name" | "profile.source" | "profile.history_hours" | "remote.address" | "remote.find" | "native.settings"
+                 | "native.audio" | "native.subtitles" | "plex.connect" | "menu.items" | "interfaceMode")
+                 || key.starts_with("profile.setup.")
+                 || (view.page_id == "interface-mode" && key.starts_with("interfaceMode.select:")),
+@@ -395,3 +403,36 @@ mod menu_tests {
+         }
+     }
+ }
++
++
++#[cfg(test)]
++mod remote_discovery_tests {
++    use super::*;
++    use plx_screens::ott::OttRow;
++
++    #[test]
++    fn discovery_copy_is_localized_without_translating_server_identity() {
++        for language in i18n::SHIPPED {
++            let cx = LocaleContext::resolve(i18n::Preference::from_tag(language.tag()), None, None, None, None);
++            let find = OttRow { content_title: None, guide: None, media: None, id: "remote.find".into(),
++                title: "Find command server".into(), detail: "Select a command server".into(),
++                description: String::new(), poster: None, action: OttAction::EditSetting("remote.find".into()),
++                enabled: true, favorite: false, guide_available: false };
++            let mut candidate = find.clone();
++            candidate.id = "remote.server:0".into();
++            candidate.title = "https://home.invalid:443/control".into();
++            candidate.detail = "home._ottplay-ctrl._tcp.test.".into();
++            candidate.action = OttAction::EditSetting("remote.choice:91:0".into());
++            let view = view_in(OttView { page_id: "settings".into(), rows: vec![find, candidate],
++                status: "Discovery failed. Try again or enter an address.".into(), ..Default::default() }, &cx);
++            assert_eq!(view.rows[1].title, "https://home.invalid:443/control");
++            assert_eq!(view.rows[1].detail, "home._ottplay-ctrl._tcp.test.");
++            assert_eq!(view.rows[1].action, OttAction::EditSetting("remote.choice:91:0".into()));
++            if language.tag() != "en" {
++                assert_ne!(view.rows[0].title, "Find command server", "{}", language.tag());
++                assert_ne!(view.rows[0].detail, "Select a command server", "{}", language.tag());
++                assert_ne!(view.status, "Discovery failed. Try again or enter an address.", "{}", language.tag());
++            }
++        }
++    }
++}

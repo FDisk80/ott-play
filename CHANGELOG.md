@@ -146,6 +146,41 @@
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
 
+## [1.1.65] - Development line
+
+- Integrate the experimental native webOS client with progressive Local and
+  VPortal catalogues, folder categories and metadata, portable Favorites,
+  managed Plex profiles, and individually pinned attached M3U media.
+- Preserve source ownership across native playback, remote settings, track
+  selection, seeking, cancellation and saved browsing state in Classic and
+  Modern. Physical LG playback and device installation remain separately
+  qualified; these native changes do not replace the shared web player.
+- Verify native build-profile stamps and the corresponding source of linked
+  runtime archives. Keep release notes and generated package audits consistent.
+- Align dependency-check fixtures with their current build inputs and record
+  original and measured baseline trees in native build comparisons.
+- Start inspected native Local videos without an audio track through the
+  video-only pipeline, retaining their video parameters and clearing audio
+  state left by the previous file.
+- Accept richer VPortal descriptions and posters from later catalogue pages
+  while preserving the original source identity and rejecting conflicting
+  playback links before publishing their folder entries.
+
+### Upgrade
+
+- Existing profiles, Favorites and playback settings are retained. This 1.1.65
+  development line does not require migrating from the shared web player to the
+  experimental native webOS client.
+- Native installation and physical LG playback require separate qualification;
+  software CI does not establish device compatibility.
+
+### Security
+
+- Native package checks validate the actual archive members against bundled
+  library notices and bind linked dependencies to their corresponding source.
+- Native build validation rejects unclassified archives and malformed or unknown
+  build-configuration stamps rather than accepting incomplete provenance.
+
 ## [1.1.64] - 2026-11-04
 
 ### Changes

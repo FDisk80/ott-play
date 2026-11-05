@@ -3,10 +3,12 @@
 
 No command installs or launches an application. Build outputs and native
 dependency caches stay in the chosen work directory. Rust toolchains and the
-Cargo registry use their normal user locations.
+Cargo registry use their normal user locations; Cargo configuration is isolated.
 """
 
 from __future__ import annotations
+
+from contextlib import contextmanager
 
 import argparse
 import hashlib
@@ -28,9 +30,27 @@ from urllib.parse import urlparse
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 TARGET = "armv7-unknown-linux-gnueabi"
+PRODUCT_CONFIG = "ci/ottplay-integration/release/product.json"
+RELEASE_DOCUMENT_LIMIT = 64 * 1024
+# Match the release verifier's maximum size for raw Cargo evidence.
+CARGO_EVIDENCE_LIMIT = 8 * 1024 * 1024
 # Unused upstream platform-modification implementation is never part of this
 # product's source or binary distribution. The overlay removes its module.
 EXCLUDED_SOURCE = "rust-modules/platform/src/webos/jail_repair.rs"
+
+# Load exactly this tracked helper's source, without reading/writing bytecode.
+_profile_path = HERE / "control_discovery_config.py"
+_profile_spec = importlib.util.spec_from_file_location("control_discovery_config", _profile_path)
+control_discovery_config = importlib.util.module_from_spec(_profile_spec)
+exec(compile(_profile_path.read_bytes(), str(_profile_path), "exec"), control_discovery_config.__dict__)
+
+
+def control_discovery_profile(args):
+    url = getattr(args, "control_discovery_url", None)
+    digest = getattr(args, "control_discovery_sha256", None)
+    if (url is None) != (digest is None):
+        fail("Control discovery requires both explicit build inputs")
+    return control_discovery_config.profile(url, digest)
 
 
 def fail(message: str):
@@ -67,9 +87,83 @@ def run(args, *, cwd=None, env=None, capture=False) -> str:
     return result.stdout.strip() if capture else ""
 
 
+def release_product_config(spec):
+    app = spec["application"]
+    version = app["version"]
+    if app["id"] != "com.openottplay.player.native" or not re.fullmatch(
+        r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)", version
+    ):
+        fail("Invalid release product identity")
+    return {
+        "schema": 1,
+        "product": "ottplay-native",
+        "application_id": app["id"],
+        "version": version,
+        "notes": f"ci/ottplay-integration/release/notes/v{version}.md",
+        "audit": f"ci/ottplay-integration/release/audits/v{version}.md",
+        "notes_contract": "outer-publisher-verbatim-v1",
+    }
+
+
+def release_document_sources(spec):
+    version = release_product_config(spec)["version"]
+    return {"notes": HERE / f"releases/{version}.md", "audit": HERE / f"releases/{version}-audit.md"}
+
+
+def release_document_bytes(path):
+    if path.resolve() != path.absolute() or not path.is_file():
+        fail("Release document must be a regular file without symlink ancestors")
+    with path.open("rb") as stream:
+        raw = stream.read(RELEASE_DOCUMENT_LIMIT + 1)
+    if not raw or len(raw) > RELEASE_DOCUMENT_LIMIT or b"\0" in raw:
+        fail("Release document is empty, oversized, or contains NUL")
+    if not raw.decode("utf-8").strip():
+        fail("Release document is empty")
+    return raw
+
+
+def stage_release_product(source, spec):
+    config = release_product_config(spec)
+    for role, path in release_document_sources(spec).items():
+        raw = release_document_bytes(path)
+        destination = source / config[role]
+        if destination.resolve() != destination.absolute():
+            fail("Prepared release destination must not traverse symlinks")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(raw)
+    destination = source / PRODUCT_CONFIG
+    if destination.resolve() != destination.absolute():
+        fail("Prepared product configuration must not traverse symlinks")
+    write_json(destination, config)
+    return release_product_receipt(source, spec)
+
+
+def release_product_receipt(source, spec):
+    config = release_product_config(spec)
+    raw_config = release_document_bytes(source / PRODUCT_CONFIG)
+    if json.loads(raw_config) != config:
+        fail("Prepared release product configuration changed")
+    documents = {}
+    for role, path in release_document_sources(spec).items():
+        raw = release_document_bytes(path)
+        if release_document_bytes(source / config[role]) != raw:
+            fail("Prepared release document changed: " + role)
+        documents[role] = hashlib.sha256(raw).hexdigest()
+    return {
+        "path": PRODUCT_CONFIG,
+        "sha256": hashlib.sha256(raw_config).hexdigest(),
+        "documents": documents,
+        "audit_evidence": "authored_only",
+    }
+
+
 def integration_files() -> list[Path]:
-    names = ("build.py", "upstream.json", "README.md", "COPYING", "test_build.py")
-    return sorted([HERE / name for name in names] + list((HERE / "patches").glob("*.patch")))
+    names = ("build.py", "control_discovery_config.py", "upstream.json", "README.md", "COPYING", "test_build.py")
+    return sorted(
+        [HERE / name for name in names]
+        + list((HERE / "patches").glob("*.patch"))
+        + list(release_document_sources(manifest()).values())
+    )
 
 
 def integration_digest() -> str:
@@ -123,9 +217,10 @@ def prepare(args, spec):
         destination = integration / path.relative_to(HERE)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, destination)
+    product = stage_release_product(source, spec)
     write_json(integration / "PROVENANCE.json", dict(expected, patches={p.name: sha256(p) for p in patches}))
     run(["git", "-C", source, "add", "ci/ottplay-integration"])
-    write_json(receipt, dict(expected, tree=source_tree(source)))
+    write_json(receipt, dict(expected, tree=source_tree(source), product_release=product))
     check_source(args, spec)
 
 
@@ -146,13 +241,63 @@ def check_source(args, spec):
     for field in ("id", "title", "version"):
         if app.get(field) != spec["application"][field]:
             fail("Native overlay did not set application " + field)
+    if receipt.get("product_release") != release_product_receipt(source, spec):
+        fail("Prepared release product receipt changed")
     if app.get("type") != "native":
         fail("Expected a native application, not a web launcher")
     if (source / "pkg/telemetry.local.json").exists():
         fail("Private upstream build settings are not permitted in this target")
     if (source / EXCLUDED_SOURCE).exists() or (source / "pkg/ottplay-profile.json").exists():
         fail("Prepared source contains excluded code or private profile settings")
+    check_cargo_configs(source, receipt["tree"])
     return source
+
+
+def check_cargo_configs(source: Path, tree: str):
+    """Admit only regular config blobs from the already validated prepared tree."""
+    source = source.absolute()
+    if source.resolve() != source:
+        fail("Native source ancestry must not traverse symlinks")
+    cwd = source / "rust-modules"
+    for directory in (cwd, *cwd.parents):
+        for name in ("config", "config.toml"):
+            path = directory / ".cargo" / name
+            if not path.exists() and not path.is_symlink():
+                continue
+            if not path.is_relative_to(source):
+                fail("External ancestor Cargo configuration is not permitted: " + str(path))
+            if not path.is_file() or path.resolve() != path:
+                fail("Prepared Cargo configuration must be a regular non-symlink file")
+            relative = path.relative_to(source).as_posix()
+            entry = run(["git", "-C", source, "ls-tree", tree, "--", relative], capture=True)
+            expected = run(["git", "-C", source, "hash-object", "--no-filters", path], capture=True)
+            if entry not in ("100644 blob " + expected + "\t" + relative,
+                             "100755 blob " + expected + "\t" + relative):
+                fail("Cargo configuration differs from the prepared source tree: " + relative)
+
+
+@contextmanager
+def cargo_environment(args):
+    """Reuse caches and their locks, never the caller's Cargo configuration or credentials."""
+    env = build_env(args)
+    cache = Path(env.get("CARGO_HOME") or Path.home() / ".cargo").expanduser().resolve()
+    cache.mkdir(parents=True, exist_ok=True)
+    # Shared locks serialize access even when another Cargo process uses the original home.
+    # Global usage tracking is private; do not alias a SQLite database and its journal paths.
+    with tempfile.TemporaryDirectory(prefix=".native-cargo-", dir=args.work_dir) as directory:
+        home = Path(directory)
+        for name in ("registry", "git"):
+            target = cache / name
+            target.mkdir(exist_ok=True)
+            (home / name).symlink_to(target.resolve(), target_is_directory=True)
+        for name in (".package-cache", ".package-cache-mutate"):
+            target = cache / name
+            target.touch(exist_ok=True)
+            if not target.is_file():
+                fail("Cargo cache lock must be a regular file")
+            (home / name).symlink_to(target.resolve())
+        env["CARGO_HOME"] = str(home)
+        yield env
 
 
 def toolchain(source: Path) -> str:
@@ -164,19 +309,35 @@ def toolchain(source: Path) -> str:
 
 
 def build_env(args) -> dict:
+    profile = control_discovery_profile(args)
+    optimization = getattr(args, "rust_opt_level", "2")
+    if optimization not in ("2", "s"):
+        fail("Native Rust optimization must be 2 or s")
     env = dict(os.environ)
     for key in list(env):
-        if key.startswith(("PLX_", "SENTRY_", "POSTHOG_", "OTTPLAY_")) or key in {
+        if key.startswith(("PLX_", "SENTRY_", "POSTHOG_", "OTTPLAY_", "CARGO_PROFILE_", "CARGO_TARGET_")) or key in {
             "RUSTFLAGS",
+            "CARGO_BUILD_RUSTFLAGS", "CARGO_BUILD_TARGET", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_RUSTC",
+            "CARGO_BUILD_RUSTC_WRAPPER", "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
+            "RUSTC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "RUSTUP_TOOLCHAIN",
             "CARGO_ENCODED_RUSTFLAGS",
             "MAKEFLAGS",
+            "GNUMAKEFLAGS",
+            "MAKEOVERRIDES",
+            "MAKEFILES",
             "MFLAGS",
+            "ARM_PROFILE", "DEBUG", "HOST", "HOSTSIM", "CAPLINTS", "WERROR",
+            "CFLAGS", "CPPFLAGS", "CXXFLAGS", "LDFLAGS", "PKG_CONFIG_PATH",
+            "STORAGE_TDIR", "FFMPEG_PREFIX", "SENTRY_NATIVE_PREFIX", "LIBASS_UNSTRIPPED",
             "LAB",
             "SYMBOLS",
             "RUST_FEATFLAGS",
+            "RUST_DEBUGINFO", "RUST_CAPLINTS", "RUST_CODEGEN", "RUST_ENV", "RUST_REMAP", "RC",
             "RUST_TOOLCHAIN",
             "RUST_TARGET",
             "RUST_TDIR",
+            "OTT_PRODUCT_CONFIG",
+            "REQUIRE_PACKAGE",
         }:
             env.pop(key)
     env.update(
@@ -184,13 +345,72 @@ def build_env(args) -> dict:
             "WEBOS_SDK": str(args.sdk),
             "RELEASE": "1",
             "FLAVOR": "stable",
-            "PLX_BUILD_CACHE": str(args.work_dir / "cache"),
+            # Link-time archives must remain beneath the recorded native source.
+            "PLX_BUILD_CACHE": str(source_dir(args) / "vendor/build-cache"),
             "PLX_DEPS_CACHE": str(source_dir(args) / "vendor/downloads"),
+            "PLX_CARGO_SEED": "off",
             "PLX_DISK_BUDGET_DONE": "1",
             "CARGO_INCREMENTAL": "0",
+            "CARGO_PROFILE_RELEASE_OPT_LEVEL": optimization,
+            "CARGO_TERM_VERBOSE": "true",
         }
     )
+    if profile["configured"]:
+        env[control_discovery_config.URL_ENV] = profile["url"]
+        env[control_discovery_config.SHA256_ENV] = profile["sha256"]
     return env
+
+
+def native_compile_evidence(args, spec, source, configuration):
+    """Validate the actual Cargo result before the native linker can consume it."""
+    target = source / "rust-modules/target-release"
+    raw_path = target / ".lib-artifacts.json"
+    archive = target / TARGET / "release/libplxnative_modules.a"
+    for path in (raw_path, archive):
+        if not path.is_file() or path.resolve() != path.absolute():
+            fail("Native compilation evidence must remain inside its source tree")
+    with raw_path.open("rb") as stream:
+        raw = stream.read(CARGO_EVIDENCE_LIMIT + 1)
+    if len(raw) > CARGO_EVIDENCE_LIMIT:
+        fail("Native Cargo evidence exceeds the 8 MiB release limit")
+    try:
+        records = [json.loads(line) for line in raw.splitlines() if line.strip()]
+    except ValueError:
+        fail("Malformed native Cargo evidence")
+    if not records or any(not isinstance(row, dict) for row in records):
+        fail("Missing native Cargo evidence")
+    finished = [row for row in records if row.get("reason") == "build-finished"]
+    if len(finished) != 1 or finished[0].get("success") is not True or records[-1] != finished[0]:
+        fail("Native Cargo evidence does not end in a successful build")
+    artifacts = [row for row in records if row.get("reason") == "compiler-artifact"
+                 and isinstance(row.get("target"), dict)
+                 and row["target"].get("name") == "plxnative_modules"]
+    if len(artifacts) != 1:
+        fail("Expected exactly one native application Cargo artifact")
+    artifact = artifacts[0]
+    expected_profile = {"opt_level": getattr(args, "rust_opt_level", "2"), "debuginfo": 0,
+                        "debug_assertions": False, "overflow_checks": False, "test": False}
+    actual_profile = artifact.get("profile", {})
+    if (artifact.get("manifest_path") != str(source / "rust-modules/Cargo.toml")
+            or artifact["target"].get("src_path") != str(source / "rust-modules/src/lib.rs")
+            or artifact["target"].get("kind") != ["staticlib"]
+            or artifact["target"].get("crate_types") != ["staticlib"]
+            or artifact.get("features") != []
+            or any(type(actual_profile.get(key)) is not type(value) or actual_profile.get(key) != value
+                   for key, value in expected_profile.items())
+            or artifact.get("filenames") != [str(archive)]):
+        fail("Native Cargo artifact differs from the selected release configuration")
+    name = output_name(spec)
+    cargo_file, config_file = name + "-cargo-artifacts.jsonl", name + "-build-config.txt"
+    for evidence in (cargo_file, config_file):
+        if (args.work_dir / evidence).is_symlink():
+            fail("Native compilation evidence destination must not be a symlink")
+    (args.work_dir / cargo_file).write_bytes(raw)
+    (args.work_dir / config_file).write_text(configuration + "\n")
+    return {"cargo": {"file": cargo_file, "sha256": sha256(args.work_dir / cargo_file),
+                       "artifact": artifact},
+            "make": {"file": config_file, "sha256": sha256(args.work_dir / config_file)},
+            "archive": {"path": archive.relative_to(source).as_posix(), "sha256": sha256(archive)}}
 
 
 def sdk_host() -> str:
@@ -290,13 +510,23 @@ def bootstrap(args, spec):
 
 
 def build(args, spec):
+    control_discovery_profile(args)
     source = check_source(args, spec)
+    with cargo_environment(args) as environment:
+        build_with_environment(args, spec, source, environment)
+
+
+def build_with_environment(args, spec, source, environment):
+    profile = control_discovery_profile(args)
     if not (args.sdk / "bin/arm-webos-linux-gnueabi-gcc").is_file():
         fail("SDK is missing; run bootstrap or supply --sdk")
     # Source overlay removes upstream device-repair and automatic cleanup entry
     # points. No make target accepting a TV address is ever invoked here.
-    make = ["make", "-j" + str(args.jobs), "RELEASE=1", "FLAVOR=stable"]
-    environment = build_env(args)
+    make = ["make", "-j" + str(args.jobs), "RELEASE=1", "FLAVOR=stable", "OTT_PRODUCT_CONFIG=" + PRODUCT_CONFIG,
+            "ARM_PROFILE=release", "RUST_TDIR=target-release", "STORAGE_TDIR=target-release-storage",
+            "RUST_TARGET=" + TARGET, "RUST_TOOLCHAIN=" + toolchain(source)]
+    environment["REQUIRE_PACKAGE"] = "1"
+    (args.work_dir / "built.json").unlink(missing_ok=True)
     companion = getattr(args, "companion_bundle", None)
     expected_companion = None
     if companion is not None:
@@ -306,10 +536,31 @@ def build(args, spec):
         # changed. The stage command repeats this check after compilation.
         module.checked_bundle(companion, args.sdk / "bin/arm-webos-linux-gnueabi-readelf")
         expected_companion = sha256(companion / "receipt.json")
-        run(make + ["ipk-stage"], cwd=source, env=environment)
-        stage = source / "ipkroot/data/usr/palm/applications" / spec["application"]["id"]
-        if not stage.is_dir() or stage.is_symlink():
-            fail("Native application staging directory is missing or unsafe")
+    configuration = run(make + ["-s", "print-bench-config"], cwd=source, env=environment, capture=True)
+    settings = dict(line.split("=", 1) for line in configuration.splitlines() if "=" in line)
+    archive = "rust-modules/target-release/" + TARGET + "/release/libplxnative_modules.a"
+    for key, value in {"RUST_TDIR": "target-release", "RUST_TARGET": TARGET,
+                       "ARM_PROFILE": "release", "ARM_PROFILE_FLAG": "--release",
+                       "RUST_LIB": archive,
+                       "RUST_FEATFLAGS": "--no-default-features", "RUST_TOOLCHAIN": toolchain(source)}.items():
+        if settings.get(key) != value:
+            fail("Unexpected effective native Make configuration: " + key)
+    # Separate invocations: marking the archive itself new in the Cargo pass can
+    # suppress its rebuild. The second pass forces the final link even for a
+    # Cargo-fresh archive whose mtime predates the previous executable.
+    run(make + ["-W", "rust-modules/Cargo.toml", archive, "pkg/plxnative-storage"], cwd=source, env=environment)
+    compilation = native_compile_evidence(args, spec, source, configuration)
+    run(make + ["-W", archive, "ipk-stage"], cwd=source, env=environment)
+    if (sha256(source / archive) != compilation["archive"]["sha256"]
+            or sha256(source / "rust-modules/target-release/.lib-artifacts.json") != compilation["cargo"]["sha256"]):
+        fail("Native compilation inputs changed during final link")
+    stage = source / "ipkroot/data/usr/palm/applications" / spec["application"]["id"]
+    if not stage.is_dir() or stage.is_symlink():
+        fail("Native application staging directory is missing or unsafe")
+    run([sys.executable, source / "ci/check-build-budgets.py", "--binary", stage / "plxnative"], cwd=source, env=environment)
+    run(["bash", source / "ci/check-elf.sh", source / "pkg/plxnative"], cwd=source, env=environment)
+    if companion is not None:
+        companion_environment = {key: value for key, value in environment.items() if not key.startswith("CARGO_PROFILE_")}
         run(
             [
                 sys.executable,
@@ -325,11 +576,9 @@ def build(args, spec):
                 source / "pkg/link-evidence/stable",
             ],
             cwd=ROOT,
-            env=environment,
+            env=companion_environment,
         )
-        run(make + ["ipk-pack"], cwd=source, env=environment)
-    else:
-        run(make + ["ipk"], cwd=source, env=environment)
+    run(make + ["ipk-pack"], cwd=source, env=environment)
     check_source(args, spec)
     app = spec["application"]
     binary = source / "pkg" / (app["id"] + "_" + app["version"] + "_arm.ipk")
@@ -343,7 +592,11 @@ def build(args, spec):
             "ipk_sha256": sha256(binary),
             "rust_toolchain": toolchain(source),
             "sdk_compiler_sha256": sha256(args.sdk / "bin/arm-webos-linux-gnueabi-gcc.br_real"),
-            "configuration": {"RELEASE": "1", "FLAVOR": "stable", "target": TARGET},
+            "compilation": compilation,
+            "configuration": {"RELEASE": "1", "FLAVOR": "stable", "target": TARGET, "ARM_PROFILE": "release",
+                              "rust_opt_level": environment["CARGO_PROFILE_RELEASE_OPT_LEVEL"], "symbols": False,
+                              "host": sdk_host(),
+                              "control_discovery": profile},
         }
     )
     if "companion" in verified:
@@ -590,6 +843,24 @@ def package(args, spec):
     ):
         fail("Native binary does not match its recorded source build")
     args.output.mkdir(parents=True, exist_ok=True)
+    evidence_files = []
+    for item in (receipt["compilation"]["cargo"], receipt["compilation"]["make"]):
+        evidence = args.work_dir / item["file"]
+        if Path(item["file"]).name != item["file"] or sha256(evidence) != item["sha256"]:
+            fail("Native compilation evidence changed before packaging")
+        evidence_files.append(evidence)
+    destinations = [path.name for path in evidence_files]
+    destinations.extend(output_name(spec) + suffix for suffix in (".ipk", ".json", ".sha256"))
+    destinations.append("ottplay-native-webos-icon.png")
+    if args.base_url:
+        destinations.extend(("ottplay-native-webos-manifest.json", "ottplay-native-webos-repository.json"))
+    for filename in destinations:
+        if (args.output / filename).is_symlink():
+            fail("Native package destination must not be a symlink")
+    for evidence in evidence_files:
+        target = args.output / evidence.name
+        if evidence.resolve() != target.resolve():
+            shutil.copy2(evidence, target)
     destination = args.output / (output_name(spec) + ".ipk")
     shutil.copy2(built, destination)
     shutil.copy2(source / "pkg/icon.png", args.output / "ottplay-native-webos-icon.png")
@@ -664,7 +935,11 @@ def feed(args, spec, verified, filename):
 
 def sources(args, spec):
     source = check_source(args, spec)
-    env = build_env(args)
+    with cargo_environment(args) as env:
+        sources_with_environment(args, spec, source, env)
+
+
+def sources_with_environment(args, spec, source, env):
     binary = args.output / (output_name(spec) + ".ipk")
     verify_ipk(binary, spec)
     recorded = json.loads((args.output / (output_name(spec) + ".json")).read_text())
@@ -747,7 +1022,7 @@ def verify_source_archive(output: Path, source: Path, spec) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("command", choices=("prepare", "bootstrap", "build", "package", "source", "verify", "all"))
     parser.add_argument("--work-dir", type=Path, default=ROOT / "build/native-webos")
     parser.add_argument(
@@ -765,7 +1040,14 @@ def main():
         "--download-base-url", help="Optional HTTPS directory for IPK and source downloads, separate from metadata"
     )
     parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--rust-opt-level", choices=("2", "s"), default="2",
+                        help="Native release optimization only; companion settings remain independent")
+    parser.add_argument("--control-discovery-url", help="Explicit public HTTPS catalog URL (build/all only)")
+    parser.add_argument("--control-discovery-sha256", help="Reviewed raw catalog SHA-256 (build/all only)")
     args = parser.parse_args()
+    control_discovery_profile(args)
+    if (args.control_discovery_url is not None or args.control_discovery_sha256 is not None) and args.command not in ("build", "all"):
+        fail("Control discovery inputs are only accepted by build or all")
     args.work_dir = args.work_dir.expanduser().resolve()
     args.output = (args.output or args.work_dir / "dist").expanduser().resolve()
     if args.companion_bundle is not None:

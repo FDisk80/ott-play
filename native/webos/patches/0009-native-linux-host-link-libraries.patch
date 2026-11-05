@@ -1,0 +1,66 @@
+diff --git a/rust-modules/build_support/host_link.rs b/rust-modules/build_support/host_link.rs
+--- a/rust-modules/build_support/host_link.rs
++++ b/rust-modules/build_support/host_link.rs
+@@ -28,7 +28,7 @@
+ 
+     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+ 
+-    if let Some(libdirs) = sdl_search_paths(&target_os) {
++    if let Some(libdirs) = host_library_search_paths(&target_os) {
+         for libdir in libdirs {
+             println!("cargo:rustc-link-search=native={}", libdir.display());
+         }
+@@ -36,7 +36,7 @@
+         // Not fatal — a system-wide install may need no extra search path. This is not labelled
+         // "hostsim": plain host tests now reach the same drawing symbols.
+         println!(
+-            "cargo:warning=host link: could not discover SDL2/SDL2_ttf with the platform package \
++            "cargo:warning=host link: could not discover host libraries with the platform package \
+              manager; relying on the default linker search path"
+         );
+     }
+@@ -49,6 +49,13 @@
+             // GL entry points come from the framework. The simulator asks for a 4.1 core context;
+             // see `app.rs`'s context-attribute branch for why it cannot ask for GLES2 here.
+             println!("cargo:rustc-link-lib=framework=OpenGL");
++        }
++        "linux" => {
++            println!("cargo:rustc-link-lib=dylib=GL");
++            // Default-feature host tests retain the platform callbacks that use these directly.
++            // SDL's transitive dependencies do not satisfy those references at link time.
++            println!("cargo:rustc-link-lib=dylib=wayland-client");
++            println!("cargo:rustc-link-lib=dylib=glib-2.0");
+         }
+         _ => {
+             println!("cargo:rustc-link-lib=dylib=GL");
+@@ -140,15 +147,17 @@
+     println!("cargo:rustc-link-arg={}", out.display());
+ }
+ 
+-/// SDL library directories supplied by the host's package manager.
++/// Host library directories supplied by the host's package manager.
+ ///
+ /// A successful pkg-config query may return no `-L` flags because the libraries live on the
+ /// linker's default path. That is still discovery success, represented by `Some(vec![])`, so a
+-/// normal Linux install does not emit a misleading Homebrew warning.
+-fn sdl_search_paths(target_os: &str) -> Option<Vec<PathBuf>> {
++/// normal Linux install does not emit a misleading discovery warning.
++fn host_library_search_paths(target_os: &str) -> Option<Vec<PathBuf>> {
+     if target_os == "linux" {
++        let packages = ["sdl2", "SDL2_ttf", "wayland-client", "glib-2.0"];
+         if !Command::new("pkg-config")
+-            .args(["--exists", "sdl2", "SDL2_ttf"])
++            .arg("--exists")
++            .args(packages)
+             .status()
+             .ok()?
+             .success()
+@@ -156,7 +165,7 @@
+             return None;
+         }
+         let mut paths = Vec::new();
+-        for package in ["sdl2", "SDL2_ttf"] {
++        for package in packages {
+             // Query the raw variable rather than parsing shell-escaped `-L` flags: prefixes may
+             // legitimately contain spaces.
+             let out = Command::new("pkg-config")

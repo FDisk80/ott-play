@@ -71,5 +71,6 @@ js/vendor/sjcl-pin-word-arrays.patch.json -text
 
 # Native webOS source overlays contain significant unified-diff context spaces
 # and binary patch data. Preserve the reviewed bytes across checkouts.
-/native/webos/patches/*.patch -text whitespace=-blank-at-eol
+# Makefile context also keeps a space before its recipe tab and may end in a blank line.
+/native/webos/patches/*.patch -text whitespace=-blank-at-eol,-space-before-tab,-blank-at-eof
 /native/webos/COPYING -text

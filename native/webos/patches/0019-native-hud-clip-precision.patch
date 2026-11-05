@@ -1,0 +1,39 @@
+diff --git a/rust-modules/screens/src/player/hud_pins_tests.rs b/rust-modules/screens/src/player/hud_pins_tests.rs
+--- a/rust-modules/screens/src/player/hud_pins_tests.rs
++++ b/rust-modules/screens/src/player/hud_pins_tests.rs
+@@ -465,6 +465,21 @@
+     [(a.0, b.0), (a.1, b.1), (a.2, b.2), (a.3, b.3)].iter().all(|(x, y)| (x - y).abs() < 1e-3)
+ }
+ 
++#[test]
++fn clip_rounding_uses_the_existing_bound_and_rejects_geometry_drift() {
++    let rail = plx_ui::Rect::new(96.0, 773.52, 1728.0, 68.48);
++    // Exercise the same public clipping operation as DrawFrame, not rounded expected literals.
++    let clipped = plx_ui::Rect::FULL.intersect(rail);
++    assert_ne!(clipped.h, rail.h, "fixture must exercise f32 endpoint reconstruction");
++    assert!(near(ext(clipped), ext(rail)));
++    let (x, y, w, h) = ext(rail);
++    // Even a hundredth of a pixel on any axis remains outside the unchanged tolerance.
++    for wrong in [(x + 0.01, y, w, h), (x, y + 0.01, w, h),
++        (x, y, w + 0.01, h), (x, y, w, h + 0.01)] {
++        assert!(!near(ext(clipped), wrong), "clip drift must still fail: {wrong:?}");
++    }
++}
++
+ /// The elements every census probes: each range's first and last stop (the control range's last
+ /// probe is its tenth element), the gaps between the ranges, and one past each end, so a re-addressing shows up as a changed row.
+ const PROBES: [u32; 22] = [
+@@ -683,7 +698,12 @@
+             map.swap();
+             for stop in stops {
+                 let placed = Focusable::<CensusHost>::place(&screen, &stop.key.elem, &cx, At::Drawn).unwrap();
+-                assert_eq!((stop.rect, stop.clip), (placed.rect, placed.clip));
++                assert_eq!(stop.rect, placed.rect);
++                // DrawFrame intersects the root clip: f32 (y + h) - y can round h.
++                // Reuse the census's 0.001 px bound only for that normalized clip.
++                assert!(near(ext(stop.clip), ext(placed.clip)),
++                    "{} {mode:?}: control {} clip {:?} differs from {:?}",
++                    case.name, stop.key.elem, stop.clip, placed.clip);
+                 let (x, y) = if stop.key.elem == ELEM_SCRUB {
+                     (geometry.playbar.cx(), geometry.playbar.cy())
+                 } else { (stop.rect.cx(), stop.rect.cy()) };

@@ -1,0 +1,183 @@
+name: Native webOS diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact 40-character commit of the selected ref
+        required: true
+        type: string
+      build_mode:
+        description: Same-ID instrumented build; never a release candidate
+        required: true
+        type: choice
+        options: [ debug ]
+        default: debug
+  push:
+    branches: [ "ci/native-debug/**" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webos-native-debug-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    if: >-
+      github.repository == 'open-ott-play/ottplay-foss' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' &&
+        github.ref == format('refs/heads/ci/native-debug/{0}', github.sha)))
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    env:
+      JOBS: "2"
+      CARGO_BUILD_JOBS: "2"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Pin explicit event source
+        id: pin
+        env:
+          EVENT_SOURCE: ${{ github.sha }}
+          INPUT_SOURCE: ${{ inputs.source_sha }}
+          INPUT_MODE: ${{ inputs.build_mode }}
+        run: |
+          python3 - <<'PYCODE'
+          import os
+          import re
+          event = os.environ["EVENT_SOURCE"]
+          if re.fullmatch(r"[0-9a-f]{40}", event) is None:
+              raise SystemExit("Expected exact event source")
+          if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
+              if os.environ["INPUT_SOURCE"] != event or os.environ["INPUT_MODE"] != "debug":
+                  raise SystemExit("Dispatch ref/source/build_mode mismatch")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("source=" + event + "\n")
+          PYCODE
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.pin.outputs.source }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Validate diagnostic evidence contracts
+        run: python3 -m unittest discover -s native/webos -p test_build_debug.py -v
+      - name: Install native build prerequisites
+        timeout-minutes: 15
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build meson pkg-config autoconf automake libtool bzip2 libclang-18-dev libsdl2-dev libsdl2-ttf-dev libgl1-mesa-dev libgl1-mesa-dri libwayland-dev libglib2.0-dev xvfb xauth openssl curl libcurl4t64
+          # PyPI CPython 3.12 manylinux aarch64 wheel; required by the package pixel checks.
+          python3 -m pip install --force-reinstall --require-hashes --only-binary=:all: -r /dev/stdin <<'REQUIREMENTS'
+          Pillow==13.0.0 --hash=sha256:8bf295fe459343bc6093c8e5e0df60bfa189e0fcb775a22e2c2488fdeccc6c0d
+          REQUIREMENTS
+      - name: Prepare native source and verified SDK
+        run: |
+          if [ -e build/native-webos ] || [ -L build/native-webos ]; then
+            echo 'Native build requires a fresh work directory and vendor inputs.' >&2
+            exit 1
+          fi
+          python3 native/webos/build.py prepare
+          python3 native/webos/build.py bootstrap
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          spec = json.loads(Path("native/webos/upstream.json").read_text())
+          work = Path("build/native-webos").resolve()
+          expected = spec["sdk"]["assets"]["linux-aarch64"]["sha256"]
+          matches = []
+          for path in (work / "downloads").rglob("*.tar.bz2"):
+              with path.open("rb") as stream:
+                  if hashlib.file_digest(stream, "sha256").hexdigest() == expected:
+                      matches.append(path)
+          if len(matches) != 1:
+              raise SystemExit("Expected exactly one original, verified SDK archive")
+          with open(os.environ["GITHUB_ENV"], "a") as stream:
+              stream.write(f"WEBOS_SDK={work / 'toolchain' / spec['sdk']['directory']}\n")
+              stream.write(f"WEBOS_SDK_ARCHIVE={matches[0]}\n")
+          PY
+      - name: Prepare pinned companion inputs
+        run: |
+          python3 native/webos/companion/prepare.py \
+            --cache-dir "$RUNNER_TEMP/companion-cache" \
+            --target-dir "$RUNNER_TEMP/companion-target" \
+            --output "$RUNNER_TEMP/companion-prepared.json"
+      - name: Build companion and collect its locked source closure
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          temporary = Path(os.environ["RUNNER_TEMP"])
+          prepared = json.loads((temporary / "companion-prepared.json").read_text())
+          # Native optimization must not change the independently pinned companion.
+          environment = dict(os.environ)
+          for name in list(environment):
+              if name.startswith(("CARGO_PROFILE_", "CARGO_BUILD_", "CARGO_TARGET_")):
+                  del environment[name]
+          for name in (
+              "RUSTC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "RUSTFLAGS",
+              "CARGO_ENCODED_RUSTFLAGS", "CARGO_BUILD_RUSTC_WRAPPER",
+              "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
+          ):
+              environment.pop(name, None)
+          environment.update(prepared["environment"])
+          environment["RUSTUP_AUTO_INSTALL"] = "0"
+          if any(name.startswith("CARGO_PROFILE_") for name in environment):
+              raise ValueError("Native profile override in companion preparation")
+          if (environment.get("RUSTUP_TOOLCHAIN") != "1.96.1"
+                  or environment.get("CARGO_INCREMENTAL") != "0"
+                  or environment.get("CARGO_NET_OFFLINE") != "true"):
+              raise ValueError("Unexpected companion preparation contract")
+          bundle = temporary / "companion-bundle"
+          subprocess.run([
+              sys.executable, "native/webos/companion/build.py", "build",
+              "--sdk", os.environ["WEBOS_SDK"],
+              "--sdk-archive", os.environ["WEBOS_SDK_ARCHIVE"],
+              "--target-dir", prepared["target_dir"], "--libclang", prepared["libclang"],
+              "--jobs", "2", "--output", str(bundle),
+          ], env=environment, check=True)
+          subprocess.run([
+              sys.executable, "native/webos/companion/sources.py",
+              "--bundle", str(bundle), "--output", str(temporary / "companion-source"),
+              "--readelf", os.environ["WEBOS_SDK"] + "/bin/arm-webos-linux-gnueabi-readelf",
+              "--rust-sysroot", prepared["rust_sysroot"],
+              "--rust-source-archive", prepared["rust_source_archive"],
+          ], env=environment, check=True)
+          PY
+      - name: Build same-ID diagnostic IPK and matching symbols
+        env:
+          EXPECTED_SOURCE: ${{ steps.pin.outputs.source }}
+          NATIVE_CONTROL_DISCOVERY_URL: https://player.ottplay.here.now/local/control-discovery.0a3bf94cadba71fdd02af4783574ea4690de2839a3eaa05a2bea18a715eb2e4d.json
+          NATIVE_CONTROL_DISCOVERY_SHA256: 0a3bf94cadba71fdd02af4783574ea4690de2839a3eaa05a2bea18a715eb2e4d
+        run: |
+          python3 native/webos/build_debug.py --build-mode debug --source-sha "$EXPECTED_SOURCE" \
+            --jobs 2 --sdk "$WEBOS_SDK" --sdk-archive "$WEBOS_SDK_ARCHIVE" \
+            --companion-bundle "$RUNNER_TEMP/companion-bundle" \
+            --control-discovery-url "$NATIVE_CONTROL_DISCOVERY_URL" \
+            --control-discovery-sha256 "$NATIVE_CONTROL_DISCOVERY_SHA256"
+      - name: Upload diagnostic IPK, symbols and byte-bound evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ottplay-native-webos-diagnostic-${{ steps.pin.outputs.source }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          path: build/native-webos/diagnostic/
+      - name: Retain companion source closure separately
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ottplay-native-webos-diagnostic-companion-source-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ runner.temp }}/companion-source/

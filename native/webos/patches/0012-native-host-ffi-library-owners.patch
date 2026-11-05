@@ -1,0 +1,423 @@
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -1671,7 +1671,7 @@
+ 	cd rust-modules && PATH="$$HOME/.cargo/bin:$$PATH" PLXNATIVE_RUNTIME_DIR="$$d" \
+ 	  $(TELEMETRY_ENV) \
+ 	  $(HOST_ENV) \
+-	  $(UNIT_RUN) -- cargo +$(RUST_TOOLCHAIN) test --lib -p plxnative-modules -p plx_base -p plx_machine -p plx_platform -p plx_gfx -p plx_net -p plx_ui -p plx_plex -p plx_telemetry -p plx_data -p plx_session -p plx_media -p plx_appkit -p plx_screens
++	  $(UNIT_RUN) -- cargo +$(RUST_TOOLCHAIN) test --lib -p plxnative-modules -p plx_base -p plx_machine -p plx_platform -p plx_gfx -p plx_net -p plx_ui -p plx_plex -p plx_telemetry -p plx_data -p plx_session -p plx_media -p plx_appkit -p plx_screens --keep-going
+ 	RUST_TOOLCHAIN=$(RUST_TOOLCHAIN) python3 ci/test_storage_service_package.py
+ 	cd rust-modules && PATH="$$HOME/.cargo/bin:$$PATH" cargo +$(RUST_TOOLCHAIN) test -p plxnative-storage --bin plxnative-storage
+ 	@# The helper is its own package, so building it compiles no copy of the app library; this reads
+diff --git a/ci/test_ci_split.py b/ci/test_ci_split.py
+--- a/ci/test_ci_split.py
++++ b/ci/test_ci_split.py
+@@ -57,7 +57,7 @@
+ GATES = {
+     "check-cargo-lint": [r"cargo \+\$\(RUST_TOOLCHAIN\) check --lib --tests -p plxnative-modules -p plx_base -p plx_machine -p plx_platform -p plx_gfx -p plx_net -p plx_ui -p plx_plex -p plx_telemetry -p plx_data -p plx_session -p plx_media -p plx_appkit -p plx_screens --features lab-diagnostics"],
+     "check-cargo-unit-default": [
+-        r"cargo \+\$\(RUST_TOOLCHAIN\) test --lib -p plxnative-modules -p plx_base -p plx_machine -p plx_platform -p plx_gfx -p plx_net -p plx_ui -p plx_plex -p plx_telemetry -p plx_data -p plx_session -p plx_media -p plx_appkit -p plx_screens\n",
++        r"cargo \+\$\(RUST_TOOLCHAIN\) test --lib -p plxnative-modules -p plx_base -p plx_machine -p plx_platform -p plx_gfx -p plx_net -p plx_ui -p plx_plex -p plx_telemetry -p plx_data -p plx_session -p plx_media -p plx_appkit -p plx_screens --keep-going\n",
+         r"ci/test_storage_service_package\.py",
+         r"test -p plxnative-storage --bin plxnative-storage",
+         r"ci/test_storage_package_isolated\.py",
+diff --git a/ci/test_no_host_staticlib.py b/ci/test_no_host_staticlib.py
+--- a/ci/test_no_host_staticlib.py
++++ b/ci/test_no_host_staticlib.py
+@@ -152,6 +152,39 @@
+         self.assertEqual(layer_offences(graph), [], "a layer crate would build more than an rlib")
+ 
+ 
++    def test_host_native_providers_and_required_dependencies(self):
++        meta = cargo(["metadata", "--format-version", "1", "--no-deps"], ROOT / "rust-modules")
++        packages = {package["name"]: package for package in meta["packages"]}
++        providers = {
++            "plxnative-modules": "rust-modules/build.rs",
++            "plx_base": "rust-modules/base/build.rs",
++            "plx_gfx": "rust-modules/gfx/build.rs",
++            "plx_platform": "rust-modules/platform/build.rs",
++        }
++        for name, relative in providers.items():
++            scripts = [target for target in packages[name]["targets"]
++                       if target.get("kind") == ["custom-build"]]
++            self.assertEqual(len(scripts), 1, name)
++            self.assertEqual(Path(scripts[0]["src_path"]).resolve(), (ROOT / relative).resolve())
++        for name in ("plx_ui", "plx_appkit", "plx_screens"):
++            self.assertFalse(any(target.get("kind") == ["custom-build"]
++                                 for target in packages[name]["targets"]), name)
++        required = {
++            "plx_gfx": ("plx_base",),
++            "plx_platform": ("plx_base",),
++            "plxnative-modules": ("plx_base", "plx_gfx", "plx_platform"),
++            "plx_ui": ("plx_base", "plx_gfx", "plx_platform"),
++            "plx_appkit": ("plx_base", "plx_gfx", "plx_platform"),
++            "plx_screens": ("plx_base", "plx_gfx", "plx_platform"),
++        }
++        for consumer, names in required.items():
++            for provider in names:
++                unconditional = [dep for dep in packages[consumer]["dependencies"]
++                                 if dep["name"] == provider and dep.get("kind") is None
++                                 and dep.get("target") is None and not dep["optional"]]
++                self.assertEqual(len(unconditional), 1, f"{consumer} must inherit {provider}")
++
++
+ class ManifestMutationTests(unittest.TestCase):
+     """The detector is RED when a manifest adds an archive crate type, against real cargo."""
+ 
+diff --git a/rust-modules/appkit/Cargo.toml b/rust-modules/appkit/Cargo.toml
+--- a/rust-modules/appkit/Cargo.toml
++++ b/rust-modules/appkit/Cargo.toml
+@@ -6,7 +6,6 @@
+ description = "PlxNative appkit layer: application widgets shared by several screens (the player HUD, the track menus, the info panel, the Sources row model), composed from the ui library over application types."
+ repository = "https://github.com/GLinnik21/plx-native"
+ publish = false
+-build = "build.rs"
+ 
+ [lib]
+ name = "plx_appkit"
+diff --git a/rust-modules/appkit/build.rs b/rust-modules/appkit/build.rs
+deleted file mode 100644
+--- a/rust-modules/appkit/build.rs
++++ /dev/null
+@@ -1,17 +0,0 @@
+-//! Host system-library configuration for the appkit layer's test binary.
+-//!
+-//! Drawing tests reach the GL/SDL_ttf/nanosvg declarations in the mandatory gfx dependency.
+-//! The shared helper emits system libraries here; gfx alone owns the SVG archive, which
+-//! Cargo carries through its rlib to this crate's tests and other dependent executables.
+-//!
+-//! On the television `host_link::emit` returns before emitting any link or archiver
+-//! directives: the ARM32 staticlib is linked by the Makefile instead.
+-
+-#[path = "../build_support/host_link.rs"]
+-mod host_link;
+-
+-fn main() {
+-    println!("cargo:rerun-if-changed=build.rs");
+-    println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(None);
+-}
+diff --git a/rust-modules/base/Cargo.toml b/rust-modules/base/Cargo.toml
+--- a/rust-modules/base/Cargo.toml
++++ b/rust-modules/base/Cargo.toml
+@@ -6,6 +6,7 @@
+ description = "PlxNative base layer: the event log, file locations, spawn discipline, dlopen seam and frame instruments every other layer builds on."
+ repository = "https://github.com/GLinnik21/plx-native"
+ publish = false
++build = "build.rs"
+ 
+ [lib]
+ name = "plx_base"
+@@ -22,7 +23,7 @@
+ lab-diagnostics = []
+ hostsim = []
+ # The `cfg(test)` fixtures other crates' tests use, plus the test-mode behaviour (disarmed
+-# watchdog, no SDL link, the per-process state root) that `cfg(test)` alone cannot give a
++# watchdog, stubbed heartbeat counters, the per-process state root) that `cfg(test)` alone cannot give a
+ # dependent. Enabled from the application crate's `[dev-dependencies]`; never in a shipped build.
+ test-support = []
+ 
+diff --git a/rust-modules/base/build.rs b/rust-modules/base/build.rs
+new file mode 100644
+--- /dev/null
++++ b/rust-modules/base/build.rs
+@@ -0,0 +1,11 @@
++//! Provide host SDL/GL dependencies for surface and heartbeat FFI, including dependent crates.
++//! This does not imply that tests create a window or call native drawing functions.
++//! ARM32 returns before host discovery/link directives; the Makefile owns its native link.
++#[path = "../build_support/host_link.rs"]
++mod host_link;
++
++fn main() {
++    println!("cargo:rerun-if-changed=build.rs");
++    println!("cargo:rerun-if-changed=../build_support/host_link.rs");
++    host_link::emit(None, &["SDL2", "GL"]);
++}
+diff --git a/rust-modules/base/src/diag/heartbeat.rs b/rust-modules/base/src/diag/heartbeat.rs
+--- a/rust-modules/base/src/diag/heartbeat.rs
++++ b/rust-modules/base/src/diag/heartbeat.rs
+@@ -30,7 +30,7 @@
+     fn SDL_GetPerformanceCounter() -> u64;
+     fn SDL_GetPerformanceFrequency() -> u64;
+ }
+-// The host test binary links no SDL: the tests set the stamps and the frequency directly.
++// Tests set these stamps and the frequency directly instead of calling SDL counters.
+ #[cfg(any(test, feature = "test-support"))]
+ #[allow(non_snake_case)] // the SDL name, so the call sites read the same in both builds
+ unsafe fn SDL_GetPerformanceCounter() -> u64 {
+diff --git a/rust-modules/base/src/lib.rs b/rust-modules/base/src/lib.rs
+--- a/rust-modules/base/src/lib.rs
++++ b/rust-modules/base/src/lib.rs
+@@ -8,7 +8,7 @@
+ //!
+ //! `test-support` exposes the `cfg(test)` fixtures other layers' tests build on (`testlock`,
+ //! `testnet`, `storage_worker::drain_for_test`, ...) and keeps this crate's test-mode behaviour
+-//! (a disarmed watchdog, no SDL link in `diag::heartbeat`) when a dependent's tests build it.
++//! (a disarmed watchdog, stubbed counters in `diag::heartbeat`) when a dependent's tests build it.
+ //! The application crate enables it in `[dev-dependencies]` only, so no shipped build sees it.
+ 
+ pub mod eventlog; // THE event log: `eventlog::log` is the one sink every module writes through
+diff --git a/rust-modules/build.rs b/rust-modules/build.rs
+--- a/rust-modules/build.rs
++++ b/rust-modules/build.rs
+@@ -1,5 +1,7 @@
+ //! The version string every build reports, and link configuration for everything cargo itself LINKS
+-//! on the developer's own machine — the host UI simulator, and the host TEST BINARY. (The install
++//! on the developer's own machine — the host UI simulator, and the host TEST BINARY. Native
++//! dependencies are declared by their provider crates; this script provides Linux Wayland.
++//! (The install
+ //! identities and the localization catalog are generated by the platform layer's own build script,
+ //! `platform/build.rs`.)
+ //!
+@@ -39,9 +41,9 @@
+     emit_version();
+     emit_build_sha();
+ 
+-    // System host libraries are shared with the drawing crates. The gfx dependency owns
+-    // the nanosvg archive and propagates it to this crate through Cargo.
+-    host_link::emit(None);
++    // Base provides SDL/GL, gfx provides SVG/TTF, and platform provides Linux GLib.
++    // The application's system callbacks are the only direct Wayland callers.
++    host_link::emit(None, &["wayland-client"]);
+ }
+ 
+ /// Publish `PLX_VERSION` — the version this build REPORTS, which is not always the version it was
+diff --git a/rust-modules/build_support/host_link.rs b/rust-modules/build_support/host_link.rs
+--- a/rust-modules/build_support/host_link.rs
++++ b/rust-modules/build_support/host_link.rs
+@@ -1,18 +1,16 @@
+-//! Link configuration for everything cargo itself LINKS on the developer's own machine, shared by
+-//! the build scripts of the application and drawing-layer crates. Their host executables
+-//! (the simulator and `--test` binaries) reach the `extern "C"` GL/SDL_ttf/nanosvg declarations
+-//! in `plx_gfx`, which alone supplies the rasterizer archive. Native libraries are declared
+-//! with `cargo:rustc-link-lib`, so cargo carries them through dependent crates and places
+-//! them with the normal library inputs.
++//! Host native libraries are provided by their owning crates: base supplies SDL/GL,
++//! gfx supplies SDL2_ttf and the SVG archive, platform supplies Linux GLib, and the
++//! application supplies Linux Wayland. Mandatory Cargo dependencies carry each native
++//! library after the Rust rlibs that use it, including standalone crate test binaries.
+ //!
+ //! A no-op for the build that ships: the television binary is linked by the Makefile, not by cargo.
+ 
+ use std::path::{Path, PathBuf};
+ use std::process::Command;
+ 
+-/// Emit shared host libraries; only gfx passes the repository root to own the SVG archive.
+-/// Other crates pass `None` and receive the archive through their gfx dependency.
+-pub fn emit(svg_repo: Option<&Path>) {
++/// Emit only the native libraries provided by this crate. Other crates inherit them through
++/// their mandatory dependencies. Only gfx passes a repository root to build the SVG archive.
++pub fn emit(svg_repo: Option<&Path>, libraries: &[&str]) {
+     // The television target is the one build cargo does not link, so it is the one that wants
+     // none of this. It is identified by ARCHITECTURE rather than by the full triple: the target is
+     // `armv7-unknown-linux-gnueabi` (32-bit ARM, `target_arch = "arm"`), while every host that runs
+@@ -29,7 +27,24 @@
+ 
+     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+ 
+-    if let Some(libdirs) = host_library_search_paths(&target_os) {
++    let mut native = Vec::new();
++    let mut packages = Vec::new();
++    for &library in libraries {
++        let package = match library {
++            "SDL2" => "sdl2",
++            "SDL2_ttf" => "SDL2_ttf",
++            "GL" => "gl",
++            "wayland-client" | "glib-2.0" => {
++                if target_os != "linux" { continue; }
++                library
++            }
++            _ => panic!("host link: unknown native library {library:?}"),
++        };
++        native.push(library);
++        if !packages.contains(&package) { packages.push(package); }
++    }
++
++    if let Some(libdirs) = host_library_search_paths(&target_os, &packages) {
+         for libdir in libdirs {
+             println!("cargo:rustc-link-search=native={}", libdir.display());
+         }
+@@ -47,24 +62,11 @@
+         compile_svg(repo);
+     }
+ 
+-    println!("cargo:rustc-link-lib=dylib=SDL2");
+-    println!("cargo:rustc-link-lib=dylib=SDL2_ttf");
+-
+-    match target_os.as_str() {
+-        "macos" => {
+-            // GL entry points come from the framework. The simulator asks for a 4.1 core context;
+-            // see `app.rs`'s context-attribute branch for why it cannot ask for GLES2 here.
++    for library in native {
++        if library == "GL" && target_os == "macos" {
+             println!("cargo:rustc-link-lib=framework=OpenGL");
+-        }
+-        "linux" => {
+-            println!("cargo:rustc-link-lib=dylib=GL");
+-            // Default-feature host tests retain the platform callbacks that use these directly.
+-            // SDL's transitive dependencies do not satisfy those references at link time.
+-            println!("cargo:rustc-link-lib=dylib=wayland-client");
+-            println!("cargo:rustc-link-lib=dylib=glib-2.0");
+-        }
+-        _ => {
+-            println!("cargo:rustc-link-lib=dylib=GL");
++        } else {
++            println!("cargo:rustc-link-lib=dylib={library}");
+         }
+     }
+ }
+@@ -76,8 +78,8 @@
+ /// `vendor/downloads`, then from the machine-wide store under `$PLX_BUILD_CACHE` (default
+ /// `~/.cache/plxnative`) that every worktree shares, and only then downloads them at the pinned
+ /// commit, checking each against its sha256 and filling both caches.
+-/// Several build scripts (this crate's, `plx_gfx`'s, ...) can run it at once: every write is a
+-/// rename of a private file, so none sees another's partial download. The directory is relative to
++/// Different host builds can stage these headers at once: every write is a rename of a
++/// private file, so none sees another's partial download. The directory is relative to
+ /// the repository, not `$HOME`, because some `make check` steps run with an empty home.
+ fn stage_nanosvg(repo: &Path) {
+     // Both exist in every checkout, so `rerun-if-changed` can never name a missing path.
+@@ -164,9 +166,9 @@
+ /// A successful pkg-config query may return no `-L` flags because the libraries live on the
+ /// linker's default path. That is still discovery success, represented by `Some(vec![])`, so a
+ /// normal Linux install does not emit a misleading discovery warning.
+-fn host_library_search_paths(target_os: &str) -> Option<Vec<PathBuf>> {
++fn host_library_search_paths(target_os: &str, packages: &[&str]) -> Option<Vec<PathBuf>> {
++    if packages.is_empty() { return Some(Vec::new()); }
+     if target_os == "linux" {
+-        let packages = ["sdl2", "SDL2_ttf", "wayland-client", "glib-2.0"];
+         if !Command::new("pkg-config")
+             .arg("--exists")
+             .args(packages)
+diff --git a/rust-modules/gfx/build.rs b/rust-modules/gfx/build.rs
+--- a/rust-modules/gfx/build.rs
++++ b/rust-modules/gfx/build.rs
+@@ -1,6 +1,7 @@
+ //! Host link configuration and SVG archive ownership for the gfx layer.
+ //!
+-//! This crate declares the rasterizer's C symbols, so it alone builds the nanosvg archive.
++//! This crate provides SDL2_ttf and declares the rasterizer's C symbols, so it alone builds
++//! the nanosvg archive. SDL and GL calls inherit their native libraries from mandatory base.
+ //! The shared helper declares it as an ordinary native static library. Cargo carries it
+ //! through the gfx rlib to dependent tests and executables without whole-archive flags.
+ //!
+@@ -13,5 +14,5 @@
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(Some(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")));
++    host_link::emit(Some(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")), &["SDL2_ttf"]);
+ }
+diff --git a/rust-modules/platform/build.rs b/rust-modules/platform/build.rs
+--- a/rust-modules/platform/build.rs
++++ b/rust-modules/platform/build.rs
+@@ -1,7 +1,7 @@
+ //! Code generation for the platform layer: the `i18n::msg` localization catalog and the language registry's `Preference`/`Language` enums and the
+-//! install-identity `Flavor` enum `storage::state` includes. Nothing else happens at build time
+-//! here, and nothing here links anything: the host link configuration (SDL, GL, the nanosvg object)
+-//! belongs to the application crate's build script, which owns the final binary.
++//! install-identity `Flavor` enum `storage::state` includes. On Linux hosts this crate also
++//! provides the GLib native dependency for its LS2 callbacks and dependent application code.
++//! SDL/GL come from mandatory base; native linking on ARM32 remains the Makefile's job.
+ //!
+ //! Both generators write into this crate's `OUT_DIR` and both are included only from this crate
+ //! (`i18n/mod.rs`, `storage/state.rs`). The storage helper (`plxnative-storage`) includes
+@@ -9,11 +9,12 @@
+ //! client and the helper cannot disagree about which installs exist.
+ //!
+ //! The inputs are the only things this script re-runs for: the catalog sources under `locales/`,
+-//! the packaging manifest of installs, and the two generator files. No environment variable is
+-//! read, so an ordinary rebuild never re-runs it.
++//! the packaging manifest of installs, the two generator files, and shared host link configuration.
+ 
+ use std::path::{Path, PathBuf};
+ 
++#[path = "../build_support/host_link.rs"]
++mod host_link;
+ #[path = "build_support/catalog.rs"]
+ mod catalog;
+ #[path = "../build_support/install_identities.rs"]
+@@ -21,6 +22,8 @@
+ 
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
++    println!("cargo:rerun-if-changed=../build_support/host_link.rs");
++    host_link::emit(None, &["glib-2.0"]);
+     println!("cargo:rerun-if-changed=build_support/catalog.rs");
+     println!("cargo:rerun-if-changed=../build_support/install_identities.rs");
+     println!("cargo:rerun-if-changed=../../locales");
+diff --git a/rust-modules/screens/Cargo.toml b/rust-modules/screens/Cargo.toml
+--- a/rust-modules/screens/Cargo.toml
++++ b/rust-modules/screens/Cargo.toml
+@@ -6,7 +6,6 @@
+ description = "PlxNative screens layer: the application's screens (Home, library, detail, search, the player screen, Settings and its family, the account and item menus), each a Screen over the ui library, the data layer and the appkit widgets."
+ repository = "https://github.com/GLinnik21/plx-native"
+ publish = false
+-build = "build.rs"
+ 
+ [lib]
+ name = "plx_screens"
+diff --git a/rust-modules/screens/build.rs b/rust-modules/screens/build.rs
+deleted file mode 100644
+--- a/rust-modules/screens/build.rs
++++ /dev/null
+@@ -1,17 +0,0 @@
+-//! Host system-library configuration for the screens layer's test binary.
+-//!
+-//! Drawing tests reach the GL/SDL_ttf/nanosvg declarations in the mandatory gfx dependency.
+-//! The shared helper emits system libraries here; gfx alone owns the SVG archive, which
+-//! Cargo carries through its rlib to this crate's tests and other dependent executables.
+-//!
+-//! On the television `host_link::emit` returns before emitting any link or archiver
+-//! directives: the ARM32 staticlib is linked by the Makefile instead.
+-
+-#[path = "../build_support/host_link.rs"]
+-mod host_link;
+-
+-fn main() {
+-    println!("cargo:rerun-if-changed=build.rs");
+-    println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(None);
+-}
+diff --git a/rust-modules/ui/Cargo.toml b/rust-modules/ui/Cargo.toml
+--- a/rust-modules/ui/Cargo.toml
++++ b/rust-modules/ui/Cargo.toml
+@@ -6,13 +6,12 @@
+ description = "PlxNative ui layer: the UI library (theme, widgets, containers, the frame, the focus engine, the recorder), with no application type in it."
+ repository = "https://github.com/GLinnik21/plx-native"
+ publish = false
+-build = "build.rs"
+ 
+ [lib]
+ name = "plx_ui"
+ # An rlib the application crate links, never an archive of its own: the one staticlib is the
+-# application crate's (ci/test_no_host_staticlib.py holds that line for this crate too). It links
+-# nothing on the television; its build script exists for the host test binary (see build.rs).
++# application crate's (ci/test_no_host_staticlib.py holds that line for this crate too).
++# Host native libraries propagate from the mandatory base/gfx/platform dependencies.
+ crate-type = ["rlib"]
+ 
+ # ci/module_graph.py reads this crate as part of the same module tree as the application, and
+diff --git a/rust-modules/ui/build.rs b/rust-modules/ui/build.rs
+deleted file mode 100644
+--- a/rust-modules/ui/build.rs
++++ /dev/null
+@@ -1,17 +0,0 @@
+-//! Host system-library configuration for the ui layer's test binary.
+-//!
+-//! Drawing tests reach the GL/SDL_ttf/nanosvg declarations in the mandatory gfx dependency.
+-//! The shared helper emits system libraries here; gfx alone owns the SVG archive, which
+-//! Cargo carries through its rlib to this crate's tests and other dependent executables.
+-//!
+-//! On the television `host_link::emit` returns before emitting any link or archiver
+-//! directives: the ARM32 staticlib is linked by the Makefile instead.
+-
+-#[path = "../build_support/host_link.rs"]
+-mod host_link;
+-
+-fn main() {
+-    println!("cargo:rerun-if-changed=build.rs");
+-    println!("cargo:rerun-if-changed=../build_support/host_link.rs");
+-    host_link::emit(None);
+-}

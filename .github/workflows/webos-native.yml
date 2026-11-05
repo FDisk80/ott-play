@@ -2,17 +2,39 @@ name: Native webOS candidate
 
 on:
   workflow_dispatch:
+    inputs:
+      build_bench:
+        description: "Only measure the pinned native before/after pair (ordinary CI is separate)"
+        type: boolean
+        default: false
+      bench_base_ref:
+        description: "Required for build_bench: reviewed full outer base commit"
+        type: string
+        required: false
+      bench_base_tree:
+        description: "Required for build_bench: reviewed full prepared Native base tree"
+        type: string
+        required: false
+      bench_head_ref:
+        description: "Required for build_bench: reviewed full outer head commit matching this dispatch"
+        type: string
+        required: false
+      bench_head_tree:
+        description: "Required for build_bench: reviewed full prepared Native tree for this dispatch"
+        type: string
+        required: false
   workflow_call: {}
 
 permissions:
   contents: read
 
 concurrency:
-  group: webos-native-${{ github.event.pull_request.number || github.ref }}
+  group: webos-native-${{ github.event_name == 'workflow_dispatch' && inputs.build_bench && 'bench-' || '' }}${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   contracts:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.build_bench) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -47,15 +69,27 @@ jobs:
       CARGO_BUILD_JOBS: "2"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          clean: true
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
       - name: Install native build prerequisites
+        timeout-minutes: 15
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build meson pkg-config autoconf automake libtool bzip2 libclang-18-dev
+          sudo apt-get install -y build-essential cmake ninja-build meson pkg-config autoconf automake libtool bzip2 libclang-18-dev libsdl2-dev libsdl2-ttf-dev libgl1-mesa-dev libgl1-mesa-dri libwayland-dev libglib2.0-dev xvfb xauth openssl curl libcurl4t64
+          # PyPI CPython 3.12 manylinux aarch64 wheel; required by the package pixel checks.
+          python3 -m pip install --force-reinstall --require-hashes --only-binary=:all: -r /dev/stdin <<'REQUIREMENTS'
+          Pillow==13.0.0 --hash=sha256:8bf295fe459343bc6093c8e5e0df60bfa189e0fcb775a22e2c2488fdeccc6c0d
+          REQUIREMENTS
       - name: Prepare native source and verified SDK
         run: |
+          if [ -e build/native-webos ] || [ -L build/native-webos ]; then
+            echo 'Native build requires a fresh work directory and vendor inputs.' >&2
+            exit 1
+          fi
           python3 native/webos/build.py prepare
           python3 native/webos/build.py bootstrap
           python3 - <<'PY'
@@ -78,6 +112,265 @@ jobs:
               stream.write(f"WEBOS_SDK={work / 'toolchain' / spec['sdk']['directory']}\n")
               stream.write(f"WEBOS_SDK_ARCHIVE={matches[0]}\n")
           PY
+      - name: Verify host transport and package pixel prerequisites
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import ctypes
+          import ssl
+          import subprocess
+          import tempfile
+          from pathlib import Path
+          import PIL
+          from PIL import Image
+
+          # Read the same shared library the default transport tests dlopen.
+          class CurlVersion(ctypes.Structure):
+              _fields_ = [("age", ctypes.c_int), ("version", ctypes.c_char_p),
+                          ("version_num", ctypes.c_uint), ("host", ctypes.c_char_p),
+                          ("features", ctypes.c_int)]
+
+          curl = ctypes.CDLL("libcurl.so.4")
+          curl.curl_version_info.argtypes = [ctypes.c_int]
+          curl.curl_version_info.restype = ctypes.POINTER(CurlVersion)
+          info = curl.curl_version_info(0)  # Read only fields from CURLVERSION_FIRST.
+          required = (1 << 2) | (1 << 16)  # CURL_VERSION_SSL | CURL_VERSION_HTTP2
+          if not info or info.contents.features & required != required:
+              raise RuntimeError("Host libcurl must support TLS and HTTP/2")
+          if not ssl.HAS_ALPN:
+              raise RuntimeError("Host Python TLS must support ALPN")
+          with tempfile.TemporaryDirectory(prefix="native-host-tls-") as temporary:
+              cert, key = (Path(temporary) / name for name in ("cert.pem", "key.pem"))
+              subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+                              "-days", "1", "-subj", "/CN=synthetic-loopback",
+                              "-keyout", str(key), "-out", str(cert)],
+                             check=True, timeout=15, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+              context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+              context.minimum_version = ssl.TLSVersion.TLSv1_2
+              context.load_cert_chain(cert, key)
+              context.set_alpn_protocols(["h2"])
+          if PIL.__version__ != "13.0.0":
+              raise RuntimeError("Package pixel checks require the pinned Pillow")
+          with Image.open("build/native-webos/source/pkg/largeIcon.png") as icon:
+              icon.convert("RGB").getpixel((1, 1))
+          print("Host prerequisites:", info.contents.version.decode(), ssl.OPENSSL_VERSION,
+                "HTTP/2 + ALPN; Pillow", PIL.__version__)
+          PY
+      # Host builds can stage libass and change native Make configuration. Run them
+      # before companion/native packaging; never mutate an already-built ARM candidate.
+      - name: Install pinned native host verification components
+        timeout-minutes: 5
+        working-directory: build/native-webos/source
+        shell: bash
+        env:
+          CARGO_INCREMENTAL: "0"
+          PLX_CARGO_SEED: "off"
+          HOST_THREADS: "0"
+          RELEASE: ""
+          PLX_TEST_JOBS: "2"
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-host-verification"
+          cp ../prepared.json "$RUNNER_TEMP/native-host-verification/prepared-before.json"
+          toolchain=$(python3 -c 'import pathlib, tomllib; print(tomllib.loads(pathlib.Path("rust-modules/rust-toolchain.toml").read_text())["toolchain"]["channel"])')
+          printf '%s\n' "$toolchain" > "$RUNNER_TEMP/native-host-verification/rust-toolchain.txt"
+          rustup component add --toolchain "$toolchain" clippy rustfmt 2>&1 | tee "$RUNNER_TEMP/native-host-verification/components.log"
+      - name: Native full check, package contracts and shipping type checks
+        # Replaces the 10 + 25 + 25 minute partial host gates without repeating them.
+        # The unchanged 90-minute job limit still bounds host, replay and ARM work.
+        timeout-minutes: 60
+        working-directory: build/native-webos/source
+        shell: bash
+        env:
+          CARGO_INCREMENTAL: "0"
+          PLX_CARGO_SEED: "off"
+          HOST_THREADS: "0"
+          RELEASE: ""
+          PLX_TEST_JOBS: "2"
+        run: |
+          set -euo pipefail
+          python3 ci/check-package.py --selftest 2>&1 | tee "$RUNNER_TEMP/native-host-verification/package-selftest.log"
+          python3 ci/test_package_product_config.py 2>&1 | tee "$RUNNER_TEMP/native-host-verification/product-config-tests.log"
+          # Run both canonical branches: all Cargo gates and Python/C/harness checks.
+          make check 2>&1 | tee "$RUNNER_TEMP/native-host-verification/check.log"
+          make check-nodef 2>&1 | tee "$RUNNER_TEMP/native-host-verification/nodef.log"
+      - name: Export actual Native settings schema
+        timeout-minutes: 5
+        working-directory: build/native-webos/source
+        shell: bash
+        env:
+          CARGO_INCREMENTAL: "0"
+          PLX_CARGO_SEED: "off"
+          HOST_THREADS: "0"
+          RELEASE: ""
+          PLX_TEST_JOBS: "1"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          source = Path.cwd()
+          evidence = Path(os.environ["RUNNER_TEMP"]) / "native-host-verification"
+          test = "app::ott_runtime::tests::settings_schema_contract::every_schema_page_obeys_controller_v1"
+          prepared_path = source.parent / "prepared.json"
+          prepared = json.loads(prepared_path.read_text())
+          files = (
+              "Makefile", "rust-modules/Cargo.lock", "rust-modules/rust-toolchain.toml",
+              "tools/cargo-test-parallel.py", "rust-modules/src/app/ott_runtime_tests.rs",
+              "rust-modules/src/app/ott_runtime_tests/settings_schema_contract.rs",
+              "rust-modules/src/app/ott_settings.rs", "rust-modules/src/app/ott_settings_classic.rs",
+          )
+
+          def digest(path):
+              return hashlib.sha256(path.read_bytes()).hexdigest()
+
+          def source_pin():
+              tree = subprocess.check_output(["git", "write-tree"], text=True).strip()
+              subprocess.check_output(["git", "diff", "--exit-code", "--quiet"])
+              if tree != prepared["tree"]:
+                  raise RuntimeError("Schema export requires the prepared source tree")
+              return {"tree": tree, "prepared_sha256": digest(prepared_path),
+                      "files": {name: digest(source / name) for name in files}}
+
+          before = source_pin()
+          if not (source / "rust-modules/target").is_dir():
+              raise RuntimeError("The canonical host target must already exist")
+          environment = dict(os.environ)
+          # Exactly the Make-derived compile-time PLX settings used by the host unit gate.
+          canonical = subprocess.check_output(["make", "-s", "print-cargo-env"], text=True)
+          for name in list(environment):
+              if name.startswith("PLX_"):
+                  del environment[name]
+          for line in canonical.splitlines():
+              name, separator, value = line.partition("=")
+              if not separator or not name.startswith("PLX_"):
+                  raise RuntimeError("Invalid canonical Cargo environment")
+              environment[name] = value
+          if environment.get("HOST_THREADS") != "0":
+              raise RuntimeError("Schema export requires the canonical non-threaded host compiler")
+          environment.pop("RUST_MIN_STACK", None)
+          environment["PATH"] = str(Path.home() / ".cargo/bin") + os.pathsep + environment["PATH"]
+          environment.update(CARGO_INCREMENTAL="0", CARGO_BUILD_JOBS="1", PLX_TEST_JOBS="1")
+          toolchain = subprocess.check_output(["make", "-s", "print-rust-toolchain"], text=True).strip()
+          if not re.fullmatch(r"[A-Za-z0-9_.-]+", toolchain):
+              raise RuntimeError("Invalid pinned native toolchain")
+          command = [sys.executable, "../tools/cargo-test-parallel.py", "--jobs", "1", "--require-match",
+                     "--filter", test, "--", "cargo", "+" + toolchain, "test", "--locked", "--offline",
+                     "--jobs", "1", "--target-dir", "target", "--lib", "-p", "plxnative-modules",
+                     "--features", "hostsim", "--", "--exact", "--nocapture", "--test-threads=1"]
+          binding = {"status": "STARTED", "test": test, "source": before, "command": command,
+                     "outer_commit": subprocess.check_output(
+                         ["git", "-C", os.environ["GITHUB_WORKSPACE"], "rev-parse", "HEAD"], text=True).strip(),
+                     "github_sha": os.environ["GITHUB_SHA"], "toolchain": toolchain,
+                     "prepared": prepared, "controller_validation": "separate; no live Controller executed"}
+          binding_path = evidence / "schema-binding.json"
+          binding_path.write_text(json.dumps(binding, indent=2) + "\n")
+          log = evidence / "schema-contract.log"
+          with tempfile.TemporaryDirectory(prefix="native-schema-", dir=os.environ["RUNNER_TEMP"]) as runtime:
+              environment["PLXNATIVE_RUNTIME_DIR"] = runtime
+              with log.open("wb") as output:
+                  result = subprocess.run(command, cwd=source / "rust-modules", env=environment,
+                                          stdout=output, stderr=subprocess.STDOUT, check=False)
+          raw = log.read_text()
+          print(raw, end="")
+          result.check_returncode()
+          if source_pin() != before:
+              raise RuntimeError("Source changed during the schema export")
+          summaries = re.findall(r"^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out;", raw, re.M)
+          if len(summaries) != 1 or summaries[0][:5] != ("ok", "1", "0", "0", "0"):
+              raise RuntimeError("Schema export requires exactly one passing, nonignored test")
+          if len(re.findall(r"^running 1 test$", raw, re.M)) != 1 or raw.count("test " + test + " ...") != 1:
+              raise RuntimeError("Missing exact schema test execution")
+          pages = [json.loads(line.split("SETTINGS_SCHEMA_V1 ", 1)[1])
+                   for line in raw.splitlines() if "SETTINGS_SCHEMA_V1 " in line]
+          if len(pages) != 2 or any(set(page) != {"request", "data"} for page in pages):
+              raise RuntimeError("Expected two actual default schema pages")
+          first, second = pages
+          if (first["request"] != {"op": "schema", "runtime": "fixture"}
+                  or second["request"] != {"op": "schema", "runtime": "fixture", "cursor": first["data"]["next_cursor"]}
+                  or not isinstance(first["data"]["next_cursor"], str)
+                  or second["data"]["next_cursor"] is not None
+                  or first["data"]["context"] != second["data"]["context"]
+                  or [len(page["data"]["settings"]) for page in pages] != [20, 20]):
+              raise RuntimeError("Invalid actual schema page chain")
+          ids = [row["id"] for page in pages for row in page["data"]["settings"]]
+          if len(ids) != len(set(ids)) or len(ids) != 40:
+              raise RuntimeError("Schema export omitted or repeated descriptors")
+          pages_path = evidence / "schema-pages.json"
+          pages_path.write_text(json.dumps(pages, ensure_ascii=False, indent=2) + "\n")
+          binding.update(status="PASS", raw_exit=result.returncode, summary=summaries[0],
+                         descriptor_count=len(ids), page_count=len(pages),
+                         log_sha256=digest(log), pages_sha256=digest(pages_path))
+          binding_path.write_text(json.dumps(binding, indent=2) + "\n")
+          print("Actual Native schema export: 1 passed; 0 failed; 0 ignored; 40 descriptors; 2 pages")
+          PY
+      - name: Build the native Linux renderer
+        timeout-minutes: 30
+        working-directory: build/native-webos/source
+        shell: bash
+        env:
+          CARGO_INCREMENTAL: "0"
+          PLX_CARGO_SEED: "off"
+          HOST_THREADS: "0"
+          RELEASE: ""
+          PLX_TEST_JOBS: "2"
+        run: |
+          set -euo pipefail
+          # Keep generated Cargo output outside the source tree later bundled for release.
+          make sim-linux SIM_TDIR="$RUNNER_TEMP/native-sim-target" 2>&1 | tee "$RUNNER_TEMP/native-host-verification/simulator-build.log"
+      - name: Replay committed product recordings through the Linux renderer
+        # Six current recordings/modes at up to 300 seconds each, with shutdown margin.
+        # The unchanged 90-minute job limit still bounds the complete cold build.
+        timeout-minutes: 31
+        working-directory: build/native-webos/source
+        shell: bash
+        env:
+          CARGO_INCREMENTAL: "0"
+          PLX_CARGO_SEED: "off"
+          HOST_THREADS: "0"
+          RELEASE: ""
+          PLX_TEST_JOBS: "2"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s '-screen 0 1920x1080x24' python3 tests/replay_fixtures.py \
+            --sim "$RUNNER_TEMP/native-sim-target/release/plxnative-sim" \
+            --assets "$PWD/pkg" --window 960x540 --jobs 1 --timeout 300 \
+            --output "$RUNNER_TEMP/native-host-verification/replay" \
+            2>&1 | tee "$RUNNER_TEMP/native-host-verification/replay.log"
+      - name: Capture Classic UI through the Linux renderer
+        timeout-minutes: 7
+        working-directory: build/native-webos/source
+        shell: bash
+        env:
+          CARGO_INCREMENTAL: "0"
+          PLX_CARGO_SEED: "off"
+          HOST_THREADS: "0"
+          RELEASE: ""
+          PLX_TEST_JOBS: "2"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s '-screen 0 1920x1080x24' python3 tests/ott_classic_ui.py \
+            --sim "$RUNNER_TEMP/native-sim-target/release/plxnative-sim" \
+            --assets "$PWD/pkg" --output "$RUNNER_TEMP/native-host-verification/classic-ui" \
+            --timeout 300 \
+            2>&1 | tee "$RUNNER_TEMP/native-host-verification/classic-ui.log"
+      - name: Recheck the prepared native source after host verification
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          # An existing preparation is validated in place, not reset or cloned again.
+          python3 native/webos/build.py prepare 2>&1 | tee "$RUNNER_TEMP/native-host-verification/source-recheck.log"
+          cp build/native-webos/prepared.json "$RUNNER_TEMP/native-host-verification/prepared-after.json"
       - name: Prepare pinned companion inputs
         run: |
           python3 native/webos/companion/prepare.py \
@@ -95,7 +388,25 @@ jobs:
 
           temporary = Path(os.environ["RUNNER_TEMP"])
           prepared = json.loads((temporary / "companion-prepared.json").read_text())
-          environment = {**os.environ, **prepared["environment"]}
+          # Native optimization must not change the independently pinned companion.
+          environment = dict(os.environ)
+          for name in list(environment):
+              if name.startswith(("CARGO_PROFILE_", "CARGO_BUILD_", "CARGO_TARGET_")):
+                  del environment[name]
+          for name in (
+              "RUSTC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "RUSTFLAGS",
+              "CARGO_ENCODED_RUSTFLAGS", "CARGO_BUILD_RUSTC_WRAPPER",
+              "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
+          ):
+              environment.pop(name, None)
+          environment.update(prepared["environment"])
+          environment["RUSTUP_AUTO_INSTALL"] = "0"
+          if any(name.startswith("CARGO_PROFILE_") for name in environment):
+              raise ValueError("Native profile override in companion preparation")
+          if (environment.get("RUSTUP_TOOLCHAIN") != "1.96.1"
+                  or environment.get("CARGO_INCREMENTAL") != "0"
+                  or environment.get("CARGO_NET_OFFLINE") != "true"):
+              raise ValueError("Unexpected companion preparation contract")
           bundle = temporary / "companion-bundle"
           subprocess.run([
               sys.executable, "native/webos/companion/build.py", "build",
@@ -113,7 +424,14 @@ jobs:
           ], env=environment, check=True)
           PY
       - name: Build and verify native binary with corresponding source
-        run: python3 native/webos/build.py all --jobs 2 --companion-bundle "$RUNNER_TEMP/companion-bundle"
+        env:
+          NATIVE_CONTROL_DISCOVERY_URL: https://player.ottplay.here.now/local/control-discovery.0a3bf94cadba71fdd02af4783574ea4690de2839a3eaa05a2bea18a715eb2e4d.json
+          NATIVE_CONTROL_DISCOVERY_SHA256: 0a3bf94cadba71fdd02af4783574ea4690de2839a3eaa05a2bea18a715eb2e4d
+        run: |
+          python3 native/webos/build.py all --jobs 2 --rust-opt-level s \
+            --control-discovery-url "$NATIVE_CONTROL_DISCOVERY_URL" \
+            --control-discovery-sha256 "$NATIVE_CONTROL_DISCOVERY_SHA256" \
+            --companion-bundle "$RUNNER_TEMP/companion-bundle"
       - name: Bind runtime sources and final linker evidence
         run: |
           native_version=$(python3 -c 'import json; print(json.load(open("native/webos/upstream.json"))["application"]["version"])')
@@ -144,5 +462,352 @@ jobs:
             build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-runtime-source.tar.gz
             build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-source-set.json
             build/native-webos/dist/ottplay-native-webos-icon.png
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-cargo-artifacts.jsonl
+            build/native-webos/dist/ottplay-native-webos-${{ steps.bundle.outputs.version }}-build-config.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve native main size and link diagnostics
+        # Partial files from a failed build are diagnostics, never a release candidate.
+        if: always()
+        timeout-minutes: 5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ottplay-native-size-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            build/native-webos/prepared.json
+            build/native-webos/ottplay-native-webos-*-cargo-artifacts.jsonl
+            build/native-webos/ottplay-native-webos-*-build-config.txt
+            build/native-webos/source/rust-modules/rust-toolchain.toml
+            build/native-webos/source/ci/build-budgets.json
+            build/native-webos/source/pkg/plxnative
+            build/native-webos/source/pkg/plxnative.link.map
+            build/native-webos/source/pkg/plxnative.link.trace
+            build/native-webos/source/pkg/plxnative.link.json
+            build/native-webos/source/pkg/link-evidence/stable/plxnative.link.map
+            build/native-webos/source/pkg/link-evidence/stable/plxnative.link.trace
+            build/native-webos/source/pkg/link-evidence/stable/plxnative.link.json
+            build/native-webos/source/ipkroot/data/usr/palm/applications/com.openottplay.player.native/plxnative
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve native host verification evidence
+        if: always()
+        timeout-minutes: 5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ottplay-native-host-verification-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/native-host-verification/*.log
+            ${{ runner.temp }}/native-host-verification/*.json
+            ${{ runner.temp }}/native-host-verification/rust-toolchain.txt
+            ${{ runner.temp }}/native-host-verification/replay/**/plxnative-events.log
+            ${{ runner.temp }}/native-host-verification/replay/**/sim.out
+            ${{ runner.temp }}/native-host-verification/classic-ui/**
+          if-no-files-found: warn
+          retention-days: 30
+
+  native-build-bench:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_bench }}
+    runs-on: ubuntu-24.04-arm
+    # Compared sources use local scratch caches, never the shared Actions cache.
+    cache-mode: none
+    timeout-minutes: 180
+    env:
+      JOBS: "2"
+      CARGO_BUILD_JOBS: "2"
+      BENCH_BASE_REF: ${{ inputs.bench_base_ref }}
+      BENCH_BASE_TREE: ${{ inputs.bench_base_tree }}
+      BENCH_HEAD_REF: ${{ inputs.bench_head_ref }}
+      BENCH_HEAD_TREE: ${{ inputs.bench_head_tree }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require the reviewed comparison pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          for pin in "$BENCH_BASE_REF" "$BENCH_BASE_TREE" "$BENCH_HEAD_REF" "$BENCH_HEAD_TREE"; do
+            [[ "$pin" =~ ^[0-9a-f]{40}$ ]]
+          done
+          test "$BENCH_HEAD_REF" = "$GITHUB_SHA"
+          test "$BENCH_BASE_REF" != "$BENCH_HEAD_REF"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.bench_base_ref }}
+          path: benchmark-before
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install native build prerequisites
+        timeout-minutes: 15
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build meson pkg-config autoconf automake libtool bzip2 libclang-18-dev libsdl2-dev libsdl2-ttf-dev libgl1-mesa-dev libgl1-mesa-dri libwayland-dev libglib2.0-dev xvfb xauth openssl curl libcurl4t64
+          # PyPI CPython 3.12 manylinux aarch64 wheel; required by the package pixel checks.
+          python3 -m pip install --force-reinstall --require-hashes --only-binary=:all: -r /dev/stdin <<'REQUIREMENTS'
+          Pillow==13.0.0 --hash=sha256:8bf295fe459343bc6093c8e5e0df60bfa189e0fcb775a22e2c2488fdeccc6c0d
+          REQUIREMENTS
+      - name: Measure both native source closures sequentially on this runner
+        timeout-minutes: 160
+        shell: bash
+        run: |
+          python3 - <<'PYBENCH'
+          import hashlib
+          import importlib.util
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          from types import SimpleNamespace
+
+          workspace = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          evidence = Path(os.environ['RUNNER_TEMP']) / 'native-build-bench-evidence'
+          work = Path(os.environ['RUNNER_TEMP']) / 'native-build-bench-work'
+          evidence.mkdir(exist_ok=True)
+          work.mkdir(exist_ok=True)
+          base = os.environ['BENCH_BASE_REF']
+          base_tree = os.environ['BENCH_BASE_TREE']
+          head = os.environ['GITHUB_SHA']
+          head_ref = os.environ['BENCH_HEAD_REF']
+          head_tree = os.environ['BENCH_HEAD_TREE']
+          for value in (base, base_tree, head, head_ref, head_tree):
+              if not re.fullmatch('[0-9a-f]{40}', value):
+                  raise ValueError('Both comparison commits and prepared trees must be full object IDs')
+          if head_ref != head:
+              raise ValueError('Dispatch commit differs from the reviewed head')
+          if head == base:
+              raise ValueError('Before and after must be different outer commits')
+
+          # Every changed crate plus the shared base leaf and UI hub. No invented benchmark.
+          rows = 'noop,leaf,machine,platform,gfx,net,ui,plex,telemetry,data,session,media,appkit,screens,app,hub,sizes'
+          phases = [('before', workspace / 'benchmark-before', base, base_tree),
+                    ('after', workspace, head, head_tree)]
+
+          def git(root, *args, **kwargs):
+              return subprocess.check_output(['git', '-C', str(root), *args], text=True, **kwargs).strip()
+
+          def digest(path):
+              with path.open('rb') as stream:
+                  return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+          # A single external observer covers both producers' unmodified tools.
+          # Keep it outside prepared sources; include its exact bytes in evidence.
+          diagnostic_hook = work / 'diagnostic-hook'
+          diagnostic_hook.mkdir()
+          hook_bytes = (workspace / 'scripts/webos-native-bench-diagnostics/sitecustomize.py').read_bytes()
+          (diagnostic_hook / 'sitecustomize.py').write_bytes(hook_bytes)
+          (evidence / 'diagnostic-hook.py').write_bytes(hook_bytes)
+          diagnostic_hash = digest(diagnostic_hook / 'sitecustomize.py')
+
+          def load_builder(outer):
+              path = outer / 'native/webos/build.py'
+              spec = importlib.util.spec_from_file_location('native_bench_'+outer.name, path)
+              builder = importlib.util.module_from_spec(spec)
+              # Load the pinned producer source, not cached Python bytecode.
+              exec(compile(path.read_bytes(), str(path), 'exec'), builder.__dict__)
+              return builder
+
+          if git(workspace, 'rev-parse', 'HEAD') != head:
+              raise ValueError('Head checkout differs from the dispatch commit')
+          environment_builder = load_builder(workspace)
+          if not all(callable(getattr(environment_builder, name, None))
+                     for name in ('cargo_environment', 'check_cargo_configs')):
+              raise ValueError('Head producer lacks the required Cargo environment helpers')
+          environment_builder_sha256 = digest(workspace / 'native/webos/build.py')
+
+          def checked_document(path, expected, count):
+              doc = json.loads(path.read_text())
+              actual = [row['id'] for row in doc['scenarios']]
+              if len(actual) != len(set(actual)) or set(actual) != set(expected):
+                  raise ValueError('Missing, extra or duplicate benchmark scenario')
+              if doc['failure'] or doc['red'] or not doc['restored_clean'] or not doc['via_make']:
+                  raise ValueError('Incomplete or unsuccessful benchmark')
+              if doc['runs'] != count:
+                  raise ValueError('Unexpected sample count')
+              if 'sizes' in expected:
+                  sizes = doc.get('sizes')
+                  if (not isinstance(sizes, dict)
+                          or type(sizes.get('count')) is not int or sizes['count'] < 1
+                          or type(sizes.get('total_mb')) not in (int, float)
+                          or not math.isfinite(sizes['total_mb']) or sizes['total_mb'] <= 0):
+                      raise ValueError('Missing or invalid sizes measurement')
+              # Prove the edited crate rebuilt; downstream dependency reuse is allowed.
+              rebuild_flags = {
+                  'leaf': 'base_rebuilt', 'machine': 'machine_rebuilt',
+                  'platform': 'platform_rebuilt', 'gfx': 'gfx_rebuilt', 'net': 'net_rebuilt',
+                  'ui': 'ui_rebuilt', 'plex': 'plex_rebuilt', 'telemetry': 'telemetry_rebuilt',
+                  'data': 'data_rebuilt',
+                  'session': 'session_rebuilt', 'media': 'media_rebuilt',
+                  'appkit': 'appkit_rebuilt', 'screens': 'screens_rebuilt',
+                  'app': 'app_rebuilt', 'hub': 'ui_rebuilt',
+              }
+              for row in doc['scenarios']:
+                  if row['status'] != 'ok':
+                      raise ValueError('Skipped or failed required benchmark row')
+                  samples = row['samples']
+                  if row['id'] == 'sizes':
+                      continue
+                  if len(samples) != count or any(not math.isfinite(s['seconds']) or s['seconds'] < 0 for s in samples):
+                      raise ValueError('Missing or invalid timed sample')
+                  if row['id'] == 'noop' and any(s['app_rebuilt'] for s in samples):
+                      raise ValueError('Unexpected no-op rebuild must be investigated')
+                  rebuild_flag = rebuild_flags.get(row['id'])
+                  if rebuild_flag and not all(s.get(rebuild_flag) is True for s in samples):
+                      raise ValueError('Edited-crate benchmark did not rebuild ' + rebuild_flag)
+              return doc
+
+          bindings = []
+          benchmark_hash = None
+          sdk_contract = None
+          for label, outer, outer_sha, expected_tree in phases:
+              if git(outer, 'rev-parse', 'HEAD') != outer_sha:
+                  raise ValueError('Outer checkout differs from requested commit')
+              mod_path = outer / 'native/webos/build.py'
+              builder = load_builder(outer)
+              manifest = builder.manifest()
+              if sdk_contract is not None and manifest['sdk'] != sdk_contract:
+                  raise ValueError('SDK changes need a separately reviewed comparison')
+              sdk_contract = manifest['sdk']
+              phase_work = work / label
+              sdk = work / 'toolchain' / manifest['sdk']['directory']
+              args = SimpleNamespace(work_dir=phase_work, local_upstream=None, sdk=sdk,
+                                     rust_opt_level='2', control_discovery_url=None,
+                                     control_discovery_sha256=None)
+              builder.prepare(args, manifest)
+              source = builder.check_source(args, manifest)
+              prepared_path = builder.source_receipt(args)
+              prepared = json.loads(prepared_path.read_text())
+              if prepared['tree'] != expected_tree:
+                  raise ValueError('Prepared Native tree differs from reviewed closure')
+              environment_builder.check_cargo_configs(source, expected_tree)
+              builder.bootstrap(args, manifest)
+              subprocess.run([sys.executable, 'ci/deps.py', 'stage', 'nanosvg', '--into', 'vendor/nanosvg'],
+                             cwd=source, check=True)
+              subprocess.run(['rustup', 'component', 'add', '--toolchain', builder.toolchain(source),
+                              'clippy', 'rustfmt'], check=True)
+              tool_hash = digest(source / 'tools/build-bench.py')
+              if benchmark_hash is not None and benchmark_hash != tool_hash:
+                  raise ValueError('The benchmark implementation changed; comparison needs review')
+              benchmark_hash = tool_hash
+              (evidence / (label+'-prepared-before.json')).write_bytes(prepared_path.read_bytes())
+              provenance = source / 'ci/ottplay-integration/PROVENANCE.json'
+              (evidence / (label+'-provenance.json')).write_bytes(provenance.read_bytes())
+              upstream = git(source, 'rev-parse', 'HEAD')
+              if subprocess.run(['git','-C',str(source),'symbolic-ref','-q','HEAD'],
+                                stdout=subprocess.DEVNULL).returncode != 1:
+                  raise ValueError('Preparation must have detached HEAD')
+              # Measure the exact prepared tree, without baseline fixes or fixture overlays.
+              # A temporary commit makes that tree clean; the producer receipt is unchanged.
+              identity = dict(os.environ, GIT_AUTHOR_NAME='Native build benchmark',
+                              GIT_AUTHOR_EMAIL='benchmark@example.invalid',
+                              GIT_COMMITTER_NAME='Native build benchmark',
+                              GIT_COMMITTER_EMAIL='benchmark@example.invalid')
+              prepared_sha256 = digest(prepared_path)
+              binding = None
+              snapshot_installed = False
+              measured_tree = expected_tree
+              try:
+                  bench_commit = git(source, 'commit-tree', measured_tree, '-p', upstream,
+                                     '-m', 'Ephemeral benchmark snapshot for '+outer_sha, env=identity)
+                  git(source, 'update-ref', '--no-deref', 'HEAD', bench_commit, upstream)
+                  snapshot_installed = True
+                  binding = dict(label=label, outer_commit=outer_sha, prepared=prepared,
+                                 prepared_sha256=prepared_sha256, provenance_sha256=digest(provenance),
+                                 benchmark_sha256=tool_hash, synthetic_benchmark_commit=bench_commit,
+                                 diagnostic_hook_sha256=diagnostic_hash,
+                                 original_prepared_tree=expected_tree, measured_tree=measured_tree,
+                                 environment_builder_sha256=environment_builder_sha256,
+                                 makefile_sha256=digest(source/'Makefile'), builder_sha256=digest(mod_path),
+                                 documents={})
+                  (evidence / (label+'-binding-before.json')).write_text(json.dumps(binding, indent=2)+'\n')
+                  # Both phases use the same reviewed head helper; old producers need not
+                  # implement cargo_environment. Only its config-free Cargo home is inherited.
+                  # Do not use build_env's RELEASE=1/ARM profile for a host benchmark.
+                  with environment_builder.cargo_environment(args) as isolated:
+                      # Keep host defaults: neither caller overrides nor the producer's
+                      # ARM release settings belong in the measured Cargo configuration.
+                      environment = {
+                          key: value for key, value in os.environ.items()
+                          if not key.startswith(('CARGO_BUILD_', 'CARGO_PROFILE_', 'CARGO_TARGET_',
+                                                 'CARGO_ENCODED_', 'RUSTC_', 'RUSTDOC_', 'RUST_'))
+                          and key not in {'RUSTFLAGS', 'RUSTDOCFLAGS', 'RUSTC', 'RUSTDOC',
+                                          'RUSTUP_TOOLCHAIN', 'MAKEFLAGS', 'GNUMAKEFLAGS',
+                                          'MAKEOVERRIDES', 'MAKEFILES', 'MFLAGS', 'MAKELEVEL',
+                                          'CARGO_MAKEFLAGS'}
+                      }
+                      environment.update(CARGO_HOME=isolated['CARGO_HOME'],
+                                         CARGO_INCREMENTAL='0', PLX_CARGO_SEED='off',
+                                         HOST_THREADS='0', RELEASE='', PLX_TEST_JOBS='2',
+                                         JOBS='2', CARGO_BUILD_JOBS='2')
+                      for suffix, selected, count in [('rows', rows, 3), ('check', 'check', 1)]:
+                          output = evidence / (label+'-'+suffix+'.json')
+                          log = evidence / (label+'-'+suffix+'.log')
+                          diagnostics = evidence / (label+'-'+suffix+'-diagnostics')
+                          diagnostics.mkdir()
+                          observed_environment = dict(environment)
+                          original_pythonpath = environment.get('PYTHONPATH')
+                          observed_environment['PYTHONPATH'] = str(diagnostic_hook) + (
+                              os.pathsep + original_pythonpath if original_pythonpath is not None else '')
+                          observed_environment['OTT_NATIVE_BENCH_DIAGNOSTICS'] = json.dumps(dict(
+                              target=str(source / 'tools/build-bench.py'), output=str(diagnostics),
+                              pythonpath=original_pythonpath))
+                          try:
+                              with log.open('wb') as stream:
+                                  subprocess.run(['make', 'build-bench',
+                                                  f'ARGS=--runs {count} --only {selected} --json {output}'],
+                                                 cwd=source, env=observed_environment, stdout=stream,
+                                                 stderr=subprocess.STDOUT, check=True)
+                          finally:
+                              # Also require activation on a failed build, while its original
+                              # nonzero status remains the measurement result.
+                              measurement_failure = sys.exc_info()[1]
+                              try:
+                                  activation = json.loads((diagnostics / 'activation.json').read_text())
+                                  if activation != dict(schema=1, target=str((source / 'tools/build-bench.py').resolve()),
+                                                        target_sha256=tool_hash, hook_sha256=diagnostic_hash):
+                                      raise ValueError('Benchmark diagnostic observer did not activate on the pinned tool')
+                              except Exception as diagnostic_error:
+                                  if measurement_failure is None:
+                                      raise
+                                  print('Benchmark diagnostics unavailable: '+str(diagnostic_error), file=sys.stderr)
+                          doc = checked_document(output, selected.split(','), count)
+                          if doc['git_sha'] != bench_commit[:12] or doc['tree_dirty']:
+                              raise ValueError('Benchmark was not run against the clean pinned snapshot')
+                          binding['documents'][suffix] = dict(sha256=digest(output), log_sha256=digest(log),
+                                                              toolchain=doc['toolchain'], host=doc['host'],
+                                                              runner=doc['runner'])
+              finally:
+                  # CAS restore the private synthetic commit. Never rewrite source bytes.
+                  if snapshot_installed:
+                      git(source, 'update-ref', '--no-deref', 'HEAD', upstream, bench_commit)
+                  builder.check_source(args, manifest)
+                  environment_builder.check_cargo_configs(source, expected_tree)
+                  (evidence / (label+'-prepared-after.json')).write_bytes(prepared_path.read_bytes())
+                  if digest(prepared_path) != prepared_sha256:
+                      raise ValueError('Prepared receipt changed during measurement')
+                  if binding is not None:
+                      (evidence / (label+'-binding-after.json')).write_text(json.dumps(binding, indent=2)+'\n')
+              bindings.append(binding)
+
+          for suffix in ('rows', 'check'):
+              left, right = (b['documents'][suffix] for b in bindings)
+              if any(left[key] != right[key] for key in ('toolchain','host','runner')):
+                  raise ValueError('Before/after were not measured on the same host/toolchain')
+          (evidence / 'complete-pair.json').write_text(json.dumps(dict(
+              status='COMPLETE_MEASURED_PAIR', bindings=bindings,
+              omitted=['leaf-inc','hub-inc','tests','arm'],
+              scope='Pinned outer base to head: exact prepared Native host rebuilds and full make check; no ARM, companion or runtime claim'), indent=2)+'\n')
+          PYBENCH
+      - name: Preserve raw before/after benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-build-bench-${{ github.sha }}
+          path: ${{ runner.temp }}/native-build-bench-evidence/
           if-no-files-found: error
           retention-days: 30

@@ -1,0 +1,46 @@
+diff --git a/rust-modules/src/app/run.rs b/rust-modules/src/app/run.rs
+--- a/rust-modules/src/app/run.rs
++++ b/rust-modules/src/app/run.rs
+@@ -4352,18 +4352,36 @@
+         // Deliver the same collected edges through the dispatcher and the real player, one
+         // frame per edge. Screen tests separately grade these coordinates against record_stops;
+         // this map isolates the FIFO -> SDL -> app -> dispatcher -> scrub ownership boundary.
+-        use plx_ui::{screen::{Activate, Hover, Stop}, Rect};
++        use plx_ui::screen::{Activate, At, Focusable, Hover, Stop};
+         use plx_machine::{machine::{FocusKey, Tick}};
+         use plx_screens::registry::PlayerReq;
++        let _globals = SeekGlobals::set(0, 100_000_000_000);
++        // The real prepare_window samples this model after dispatch and before presentation.
++        // This no-render fixture supplies that prior presented frame before its next input;
++        // publishing the session alone does not publish the finite timeline's HudModel.
++        let model = hud_model(&app.player.session, app.bridge.metadata_view(), None);
++        assert_eq!(model.duration_ns, 100_000_000_000);
++        super::super::bridge::player_mut(&mut app.pages).unwrap().model = model;
+         let key = FocusKey { elem: plx_appkit::player_hud::ELEM_SCRUB,
+             ..app.pages.focus().expect("the player has a scrub seat") };
+-        // The layout's own report of the scrubber's grab band and bar, as the player's pointer stops read it.
+-        let geometry = plx_appkit::player_hud::classic::frame_geometry();
+-        let rect = geometry.grab;
+-        app.pages.input.hit.fill(vec![Stop { key, rect, rest_rect: rect, clip: Rect::FULL,
++        let placed = {
++            // Bridge::for_test uses this same measure at its default 100% scale.
++            assert_eq!(app.bridge.ui_font_scale_percent(), 100);
++            let cx = app.pages.page_cx(Tick::default(), key.entry, app.bridge.views(),
++                &plx_ui::fixture::FixtureMeasure);
++            Focusable::<super::super::bridge::AppHost>::place(
++                super::super::bridge::player(&app.pages).unwrap(), &key.elem, &cx, At::Drawn).unwrap()
++        };
++        for x in [900.0, 1200.0, 1400.0] {
++            assert!(placed.rect.contains(x, 870.0) && placed.clip.contains(x, 870.0),
++                "the FIFO coordinates must hit the current mode's presented scrubber");
++        }
++        app.pages.input.hit.fill(vec![Stop { key, rect: placed.rect,
++            rest_rect: placed.rest_rect, clip: placed.clip,
+             hover: Hover::Ignore, activate: Activate::Direct }]);
+         app.pages.input.hit.swap();
+-        plx_media::player::SHARED.duration_ns.store(100_000_000_000, Ordering::Relaxed);
++        // Horizontal fractions are shared across modes; only the vertical layout changes.
++        let geometry = plx_appkit::player_hud::classic::frame_geometry();
+         for (index, input) in std::mem::take(&mut app.inputs).into_iter().enumerate() {
+             super::super::bridge::frame(&mut app.pages, &mut app.bridge,
+                 Tick { ms: 1_000 + index as u32 * 500, dt_us: 16_000 }, vec![input]);

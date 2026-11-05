@@ -18,8 +18,11 @@ new commit before publishing. A pull-request build, a reusable workflow run,
 an expired artifact, or an artifact from another repository is not eligible.
 
 The candidate artifact is named `ottplay-native-webos-candidate`. It contains
-exactly eight files: the IPK, package metadata, checksum, application source
-archive, source receipt, runtime source archive, source-set manifest, and icon.
+ten files: the IPK, package metadata, checksum, application source
+archive, source receipt, runtime source archive, source-set manifest, icon,
+`ottplay-native-webos-VERSION-cargo-artifacts.jsonl`, and
+`ottplay-native-webos-VERSION-build-config.txt`. Here `VERSION` is the numeric
+application version. The last two files provide the recorded compilation evidence.
 See the [bundle inventory](native-webos-delivery.md#keep-one-complete-release-bundle) for their
 purpose. The publisher checks both the GitHub artifact digest and the complete
 package/source contract against the checked-out integration.
@@ -51,14 +54,14 @@ gh workflow run native-webos-release.yml \
 
 The workflow performs three stages:
 
-1. **Prepare.** Download and verify the eight candidate files. Generate the
+1. **Prepare.** Download and verify the ten candidate files. Generate the
    two Homebrew catalog JSON files with URLs for the exact release tag, and
-   verify the resulting ten-file bundle. Save it as a workflow artifact with
+   verify the resulting twelve-file bundle. Save it as a workflow artifact with
    an internal `promotion.json` receipt. No release or public catalog needs to
    exist yet.
 2. **Publish.** Re-download the original candidate to prove that the handoff
    has not changed it. Create a new tag at the exact source SHA and a draft
-   release. Upload all ten files, download them again, compare their hashes,
+   release. Upload all twelve files, download them again, compare their hashes,
    and run the complete bundle verifier. Only then make the release public.
 3. **Verify public delivery.** Check the public release files and the exact
    catalog/icon responses from the metadata service, including its CORS
@@ -77,7 +80,7 @@ https://ottplay-webos.igw-2560801.workers.dev/v1/TAG/ottplay-native-webos-reposi
 ```
 
 The internal promotion receipt stays in the workflow artifact; it is not an
-eleventh release asset or an independent proof of provenance. Publication
+thirteenth release asset or an independent proof of provenance. Publication
 revalidates its source against GitHub's original candidate artifact.
 
 ## Describe the version
@@ -89,6 +92,12 @@ the release description. A beta or RC tag uses the same numeric version's notes.
 Keep the file nonempty and at most 64 KiB, and describe features, limitations,
 and the validation actually performed. Package verification alone does not
 establish television playback compatibility.
+
+An explicit `Release preparation:` notice, including its bold Markdown form,
+blocks publication before a tag or release is created. Keep the notice while
+package verification is pending. Before publishing, replace it with accurate
+release notes and build a new candidate from that committed source. Removing
+the notice is not evidence of hardware validation; report the actual limits.
 
 An absent notes file preserves the generic description used by older versions.
 Untracked files and later checkout edits cannot supply notes. A symlink,

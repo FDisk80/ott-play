@@ -1,4 +1,4 @@
-# OTTPlay Native for LG webOS
+# OTTPlay for LG webOS (native)
 
 This is a separate, experimental **native OTT player**. Its SDL2/OpenGL ES
 interface runs on the television without Chromium or a WebView. Media is
@@ -8,29 +8,281 @@ The UI and Plex runtime derive from
 Our reviewed changes are in `patches/`; upstream code is fetched during the
 build, not silently copied into the main player's source tree.
 
-The application ID is `com.openottplay.player.native`, the title is **OTTPlay
-Native**. Native **0.2.0** is published as
-[native-webos-v0.2.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1).
-Publication does not establish physical-TV acceptance. The
-existing `com.openottplay.player` hosted web application remains separate.
+The application ID is `com.openottplay.player.native`; the current display
+title is **OTTPlay**. This guide's examples target the **0.3.0 candidate**. The
+[0.3.0 release notes](releases/0.3.0.md) are not a publication or device-test
+receipt: use these package filenames only after the matching release is available
+or a verified candidate has been supplied. The earlier
+[native-webos-v0.2.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1)
+is a separate historical release, not a download source for 0.3.0.
+The existing `com.openottplay.player` hosted web application remains separate.
+
+The [release audit](releases/0.3.0-audit.md) records what still needs verification.
+
+## Optional public command-server discovery profile
+
+Generic builds contain no discovery catalog. An operator may explicitly select
+a reviewed public profile for one distribution through the existing builder:
+
+```sh
+python3 native/webos/build.py build \
+  --work-dir /absolute/path/to/prepared-build \
+  --control-discovery-url "$REVIEWED_PUBLIC_CATALOG_URL" \
+  --control-discovery-sha256 "$REVIEWED_CATALOG_SHA256"
+```
+
+The two flags are accepted together by `build` and `all`. They identify the exact
+HTTPS metadata URL and SHA-256 of its raw response bytes; they are not a command
+API, token, private configuration path or automatic Home default. No metadata is
+downloaded by the builder. Use a lowercase canonical DNS hostname, optional
+decimal port, and nonempty safe path; credentials, query/fragment, URL escapes,
+whitespace and shell/Make punctuation are rejected. The digest is 64 lowercase
+hexadecimal characters. A missing partner or invalid value fails before a build
+command. Both omitted (or both explicitly empty) produce an unconfigured build.
+
+The builder removes inherited `PLX_CONTROL_DISCOVERY_*` values and supplies only
+the explicit pair after its normal environment scrub. `built.json` records
+`configuration.control_discovery`: configured state, exact URL/digest and the
+configuration fingerprint. Keep the reviewed public source revision and catalog
+bytes/hash in the delivery evidence alongside that receipt. A receipt does not
+replace inspection of the actual built artifact.
+
+For an already prepared source tree, direct Make builds accept the same pair
+only as environment variables `PLX_CONTROL_DISCOVERY_URL` and
+`PLX_CONTROL_DISCOVERY_SHA256`; Make command-line assignments are rejected. The
+fixed validator command reads environment data without interpolating it into
+Make or shell expressions. Its fingerprint enters the existing configuration
+stamp, including a transition back to `none` when the pair is removed. Bare
+Cargo bypasses that Make relink fence; its runtime profile parser still must
+reject partial/invalid inputs, and it is not a qualified packaging route.
+
+`control_discovery_config.py` is part of the integration digest and is copied by
+`prepare`. Rust/Make changes must also be delivered in the reviewed integration
+patch sequence, so the exported upstream tree actually contains their consumer.
+If that sequence or the helper changes, prepare a new source directory through
+the existing provenance checks. Merely setting environment variables on old
+prepared source does not add a feature. Qualify both configured and generic
+artifacts, including profile changes and removal.
+
+### Connect the player
+
+Open **Browse → Settings → Remote control**. Browse is in the bottom bar in
+**Classic** and the top header in **Modern**; close an open editor or Description
+view to return to it. **Find command server** is a separate action in that group,
+alongside the manual **Remote control server** editor. If that editor is open,
+choose **Cancel** to return to the group before choosing Find. Builds containing the first-run
+shortcut also show **Settings** as the last row of **Providers** and **Profiles**
+while no saved profile is enabled. This shortcut does not appear in
+channel/video lists.
+
+For manual setup, open **Remote control server** and enter the controller's
+HTTPS base URL, for example
+`https://controller.example.invalid/home`, then select **Save**. Enter the
+controller address, not the player website, a discovery catalog JSON URL or
+an `/api/discovery` endpoint. The address is normalized and must use HTTPS;
+embedded credentials, query strings, fragments and percent escapes are
+rejected. Manual entry remains available in generic builds.
+
+Once preferences are ready and access-policy checks permit it, builds with
+Linux DNS-SD offer **Find command server** without requiring a catalog or typed
+controller address. This is unicast DNS-SD for `_ottplay-ctrl._tcp` through the
+system resolver and the network's search domains, not multicast mDNS. If DNS
+returns a valid empty result, an explicitly configured public catalog can supply
+the results instead; its raw response digest is verified. Resolver errors,
+malformed or oversized answers, and timeouts do not trigger that fallback.
+Builds without Linux DNS-SD support retain the catalog path.
+
+Select the intended server from the results. Native Find is an explicit action,
+including on a fresh installation, and it does not automatically approve pairing.
+The three-second UI deadline cannot interrupt a blocking OS lookup. Another
+Find remains unavailable until that worker finishes; late results are discarded.
+Discovery errors preserve the prior saved configuration. Complete the normal
+pairing approval and wait for the connection and saved configuration to be
+confirmed; displaying a pairing code alone does not establish a connection.
+See the [command-server discovery guide](../../docs/remote-command-server.md#lookup-by-platform)
+for other players and deployment setup. The explicit Native Find action and
+its three-second UI deadline are described above.
+
+The normalized HTTPS controller address, interface mode, stable installation
+device ID and bounded temporary native-Plex browse bookmarks use typed
+non-secret preferences through the storage helper. These bookmarks hold
+source/category fingerprints and a focus key; they do not grant source access. A genuinely absent configuration can establish a durable, disabled
+identity without a token or KeyManager. An actual pairing token still requires
+a successful protected, durable write before the new connection can be
+activated. Saving preferences does not prove pairing or protected storage
+works. There is no plaintext fallback for the full saved state. Existing
+encrypted records retain their read, migration and erase paths. A legacy
+decryption failure preserves the ciphertext and remains a private-storage
+failure; independent preference storage does not unlock access when the prior
+kiosk or parental policy is unknown. A displayed storage
+diagnostic identifies which operation or step failed; it does not repair or
+reset saved settings. If the error persists, note its exact on-screen text,
+the action that produced it and the application version for the maintainer.
+No shell access is needed to report that information. This candidate has no
+on-screen export for the developer storage log. Keep the previous
+configuration; discovering a server or receiving a pairing code does not prove
+that settings will survive restart.
+
+**Key Server** in Developer Mode supplies the computer's SSH key; enable it
+when following [LG's key-download procedure](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app).
+**KeyManager** is the separate TV credential service used for protected token
+storage. Pairing the player with an OTT controller is another process.
+Downloading an SSH key does not approve OTT pairing or verify a protected Save.
+
+These instructions describe the candidate's source capabilities, not proof that
+an installed or published package contains them. For a local diagnostic update,
+use the **OTTPlay** display name and retain the `com.openottplay.player.native`
+identity; follow [the in-place update procedure](#updates-and-developer-mode-expiry).
+A diagnostic feature set under that identity is not an official release build.
+Host/ARM builds, artifact inspection, transport and physical first-run acceptance
+require their own receipts; see [diagnostic versus release delivery](../../docs/native-webos-delivery.md#local-diagnostic-candidates-and-published-releases).
 
 ## What this target provides
 
-The native interface provides M3U, Xtream, Stalker, VPortal, local folders and Plex as provider profiles, with a linear channel/video list, categories, full descriptions and artwork where the source supplies them. Saved profiles, selection, Favorites and playback position use the protected native store. Local files are read from their source, without an import copy.
+The candidate offers Classic and Modern presentations of the same sources.
+Open **Browse → Settings → Interface mode**, choose **Classic** or **Modern**,
+and wait for **Selected**. Choosing the mode itself requests a non-secret
+preference save through the storage helper; there is no extra Save button for
+this setting. Success requires current write permission and a durable
+compare-and-swap write with exact readback. The previous selection remains
+displayed while the result is pending. An uncertain write blocks further
+preference writes until a full application restart; inspect the saved value
+after reopening before retrying. If an error appears,
+record its exact text, the action and the application version for the
+maintainer. Fully close and reopen the application to check that the mode was
+retained; closing and reopening Settings alone does not test persistence.
 
-Global Favorites can mix providers and profiles. Their portable identities bind to the receiving player's own matching profiles, source aliases and paths; credentials are not copied through a Favorite. Missing or ambiguous bindings are reported instead of choosing an unrelated source. The legacy form of a portal embedded inside an M3U profile is retained in Favorites but is not a supported native binding.
+M3U, Xtream, Stalker, VPortal, local folders and Plex use provider profiles, a channel/video list and categories, with descriptions and artwork where the source supplies them. Saved provider profiles, their remembered categories, global Favorites and playback positions use the protected native store. Temporary native-Plex category and focus hints use the separate non-secret bookmark record and are reused only after current account and source authorization. Local files are read from their source, without an import copy. These are source-reviewed behaviors; the release audit keeps device acceptance separate.
+
+Global Favorites can mix providers and profiles. Their portable identities bind to the receiving player's own matching profiles, source aliases and paths; credentials are not copied through a Favorite. Missing or ambiguous bindings are reported instead of choosing an unrelated source. An M3U profile can retain a private media attachment for matching VPortal Favorites; configure that attachment separately on each receiving player. An attached-media Favorite can be pinned as a single kiosk item with its exact M3U parent and attachment binding. Playback still requires current source authority and parental authorization; changing the source configuration invalidates the pin. Mixed attached-media kiosk queues are not supported.
 
 Older local Favorites that retained only a filename can have lost their parent folders. The native client cannot distinguish such a truncated path from a genuine root-level file with the same name. Recreate those Favorites from their full relative paths before transfer; compatibility with that legacy capture format is not yet complete.
 
-Command-server discovery and pairing use this installation's own device identity. The native command adapter implements profile and provider selection, global Favorites transfer, playback, validated individual settings and Standby. Async operations report completion after the relevant work; a queued command cannot silently act after its deadline or a change of source. Interface font scale is adjustable from 50 to 150 percent, with 100 percent as the default.
+Command-server discovery and pairing use this installation's own device identity. The native command adapter implements profile and provider selection, global Favorites transfer, playback, validated individual settings and Standby. Async operations report completion after the relevant work; a queued command cannot silently act after its deadline or a change of source. Interface font scale is adjustable from 20 to 200 percent, with 100 percent as the default.
 
-The original native Plex library views remain available. Plex playback uses the existing server session and conversion path. Direct Local/HTTP playback uses the bundled FFmpeg probe and the television's decoder. Generic HLS currently supports ordinary unencrypted MPEG-TS H.264/AAC streams, VOD seeking and live refresh, with a 64 MiB limit per segment. Encrypted HLS, fMP4, byte ranges, LL-HLS, separate audio/video renditions and adaptive variant switching are not implemented in this path. Container recognition does not guarantee codec support: an AVI containing MPEG4/Xvid still needs a compatible conversion.
+The authenticated `state` and `status` replies include `provider_context`, a
+snapshot of the current in-memory Runtime and Saved image, not a physical
+storage read or proof of a new durable write. `loaded` and `state_load`
+(`idle`, `loading`, `failed`) describe the current load state;
+`write_permit_valid` describes lifetime write authority, not storage-service
+availability. `selected_provider` is the saved choice, or null if absent or
+unrecognized. `saved_active_profile_present` reports whether a saved reference
+exists; `saved_active_profile_kind` is its resolved kind or null.
+`runtime_provider` and `effective_provider` distinguish the current runtime
+selection from source precedence. `managed_active` and `classic_active` report
+the corresponding generation-matched in-memory source bindings; neither proves
+new playback or a persistence change. Provider values are limited to `m3u`,
+`xtream`, `stalker`, `vportal`, `offline` and `plex`; the stored `local` alias
+normalizes to `offline`. These diagnostic fields contain no profile identifiers,
+names, URLs, paths, credentials or load-error text.
+
+The original native Plex library views remain available. Plex playback uses the existing server session and conversion path. Direct Local/HTTP playback uses the bundled FFmpeg probe and the television's decoder. The ordinary multiplexed HLS path supports unencrypted MPEG-TS H.264/AAC streams, VOD seeking and live refresh, with a 64 MiB limit per segment. Encrypted HLS, fMP4, byte ranges, LL-HLS and adaptive variant switching are not implemented in this path. A separate bounded VOD path supports H.264 video with external AAC audio renditions; see [native HLS audio renditions](../../docs/native-hls-audio-renditions.md) for its stricter playlist requirements and track-selection limits. Container recognition does not guarantee codec support: an AVI containing MPEG4/Xvid still needs a compatible conversion.
+
+For ordinary external multiplexed HLS, consecutive segments can retain decoder references after the preceding segment has been completely queued. Those references are not reused across a seek, a changed playlist source, a sequence gap, an HLS discontinuity, or a media playlist's independent-segments declaration. A fresh entry can skip dependent pictures until a real IDR within the bounded segment, retaining the original presentation time and removing audio before that entry. Sequence gaps remain errors. Plex-server HLS and the separate audio-rendition path retain their independent-segment requirements. Existing codec, probe and resource limits still apply.
 
 The optional packaged companion runs as a separately supervised process on an authenticated loopback endpoint, with an ephemeral token, bounded sessions and bounded disk usage. Its configuration is separate from the native provider profiles. An absent helper or unsupported capability is reported explicitly. A companion-enabled package requires the helper's verified binary, linker evidence and corresponding source; a local-source-only receipt is insufficient for publication.
 
 Catalogues currently have explicit 50,000-entry and 32 MiB model limits. A limit produces a visible partial-catalogue error. Cancelling a scan stops subsequent work, but cannot interrupt a kernel filesystem call already blocked on an unavailable network mount.
 
 This remains an experimental target. Host and ARM checks do not establish physical-TV playback, video-plane composition or firmware compatibility. Device-specific acceptance and known limits must accompany each release; no performance result is inferred from the upstream application.
+
+### Post-admission playback failure diagnostics
+
+In builds providing this extension, authenticated `state` and `status` replies
+include `data.playback_failure`, beside `data.playback` and `data.preplay`.
+Older builds may omit it or return the version-1 object containing only
+`version`, `play_generation` and `code`. By default, current replies retain
+version 2: `context` is null or contains only `demux_exit` and `pipeline_error`.
+The capability `playback_failure_versions: [2, 3]` advertises explicit version
+selection. Send `playback_failure_version: 3` in the command parameters to request
+the additional typed IO cause. The version-3 value is `null` or an object:
+
+```json
+{"version":3,"play_generation":5,"code":"playback_interrupted","context":{"demux_exit":"none","pipeline_error":0,"io_failure":{"hls":{"exit":"hls_transport_failed","outcome":null}}}}
+```
+
+In version 3, `context` is `null` when no native details can be attributed to the failed
+attempt. Otherwise it contains exactly `demux_exit`, `pipeline_error` and `io_failure`.
+`demux_exit` uses the closed `DemuxExitClass::code()` vocabulary in the
+native telemetry schema;
+`pipeline_error` is the signed 32-bit native callback error number. An observed
+`{"demux_exit":"none","pipeline_error":0,"io_failure":null}` means the matching
+Engine recorded none of these details. It differs from unavailable context and
+does not imply success.
+Clients should preserve unknown diagnostic versions and codes when forwarding
+JSON; do not interpret them as successful playback.
+
+`io_failure` is `null` when no terminal producer-IO cause was recorded. Otherwise
+it has exactly one of these members:
+
+- `source_io: {transport: ...}`: an unrecovered source read error. Transport is
+  `none`, `partial`, `recv_error`, `send_error`, `got_nothing`, `timeout`, `http2`,
+  `reopen_failed` or `other`. Here `none` means that the read failed without a
+  recorded curl-specific cause; it does not mean a successful read.
+- `hls: {exit: ..., outcome: ...}`: an HLS terminal error. `outcome` is `null` or
+  `deadline`; the latter identifies an expired active-stream prime deadline.
+  The closed exit set is `hls_failed`, `hls_not_ready`, `hls_playlist_fetch_failed`,
+  `hls_playlist_invalid`, `hls_playlist_window`, `hls_transport_open_failed`,
+  `hls_segment_probe_failed`, `hls_segment_codec`, `hls_video_framing`,
+  `hls_first_idr`, `hls_short_body`, `hls_audio_identity`, `hls_audio_empty`,
+  `hls_video_timestamp`, `hls_audio_timestamp`, `hls_audio_framing`,
+  `hls_no_video_au`, `hls_size_limit`, `hls_transport_failed` and `other`.
+- `auto_fallback: {outcome: "refused"}`: the current automatic handoff was
+  rejected. This does not by itself establish a server rejection.
+- `audio_decode: {outcome: "inconclusive"}`: an audio decoder returned an error;
+  the lower-level cause is not classified.
+- `unclassified: {outcome: "inconclusive"}`: another observed terminal producer
+  failure. The sibling `demux_exit` may provide more detail.
+
+The first complete IO observation wins within its captured native epoch. It is
+frozen with the matching failure before cleanup; a new native session clears the
+live observation. The epoch remains internal and is not an extra wire identifier.
+These fields add evidence without changing retries, fallback or playback policy.
+They contain no source URL, credentials, raw error text or media title.
+
+`play_generation` is an unsigned 64-bit integer
+captured when that OTT request was admitted to native playback. It identifies
+the failed request, even if the current request counter has since advanced;
+do not substitute `data.preplay.attempt_generation`. Correlate it within the
+same player runtime, not across application restarts.
+
+The record captures the first typed error observed by the normal OTT
+owned-playback failure handler, before native cleanup. It survives that cleanup,
+`idle`, generic pending-request cancellation and subsequent reads. A newly
+accepted playback request clears it before resolution, and admission or an
+observed change to a different native playback owner also clears it. A queued
+replacement discards the outgoing source's diagnostic binding even if that
+source temporarily remains playing. The record is process-local and is not
+saved with settings.
+
+Native details are sampled before that cleanup only for the matching physical
+Load and active native epoch. If the failed Engine was already released, its
+details come from the snapshot retained with that session's failure before
+teardown. A new Load clears the native snapshot, including a retry of the same
+source. Status reads never replace a retained observation with later native
+signals. A refusal before an attributable Engine exists has `context: null`.
+
+During a same-source reload, the existing player may retain an earlier terminal
+verdict while a replacement Engine exists. This diagnostic extension preserves
+that error-code policy and returns `context: null` for the replacement, whether
+it is healthy or failed, instead of mixing the old code with new native details.
+A fresh playback request clears that retained verdict through the existing
+request lifecycle.
+
+This is not a history of every stop or end-of-stream. Existing guards exclude
+pending requests, unmatched playback owners and failures handled separately by
+kiosk or temporary-playback workflows. `null` means no retained matching
+observation; it does not establish healthy playback or decoded audio/video.
+
+The closed code vocabulary is `decision_refused`, `playback_policy`,
+`no_video_transcode_target`, `no_video_track`, `media_source`,
+`playback_interrupted`, `tv_pipeline`, `jail_missing_rtkmem`, `load_timeout`,
+`release_timeout`, `resolve_failed`, `preview_not_direct`, and `unspecified`.
+This vocabulary does not expand which failures the handler observes. Codes
+classify existing signals; they need not identify the underlying cause.
+
+The object contains no URL, credentials, media title or raw error text. It does
+not change periodic presence, existing playback fields, or playback decisions.
 
 ## Build on an Apple Silicon Mac or ARM Linux host
 
@@ -41,11 +293,43 @@ need CMake, Ninja, Meson, pkg-config, autoconf, automake and libtool. Docker is
 not required. Allow several GiB for source, the SDK, Rust and intermediate
 objects; no build command deletes other projects or global build caches.
 
+Native packaging and source export use a temporary Cargo home without the
+caller's Cargo configuration or credentials. Registry and Git caches, including
+their locks, are shared with the normal Cargo home; installed Rust toolchains
+are unchanged. Only Cargo configuration files verified against the prepared
+source tree are accepted. An external ancestor `.cargo/config` or
+`.cargo/config.toml` is rejected; choose `--work-dir` outside that configuration's
+directory tree rather than changing or deleting the existing configuration.
+
 From the repository root:
 
 ```sh
 python3 native/webos/build.py all --jobs 2
 ```
+
+The local default is Rust optimization level `2`. The hosted candidate uses
+`--rust-opt-level s` to optimize native code for size; these are the two supported
+values. Pass the option to `build` or `all`. It does not change the separately
+prepared companion. The build records the actual Cargo profile and archive,
+forces the final application link, and checks the existing executable size limit.
+This setting alone does not establish playback performance or TV compatibility.
+
+The hosted workflow checks its Linux prerequisites before compiling: the host
+libcurl must support TLS and HTTP/2, Python TLS must support ALPN, and the pinned,
+hash-verified Pillow wheel must decode the packaged icon. It then runs the native
+lint/type checks, default library and storage tests, the hostsim library tests
+(including OTT interface and host playback regressions), package-validator tests and
+recorded UI scenarios through the Linux simulator under Xvfb. These host checks
+precede ARM packaging because host builds can change files in the staging tree.
+They do not replace the later checks of the actual ARM package or testing on a TV.
+Linux host builds also link Wayland client and GLib explicitly: default-feature
+tests retain platform callbacks that reference those libraries directly. The
+workflow installs their development packages; ARM32 packaging keeps its existing
+Makefile linkage, and macOS keeps its existing host libraries.
+
+The package validator accepts current `+control:` build fingerprints and the
+supported historical stamp formats. A present malformed or unknown build stamp
+fails validation rather than silently skipping checks for the build type.
 
 For an existing SDK:
 
@@ -80,9 +364,11 @@ The stages can also be run individually, using the same `--work-dir` and
    digest and patched Git tree. `--local-upstream /path/to/clone` can avoid downloading an existing
    clone; the exact commit is still checked.
 2. `bootstrap` verifies/downloads the SDK and installs the pinned Rust target.
-3. `build` normally runs `make RELEASE=1 FLAVOR=stable ipk`. With an explicit
-   `--companion-bundle`, it validates that bundle, runs `ipk-stage`, stages the
-   helper with private `--link-evidence`, then runs `ipk-pack`. It never contacts a TV.
+3. `build` uses `RELEASE=1 FLAVOR=stable`. It builds the native archive and storage
+   helper, checks the actual Cargo profile, then links and stages the application.
+   The existing size and ELF checks must pass before `ipk-pack`. With an explicit
+   `--companion-bundle`, it first validates that bundle and stages the helper with
+   its `--link-evidence` after `ipk-stage`. It never contacts a TV.
 4. `package` checks the native ARM executable, storage service, demuxer and
    package identity and the successful source-build receipt, then copies the independently named artifact.
 5. `source` collects and verifies corresponding source, Cargo-vendored
@@ -93,7 +379,7 @@ linker evidence to the exact package:
 
 ```sh
 python3 scripts/webos-runtime-sources.py \
-  --metadata build/native-webos/dist/ottplay-native-webos-0.2.0.json \
+  --metadata build/native-webos/dist/ottplay-native-webos-0.3.0.json \
   --source build/native-webos/source \
   --sdk build/native-webos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot
 ```
@@ -106,11 +392,13 @@ archive; distribution requires this second step as well.
 
 Default results are in `build/native-webos/dist/`. Keep these together:
 
-- `ottplay-native-webos-0.2.0.ipk`
-- `ottplay-native-webos-0.2.0.json` and `.sha256`
-- `ottplay-native-webos-0.2.0-source.tar.gz` and its `.release.json` report
-- `ottplay-native-webos-0.2.0-runtime-source.tar.gz`
-- `ottplay-native-webos-0.2.0-source-set.json`
+- `ottplay-native-webos-0.3.0.ipk`
+- `ottplay-native-webos-0.3.0.json` and `.sha256`
+- `ottplay-native-webos-0.3.0-source.tar.gz` and its `.release.json` report
+- `ottplay-native-webos-0.3.0-runtime-source.tar.gz`
+- `ottplay-native-webos-0.3.0-source-set.json`
+- `ottplay-native-webos-0.3.0-cargo-artifacts.jsonl`
+- `ottplay-native-webos-0.3.0-build-config.txt`
 - `ottplay-native-webos-icon.png`
 
 `verify` rechecks the IPK. Source-validation reports distinguish a verified
@@ -120,7 +408,12 @@ requires a new build directory, so stale objects cannot silently enter a new
 candidate.
 
 The build receipt records the patched source tree, exact IPK hash, Rust
-version and actual SDK compiler hash. Corresponding-source validation also
+version, actual SDK compiler hash and effective build configuration. Current
+packages include the Cargo and Make evidence files listed above; keep them with
+the bundle for verification and publication. Older packages without compilation
+evidence retain their historical verification path, but cannot pass the current
+checkout check. The archive digest is the producer's record of its input, not an
+independent rebuild of that archive. Corresponding-source validation also
 requires physical archives for every bundled native dependency, Cargo crates
 and the Rust runtime; a list of download URLs alone does not pass.
 
@@ -141,7 +434,7 @@ implementations; regenerating the fixture alone does not establish compatibility
 
 ### Complete candidate build with companion
 
-The complete experimental `0.2` candidate must include the companion and its
+The complete experimental `0.3.0` candidate must include the companion and its
 verified source closure. The native-only commands above remain useful for
 isolated development but do not produce that complete candidate. This procedure
 is not a record of a completed ARM build or TV test. Use the same pinned SDK and
@@ -234,25 +527,26 @@ rebuild, real-device execution or functional parity.
 
 ### Choose and verify the native package
 
-The current experimental release is
-[native-webos-v0.2.0-beta.1](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.2.0-beta.1).
-Download `ottplay-native-webos-0.2.0.ipk`, its `.sha256` and `.json` files, and
-the matching source set from that release. From the download directory, check:
+The following example is for the planned `native-webos-v0.3.0-beta.1` release.
+After publication, obtain `ottplay-native-webos-0.3.0.ipk`, its `.sha256` and
+`.json` files, and the matching source set from that same release. Until then,
+use only an explicitly supplied, verified candidate; these instructions do not
+claim that a public 0.3.0 download exists. From the download directory, check:
 
 ```sh
-shasum -a 256 -c ottplay-native-webos-0.2.0.sha256
+shasum -a 256 -c ottplay-native-webos-0.3.0.sha256
 ```
 
 Use the [checked update guide](../../docs/native-webos-delivery.md) for an
 existing installation. The initial
 [0.1.0 release](https://github.com/open-ott-play/ottplay-foss/releases/tag/native-webos-v0.1.0-beta.1)
-remains available; its device observations do not qualify 0.2.0.
+remains a historical release; its device observations do not qualify 0.3.0.
 
 The metadata must identify `type: native`, architecture `arm`, and application
 ID **`com.openottplay.player.native`**. The ordinary OTT-play webOS package
 uses **`com.openottplay.player`**. The Plex app from the LG store is a third,
 independent application; launching it through a TV remote-control shortcut does
-not launch OTTPlay Native. Main-player releases and here.now deployments do not
+not launch the native OTTPlay app. Main-player releases and here.now deployments do not
 update this native executable.
 
 The initial 0.1.0 candidate passed loader-symbol checks against sampled webOS 3.4.0–11.2.0
@@ -322,7 +616,7 @@ and launch its native ID. Run this from the download directory, or substitute
 the build output path `build/native-webos/dist/`:
 
 ```sh
-ares-install --device YOUR_TV ./ottplay-native-webos-0.2.0.ipk
+ares-install --device YOUR_TV ./ottplay-native-webos-0.3.0.ipk
 ares-install --device YOUR_TV --listfull
 ares-launch --device YOUR_TV com.openottplay.player.native
 ares-launch --device YOUR_TV --running
@@ -357,7 +651,7 @@ connection and system information were verified, installation and launch
 completed successfully, and `--running` confirmed the native application ID.
 The IPK SHA256 matched the published release digest. This is installation and
 startup evidence only; playback and decoder compatibility remain unverified on
-this model as well. It does not qualify the published **0.2.0** package.
+this model as well. It does not qualify the **0.3.0** candidate.
 
 ### Connection and startup troubleshooting
 
@@ -518,9 +812,11 @@ also accepts an absolute file path in `OTTPLAY_PLEX_PROFILE`. Remove the
 transferred file to stop applying it on later starts; a saved session may
 still need to be signed out in the app.
 
-This is a managed server connection: before an explicit local-data reset, a
-valid file restores it on each cold launch. Sign-out revokes it for the running
-session; remove the file and restart to stop future startup imports. In native
+A valid file can supply the managed Plex connection on later starts. Automatic
+selection respects the saved provider and startup intent: a non-Plex provider,
+an active profile, a Favorites selection or newer navigation takes precedence.
+Sign-out revokes the connection for the running session; remove the file and
+restart to stop future startup imports. In native
 0.2, `Delete all local data` also clears app-owned provisioning and persistently
 blocks managed startup imports, including `OTTPLAY_PLEX_PROFILE`; replacing a
 file does not lift that block. See [local-data reset](../../docs/native-webos-delivery.md#delete-local-data-native-02)

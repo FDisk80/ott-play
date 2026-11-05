@@ -1,0 +1,113 @@
+diff --git a/rust-modules/screens/src/registry.rs b/rust-modules/screens/src/registry.rs
+--- a/rust-modules/screens/src/registry.rs
++++ b/rust-modules/screens/src/registry.rs
+@@ -2766,7 +2766,8 @@
+ // unchanged; incompatible anchors require the established recording workflow.
+ // Explicit editor text policy adds a nonsecret behavior discriminator to OTT state.
+ // All 38 declarations were re-enumerated; previous pin: 0x08f62f17cd64f83f.
+-// Existing recordings remain incompatible and require normal re-recording.
++// Old headers remain incompatible. The three controlled, non-OTT anchors use the
++// documented offline census migration; recordings that use OTT require re-recording.
+ const SCREEN_SHAPES_PIN: u64 = 0xe59cccfba0a1f138;
+ 
+ #[cfg(test)]
+diff --git a/rust-modules/src/app/recorder.rs b/rust-modules/src/app/recorder.rs
+--- a/rust-modules/src/app/recorder.rs
++++ b/rust-modules/src/app/recorder.rs
+@@ -2706,6 +2706,25 @@
+     use super::*;
+ 
+     #[test]
++    fn pre_literal_editor_recording_headers_remain_refused() {
++        // The offline migration changes only three reviewed fixture headers. It must not
++        // create a runtime compatibility path for arbitrary pre-literal OTT recordings.
++        const OLD: u64 = 0x55c7_746b_8843_d588;
++        assert_ne!(OLD, state_fp());
++        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/replay");
++        for name in ["1-boot-home-chip-grid", "6-settings-family", "12-filmography-detail-return"] {
++            let dir = root.join(name);
++            let mut manifest: Value = serde_json::from_str(
++                &std::fs::read_to_string(dir.join("manifest.json")).unwrap()).unwrap();
++            manifest["state_fp"] = json!(OLD);
++            let segment = std::fs::read(dir.join("rec-0000.jsonl")).unwrap();
++            // Recording::load in Preflight::detect uses this same production parser.
++            assert_eq!(Recording::parse(&manifest.to_string(), &[segment.as_slice()], state_fp()).err(),
++                Some(RecError::StateShape { theirs: OLD, ours: state_fp() }), "{name}");
++        }
++    }
++
++    #[test]
+     fn committed_recordings_keep_valid_page_requests_and_initial_hashes() {
+         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/replay");
+         for name in ["1-boot-home-chip-grid", "6-settings-family", "12-filmography-detail-return"] {
+diff --git a/tests/fixtures/replay/1-boot-home-chip-grid/manifest.json b/tests/fixtures/replay/1-boot-home-chip-grid/manifest.json
+--- a/tests/fixtures/replay/1-boot-home-chip-grid/manifest.json
++++ b/tests/fixtures/replay/1-boot-home-chip-grid/manifest.json
+@@ -172,7 +172,7 @@
+   "probe": "controlled=home version=1"
+  },
+  "schema": 3,
+- "state_fp": 6181037018785764744,
++ "state_fp": 14247647043822449583,
+  "triggers": [
+   "plxnative-app-init",
+   "plxnative-rec",
+diff --git a/tests/fixtures/replay/12-filmography-detail-return/manifest.json b/tests/fixtures/replay/12-filmography-detail-return/manifest.json
+--- a/tests/fixtures/replay/12-filmography-detail-return/manifest.json
++++ b/tests/fixtures/replay/12-filmography-detail-return/manifest.json
+@@ -186,7 +186,7 @@
+   "probe": "controlled=home version=1"
+  },
+  "schema": 3,
+- "state_fp": 6181037018785764744,
++ "state_fp": 14247647043822449583,
+  "triggers": [
+   "plxnative-app-init",
+   "plxnative-rec",
+diff --git a/tests/fixtures/replay/6-settings-family/manifest.json b/tests/fixtures/replay/6-settings-family/manifest.json
+--- a/tests/fixtures/replay/6-settings-family/manifest.json
++++ b/tests/fixtures/replay/6-settings-family/manifest.json
+@@ -173,7 +173,7 @@
+   "probe": "controlled=home version=1"
+  },
+  "schema": 3,
+- "state_fp": 6181037018785764744,
++ "state_fp": 14247647043822449583,
+  "triggers": [
+   "plxnative-app-init",
+   "plxnative-rec",
+diff --git a/tests/fixtures/replay/README.md b/tests/fixtures/replay/README.md
+--- a/tests/fixtures/replay/README.md
++++ b/tests/fixtures/replay/README.md
+@@ -126,8 +126,29 @@
+ **Current migration:** Home, Settings, and Flow 12 Filmography anchors are accepted
+ controlled-replay coverage. Flow 12 has typed initial state, exact synchronous admissions,
+ recorded content results, and denied resource execution. This bounded support does not imply
+-all-domain acceptance. Editing manifest fingerprints or state hashes is never a replacement for
+-rerecording. The D1 results below describe that earlier build, not current all-domain acceptance.
++all-domain acceptance. Editing state hashes is never a replacement for rerecording. A narrowly
++reviewed exception for a census-only change in an unused type is documented below; it preserves
++every recorded payload and still requires full replay validation. The D1 results below describe
++that earlier build, not current all-domain acceptance.
++
++**Unused OTT editor census migration (2026-11-04).** The explicit text policy added
++`editor_literal:bool` to `Ott::SHAPE` and its logical-state writer. Re-enumerating all 38 screen
++shapes changes only that final entry: the screen fingerprint is
++`0x08f62f17cd64f83f` → `0xe59cccfba0a1f138`; the complete product fingerprint is
++`0x55c7746b8843d588` → `0xc5b9cf7fc42e73af`. The app and wire censuses are unchanged.
++These three synthetic anchors start with an empty dispatcher and controlled Home, and exercise
++Home, the Settings family, and Detail/Person/Filmography. Their recorded navigation and typed
++initial inputs do not instantiate `OttScreen`; the controlled navigation codec rejects OTT.
++All recorded inputs are ordinary owned key edges, with no direct token or text commands.
++
++This offline migration changes only the three `manifest.json` `state_fp` fields. The original
++initial objects and hashes, anchor flags, complete segment bytes, measurements, effects,
++resolutions and frame grades are retained. It is **not a new recording or a runtime compatibility
++exception**. Old headers still fail the production parser; recordings that instantiate OTT must
++be recorded afresh. The fixture preflight retains its strict initial-hash and request checks.
++All three migrated anchors must additionally pass the existing hosted Targets and Resolve
++replays with every difference counter zero. Source derivation alone is not replay acceptance;
++any navigation or rendering divergence remains a failure, not permission to change the grades.
+ 
+ **Historical Phase 12 (D1) rerecorded all three again**, and it is the cleanest example of what `rerecord` is
+ for: `enum Route` was folded into `AppArg`, so `ARG_SHAPE` lost its nested `Legacy:Route{…}` and

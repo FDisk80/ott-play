@@ -7,7 +7,7 @@ This runbook covers a computer connecting to a consumer LG webOS TV through Deve
 OTTPlay has two separate TV applications. Select one before downloading a package:
 
 - **Hosted OTTPlay:** `ottplay-foss-webos.ipk`, application ID `com.openottplay.player`. Its launcher opens [the hosted player](https://player.ottplay.here.now/). The IPK does not contain the full player, media or additional codecs. The TV needs access to the website and its selected providers.
-- **OTTPlay Native:** `ottplay-native-webos-VERSION.ipk`, application ID `com.openottplay.player.native`. Its release contains the native executable and matching storage service. Publishing a new hosted website does not replace that executable.
+- **OTTPlay (native):** `ottplay-native-webos-VERSION.ipk`, application ID `com.openottplay.player.native`. Its release contains the native executable and matching storage service. Publishing a new hosted website does not replace that executable.
 
 Their profiles, Favorites and remote-control pairing are separate. An upstream PlxNative package or repository is a third application, not an OTTPlay update. Use the [hosted installation guide](lg-webos-installation.md) or [native delivery guide](native-webos-delivery.md) for the chosen release's package details.
 

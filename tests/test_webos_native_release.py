@@ -231,14 +231,88 @@ class PngArchiveTests(unittest.TestCase):
             validator.assert_not_called()
 
 
+class IntegrationPatchSpoolTests(unittest.TestCase):
+    def test_spooled_patches_hash_raw_bytes_in_canonical_not_archive_order(self):
+        prefix = release.INTEGRATION_PREFIX
+        # Deliberately reverse canonical order and cross several read blocks.
+        files = {
+            prefix + "patches/z.patch": b"z" * (1024 * 1024 + 17),
+            prefix + "upstream.json": b"{}",
+            prefix + "patches/a.patch": b"a\0b\xff\n",
+        }
+        reads = []
+        with tempfile.TemporaryFile() as stream:
+            class BoundedReader:
+                def tell(self):
+                    return stream.tell()
+
+                def write(self, data):
+                    return stream.write(data)
+
+                def seek(self, offset):
+                    return stream.seek(offset)
+
+                def read(self, size):
+                    self_test.assertGreater(size, 0)
+                    self_test.assertLessEqual(size, 1024 * 1024)
+                    reads.append(size)
+                    return stream.read(size)
+
+            self_test = self
+            spool = release.IntegrationPatchSpool(BoundedReader())
+            rows, content = release.index_archive(
+                io.BytesIO(tar_bytes(files)), captures={prefix + "upstream.json"}, spools=spool
+            )
+            self.assertEqual(content, {prefix + "upstream.json": b"{}"})
+            self.assertEqual(set(spool.offsets), {key for key in files if "/patches/" in key})
+            self.assertEqual(stream.tell(), sum(len(files[key]) for key in spool.offsets))
+            actual, expected = hashlib.sha256(), hashlib.sha256()
+            for key in sorted(files):
+                name = key.removeprefix(prefix).encode() + b"\0"
+                actual.update(name)
+                expected.update(name + files[key])
+                if key in spool.offsets:
+                    spool.update(actual, key, rows[key]["bytes"])
+                else:
+                    actual.update(content[key])
+            self.assertEqual(actual.digest(), expected.digest())
+            self.assertGreater(len(reads), len(spool.offsets))
+        self.assertTrue(stream.closed)
+
+    def test_spooling_preserves_member_total_count_and_path_guards(self):
+        key = release.INTEGRATION_PREFIX + "patches/fixture.patch"
+        cases = (
+            ({key: b"1234"}, {"MEMBER_LIMIT": 3}, {}, "Expanded archive"),
+            ({key: b"1234"}, {}, {"total_limit": 3}, "Expanded archive"),
+            ({key: b"x", key + "2": b"y"}, {"FILE_COUNT_LIMIT": 1}, {}, "Too many archive"),
+            ({release.INTEGRATION_PREFIX + "patches/../escape": b"x"}, {}, {}, "Unsafe archive member"),
+        )
+        for files, limits, arguments, message in cases:
+            with self.subTest(message=message, limits=limits), tempfile.TemporaryFile() as stream:
+                spool = release.IntegrationPatchSpool(stream)
+                with patch.dict(vars(release), limits):
+                    with self.assertRaisesRegex(ValueError, message):
+                        release.index_archive(io.BytesIO(tar_bytes(files)), spools=spool, **arguments)
+                self.assertLessEqual(stream.tell(), 1)
+
+    def test_short_patch_spool_cannot_satisfy_indexed_size(self):
+        key = release.INTEGRATION_PREFIX + "patches/fixture.patch"
+        with tempfile.TemporaryFile() as stream:
+            spool = release.IntegrationPatchSpool(stream)
+            rows, _ = release.index_archive(io.BytesIO(tar_bytes({key: b"four"})), spools=spool)
+            stream.truncate(3)
+            with self.assertRaisesRegex(ValueError, "Truncated integration patch spool"):
+                spool.update(hashlib.sha256(), key, rows[key]["bytes"])
+
+
 class Bundle:
     """Small internally coherent release, with real IPK/tar and hash receipts."""
 
-    def __init__(self, root):
+    def __init__(self, root, version="0.1.0"):
         self.root = root
-        self.stem = "ottplay-native-webos-0.1.0"
+        self.stem = "ottplay-native-webos-" + version
         self.metadata_path = root / (self.stem + ".json")
-        self.app = {"id": release.APP_ID, "title": "OTTPlay Native", "version": "0.1.0", "channel": "experimental"}
+        self.app = {"id": release.APP_ID, "title": "OTTPlay", "version": version, "channel": "experimental"}
         self.prefix = "usr/palm/applications/" + release.APP_ID + "/"
         service_id = release.APP_ID + ".storage"
         self.service = "usr/palm/services/" + service_id + "/"
@@ -274,7 +348,7 @@ class Bundle:
                 {
                     "id": release.APP_ID,
                     "app": release.APP_ID,
-                    "version": "0.1.0",
+                    "version": version,
                     "services": [service_id],
                     "package_format_version": 2,
                     "requiredPermissions": ["database.operation", "securitykey.operation"],
@@ -285,7 +359,7 @@ class Bundle:
         self.modes = {self.prefix + "plxnative": 0o755, self.service + "plxnative-storage": 0o755}
         self.controls = {
             "control": (
-                "Package: " + release.APP_ID + "\nVersion: 0.1.0\nLicense: GPL-3.0-or-later\n"
+                "Package: " + release.APP_ID + "\nVersion: " + version + "\nLicense: GPL-3.0-or-later\n"
                 "Architecture: arm\nwebOS-Package-Format-Version: 2\n"
             ).encode()
         }
@@ -1227,6 +1301,114 @@ class NativeReleaseTests(unittest.TestCase):
         self.bundle.write()
         self.fails("rebuild claim")
 
+    def test_legacy_bundle_cannot_claim_current_checkout_binding(self):
+        with (
+            patch.object(release.build, "manifest", return_value=self.bundle.upstream),
+            patch.object(release.build, "integration_digest", return_value=self.bundle.integration_hash),
+        ):
+            self.assertEqual(self.verify()["bundle_validation"], "PASS")
+            with self.assertRaisesRegex(ValueError, "Current checkout requires native compilation evidence"):
+                self.verify(check_checkout=True)
+
+
+class CurrentNativeReleaseTests(unittest.TestCase):
+    """The real offline consumer receives current producer-shaped archives."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.bundle = Bundle(Path(temporary.name), version="0.3.0")
+        self.current(compilation=True)
+
+    def refresh_source(self):
+        b = self.bundle
+        prefix = release.INTEGRATION_PREFIX
+        names = release.INTEGRATION_FILES | {"control_discovery_config.py", "patches/0001-fixture.patch",
+                                            "releases/0.3.0.md", "releases/0.3.0-audit.md"}
+        h = hashlib.sha256()
+        for name in sorted(names):
+            if prefix + name in b.source:
+                h.update(name.encode() + b"\0" + b.source[prefix + name])
+        b.integration_hash = h.hexdigest()
+        b.metadata["integration_sha256"] = b.integration_hash
+        b.metadata["build"]["integration_sha256"] = b.integration_hash
+        prov = json.loads(b.source[prefix + "PROVENANCE.json"])
+        prov["integration_sha256"] = b.integration_hash
+        b.source[prefix + "PROVENANCE.json"] = encoded(prov)
+        b.source_manifest["files"] = {n: {"sha256": digest(v), "mode": 0o644}
+                                      for n, v in b.source.items() if n != "SOURCE-MANIFEST.json"}
+        b.source_manifest["snapshot_sha256"] = digest(encoded(b.source_manifest["files"]))
+        b.source["SOURCE-MANIFEST.json"] = encoded(b.source_manifest)
+        b.write()
+
+    def current(self, *, compilation, configured=False, opt="s"):
+        b = self.bundle
+        prefix = release.INTEGRATION_PREFIX
+        b.source[prefix + "control_discovery_config.py"] = b"raise RuntimeError('must never execute archived code')"
+        config = release.build.release_product_config(b.upstream)
+        b.source[release.build.PRODUCT_CONFIG] = encoded(config)
+        documents = {}
+        for role, suffix in (("notes", ".md"), ("audit", "-audit.md")):
+            text = ("Fixture " + role + ": authored only, device validation not performed").encode()
+            b.source[prefix + "releases/0.3.0" + suffix] = text
+            b.source[config[role]] = text
+            documents[role] = digest(text)
+        b.metadata["build"]["product_release"] = {
+            "path": release.build.PRODUCT_CONFIG, "sha256": digest(encoded(config)),
+            "documents": documents, "audit_evidence": "authored_only"}
+        profile = release.build.control_discovery_config.profile(
+            "https://catalog.example.test/servers.json" if configured else None, "a" * 64 if configured else None)
+        b.metadata["build"]["configuration"] = {
+            "FLAVOR": "stable", "RELEASE": "1", "target": release.build.TARGET, "control_discovery": profile}
+        if compilation:
+            b.metadata["build"]["configuration"].update(
+                ARM_PROFILE="release", rust_opt_level=opt, symbols=False, host="linux-aarch64")
+            b.metadata["build"]["rust_toolchain"] = "1.99.1"
+            b.upstream["sdk"]["assets"] = {"linux-aarch64": {"sha256": "b" * 64}}
+            b.source[prefix + "upstream.json"] = encoded(b.upstream)
+            b.runtime_manifest["sdk_attestation"]["host"] = "linux-aarch64"
+            b.source["rust-modules/rust-toolchain.toml"] = b'[toolchain]\nchannel = "1.99.1"\n'
+            archive = "rust-modules/target-release/" + release.build.TARGET + "/release/libplxnative_modules.a"
+            root = "/build/native-source"
+            self.artifact = {"reason": "compiler-artifact", "manifest_path": root + "/rust-modules/Cargo.toml",
+                "target": {"name": "plxnative_modules", "src_path": root + "/rust-modules/src/lib.rs",
+                           "kind": ["staticlib"], "crate_types": ["staticlib"]},
+                "profile": {"opt_level": opt, "debuginfo": 0, "debug_assertions": False,
+                            "overflow_checks": False, "test": False},
+                "features": [], "filenames": [root + "/" + archive]}
+            self.records = [self.artifact, {"reason": "build-finished", "success": True}]
+            self.make = {"RUST_TDIR": "target-release", "RUST_TARGET": release.build.TARGET,
+                         "ARM_PROFILE": "release", "ARM_PROFILE_FLAG": "--release", "RUST_LIB": archive,
+                         "RUST_FEATFLAGS": "--no-default-features", "RUST_TOOLCHAIN": "1.99.1"}
+            b.metadata["build"]["compilation"] = {"cargo": {}, "make": {},
+                                                   "archive": {"path": archive, "sha256": "c" * 64}}
+            self.write_compilation()
+            self.link_archive(archive)
+        else:
+            b.metadata["build"].pop("compilation", None)
+        self.refresh_source()
+
+    def link_archive(self, archive):
+        for role, data in (("map", ("LOAD " + archive + "\n").encode()),
+                           ("trace", (archive + "\n").encode())):
+            self.bundle.runtime["evidence/plxnative.link." + role] = data
+            self.bundle.runtime_manifest["shipped_elfs"]["plxnative"]["distributed_" + role + "_sha256"] = digest(data)
+
+    def write_compilation(self):
+        b = self.bundle
+        evidence = b.metadata["build"]["compilation"]
+        for role, suffix, data in (
+            ("cargo", "-cargo-artifacts.jsonl", b"\n".join(encoded(row) for row in self.records) + b"\n"),
+            ("make", "-build-config.txt", ("\n".join(k + "=" + v for k,v in self.make.items()) + "\n").encode())):
+            filename = b.stem + suffix
+            (b.root / filename).write_bytes(data)
+            evidence[role] = {"file": filename, "sha256": digest(data)}
+        evidence["cargo"]["artifact"] = json.loads(encoded(self.artifact))
+
+    def verify(self, **kwargs):
+        self.bundle.write()
+        return release.verify(self.bundle.metadata_path, **kwargs)
+
     def test_optional_current_checkout_binding(self):
         with (
             patch.object(release.build, "manifest", return_value=self.bundle.upstream),
@@ -1239,6 +1421,384 @@ class NativeReleaseTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "current checkout"),
         ):
             self.verify(check_checkout=True)
+
+    def large_integration_patch(self):
+        b = self.bundle
+        prefix = release.INTEGRATION_PREFIX
+        key = prefix + "patches/0001-fixture.patch"
+        b.source[key] = b"x" * (release.JSON_LIMIT + 17)
+        provenance = json.loads(b.source[prefix + "PROVENANCE.json"])
+        provenance["patches"]["0001-fixture.patch"] = digest(b.source[key])
+        b.source[prefix + "PROVENANCE.json"] = encoded(provenance)
+        self.refresh_source()
+        return key
+
+    def test_large_integration_patch_passes_current_checkout_with_unchanged_raw_digest(self):
+        self.large_integration_patch()
+        before = self.bundle.integration_hash
+        with (
+            patch.object(release.build, "manifest", return_value=self.bundle.upstream),
+            patch.object(release.build, "integration_digest", return_value=before),
+        ):
+            result = self.verify(check_checkout=True)
+        self.assertEqual(result["bundle_validation"], "PASS")
+        self.assertTrue(result["checkout_validated"])
+        self.assertEqual(self.bundle.integration_hash, before)
+
+    def test_large_patch_tamper_still_fails_raw_integration_digest(self):
+        key = self.large_integration_patch()
+        b = self.bundle
+        b.source[key] = b.source[key][:-1] + b"y"
+        provenance_key = release.INTEGRATION_PREFIX + "PROVENANCE.json"
+        provenance = json.loads(b.source[provenance_key])
+        provenance["patches"]["0001-fixture.patch"] = digest(b.source[key])
+        b.source[provenance_key] = encoded(provenance)
+        # Update the per-file envelope but retain the old raw integration digest.
+        for path in (key, provenance_key):
+            b.source_manifest["files"][path]["sha256"] = digest(b.source[path])
+        b.source_manifest["snapshot_sha256"] = digest(encoded(b.source_manifest["files"]))
+        b.source["SOURCE-MANIFEST.json"] = encoded(b.source_manifest)
+        with self.assertRaisesRegex(ValueError, "Embedded integration digest mismatch"):
+            self.verify()
+
+    def test_actual_json_remains_bounded_and_malformed_json_is_not_spooled(self):
+        cases = (
+            (encoded({"padding": "x" * release.JSON_LIMIT}), "Captured member exceeds size limit"),
+            (b"{", "Expecting property name"),
+        )
+        create = tempfile.TemporaryFile
+        for data, message in cases:
+            with self.subTest(message=message):
+                opened = []
+
+                def tracked_file(*args, **kwargs):
+                    stream = create(*args, **kwargs)
+                    opened.append(stream)
+                    return stream
+
+                self.bundle.source["SOURCE-MANIFEST.json"] = data
+                with patch.object(release.tempfile, "TemporaryFile", side_effect=tracked_file):
+                    with self.assertRaisesRegex(ValueError, message):
+                        self.verify()
+                self.assertEqual(len(opened), 1, "one anonymous patch spool, never one file per member")
+                self.assertTrue(opened[0].closed, "failure must close the patch spool")
+
+
+    def test_current_checkout_rejects_discovery_shape_downgrade(self):
+        b = self.bundle
+        before_source = dict(b.source)
+        before_product = json.loads(encoded(b.metadata["build"]["product_release"]))
+        before_integration = b.integration_hash
+        with (
+            patch.object(release.build, "manifest", return_value=b.upstream),
+            patch.object(release.build, "integration_digest", return_value=b.integration_hash),
+        ):
+            self.assertTrue(self.verify(check_checkout=True)["checkout_validated"])
+            for key in ("ARM_PROFILE", "rust_opt_level", "symbols", "host"):
+                del b.metadata["build"]["configuration"][key]
+            del b.metadata["build"]["compilation"]
+            self.assertEqual(self.verify()["bundle_validation"], "PASS")
+            with self.assertRaisesRegex(ValueError, "Current checkout requires native compilation evidence"):
+                self.verify(check_checkout=True)
+        self.assertEqual(b.source, before_source)
+        self.assertEqual(b.metadata["build"]["product_release"], before_product)
+        self.assertEqual(b.integration_hash, before_integration)
+
+    def test_current_full_bundle_accepts_both_optimization_and_discovery_profiles(self):
+        for opt in ("2", "s"):
+            for configured in (False, True):
+                with self.subTest(opt=opt, configured=configured):
+                    self.current(compilation=True, configured=configured, opt=opt)
+                    self.assertEqual(self.verify()["bundle_validation"], "PASS")
+
+    def test_current_full_bundle_with_companion_passes_the_same_consumer(self):
+        companion = CompanionBundle(self.bundle)
+        companion.receipt["sdk"]["host"] = "linux-aarch64"
+        companion.write()
+        self.assertEqual(self.verify()["bundle_validation"], "PASS")
+
+    def test_compilation_shape_and_filename_are_closed(self):
+        b = self.bundle
+        for role in ("cargo", "make", "archive"):
+            self.current(compilation=True)
+            b.metadata["build"]["compilation"][role]["unexpected"] = True
+            with self.subTest(role=role), self.assertRaisesRegex(ValueError, "Native compilation"):
+                self.verify()
+        self.current(compilation=True)
+        b.metadata["build"]["compilation"]["cargo"]["file"] = "../outside.jsonl"
+        with self.assertRaisesRegex(ValueError, "evidence file"):
+            self.verify()
+        self.current(compilation=True)
+        del b.metadata["build"]["compilation"]
+        with self.assertRaisesRegex(ValueError, "compilation evidence"):
+            self.verify()
+
+    def test_discovery_only_published_bundle_remains_supported(self):
+        self.current(compilation=False)
+        self.assertEqual(self.verify()["bundle_validation"], "PASS")
+
+    def test_current_configuration_rejects_missing_extra_wrong_typed_or_forged_values(self):
+        good = json.loads(encoded(self.bundle.metadata["build"]["configuration"]))
+        invalid = [dict(good, extra="ignored"), {k:v for k,v in good.items() if k != "symbols"},
+                   dict(good, symbols=0), dict(good, rust_opt_level="3"), dict(good, ARM_PROFILE="tvdev"),
+                   dict(good, host="test"), dict(good, target="host"), dict(good, RELEASE="0")]
+        for value in invalid:
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "configuration mismatch"):
+                self.bundle.metadata["build"]["configuration"] = value
+                self.verify()
+        self.bundle.metadata["build"]["configuration"] = good
+
+    def test_discovery_rejects_extra_fields_forged_digest_and_boolean_confusion(self):
+        self.current(compilation=True, configured=True)
+        config = self.bundle.metadata["build"]["configuration"]
+        good = config["control_discovery"]
+        for value in (dict(good, fingerprint="f" * 64), dict(good, ignored=True), dict(good, configured=1),
+                      dict(good, url="http://catalog.example.test/servers.json"),
+                      {"configured": False, "fingerprint": "none", "url": None}, [], None):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                config["control_discovery"] = value
+                self.verify()
+        config["control_discovery"] = good
+
+    def test_compilation_requires_matching_profile_path_and_completed_cargo_stream(self):
+        mutations = (lambda: self.artifact["profile"].update(opt_level="2"),
+                     lambda: self.artifact["profile"].update(debuginfo=False),
+                     lambda: self.artifact.update(filenames=["/different/archive.a"]),
+                     lambda: self.artifact["target"].update(src_path="/different/lib.rs"),
+                     lambda: self.artifact.update(features=["dev"]),
+                     lambda: self.records[-1].update(success=False),
+                     lambda: self.records.append(dict(self.artifact)))
+        for mutate in mutations:
+            self.current(compilation=True)
+            mutate()
+            self.write_compilation()
+            with self.subTest(mutation=mutate), self.assertRaisesRegex(ValueError, "Native Cargo"):
+                self.verify()
+
+    def test_compilation_rejects_unbound_files_receipt_and_make_profile(self):
+        b = self.bundle
+        for role in ("cargo", "make"):
+            self.current(compilation=True)
+            (b.root / b.metadata["build"]["compilation"][role]["file"]).write_bytes(b"changed")
+            with self.subTest(role=role), self.assertRaisesRegex(ValueError, "digest mismatch"):
+                self.verify()
+        self.current(compilation=True)
+        b.metadata["build"]["compilation"]["cargo"]["artifact"]["features"] = ["forged"]
+        with self.assertRaisesRegex(ValueError, "artifact binding"):
+            self.verify()
+        self.current(compilation=True)
+        self.make["ARM_PROFILE"] = "tvdev"
+        self.write_compilation()
+        with self.assertRaisesRegex(ValueError, "Make configuration"):
+            self.verify()
+
+    def test_current_release_artifacts_must_match_and_unknown_files_are_rejected(self):
+        b = self.bundle
+        path = release.INTEGRATION_PREFIX + "release/notes/v0.3.0.md"
+        b.source[path] = b"different notes"
+        self.refresh_source()
+        with self.assertRaisesRegex(ValueError, "release document"):
+            self.verify()
+        self.current(compilation=True)
+        b.source[release.INTEGRATION_PREFIX + "unlisted.py"] = b"unexpected"
+        self.refresh_source()
+        with self.assertRaisesRegex(ValueError, "integration file set"):
+            self.verify()
+
+    def test_current_release_missing_document_and_forged_receipt_are_rejected(self):
+        b = self.bundle
+        del b.source[release.INTEGRATION_PREFIX + "releases/0.3.0-audit.md"]
+        self.refresh_source()
+        with self.assertRaisesRegex(ValueError, "release document"):
+            self.verify()
+        self.current(compilation=True)
+        b.metadata["build"]["product_release"]["audit_evidence"] = "device_verified"
+        with self.assertRaisesRegex(ValueError, "product receipt"):
+            self.verify()
+
+    def test_current_source_toolchain_and_final_link_must_match_compilation(self):
+        b = self.bundle
+        b.source["rust-modules/rust-toolchain.toml"] = b'[toolchain]\nchannel = "1.98.0"\n'
+        self.refresh_source()
+        with self.assertRaisesRegex(ValueError, "source toolchain"):
+            self.verify()
+        self.current(compilation=True)
+        for role in ("map", "trace"):
+            data = b"LOAD unrelated/libplxnative_modules.a\n" if role == "map" else b"unrelated/libplxnative_modules.a\n"
+            b.runtime["evidence/plxnative.link." + role] = data
+            b.runtime_manifest["shipped_elfs"]["plxnative"]["distributed_" + role + "_sha256"] = digest(data)
+            with self.subTest(role=role), self.assertRaisesRegex(ValueError, "archive missing from final"):
+                self.verify()
+            self.current(compilation=True)
+
+    def native_rust_binding(self, elf="plxnative-storage"):
+        b = self.bundle
+        commit = "a" * 40
+        identity = ("rustc 1.99.1 (aaaaaaaaa 2026-09-01)\n"
+                    "commit-hash: " + commit + "\nrelease: 1.99.1\n")
+        next(row for row in b.source_manifest["dependencies"]
+             if row["id"] == "rust-runtime")["version"] = commit
+        b.source_manifest["build_environment"]["rustc"] = identity
+        binding = {"source": "rust-runtime", "source_commit": commit, "rustc": identity,
+                   "sysroot": "/build/native-rust", "archives": [{
+                       "path": "/build/native-rust/lib/rustlib/armv7-unknown-linux-gnueabi/lib/"
+                               "libcompiler_builtins-0123456789abcdef.rlib",
+                       "sha256": "b" * 64, "bytes": 100, "validation": "collection-time"}]}
+        b.runtime_manifest["shipped_elfs"][elf]["native_rust_runtime"] = binding
+        path = binding["archives"][0]["path"]
+        self.native_rust_link(elf, "LOAD " + path + "\n", path + "\n")
+        self.refresh_source()
+        return binding
+
+    def native_rust_link(self, elf, link_map, trace):
+        for role, text in (("map", link_map), ("trace", trace)):
+            key = "evidence/" + elf + ".link." + role
+            # Keep the existing native compilation archive and all other inputs.
+            original = self.bundle.runtime[key].decode()
+            original = "\n".join(line for line in original.splitlines()
+                                  if "compiler_builtins-" not in line)
+            value = (original + "\n" + text).encode()
+            self.bundle.runtime[key] = value
+            self.bundle.runtime_manifest["shipped_elfs"][elf]["distributed_" + role + "_sha256"] = digest(value)
+
+    def test_native_rust_binding_accepts_matching_offline_evidence(self):
+        self.native_rust_binding()
+        with (patch("subprocess.run", side_effect=AssertionError("external command forbidden")),
+              patch("subprocess.check_output", side_effect=AssertionError("external command forbidden"))):
+            result = self.verify()
+        self.assertEqual(result["bundle_validation"], "PASS")
+        self.assertEqual(result["binary_correspondence"], "NOT_PROVEN")
+        self.assertEqual(result["device_validation"], "not_performed")
+
+    def test_native_rust_binding_source_commit_matches_distributed_dependency(self):
+        for elf in ("plxnative", "plxnative-storage"):
+            for value in ("b" * 40, None, 123):
+                with self.subTest(elf=elf, source_commit=value):
+                    binding = self.native_rust_binding()
+                    binding["source_commit"] = value
+                    entries = self.bundle.runtime_manifest["shipped_elfs"]
+                    entries[elf]["native_rust_runtime"] = binding
+                    with self.assertRaisesRegex(ValueError, "Native Rust runtime source binding"):
+                        self.verify()
+                    entries[elf].pop("native_rust_runtime", None)
+
+    def test_native_rust_binding_uses_own_single_release_not_build_environment(self):
+        identities = ("release: 1.98.0\n", "", "release: 1.99.1\nrelease: 1.99.1\n", None)
+        for identity in identities:
+            with self.subTest(identity=identity):
+                binding = self.native_rust_binding()
+                binding["rustc"] = ("commit-hash: " + "a" * 40 + "\n" + identity
+                                    if isinstance(identity, str) else identity)
+                with self.assertRaisesRegex(ValueError, "Native Rust runtime compiler binding"):
+                    self.verify()
+
+    def test_native_rust_binding_compiler_commit_matches_source_commit(self):
+        for identity in ("commit-hash: " + "b" * 40 + "\nrelease: 1.99.1\n",
+                         "release: 1.99.1\n"):
+            with self.subTest(identity=identity):
+                binding = self.native_rust_binding()
+                binding["rustc"] = identity
+                with self.assertRaisesRegex(ValueError, "Native Rust runtime compiler binding"):
+                    self.verify()
+
+    def test_native_rust_binding_legacy_checks_commit_without_compilation_release_pin(self):
+        self.current(compilation=False)
+        binding = self.native_rust_binding()
+        binding["rustc"] = binding["rustc"].replace("1.99.1", "1.98.0")
+        self.assertEqual(self.verify()["bundle_validation"], "PASS")
+        binding["source_commit"] = "b" * 40
+        with self.assertRaisesRegex(ValueError, "Native Rust runtime source binding"):
+            self.verify()
+
+    def test_native_rust_archive_inputs_match_each_native_elf_without_tools(self):
+        for elf in ("plxnative", "plxnative-storage"):
+            for form in ("load-and-bare", "map-member-only", "trace-member-only"):
+                with self.subTest(elf=elf, form=form):
+                    binding = self.native_rust_binding(elf)
+                    path = binding["archives"][0]["path"]
+                    link_map, trace = {
+                        "load-and-bare": ("LOAD " + path + "\n", path + "\n"),
+                        "map-member-only": (path + "(builtins.o)\n", ""),
+                        "trace-member-only": ("", "(" + path + ")builtins.o\n"),
+                    }[form]
+                    self.native_rust_link(elf, link_map, trace)
+                    with (patch("subprocess.run", side_effect=AssertionError("external command forbidden")),
+                          patch("subprocess.check_output", side_effect=AssertionError("external command forbidden"))):
+                        self.assertEqual(self.verify()["bundle_validation"], "PASS")
+
+    def test_native_rust_archive_rejects_unobserved_or_unlisted_inputs(self):
+        for elf in ("plxnative", "plxnative-storage"):
+            for case in ("missing-both", "different-map", "extra-trace"):
+                with self.subTest(elf=elf, case=case):
+                    binding = self.native_rust_binding(elf)
+                    path = binding["archives"][0]["path"]
+                    other = path.replace("0123456789abcdef", "fedcba9876543210")
+                    link_map, trace = {
+                        "missing-both": ("", ""),
+                        "different-map": ("LOAD " + other + "\n", ""),
+                        "extra-trace": ("LOAD " + path + "\n", path + "\n" + other + "\n"),
+                    }[case]
+                    self.native_rust_link(elf, link_map, trace)
+                    with self.assertRaisesRegex(ValueError, "Native Rust archive"):
+                        self.verify()
+                    self.native_rust_link(elf, "LOAD " + path + "\n", path + "\n")
+
+    def test_native_rust_archive_rejects_missing_binding(self):
+        for elf in ("plxnative", "plxnative-storage"):
+            with self.subTest(elf=elf):
+                self.native_rust_binding(elf)
+                del self.bundle.runtime_manifest["shipped_elfs"][elf]["native_rust_runtime"]
+                with self.assertRaisesRegex(ValueError, "Native Rust archive"):
+                    self.verify()
+                self.native_rust_link(elf, "", "")
+
+    def test_native_rust_archive_rejects_empty_duplicate_and_noncanonical_inventory(self):
+        paths = (
+            "relative/compiler_builtins.rlib",
+            "/build/native-rust/lib/rustlib/armv7-unknown-linux-gnueabi/lib/../lib/libcompiler_builtins-0123456789abcdef.rlib",
+            "/build/native-rust/lib/rustlib/armv7-unknown-linux-gnueabi/lib//libcompiler_builtins-0123456789abcdef.rlib",
+            "/build/native-rust/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcompiler_builtins-0123456789abcdef.rlib",
+            "/outside/libcompiler_builtins-0123456789abcdef.rlib",
+            "/build/native-rust/lib/rustlib/armv7-unknown-linux-gnueabi/lib/libunknown-0123456789abcdef.rlib",
+        )
+        for case in ("empty", "duplicate", "wrong-root", *paths):
+            with self.subTest(case=case):
+                binding = self.native_rust_binding()
+                if case == "empty":
+                    binding["archives"] = []
+                elif case == "duplicate":
+                    binding["archives"] *= 2
+                elif case == "wrong-root":
+                    binding["sysroot"] = "/outside"
+                else:
+                    binding["archives"][0]["path"] = case
+                    self.native_rust_link("plxnative-storage", "LOAD " + case + "\n", case + "\n")
+                with self.assertRaisesRegex(ValueError, "Native Rust archive"):
+                    self.verify()
+
+    def test_native_rust_archive_preserves_collection_time_evidence_scope(self):
+        for key, value in (("sha256", "bad"), ("bytes", 0), ("bytes", -1),
+                           ("bytes", True), ("validation", "during-final-link")):
+            with self.subTest(key=key, value=value):
+                binding = self.native_rust_binding()
+                binding["archives"][0][key] = value
+                with self.assertRaises(ValueError):
+                    self.verify()
+
+    def test_native_rust_archive_cannot_borrow_another_elfs_inputs(self):
+        binding = self.native_rust_binding("plxnative-storage")
+        self.bundle.runtime_manifest["shipped_elfs"]["plxnative"]["native_rust_runtime"] = binding
+        with self.assertRaisesRegex(ValueError, "Native Rust archive"):
+            self.verify()
+
+    def test_native_rust_archive_legacy_no_binding_and_no_rlib_stays_valid(self):
+        self.current(compilation=False)
+        self.assertEqual(self.verify()["bundle_validation"], "PASS")
+
+    def test_current_runtime_host_must_match_compilation(self):
+        self.bundle.metadata["build"]["configuration"]["host"] = "darwin-arm64"
+        with self.assertRaisesRegex(ValueError, "host binding"):
+            self.verify()
 
 
 class CargoSourceConfigTests(unittest.TestCase):

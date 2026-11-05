@@ -1,0 +1,9 @@
+diff --git a/ci/check-python-steps.txt b/ci/check-python-steps.txt
+--- a/ci/check-python-steps.txt
++++ b/ci/check-python-steps.txt
+@@ -378,3 +378,5 @@
+ python3 ci/check-ledger-ratchet.py
+ # Public FFmpeg configuration headers must not retain private build or host paths.
+ python3 ci/test_sanitize_ffmpeg_config.py
++# Native audio/subtitle fixture validation uses only synthetic probe data.
++python3 tests/test_external_tracks_fixture.py

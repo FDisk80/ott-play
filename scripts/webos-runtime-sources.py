@@ -8,11 +8,14 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import tarfile
 import tempfile
 from pathlib import Path, PurePosixPath
+
+import tomllib
 
 HERE = Path(__file__).resolve().parent
 MANIFEST = HERE / "webos-runtime-sources.json"
@@ -455,37 +458,238 @@ def companion_archives(record, link_map, trace, source, sdk):
     return roots, seen
 
 
-def runtime_inputs(text, source, sdk, *, allowed_archives=(), archive_root=None):
+class PrimarySourceCoverage:
+    """Bound generated archive owners to the actual distributed source bytes.
+
+    Build outputs are intentionally absent from the source tar. Their known
+    recipes and dependency sources must be present; mere path containment is
+    never source coverage. This is not an independent rebuild attestation.
+    """
+
+    def __init__(self, archive_path, snapshot, source, native_archive=None):
+        self.source = source.resolve()
+        self.native_archive = native_archive
+        self.covered = {}
+        actual, manifest, total = {}, None, 0
+        with tarfile.open(archive_path, "r|gz", tarinfo=SourceTarInfo) as archive:
+            for member in archive:
+                name = safe_name(member.name)
+                if (
+                    name != member.name
+                    or name in actual
+                    or not member.isfile()
+                    or member.issparse()
+                    or member.mode not in (0o644, 0o755)
+                ):
+                    fail("Invalid primary source archive member")
+                total += member.size
+                if not 0 <= member.size <= SOURCE_LIMIT or total > SOURCE_LIMIT or len(actual) >= 100_000:
+                    fail("Primary source archive exceeds limits")
+                stream = archive.extractfile(member)
+                if name == "SOURCE-MANIFEST.json":
+                    if member.size > JSON_LIMIT:
+                        fail("Oversized primary source manifest")
+                    data = stream.read()
+                    manifest = json.loads(data)
+                    hashed = hashlib.sha256(data).hexdigest()
+                else:
+                    h = hashlib.sha256()
+                    while block := stream.read(1024 * 1024):
+                        h.update(block)
+                    hashed = h.hexdigest()
+                actual[name] = {"sha256": hashed, "mode": member.mode}
+        actual.pop("SOURCE-MANIFEST.json", None)
+        if not isinstance(manifest, dict) or manifest.get("schema") != 1 or manifest.get("files") != actual:
+            fail("Primary source file set/hash/mode mismatch")
+        observed = hashlib.sha256(json.dumps(actual, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        if manifest.get("snapshot_sha256") != snapshot or observed != snapshot:
+            fail("Primary source snapshot mismatch")
+        self.files = actual
+        self.build_environment = manifest.get("build_environment", {})
+        rows = manifest.get("dependencies", [])
+        self.dependencies = {row["id"]: row for row in rows}
+        if len(rows) != len(self.dependencies):
+            fail("Duplicate primary source dependency")
+
+    def recipe(self, name):
+        path = self.source / name
+        row = self.files.get(name)
+        if row is None or path.resolve() != path.absolute() or digest(regular(path)) != row["sha256"]:
+            fail("Missing or changed bundled archive recipe: " + name)
+
+    def dependency(self, identity, required_recipe):
+        row = self.dependencies.get(identity, {})
+        sources = row.get("sources", [])
+        recipes = row.get("recipes", [])
+        if not sources or required_recipe not in recipes:
+            fail("Missing bundled archive dependency: " + identity)
+        for item in sources:
+            name = safe_name(item["path"])
+            if (
+                not name.startswith("dependencies/" + identity + "/")
+                or self.files.get(name, {}).get("sha256") != item["sha256"]
+            ):
+                fail("Missing bundled archive dependency bytes: " + identity)
+        for name in recipes + row.get("patches", []):
+            self.recipe(name)
+
+    def archive(self, path):
+        name = path.relative_to(self.source).as_posix()
+        if name in self.covered:
+            return
+        if re.fullmatch(
+            r"rust-modules/target(?:-release)?(?:-lab)?(?:-sym)?/"
+            r"armv7-unknown-linux-gnueabi/(?:release|tvdev)/libplxnative_modules\.a",
+            name,
+        ):
+            if self.native_archive is not None and (
+                name != self.native_archive.get("path") or digest(regular(path)) != self.native_archive.get("sha256")
+            ):
+                fail("Native archive differs from compilation evidence")
+            owners = {"cargo-vendor": "rust-modules/Cargo.toml", "rust-runtime": "Makefile"}
+            for recipe in (
+                "Makefile",
+                "rust-modules/Cargo.toml",
+                "rust-modules/Cargo.lock",
+                "rust-modules/build.rs",
+                "rust-modules/src/lib.rs",
+                "ci/check-staticlib-artifact.py",
+            ):
+                self.recipe(recipe)
+        elif name in {
+            "vendor/sentry-native-prefix/lib/" + item for item in ("libsentry.a", "libunwind.a", "libunwind_remote.a")
+        } | {"vendor/sentry-native-build/vendor/libunwind/" + item for item in ("libunwind.a", "libunwind_remote.a")}:
+            owners = {"sentry-native": "ci/build-sentry-native.sh"}
+        elif name in {
+            "vendor/libass-prefix/lib/lib" + item + ".a"
+            for item in ("ass", "freetype", "fribidi", "harfbuzz", "unibreak")
+        }:
+            identity = {"libass.a": "libass", "libunibreak.a": "libunibreak"}.get(path.name, path.stem[3:])
+            owners = {identity: "ci/build-libass.py"}
+        else:
+            fail("Unclassified static source archive: " + name)
+        for identity, recipe in owners.items():
+            self.dependency(identity, recipe)
+        self.covered[name] = sorted(owners)
+
+    def native_rust_runtime(self, paths):
+        """Bind the storage linker’s external builtins to its bundled Rust source.
+
+        Collection runs on the build host. The pure classifier and offline
+        artifact verifier never acquire or query a host Rust toolchain.
+        """
+        if any(not re.fullmatch(r"libcompiler_builtins-[0-9a-f]{16}\.rlib", path.name) for path in paths):
+            fail("Unclassified external Rust archive")
+        self.dependency("rust-runtime", "Makefile")
+        pin_path = "rust-modules/rust-toolchain.toml"
+        self.recipe(pin_path)
+        pin = tomllib.loads((self.source / pin_path).read_text())["toolchain"]["channel"]
+        identity = self.build_environment.get("rustc", "").strip()
+        commits = re.findall(r"^commit-hash: ([0-9a-f]{40})$", identity, re.MULTILINE)
+        if (not isinstance(pin, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", pin)
+                or re.findall(r"^release: (.+)$", identity, re.MULTILINE) != [pin]
+                or len(commits) != 1 or self.dependencies["rust-runtime"].get("version") != commits[0]
+                or self.build_environment.get("rust_target") != "armv7-unknown-linux-gnueabi"):
+            fail("Native Rust toolchain/source identity mismatch")
+        env = dict(os.environ, RUSTUP_AUTO_INSTALL="0")
+        try:
+            observed = subprocess.check_output(["rustc", "+" + pin, "-Vv"], text=True, env=env, timeout=15).strip()
+            if observed != identity:
+                fail("Native Rust compiler differs from bundled source identity")
+            value = subprocess.check_output(["rustc", "+" + pin, "--print", "sysroot"],
+                                            text=True, env=env, timeout=15).strip()
+        except subprocess.TimeoutExpired:
+            fail("Native Rust toolchain probe timed out")
+        if not Path(value).is_absolute() or "\n" in value:
+            fail("Invalid native Rust sysroot")
+        root = Path(value).resolve(strict=True)
+        libdir = root / "lib/rustlib/armv7-unknown-linux-gnueabi/lib"
+        archives = []
+        for path in sorted(paths):
+            if path.parent != libdir:
+                fail("External Rust archive is outside the pinned sysroot target")
+            regular(path)
+            before = path.stat()
+            checksum = digest(path)
+            after = path.stat()
+            if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+                    != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)):
+                fail("Native Rust archive changed during collection")
+            archives.append({"path": str(path), "sha256": checksum, "bytes": after.st_size,
+                             "validation": "collection-time"})
+        # No historical link-time hash is invented: legacy native link receipts
+        # bind map/trace/ELF bytes, but not each prebuilt Rust archive's bytes.
+        return {"source": "rust-runtime", "source_commit": commits[0], "rustc": identity,
+                "sysroot": str(root), "archives": archives}
+
+
+def runtime_inputs(text, source, sdk, *, allowed_archives=(), archive_root=None, source_coverage=None):
     rows = set()
+    source, sdk = source.resolve(), sdk.resolve()
+    # Native relative inputs belong to the selected source, not this process's
+    # working directory. Companion inputs use their validated build root.
+    archive_root = source if archive_root is None else archive_root.resolve()
 
     def archive_path(value):
         path = Path(value)
-        if not path.is_absolute() and archive_root is not None:
+        if not path.is_absolute():
             path = archive_root / path
         return path.resolve()
 
     def relative_sdk(path):
         try:
-            return archive_path(path).relative_to(sdk.resolve()).as_posix()
+            return archive_path(path).relative_to(sdk).as_posix()
         except ValueError:
             fail("Runtime input is outside the recorded SDK: " + path)
 
-    for archive, member in re.findall(r"([^\s()]+\.a)\(([^\s()]+)\)", text):
+    # Consume whole unquoted absolute paths first, including spaces. Otherwise
+    # the relative alternative invents a source-relative suffix for that input.
+    archive_members = {
+        (match[1] or match[3], match[2] or match[4])
+        for match in re.finditer(
+            r"(?<!\S)(/[^()\r\n]*?\.(?:a|rlib))\(([^\s()]+)\)"
+            r"|([^\s()]+\.(?:a|rlib))\(([^\s()]+)\)", text
+        )
+    }
+    # A loaded archive with no extracted members still needs a classified owner.
+    named = {name for name, _ in archive_members}
+    archive_members.update(
+        (name, "")
+        for name in observed_archive_names(
+            text, (line for line in text.splitlines() if not line.strip().startswith("LOAD "))
+        )
+        if name.endswith((".a", ".rlib")) and name not in named
+    )
+    for archive, member in sorted(archive_members):
         base = PurePosixPath(archive).name
+        path = archive_path(archive)
         if base in RUNTIME:
             rows.add((RUNTIME[base], base, member, relative_sdk(archive)))
-        elif str(sdk) in archive or "/sysroot/" in archive:
+        elif path.is_relative_to(sdk) or "/sysroot/" in archive:
             fail("Unclassified static SDK archive: " + base)
-        elif not (
-            str(source) in archive
-            or archive.startswith(("src/", "vendor/", "rust-modules/"))
-            or str(archive_path(archive)) in allowed_archives
-        ):
+        elif path.is_relative_to(source):
+            # A companion link-time hash binds bytes, not their source origin.
+            # Native inputs must pass this check even when present in that inventory.
+            if source_coverage is None:
+                fail("Static source archive has no bundled source evidence: " + base)
+            source_coverage.archive(path)
+        # This allowance applies only outside native source. It is an exact,
+        # prevalidated companion link-time inventory, never a directory prefix.
+        elif str(path) in allowed_archives:
+            pass
+        else:
             fail("Unclassified static archive: " + base)
-    for obj in re.findall(r"(?:^|\s)([^\s()]+/[^/\s()]+\.o)(?=\s|$)", text, re.MULTILINE):
+    # As with archive members, preserve complete absolute object paths before
+    # considering source-relative tokens; a suffix can belong to another root.
+    objects = re.finditer(
+        r"(?<!\S)(/[^()\r\n]*?\.o)(?=\s|$)"
+        r"|(?:^|\s)([^\s()]+/[^/\s()]+\.o)(?=\s|$)", text, re.MULTILINE
+    )
+    for match in objects:
+        obj = match[1] or match[2]
         base = PurePosixPath(obj).name
         is_startup = base.startswith(("crt", "Scrt"))
-        if not is_startup and str(sdk) not in obj and "/sysroot/" not in obj:
+        if not is_startup and not archive_path(obj).is_relative_to(sdk) and "/sysroot/" not in obj:
             continue
         if base in {"crt1.o", "Scrt1.o", "crti.o", "crtn.o"}:
             rows.add(("glibc-runtime", base, "", relative_sdk(obj)))
@@ -584,7 +788,7 @@ def attest_sdk(args, evidence):
     return result
 
 
-def link_evidence(elfs, source, sdk, companion=None):
+def link_evidence(elfs, source, sdk, companion=None, source_coverage=None):
     result, files, needed = {}, {}, set()
     readelf = sdk / "bin/arm-webos-linux-gnueabi-readelf"
     with tempfile.TemporaryDirectory(prefix="webos-elf-evidence-") as directory:
@@ -603,8 +807,9 @@ def link_evidence(elfs, source, sdk, companion=None):
                 fail("Unlicensed runtime archive was not excluded")
             replacements = [(str(source), "/build/ottplay-native"), (str(sdk), "/build/webos-sdk")]
             allowed_archives = set()
-            archive_root = None
-            archive_names = set()
+            # CMake links sentry-crash in this recipe-owned build directory.
+            archive_root = source / "vendor/sentry-native-build" if name == "sentry-crash" else source
+            archive_names = observed_archive_names(link_map, trace)
             if helper:
                 if b"LOAD " not in link_map or not trace.strip():
                     fail("Missing genuine companion linker map/input trace")
@@ -620,6 +825,27 @@ def link_evidence(elfs, source, sdk, companion=None):
                     )
                 )
                 record["link_receipt_sha256"] = digest(Path(str(base) + ".link.json"))
+            else:
+                external_rlibs = set()
+                for archive in archive_names:
+                    path = Path(archive)
+                    original = path if path.is_absolute() else archive_root / path
+                    path = original.resolve()
+                    if path.suffix == ".rlib" and (
+                        (Path(archive).is_absolute() and archive != str(path))
+                        or any(part.is_symlink() for part in (original, *original.parents))
+                    ):
+                        fail("Noncanonical or symlink native Rust archive path")
+                    if (path.suffix == ".rlib" and not path.is_relative_to(source.resolve())
+                            and not path.is_relative_to(sdk.resolve())):
+                        external_rlibs.add(path)
+                if external_rlibs:
+                    if source_coverage is None:
+                        fail("External Rust archives have no bundled source evidence")
+                    binding = source_coverage.native_rust_runtime(external_rlibs)
+                    record["native_rust_runtime"] = binding
+                    allowed_archives.update(row["path"] for row in binding["archives"])
+                    replacements.append((binding["sysroot"], "/build/native-rust"))
             replacements.append((str(Path.home()), "/home/build"))
             replacements.sort(key=lambda row: len(row[0]), reverse=True)
             path = Path(directory) / name
@@ -636,6 +862,7 @@ def link_evidence(elfs, source, sdk, companion=None):
                 sdk,
                 allowed_archives=allowed_archives,
                 archive_root=archive_root,
+                source_coverage=source_coverage,
             )
             if helper:
                 covered = {row["sdk_path"] for row in record["runtime_inputs"]}
@@ -659,7 +886,7 @@ def link_evidence(elfs, source, sdk, companion=None):
                 files["evidence/" + name + ".link." + suffix] = content
                 record["distributed_" + suffix + "_sha256"] = hashlib.sha256(content).hexdigest()
             record["evidence_transformation"] = (
-                "source, SDK and user-home paths normalized; relative helper archive names canonicalized; original byte digests retained"
+                "source, SDK and user-home paths normalized; relative archive names canonicalized; original byte digests retained"
             )
             result[name] = normalized(record, replacements)
             files["evidence/" + name + ".readelf.txt"] = normalized(dynamic + "\n" + headers, replacements).encode()
@@ -686,7 +913,13 @@ def collect(args):
         fail("IPK or primary source changed after validation")
     elfs = package_elfs(ipk)
     companion = companion_inputs(args, metadata, elfs)
-    evidence, extra, system = link_evidence(elfs, args.source, args.sdk, companion)
+    coverage = PrimarySourceCoverage(
+        primary,
+        metadata["corresponding_source"]["snapshot_sha256"],
+        args.source,
+        metadata["build"].get("compilation", {}).get("archive"),
+    )
+    evidence, extra, system = link_evidence(elfs, args.source, args.sdk, companion, coverage)
     sdk_attestation = attest_sdk(args, evidence)
     if companion:
         binding = companion["binding"]
@@ -726,6 +959,7 @@ def collect(args):
             "basis": "Primary source LICENSING.md and THIRD-PARTY-NOTICES.md, GNU GPL v3 section 1. This is an explicit distribution classification, not a new license grant.",
         },
         "runtime_source_coverage": "PASS",
+        "primary_archive_coverage": coverage.covered,
         "link_evidence_binding": "PASS",
         "primary_scope_gaps": {
             "glibc/GCC runtime source closure": "Sources and exact Buildroot recipes supplied in this supplement, bound to linked inputs",

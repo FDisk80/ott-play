@@ -1,0 +1,67 @@
+diff --git a/rust-modules/src/app/ott_remote/discovery.rs b/rust-modules/src/app/ott_remote/discovery.rs
+--- a/rust-modules/src/app/ott_remote/discovery.rs
++++ b/rust-modules/src/app/ott_remote/discovery.rs
+@@ -129,7 +129,11 @@
+             || !ids.insert(item.id.clone()) || (require_domain && item.domain.is_none())
+         { return Err("Invalid command server discovery response"); }
+         let domain = item.domain.unwrap_or_default();
+-        if domain.len() > 253 || domain.chars().any(|c| c.is_control() || c.is_whitespace()) {
++        // A manual controller response does not require a catalog-style domain.
++        // Keep the stricter domain contract for the digest-bound public catalog.
++        if require_domain
++            && (domain.len() > 253 || domain.chars().any(|c| c.is_control() || c.is_whitespace()))
++        {
+             return Err("Invalid command server discovery response");
+         }
+         let address = protocol::normalize_base(&item.address, false)
+diff --git a/rust-modules/src/app/ott_remote/discovery_tests.rs b/rust-modules/src/app/ott_remote/discovery_tests.rs
+--- a/rust-modules/src/app/ott_remote/discovery_tests.rs
++++ b/rust-modules/src/app/ott_remote/discovery_tests.rs
+@@ -273,3 +273,47 @@
+     assert!(remote.tick(4,json!({})).is_empty());
+     assert!(remote.flight.is_none() && remote.discover_address.is_none());
+ }
++
++#[test]
++fn manual_singleton_ignores_optional_domain_validation_when_pairing() {
++    for domain in ["Living room".to_owned(), "Living\nroom".to_owned(), "x".repeat(254)] {
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[{
++            "id":"one","domain":domain,"address":"https://control.invalid/team"
++        }]})).unwrap();
++        let mut remote = Remote::disabled_for_test("dev_test", "runtime");
++        remote.discover_and_pair("https://control.invalid/team", 0).unwrap();
++        assert!(matches!(remote.discover_address.take(), Some(DiscoveryTarget::ControllerBase(_))));
++        remote.finish(Kind::Discovery, response(body), 1);
++        let request = remote.pairing.as_ref()
++            .expect("manual discovery must not reject an optional domain string").request(false);
++        assert_eq!(request.url, "https://control.invalid:443/team/api/pairings");
++        assert_eq!(serde_json::from_str::<Value>(request.body.as_deref().unwrap()).unwrap(),
++            json!({"device_id":"dev_test","server_id":"one"}));
++        assert!(!remote.config.enabled && remote.pending_save.is_none());
++    }
++}
++
++#[test]
++fn catalog_requires_valid_domains_even_when_manual_discovery_accepts_them() {
++    let valid = json!({"id":"one","domain":"example.invalid","address":"https://one.invalid"});
++    for domain in [Some(json!("Living room")), Some(json!("Living\nroom")),
++        Some(json!("x".repeat(254))), Some(Value::Null), None] {
++        let mut invalid = json!({"id":"two","address":"https://two.invalid"});
++        if let Some(domain) = domain { invalid["domain"] = domain; }
++        let body = serde_json::to_vec(&json!({"version":1,"servers":[valid,invalid]})).unwrap();
++        assert_eq!(profile(&body).parse(&body).unwrap_err(), "Invalid discovery catalog");
++    }
++}
++
++#[test]
++fn catalog_accepts_a_valid_domain_at_the_existing_length_boundary() {
++    let domain = "x".repeat(253);
++    let body = serde_json::to_vec(&json!({"version":1,"servers":[{
++        "id":"one","domain":domain,"address":"https://control.invalid/team"
++    }]})).unwrap();
++    let candidates = profile(&body).parse(&body).unwrap();
++    assert_eq!(candidates.len(), 1);
++    assert_eq!(candidates[0].domain, domain);
++    assert_eq!(candidates[0].id, "one");
++    assert_eq!(candidates[0].address, "https://control.invalid:443/team");
++}

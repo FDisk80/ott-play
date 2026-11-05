@@ -1077,7 +1077,7 @@ EPG_URLS="http://example.com/epg.xml.gz" ./target/release/ottplay-server --port 
 
 [MIT](LICENSE)——自由开源。提供商内容和第三方依赖保留各自权利与许可证。
 
-基于 PlxNative 的独立应用 [OTTPlay Native webOS](docs/native-webos.md) 按 **GPL-3.0-or-later** 许可证分发，并提供对应的源代码。
+基于 PlxNative 的独立应用 [OTTPlay native webOS](docs/native-webos.md) 按 **GPL-3.0-or-later** 许可证分发，并提供对应的源代码。
 项目根目录中的 MIT 许可证不会改变此原生应用或其补丁的许可证。
 
 <a id="desktop-updater--notarization-mode-b"></a>

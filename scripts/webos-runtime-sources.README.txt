@@ -17,10 +17,19 @@ The collector first checks each packaged ELF against its own final-link
 receipt, map and trace. The maps identify statically included runtime archive
 members; readelf records the ELF's DT_NEEDED entries and interpreter. Unknown
 SDK runtime inputs and unknown dynamic dependencies stop collection. Each
-linked runtime archive/object must match its bytes inside the original pinned
+linked SDK runtime archive/object must match its bytes inside the original pinned
 SDK download, so a custom toolchain cannot silently inherit this source claim.
 
-The archive normalizes only source/SDK/user-home prefixes in maps and traces.
+The native storage link's prebuilt compiler_builtins rlib is separately bound
+to the bundled Rust source commit, pinned compiler identity and its exact
+target sysroot path. Its recorded hash describes collection-time bytes: the
+legacy native link receipt does not provide a per-rlib link-time hash. Rust
+identity probes run only during collection on the build host, with automatic
+toolchain installation disabled; offline artifact verification does not query
+or install Rust. Unknown native-source and unbound external rlibs are rejected.
+
+The archive normalizes source, SDK, bound Rust/companion and user-home prefixes
+in maps and traces; noncanonical native Rust archive aliases are rejected.
 Both original and distributed hashes are recorded. The original ELF hashes
 remain unchanged. This is a same-build correspondence record, not a claim
 that a separate clean rebuild has produced identical bytes.

@@ -1,0 +1,179 @@
+diff --git a/ci/build-libass.py b/ci/build-libass.py
+--- a/ci/build-libass.py
++++ b/ci/build-libass.py
+@@ -131,7 +131,7 @@
+     print('libass: ' + dep['id'] + ' patched (' + str(len(patches)) + ')', flush=True)
+ 
+ 
+-def verify_library(path, darwin, readelf=None):
++def verify_library(path, darwin, readelf=None, *, host=False):
+     """Prove the bundled font stack stayed private and needs no C++ runtime."""
+     if darwin:
+         load_commands = subprocess.check_output(['otool', '-L', str(path)], text=True).splitlines()[1:]
+@@ -140,9 +140,28 @@
+         exports = subprocess.check_output(['nm', '-gU', str(path)], text=True).splitlines()
+         names = [line.split()[-1].removeprefix('_') for line in exports if line.strip()]
+     else:
++        # HOST uses the native compiler; shipping always uses the ARM32 SDK.
++        # Bind the sole permitted loader to both that target and the actual ELF.
++        expected = ('ELF32', 'ARM', 'ld-linux.so.3')
++        if host:
++            targets = {
++                'aarch64': ('ELF64', 'AArch64', 'ld-linux-aarch64.so.1'),
++                'arm64': ('ELF64', 'AArch64', 'ld-linux-aarch64.so.1'),
++                'x86_64': ('ELF64', 'Advanced Micro Devices X86-64', 'ld-linux-x86-64.so.2'),
++                'amd64': ('ELF64', 'Advanced Micro Devices X86-64', 'ld-linux-x86-64.so.2'),
++            }
++            expected = targets.get(platform.machine().lower())
++            if platform.system() != 'Linux' or expected is None:
++                raise ValueError('unsupported host ELF target')
++        header = subprocess.check_output([readelf, '-h', str(path)], text=True)
++        classes = re.findall(r'^\s*Class:\s*([^\r\n]+)', header, re.MULTILINE)
++        machines = re.findall(r'^\s*Machine:\s*([^\r\n]+)', header, re.MULTILINE)
++        if ([value.strip() for value in classes] != [expected[0]] or
++                [value.strip() for value in machines] != [expected[1]]):
++            raise ValueError('unexpected ELF target; expected ' + expected[0] + '/' + expected[1])
+         dynamic = subprocess.check_output([readelf, '-d', str(path)], text=True)
+         needed = re.findall(r'\(NEEDED\).*\[([^\]]+)\]', dynamic)
+-        allowed = {'libc.so.6', 'libm.so.6', 'libgcc_s.so.1', 'libpthread.so.0', 'ld-linux.so.3'}
++        allowed = {'libc.so.6', 'libm.so.6', 'libgcc_s.so.1', 'libpthread.so.0', expected[2]}
+         symbols = subprocess.check_output([readelf, '--dyn-syms', '--wide', str(path)], text=True)
+         names = []
+         for line in symbols.splitlines():
+@@ -333,7 +352,7 @@
+             # `make symbols-libs` extracts from the unstripped $prefix/lib copy can be paired with it.
+             command += ['-Wl,--build-id=sha1']
+     run([*command, '-o', output], env=env)
+-    verify_library(output, darwin, shutil.which('readelf') if host else str(cross) + 'readelf')
++    verify_library(output, darwin, shutil.which('readelf') if host else str(cross) + 'readelf', host=host)
+     staged = ROOT / 'pkg' / name
+     candidate = staged.with_name(staged.name + '.' + str(os.getpid()) + '.new')
+     sidecars = ['.link.map', '.link.trace', '.link.json'] if not host else []
+diff --git a/ci/test_libass_fetch.py b/ci/test_libass_fetch.py
+--- a/ci/test_libass_fetch.py
++++ b/ci/test_libass_fetch.py
+@@ -325,5 +325,124 @@
+                 build_libass.apply_patches(dep, Path(folder) / ('libass-' + dep['version']))
+ 
+ 
++class RuntimeDependencies(unittest.TestCase):
++    """Mock tool output only: loader exceptions belong to one verified ELF ABI."""
++
++    def elf(self, *, host=True, machine='aarch64', system='Linux', elf_class='ELF64',
++            elf_machine='AArch64', needed=('libc.so.6', 'ld-linux-aarch64.so.1'),
++            names=('plx_ass_init',), header=None):
++        path = Path('/private/libass-plx-host.so.0')
++        if header is None:
++            header = 'ELF Header:\n  Class: ' + elf_class + '\n  Machine: ' + elf_machine + '\n'
++        outputs = {
++            ('readelf', '-h', str(path)): header,
++            ('readelf', '-d', str(path)): ''.join(
++                '  0x00000001 (NEEDED) Shared library: [' + name + ']\n' for name in needed),
++            ('readelf', '--dyn-syms', '--wide', str(path)): ''.join(
++                '  1: 00000000 12 FUNC GLOBAL DEFAULT 12 ' + name + '\n' for name in names),
++        }
++
++        def output(args, *, text):
++            self.assertTrue(text)
++            return outputs[tuple(args)]
++
++        with mock.patch.object(build_libass.platform, 'machine', return_value=machine), \
++                mock.patch.object(build_libass.platform, 'system', return_value=system), \
++                mock.patch.object(build_libass.subprocess, 'check_output', side_effect=output), \
++                contextlib.redirect_stdout(io.StringIO()):
++            build_libass.verify_library(path, False, 'readelf', host=host)
++
++    def test_aarch64_host_accepts_only_its_exact_loader(self):
++        for machine in ('aarch64', 'arm64', 'ARM64'):
++            with self.subTest(machine=machine):
++                self.elf(machine=machine)
++        for loader in ('ld-linux.so.3', 'ld-linux-x86-64.so.2', 'ld-linux-aarch64.so.1.extra',
++                       '/lib/ld-linux-aarch64.so.1', 'ld-untrusted.so'):
++            with self.subTest(loader=loader), self.assertRaisesRegex(ValueError, 'unexpected runtime'):
++                self.elf(needed=('libc.so.6', loader))
++
++    def test_x86_64_host_accepts_only_its_exact_loader(self):
++        for machine in ('x86_64', 'amd64'):
++            with self.subTest(machine=machine):
++                self.elf(machine=machine, elf_machine='Advanced Micro Devices X86-64',
++                         needed=('libc.so.6', 'ld-linux-x86-64.so.2'))
++        with self.assertRaisesRegex(ValueError, 'unexpected runtime'):
++            self.elf(machine='x86_64', elf_machine='Advanced Micro Devices X86-64')
++
++    def test_host_requires_matching_unique_class_and_machine(self):
++        headers = (
++            'Class: ELF32\nMachine: AArch64\n',
++            'Class: ELF64\nMachine: ARM\n',
++            'Class: ELF64\nMachine: Advanced Micro Devices X86-64\n',
++            'Machine: AArch64\n', 'Class: ELF64\n', '',
++            'Class: ELF64\nClass: ELF64\nMachine: AArch64\n',
++            'Class: ELF64\nMachine: AArch64\nMachine: AArch64\n',
++        )
++        for header in headers:
++            with self.subTest(header=header), self.assertRaisesRegex(ValueError, 'unexpected ELF target'):
++                self.elf(header=header, needed=('libc.so.6',))
++
++    def test_unknown_host_target_is_not_inferred_from_a_loader_name(self):
++        for machine, system in (('riscv64', 'Linux'), ('armv7l', 'Linux'), ('aarch64', 'FreeBSD')):
++            with self.subTest(machine=machine, system=system), \
++                    self.assertRaisesRegex(ValueError, 'unsupported host ELF target'):
++                self.elf(machine=machine, system=system)
++
++    def test_shipping_stays_arm32_independent_of_build_host(self):
++        for machine, system in (('aarch64', 'Linux'), ('x86_64', 'Linux'), ('arm64', 'Darwin')):
++            with self.subTest(machine=machine, system=system):
++                self.elf(host=False, machine=machine, system=system, elf_class='ELF32',
++                         elf_machine='ARM', needed=('libc.so.6', 'ld-linux.so.3'))
++        for loader in ('ld-linux-aarch64.so.1', 'ld-linux-x86-64.so.2', '/lib/ld-linux.so.3'):
++            with self.subTest(loader=loader), self.assertRaisesRegex(ValueError, 'unexpected runtime'):
++                self.elf(host=False, elf_class='ELF32', elf_machine='ARM', needed=(loader,))
++        with self.assertRaisesRegex(ValueError, 'unexpected ELF target'):
++            self.elf(host=False)
++
++    def test_no_loader_dependency_is_required(self):
++        self.elf(needed=('libc.so.6', 'libm.so.6', 'libgcc_s.so.1', 'libpthread.so.0'))
++        self.elf(host=False, elf_class='ELF32', elf_machine='ARM', needed=('libc.so.6',))
++
++    def test_font_stack_and_cpp_runtime_dependencies_remain_forbidden(self):
++        for dependency in ('libstdc++.so.6', 'libfreetype.so.6', 'libharfbuzz.so.0',
++                           'libfontconfig.so.1', 'libfribidi.so.0', 'libass.so.9'):
++            for host in (False, True):
++                with self.subTest(dependency=dependency, host=host), \
++                        self.assertRaisesRegex(ValueError, 'unexpected runtime'):
++                    self.elf(host=host, elf_class='ELF64' if host else 'ELF32',
++                             elf_machine='AArch64' if host else 'ARM', needed=(dependency,))
++
++    def test_empty_and_leaked_exports_still_fail(self):
++        for names in ((), ('plx_ass_init', 'FT_Init_FreeType'), ('ass_library_init',)):
++            for host in (False, True):
++                with self.subTest(names=names, host=host), \
++                        self.assertRaisesRegex(ValueError, 'outside the private ASS facade'):
++                    self.elf(host=host, elf_class='ELF64' if host else 'ELF32',
++                             elf_machine='AArch64' if host else 'ARM', needed=('libc.so.6',), names=names)
++
++    def test_darwin_dependency_and_export_checks_are_unchanged(self):
++        path = Path('/private/libass-plx-host.dylib')
++        allowed = ('@loader_path/' + path.name, '/usr/lib/libSystem.B.dylib', '/usr/lib/libiconv.2.dylib')
++        for extra, exports, error in (
++                ((), '0000 T _plx_ass_init\n', None),
++                (('/usr/lib/libc++.1.dylib',), '0000 T _plx_ass_init\n', 'unexpected runtime'),
++                ((), '0000 T _FT_Init_FreeType\n', 'outside the private ASS facade'),
++                ((), '', 'outside the private ASS facade')):
++            outputs = {
++                ('otool', '-L', str(path)): str(path) + ':\n' + ''.join(
++                    '\t' + name + ' (compatibility version 1.0.0)\n' for name in allowed + extra),
++                ('nm', '-gU', str(path)): exports,
++            }
++            with self.subTest(extra=extra, exports=exports), \
++                    mock.patch.object(build_libass.subprocess, 'check_output',
++                                      side_effect=lambda args, **kwargs: outputs[tuple(args)]), \
++                    contextlib.redirect_stdout(io.StringIO()):
++                if error:
++                    with self.assertRaisesRegex(ValueError, error):
++                        build_libass.verify_library(path, True, host=True)
++                else:
++                    build_libass.verify_library(path, True, host=True)
++
++
+ if __name__ == '__main__':
+     unittest.main()

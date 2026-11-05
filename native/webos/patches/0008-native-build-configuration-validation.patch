@@ -1,0 +1,218 @@
+diff --git a/ci/check-package.py b/ci/check-package.py
+index 268bfa643ef3b8a50d7a7bc8cf880fd86f5f0de7..21826c8c1732430cc471b0fdc6d96935ce57c34e 100755
+--- a/ci/check-package.py
++++ b/ci/check-package.py
+@@ -63,15 +63,18 @@
+     return re.fullmatch(r"[^<>]+ <[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>", value) is not None
+ 
+ 
+-def build_configuration(stamp: str) -> "str | None":
+-    """Decode `pkg/.build-config` into "dev", "release", or None for anything else.
++def build_configuration(stamp: "str | None") -> "str | None":
++    """Decode a stamp; None means absent or a supported, deliberately ungraded build.
++
++    A present but malformed/unknown configuration raises ValueError. Otherwise a new Makefile
++    field could silently switch off every BUILD-dependent check again.
+ 
+     THE FEATURE FLAGS ARE ONE FIELD OF SEVERAL, and reading the stamp as a whole string is what
+     silently switched every gate that depends on this off. `RUST_CFG` is `features:$(RUST_FEATFLAGS)`,
+     then `+symbols` when SYMBOLS=1, then `+nightly:<date>` when FLAVOR=nightly, then always
+-    `+tel:<hash>` — and `+profile:tvdev` right after the flags when the local ARM profile is in
++    `+tel:<hash>+control:<fingerprint>` — and `+profile:tvdev` right after the flags when the local ARM profile is in
+     use (the Makefile's ARM_PROFILE; absent for `release`, so every shipped stamp is unchanged) —
+-    so the real stamp for an ordinary dev build is `features:+tel:98c4b7d3` under CI and
++    so the historical stamp for an ordinary dev build is `features:+tel:98c4b7d3` under CI and
+     `features:+profile:tvdev+tel:98c4b7d3` for a plain local build, which equals
+     neither of the two literals this was once written against. It matched when it was
+     written; the telemetry field was added later, and from that day the answer was None for EVERY
+@@ -85,17 +88,29 @@
+     Only the FEATURE half is decoded, and matched WHOLE rather than by substring: the "shots"
+     recipe in the Makefile's header is `--no-default-features --features devtriggers`, which a
+     substring test would grade as a release build and then fail for carrying exactly the surface it
+-    asked for. `+tel:`, `+symbols`, `+nightly:` and `+rc:` are all optional so a stamp written by an older
+-    Makefile still decodes, and the feature flags are lazy so they cannot swallow a trailing field.
++    asked for. `+tel:`, `+symbols`, `+nightly:`, `+rc:` and `+control:` remain optional for
++    historical stamps. Control discovery appends either `none` or its 64-character lowercase
++    SHA-256 fingerprint. Feature flags cannot contain the `+` field delimiter: malformed,
++    reordered, duplicate or unknown fields must fail instead of becoming ungraded flags.
+     `nightly_stamp_date` and `rc_stamp_number` read the `+nightly:` and `+rc:` fields' VALUES
+     separately — this function only has to not choke on their presence.
+     """
++    if stamp is None:
++        return None
+     fields = re.fullmatch(
+-        r"features:(?P<flags>.*?)(?:\+profile:[a-z]+)?(?:\+symbols)?(?:\+nightly:[0-9]{8})?(?:\+rc:[0-9]+)?(?:\+tel:[0-9a-f]+)?",
++        r"features:(?P<flags>[^+\r\n]*)(?:\+profile:[a-z]+)?(?:\+symbols)?"
++        r"(?:\+nightly:[0-9]{8})?(?:\+rc:[0-9]+)?(?:\+tel:[0-9a-f]+)?"
++        r"(?:\+control:(?:none|[0-9a-f]{64}))?",
+         stamp.strip())
+-    if not fields:
+-        return None
+-    return {"": "dev", "--no-default-features": "release"}.get(fields.group("flags").strip())
++    configurations = {
++        "": "dev", "--no-default-features": "release",
++        "--features lab-diagnostics": None,
++        "--no-default-features --features lab-diagnostics": None,
++        "--no-default-features --features devtriggers": None,
++    }
++    if not fields or fields.group("flags").strip() not in configurations:
++        raise ValueError("malformed or unsupported build configuration")
++    return configurations[fields.group("flags").strip()]
+ 
+ 
+ def parse_release_line(content: str) -> "tuple[int, int] | None":
+@@ -354,7 +369,18 @@
+           f"{len(maintainer_cases) - maintainer_bad}/{len(maintainer_cases)} cases correct")
+ 
+     cases = {
+-        # what the Makefile writes today, per documented configuration
++        # Current Makefile suffix: control discovery is always stamped, including
++        # an explicit `none` when no public discovery catalog is configured.
++        "features:+tel:98c4b7d37a4c+control:none": "dev",
++        "features:--no-default-features+tel:98c4b7d37a4c+control:" + "a" * 64: "release",
++        "features:--no-default-features+symbols+tel:98c4b7d37a4c+control:none": "release",
++        "features:+profile:tvdev+tel:98c4b7d37a4c+control:" + "b" * 64: "dev",
++        "features:--no-default-features+symbols+nightly:20260919+tel:98c4b7d37a4c+control:none": "release",
++        "features:--no-default-features+symbols+rc:2+tel:98c4b7d37a4c+control:none": "release",
++        "features:--no-default-features --features devtriggers+tel:98c4b7d37a4c+control:none": None,
++        "features: --features lab-diagnostics+tel:98c4b7d37a4c+control:none": None,
++        "features:--no-default-features --features lab-diagnostics+tel:98c4b7d37a4c+control:none": None,
++        # Historical Makefile stamps remain supported.
+         "features:+tel:98c4b7d37a4c": "dev",
+         "features:--no-default-features+tel:98c4b7d37a4c": "release",
+         "features:--no-default-features+symbols+tel:98c4b7d37a4c": "release",   # the release cut
+@@ -374,16 +400,46 @@
+         "features:--no-default-features --features lab-diagnostics+tel:abc123def456": None,
+         "features:--no-default-features --features devtriggers+tel:abc123def456": None,  # shots
+         # nothing to read
+-        "": None,
+-        "garbage": None,
++        None: None,
+     }
+     bad = 0
+     for stamp, want in cases.items():
+-        got = build_configuration(stamp)
++        try:
++            got = build_configuration(stamp)
++        except (ValueError, TypeError, AttributeError) as exc:
++            bad += 1
++            print(f"  FAIL — {stamp!r} rejected with {type(exc).__name__}, want {want!r}")
++            continue
+         if got != want:
+             bad += 1
+             print(f"  FAIL — {stamp!r} decoded {got!r}, want {want!r}")
+     print(f"check-package: build_configuration {len(cases) - bad}/{len(cases)} stamps correct")
++    invalid_stamps = (
++        "", "  ", "garbage", "features:--unknown-feature",
++        "features:+unknown:abc", "features:+tel:abc+unknown:abc",
++        "features:+tel:abc+control:", "features:+tel:abc+control:None",
++        "features:+tel:abc+control:" + "a" * 63,
++        "features:+tel:abc+control:" + "a" * 65,
++        "features:+tel:abc+control:" + "A" * 64,
++        "features:+tel:abc+control:" + "g" * 64,
++        "features:+tel:abc+control:none+control:none",
++        "features:+control:none+tel:abc", "features:+tel:abc+tel:def",
++        "features:+symbols+profile:tvdev+tel:abc+control:none",
++        "features:+tel:abc+control:none+unknown:abc",
++        "features:+tel:abc\n+control:none",
++        "features:--features lab-diagnostics+tel:abc+unknown:abc",
++    )
++    invalid_bad = 0
++    for stamp in invalid_stamps:
++        try:
++            build_configuration(stamp)
++        except ValueError:
++            continue
++        invalid_bad += 1
++        print(f"  FAIL — malformed build stamp {stamp!r} did not raise ValueError")
++    print(f"check-package: malformed build_configuration "
++          f"{len(invalid_stamps) - invalid_bad}/{len(invalid_stamps)} stamps rejected")
++    bad += invalid_bad
+ 
+     # `expected_dev_version` against every shape the two derivations (this file's and
+     # `rust-modules/src/release_line.rs`'s) must agree on: trunk, a real maintenance line, a
+@@ -1372,15 +1428,21 @@
+ # `build_configuration` above decodes it, and its docstring carries the trap: the feature flags are
+ # one FIELD of the stamp, not the whole of it, and reading it whole left every gate below graded on
+ # nothing for months. Only the two configurations this project actually ships decode; anything else
+-# (LAB, the shots recipe, an unreadable stamp) says so out loud instead of being graded.
++# (the supported LAB and shots recipes, or an absent stamp) says so instead of being graded.
++# A present malformed/unknown stamp is an error, never another reason to skip these checks.
+ #
+ # NB the stamp moves at make PARSE time, so any bare `make <target>` after a RELEASE=1 build flips
+ # it to dev while ipkroot still holds the release binary. Both workflows build, package and check
+ # in one shot so they never see that; a by-hand run on a stale tree can, and the disagreement it
+ # then reports is true — repackage before believing anything else about that tree.
+ _stamp = ROOT / "pkg/.build-config"
+-STAMP_TEXT = _stamp.read_text() if _stamp.exists() else ""
+-BUILD = build_configuration(STAMP_TEXT)
++STAMP_TEXT = _stamp.read_text() if _stamp.exists() else None
++try:
++    BUILD = build_configuration(STAMP_TEXT)
++except ValueError:
++    print("  FAIL — pkg/.build-config has malformed or unsupported build configuration")
++    sys.exit(1)
++STAMP_TEXT = STAMP_TEXT or ""
+ 
+ # THIRD-PARTY-NOTICES must name exactly the libraries that ship. RELEASE=1 drops swscale, and the
+ # notices claimed it for two releases — an LGPL document describing a file that is not in the box.
+diff --git a/ci/test_package_product_config.py b/ci/test_package_product_config.py
+index ae8964b650d6b4eaca4e5e06ca54956ff8915353..e6fe7e6da086c1da2c1c88646d35d3af5e387592 100644
+--- a/ci/test_package_product_config.py
++++ b/ci/test_package_product_config.py
+@@ -141,6 +141,55 @@
+                 self.assertTrue(lines[0].startswith(verdict + " — " + gate), lines)
+                 self.assertNotIn("all assertions passed", checked.stdout)
+ 
++    def test_control_stamp_enables_real_release_byte_gates(self):
++        self.stage(self.appinfo)
++        for name in ("rust-modules/src/dev.rs", "rust-modules/base/src/devtrig.rs"):
++            self.write(name, (ROOT / name).read_text())
++        binary = self.root / "ipkroot/data/usr/palm/applications" / APP / "plxnative"
++        binary.write_bytes(b"synthetic-payload\0plxnative-noidle\0plxnative@0.4.0-dev\0")
++        for control in ("none", "a" * 64):
++            with self.subTest(control=control):
++                self.write("pkg/.build-config",
++                           "features:--no-default-features+symbols+tel:98c4b7d37a4c+control:" + control)
++                result = self.configured()
++                # This is an intentionally incomplete synthetic package. These
++                # failures must be the actual BUILD-dependent byte gates.
++                self.assertNotEqual(result.returncode, 0)
++                self.assertIn("FAIL — the packaged binary is a RELEASE build", result.stdout)
++                self.assertIn("FAIL — the RELEASE binary reports 0.3.0 exactly", result.stdout)
++                self.assertNotIn("neither shipped configuration", result.stdout)
++
++    def test_present_bad_stamp_fails_before_configuration_skip(self):
++        self.stage(self.appinfo)
++        cases = ("", "garbage", "features:+tel:abc+control:" + "a" * 63,
++                 "features:+tel:abc+control:none+control:none",
++                 "features:+control:none+tel:abc", "features:+tel:abc+future:1")
++        for stamp in cases:
++            with self.subTest(stamp=stamp):
++                self.write("pkg/.build-config", stamp)
++                result = self.configured()
++                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
++                self.assertIn("FAIL — pkg/.build-config has malformed or unsupported build configuration",
++                              result.stdout)
++                self.assertNotIn("neither shipped configuration", result.stdout)
++                self.assertNotIn("Traceback", result.stderr)
++
++    def test_absent_stamp_and_supported_non_shipped_features_remain_explicit_skips(self):
++        self.stage(self.appinfo)
++        for name in ("rust-modules/src/dev.rs", "rust-modules/base/src/devtrig.rs"):
++            self.write(name, (ROOT / name).read_text())
++        binary = self.root / "ipkroot/data/usr/palm/applications" / APP / "plxnative"
++        binary.write_bytes(b"synthetic-payload")
++        for flags in (None, "--features lab-diagnostics",
++                      "--no-default-features --features lab-diagnostics",
++                      "--no-default-features --features devtriggers"):
++            with self.subTest(flags=flags):
++                if flags is not None:
++                    self.write("pkg/.build-config", "features:" + flags + "+tel:abc+control:none")
++                result = self.configured()
++                self.assertIn("SKIP — pkg/.build-config is neither shipped configuration", result.stdout)
++                self.assertNotIn("malformed or unsupported build configuration", result.stdout)
++
+     def test_tracked_uses_routed_docs_and_receipt_matches_exact_bytes(self):
+         result = self.configured("--tracked")
+         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

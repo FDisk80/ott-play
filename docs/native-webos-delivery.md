@@ -1,4 +1,4 @@
-# Deliver and update OTTPlay Native for LG
+# Deliver and update OTTPlay for LG (native)
 
 For Developer Mode account setup, pairing, session renewal and CLI diagnostics,
 see the [LG Developer Mode runbook](lg-developer-mode.md). The checked native
@@ -18,16 +18,24 @@ not proof of playback or state retention on the receiving television.
 
 ## Identify the application first
 
-**OTTPlay Native** uses application ID `com.openottplay.player.native` and a
+**OTTPlay** is the native app's display name. It uses application ID
+`com.openottplay.player.native` and a
 native ARM executable with an SDL/OpenGL interface. **OTT-play hosted** uses
 `com.openottplay.player` and loads the shared player website. The Plex
 application from LG Apps is another independent installation.
+
+Older releases and their immutable catalog entries may retain the title
+**OTTPlay Native**. Use application IDs to distinguish native and hosted
+installations; a display-name change does not change those IDs.
 
 These applications have separate update streams and state. A deployment to
 `player.ottplay.here.now` or a new Tauri/OTTserver build does not replace the
 native executable. Conversely, installing a native IPK does not update the
 hosted player, import its profiles or transfer its remote-control consent.
 Select the intended application ID in both the installer and the launch command.
+New native DNS discovery, settings or interface behavior requires a newly built
+and installed native IPK; updating the hosted website cannot add it to an older
+native installation.
 
 The native package has its own numeric version. Read it from the release's
 metadata and IPK; do not derive it from a main-player release number. For
@@ -36,6 +44,112 @@ native package version `0.1.0`. A beta label is not part of the numeric version
 that the TV installer compares. A subsequent installable candidate needs the
 version chosen for that candidate, consistently applied to all package
 descriptors and manifests.
+
+## Local diagnostic candidates and published releases
+
+An explicitly supplied local diagnostic candidate may use the **OTTPlay**
+display name and retain the `com.openottplay.player.native` ID so an in-place
+update targets the existing installation. The name and ID do not establish
+release qualification. Record the exact native source, enabled development
+features, application/storage/helper hashes and final IPK hash. Preserve the
+existing state as described below; do not uninstall or change the ID to avoid
+an update refusal.
+
+Such a candidate is separate from the published-release update helper and its
+release-tag checks. Use only the candidate's explicitly agreed installation
+procedure. A successful application compile or final link is not a completed
+package. A diagnostic feature set does not establish passing the official
+stable release's feature and size checks. Official delivery still requires the
+matching companion, package and source-closure verification, final workflow results and
+separate physical-TV acceptance. The official release gates remain unchanged;
+a local diagnostic candidate does not claim to have passed them. The [0.3.0 audit](../native/webos/releases/0.3.0-audit.md) keeps the current
+candidate and historical results separate.
+
+### Troubleshoot a local diagnostic candidate
+
+Start with [Connect the player](../native/webos/README.md#connect-the-player)
+and identify the failed stage before changing the connection:
+
+- **Find/DNS:** check that the installed candidate includes Native Find,
+  preferences are ready and access-policy checks permit the action. An empty result or lookup
+  error concerns discovery; it does not establish whether a known controller
+  is reachable. Follow the linked guide's DNS and catalog rules.
+- **HTTPS:** finding a server does not prove the TV can reach its HTTPS
+  endpoints. Record the exact connection error and the action that produced
+  it. A successful request from a computer does not prove the TV has the same
+  DNS, routing or certificate trust.
+- **Pairing approval:** a displayed code is a request, not an approved or saved
+  connection. The administrator must match the intended player's full identity
+  and current displayed code using the [pairing procedure](remote-command-server.md).
+  An empty pending list alone does not establish success.
+- **Preferences:** the normalized HTTPS controller address, stable installation
+  device ID, Classic/Modern mode and bounded temporary native-Plex browse
+  bookmarks use the non-secret record. Bookmarks retain source/category
+  fingerprints and a focus key; they do not contain credentials or grant source
+  access. Current account and source authorization is required before reuse.
+  A genuinely absent configuration can save a disabled, tokenless identity
+  without KeyManager. Wait for durable write/readback success; an uncertain
+  write blocks further preference writes until the application restarts.
+  Preference success does not complete pairing, verify protected storage or
+  unlock access when prior kiosk or parental policy is unknown.
+- **Protected pairing-token and player-state Save:** on native ARM, typed
+  Control and State requests keep encryption and decryption in the named
+  helper, using separate keys. Control stores pairing credentials; State
+  stores profiles, Favorites, playback positions and other saved settings.
+  Neither path has a plaintext or ACL-only fallback. Host and hostsim builds
+  retain application-side cryptography, as does decoding legacy v1 records
+  on ARM. Migration requires successful legacy decoding; a failure preserves
+  the ciphertext and remains a storage failure. A helper diagnostic result
+  of `complete`, including a successful synthetic key canary, does not prove
+  a durable Control or State write and verified readback. If a diagnostic
+  reports `operation=seal stage=generate service_code=-1000`, the meaning of
+  that numeric code is not yet established. It is not evidence of a missing
+  server or wrong password, or proof that the connection was saved.
+  Preserve the existing state; do not bypass encryption or reset keys to force
+  a connection. An already working or provisioned connection does not prove
+  that a new protected Save can succeed.
+- **After restart:** check preference retention and pairing separately. Fully
+  close and reopen the application, then check the selected address and
+  Classic/Modern mode. After successful approval and protected token Save,
+  also check that the connection returns without re-entering credentials and
+  obtain a fresh player response. Preference retention alone does not prove
+  token storage or authenticated reconnect. Closing Settings or seeing a
+  changed display does not test persistence.
+  If the connection is lost, retain the error before repeating setup; follow
+  the [state-preservation guidance](#prepare-an-update-without-discarding-state).
+
+An administrator with an already configured CLI can inspect the controller
+and request read-only player diagnostics. `NAME` is the existing alias for
+the intended native installation:
+
+```sh
+ott -j discover
+ott -j pending
+ott -j --receipt NAME caps
+ott -j --receipt NAME status
+```
+
+`discover` and `pending` query the configured controller; they do not find an
+unknown server, reproduce the TV's lookup or approve pairing. `caps` and
+`status` request fresh player responses without changing settings. Check
+successful terminal receipts, not just queue acceptance, the reported runtime,
+and any `capabilities_error` or `playback_error`. Repeat after an independently
+observed restart; responses alone do not prove persistence. Pending output
+contains pairing codes: keep raw output private and redact identifiers,
+addresses and credentials before sharing.
+
+For a protected-write failure, distinguish credential KeyManager from Developer
+Mode's Key Server. Obtaining an SSH key does not approve OTT pairing or prove
+protected Save works; see the [connection explanation](../native/webos/README.md#connect-the-player).
+
+Report the model/firmware, package version and hash, action sequence and exact
+visible error. With authorized diagnostic access, correlate helper outcomes
+and application protection/commit/load results, retaining their build/process
+identities, diagnostic schema and sequence. Snapshot publication can fail or
+omit unchanged outcomes, so a snapshot alone does not establish the latest
+attempt. Share relevant redacted fields, never keys, state files or raw request
+payloads. This candidate has no on-screen developer-log export. For Ares access
+failures, use [connection troubleshooting](../native/webos/README.md#connection-and-startup-troubleshooting).
 
 ## Keep one complete release bundle
 
@@ -53,6 +167,13 @@ Download the following files from the **same native release**. In these names,
 - `ottplay-native-webos-VERSION-source-set.json` — binds the two source
   archives to the package.
 - `ottplay-native-webos-icon.png` — artwork used by the release catalog.
+- `ottplay-native-webos-VERSION-cargo-artifacts.jsonl` — Cargo compilation records.
+- `ottplay-native-webos-VERSION-build-config.txt` — effective native build configuration.
+
+The two compilation evidence files are required when the package receipt records
+`build.compilation`, as current candidates do. Older release receipts without
+that field do not require these two files. The verifier reads them locally; it
+does not download missing evidence.
 
 A Homebrew Channel publication also includes
 `ottplay-native-webos-manifest.json` and
@@ -445,8 +566,9 @@ https://ottplay-webos.igw-2560801.workers.dev/v1/NATIVE_RELEASE_TAG/ottplay-nati
 ```
 
 Replace `NATIVE_RELEASE_TAG` with the exact tag containing the verified native
-assets. Add that repository in Homebrew Channel, select **OTTPlay Native** and
-check its application ID and version before choosing **Install** or **Update**.
+assets. Add that repository in Homebrew Channel and select the entry with
+application ID `com.openottplay.player.native`. Verify its version before
+choosing **Install** or **Update**; older snapshots may display the former name.
 Follow the same private-state preservation steps as for a Developer Mode
 update. Remove obsolete snapshot repositories from Homebrew settings when
 they create duplicate entries; do not remove the application itself.

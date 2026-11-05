@@ -101,23 +101,37 @@ def release_body(inputs):
     raw = git("cat-file", "blob", oid)
     require(len(raw) == size, "Native release notes object size changed")
     try:
-        body = raw.decode("utf-8").strip()
+        body = raw.decode("utf-8")
     except UnicodeDecodeError:
         raise PromotionError("Native release notes must be UTF-8") from None
-    require(body and "\x00" not in body, "Native release notes are empty or contain NUL")
+    require(body.strip() and "\x00" not in body, "Native release notes are empty or contain NUL")
+    require(
+        not re.search(r"\brelease[ \t]+preparation[ \t]*(?:\*\*)?[ \t]*:", body, re.IGNORECASE),
+        "Native release notes still contain a release preparation notice",
+    )
     return body
 
 
-def candidate_names(version):
+def candidate_names(version, *, compilation=False):
     stem = "ottplay-native-webos-" + version
+    evidence = (stem + "-cargo-artifacts.jsonl", stem + "-build-config.txt") if compilation else ()
     return tuple(stem + suffix for suffix in (
         ".ipk", ".json", ".sha256", "-source.tar.gz",
         "-source.tar.gz.release.json", "-runtime-source.tar.gz", "-source-set.json",
-    )) + ("ottplay-native-webos-icon.png",)
+    )) + ("ottplay-native-webos-icon.png",) + evidence
 
 
-def release_names(version):
-    return candidate_names(version) + ("ottplay-native-webos-manifest.json", "ottplay-native-webos-repository.json")
+def release_names(version, *, compilation=False):
+    return candidate_names(version, compilation=compilation) + ("ottplay-native-webos-manifest.json", "ottplay-native-webos-repository.json")
+
+
+def bundle_names(directory, version, *, release=False):
+    metadata = directory / ("ottplay-native-webos-" + version + ".json")
+    file_digest(metadata)
+    value = decode(metadata.read_bytes())
+    require(isinstance(value, dict) and isinstance(value.get("build"), dict), "Invalid candidate build metadata")
+    names = release_names if release else candidate_names
+    return names(version, compilation="compilation" in value["build"])
 
 
 def file_limit(name):
@@ -335,7 +349,7 @@ def select_artifact(payload, inputs):
 
 
 def safe_extract(archive, output, version):
-    """Only eight flat regular files, with bounded ZIP directory and payloads."""
+    """Only either exact flat candidate set, with bounded directory and payloads."""
     require(not archive.is_symlink() and archive.is_file() and archive.stat().st_size <= ZIP_LIMIT, "Unsafe candidate ZIP")
     size = archive.stat().st_size
     with archive.open("rb") as stream:
@@ -344,15 +358,15 @@ def safe_extract(archive, output, version):
     position = tail.rfind(b"PK\x05\x06")
     require(position >= 0 and len(tail) - position >= 22, "Missing ZIP directory")
     _, disk, start_disk, count_disk, count, directory_size, offset, comment = struct.unpack("<4s4H2LH", tail[position:position + 22])
-    require(disk == start_disk == 0 and count_disk == count == 8 and directory_size <= 65536,
+    require(disk == start_disk == 0 and count_disk == count and count in (8, 10) and directory_size <= 65536,
             "ZIP directory exceeds allowed shape")
     require(position + 22 + comment == len(tail) and offset + directory_size == size - len(tail) + position,
             "ZIP layout is not a plain single archive")
     require(not output.is_symlink() and output.is_dir() and not any(output.iterdir()), "Extraction requires an empty directory")
-    expected, total = set(candidate_names(version)), 0
+    expected, total = set(candidate_names(version, compilation=count == 10)), 0
     with zipfile.ZipFile(archive) as zipped:
         rows = zipped.infolist()
-        require(len(rows) == 8 and {row.filename for row in rows} == expected, "ZIP inventory differs from candidate allowlist")
+        require(len(rows) == count and {row.filename for row in rows} == expected, "ZIP inventory differs from candidate allowlist")
         for row in rows:
             kind = stat.S_IFMT(row.external_attr >> 16)
             require(kind in (0, stat.S_IFREG) and not row.is_dir() and not row.flag_bits & 1,
@@ -418,12 +432,12 @@ def prepare(args):
     require(not directory.exists() and not directory.is_symlink(), "Output already exists; use a fresh directory")
     directory.mkdir(parents=True)
     artifact = fetch_candidate(inputs, directory)
-    inventory(directory, candidate_names(inputs["version"]))
+    inventory(directory, bundle_names(directory, inputs["version"]))
     verify_bundle(directory, inputs["version"], require_feed=False)
     write_feed(directory, inputs)
     verify_bundle(directory, inputs["version"])
     receipt = {"schema": 1, "inputs": inputs, "artifact": artifact,
-               "files": inventory(directory, release_names(inputs["version"]))}
+               "files": inventory(directory, bundle_names(directory, inputs["version"], release=True))}
     (directory / RECEIPT).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return receipt
 
@@ -438,7 +452,7 @@ def load_receipt(directory, *, require_current_main=True):
     inputs = validate_inputs(raw["run_id"], raw["source_sha"], raw["version"], raw["tag"])
     require(raw == inputs, "Receipt repository mismatch")
     check_environment(inputs, require_current_main=require_current_main)
-    require(inventory(directory, release_names(inputs["version"]), receipt=True) == receipt["files"], "Promotion bundle digest mismatch")
+    require(inventory(directory, bundle_names(directory, inputs["version"], release=True), receipt=True) == receipt["files"], "Promotion bundle digest mismatch")
     verify_bundle(directory, inputs["version"])
     return receipt
 
@@ -450,12 +464,12 @@ def verify_source_receipt(receipt):
         directory = Path(tmp)
         require(fetch_candidate(inputs, directory) == receipt["artifact"], "Candidate artifact changed")
         write_feed(directory, inputs)
-        require(inventory(directory, release_names(inputs["version"])) == receipt["files"], "Promotion differs from candidate and exact feed")
+        require(inventory(directory, bundle_names(directory, inputs["version"], release=True)) == receipt["files"], "Promotion differs from candidate and exact feed")
 
 
 def assets_for(release_id, receipt):
     rows = api_json(f"/repos/{REPOSITORY}/releases/{positive(release_id)}/assets?per_page=100")
-    require(isinstance(rows, list) and len(rows) == 10
+    require(isinstance(rows, list) and len(rows) == len(receipt["files"])
             and {row.get("name") for row in rows} == set(receipt["files"]), "Release asset inventory mismatch")
     require(len({row.get("id") for row in rows}) == len(rows), "Duplicate release asset identity")
     for row in rows:
@@ -493,13 +507,13 @@ def publish(args):
     api_json(prefix + "/git/refs", method="POST", payload={"ref": "refs/tags/" + tag, "sha": inputs["source_sha"]})
     verify_tag(inputs)
     release = api_json(prefix + "/releases", method="POST", payload={
-        "tag_name": tag, "target_commitish": inputs["source_sha"], "name": "OTTPlay Native " + tag,
+        "tag_name": tag, "target_commitish": inputs["source_sha"], "name": "OTTPlay " + tag,
         "body": body,
         "draft": True, "prerelease": "-beta." in tag or "-rc." in tag, "make_latest": "false",
     })
     release_id = positive(release.get("id"))
     require(release.get("draft") is True and release.get("tag_name") == tag, "GitHub did not create the requested draft")
-    for name in release_names(inputs["version"]):
+    for name in bundle_names(directory, inputs["version"], release=True):
         require(file_digest(directory / name) == receipt["files"][name], "Bundle changed during upload")
         upload_asset(release_id, name, directory / name)
     with tempfile.TemporaryDirectory(prefix="native-draft-check-") as tmp:

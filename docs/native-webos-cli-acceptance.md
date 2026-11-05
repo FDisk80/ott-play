@@ -1,7 +1,7 @@
-# Read-only CLI acceptance for OTTPlay Native
+# Read-only CLI acceptance for native OTTPlay
 
 The native CLI smoke helper collects evidence from an already running, paired
-**OTTPlay Native for LG**. It checks the reported native version, remote request
+**OTTPlay** native installation for LG. It checks the reported native version, remote request
 handling and changes in the reported playback position. It does not install,
 launch, stop, wake or reconfigure a player, select media, send keys or change
 volume. No physical-TV validation has been performed for this helper yet.
@@ -25,7 +25,7 @@ From the repository root:
 ```sh
 python3 scripts/smoke-webos-native-cli.py \
   --player YOUR_NATIVE_PLAYER \
-  --expected-version 0.2.0
+  --expected-version 0.3.0
 ```
 
 To select the installation and bound the observation explicitly:
@@ -33,7 +33,7 @@ To select the installation and bound the observation explicitly:
 ```sh
 python3 scripts/smoke-webos-native-cli.py \
   --player YOUR_NATIVE_PLAYER \
-  --expected-version 0.2.0 \
+  --expected-version 0.3.0 \
   --config /path/to/ott-config.json \
   --cli /path/to/ott \
   --samples 3 \
@@ -65,6 +65,16 @@ inspection, but retained state is not a fresh playback observation. Do not use
 `get_state` or `diagnostics` as player verbs: the CLI can interpret unrecognized
 verbs as media searches and start playback. The helper uses the real CLI API
 with an explicit read-only request list; it does not invent CLI verbs.
+
+New native builds include a `catalog` object in the authenticated status/state
+response. Its `scope: "source"` count describes the source catalogue, before
+category or Favorites filtering. Check `loading`, `complete`, `count` and
+`error_code` together: an empty Favorites view does not imply that loading
+failed, and zero entries with `complete: true` and no error is an empty successful
+result. The `generation` identifies the current load. Failure codes are
+`catalog_failed`, `source_unavailable`, `loader_unavailable` or `catalog_limit`;
+they contain no provider URL, credentials or raw error text. Older builds can
+omit this object. It does not change the legacy `ready` field or prove playback.
 
 ## Read the result by evidence type
 
@@ -125,8 +135,13 @@ successful observation. A presence sequence advancing proves a new publication,
 not a new decoded frame. Repeated reads of an unchanged cached record cannot
 substitute for independent correlated replies.
 
-The native application's existing event log has additional diagnostic fields,
-but the CLI status response does not contain them:
+The native application's event log has additional diagnostics that are not
+exposed under their log field names in CLI status replies. Builds providing
+`data.video_evidence` also expose an attributed native position-callback count
+and, when available, the latest raw sink-counter callback report. Its window
+flag describes permission to present, not physical visibility. These observations
+do not establish decoded or displayed frames, panel power, or a moving picture.
+The following fields describe the event log, not the new status object's schema:
 
 - `loop` counts main-loop iterations. It is application liveness evidence.
 - Lowercase `fps` counts actual GL swaps of the application's graphics plane.
@@ -188,8 +203,10 @@ python3 scripts/check-native-cli-transport.py --cli /path/to/ott
 
 The settings fixture reproduces the native schema bug: removing `aliases` from
 the Native and Modern choice objects must fail validation; both corrected
-choices, the complete schema and all three setting reads must pass. This is a
-native schema correction, not a change to the web or Tauri settings. Optional
+choices, the complete three-setting fixture schema and its three setting reads
+must pass. This checks the regression fixture, not the entire current settings
+catalog or setting writes. It is a native schema correction, not a change to
+the web or Tauri settings. Optional
 `--native-source /path/to/ott_settings.rs` compares the source choice objects to
 the fixture. The loopback check also exercises `unsupported` and
 `request_pending_timeout` through the real CLI, with one enqueue per request.
@@ -217,11 +234,25 @@ The source audit covers `app/ott_commands.rs`, `ott_settings.rs`,
 Read the capability response at the time of an operation; it is not a permanent
 promise for every playback state.
 
-- `player_settings` version 1 advertises `schema`, `get`, `set`, with at most 20
-  descriptors per page. The native descriptors are `uiFontScale` (50–150,
-  default 100, writable), `players` (Native, read-only), and `interfaceMode`
-  (Modern, read-only). Writes require the source context and single-use revision;
-  the smoke only reads them. No separate validate/apply command is advertised.
+- `player_settings` version 1 advertises `schema`, `get`, and `set`, with at most
+  20 descriptors per page. The later native source snapshot
+  `e24c8f87a91e51bddebc7e2e46f73141f99b323a` defines 35 descriptors:
+  `players` remains Native-only and read-only, while `interfaceMode` is writable
+  with Classic (`0`) and Modern (`1`, default) choices. Follow schema pagination
+  and the target build's per-setting access flags. Writes require the captured
+  context and single-use revision. The checked-in three-setting fixture retains
+  the earlier Modern-only, read-only interface schema; the smoke's GET subset
+  remains `uiFontScale`, `players`, and `interfaceMode`. These checks do not
+  establish coverage of all 35 descriptors or setting writes. No separate
+  validate/apply command is advertised.
+  The current Classic extension adds `showNumber`, `showName`, `showProgram`,
+  `showDescription`, and `showProgress`, bringing the schema to 40 descriptors
+  (two default pages of 20). These five visibility settings belong to the
+  selected provider. `showProgress` defaults to On (`1`) and is independent of
+  `showProgram`; use the returned context and revision when changing either.
+  The three-setting
+  smoke fixture remains a subset, so complete schema coverage comes from the
+  separately exported native contract test rather than this smoke check.
 - `input` contains the six navigation keys while foreground playback is
   allowed; mute and volume keys additionally require an active native transport.
   Input and lifecycle acceptance precede their after-ACK effect. It does not

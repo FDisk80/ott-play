@@ -1,6 +1,6 @@
 # Native OTT application for LG webOS
 
-**OTTPlay Native** is an experimental, separately installed native application
+**OTTPlay** is an experimental, separately installed native application
 for LG televisions. It renders through SDL2/OpenGL ES and uses the TV's native
 decoder, without loading the LG browser or a WebView. The ordinary OTT-play
 webOS package continues to provide the full multi-provider web interface.
