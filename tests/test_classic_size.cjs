@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 let {
+    AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE,
     NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
     FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
     LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,
@@ -127,8 +128,176 @@ function capsWithoutAllowances(names) {
     baseline._compile(source, filename);
     return baseline.exports;
 }
+// Keep earlier evidence at its original caps. Only the newly measured Auto
+// allowance is removed; live inspectors below still use the true latestCaps.
+const preRecoveryCaps = capsWithoutAllowances([
+    "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
+]);
+function historicalCapsWithoutAllowances(names) {
+    return capsWithoutAllowances([
+        "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
+        ...names,
+    ]);
+}
+const autoRecoveryEvidence = require("../docs/evidence/auto-relay-stall-recovery-size-20261105.json");
+assert(Object.isFrozen(AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE));
+assert.deepEqual(
+    AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE,
+    autoRecoveryEvidence.measured_allowance
+);
+assert.equal(AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.bytes, 0);
+assert.deepEqual(
+    autoRecoveryEvidence.entries.map((row) => row.path).sort(),
+    [...ARTIFACTS].sort()
+);
+assert.deepEqual(
+    autoRecoveryEvidence.payloads.map((row) => row.entry).sort(),
+    [...ARTIFACTS].sort()
+);
+assert.equal(
+    AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.gzipBytes,
+    Math.max(
+        0,
+        ...autoRecoveryEvidence.entries.map(
+            (row) => row.candidate.gzipBytes - row.base.gzipBytes
+        )
+    ),
+    "allocate the maximum positive entry cost, not three copies or the overrun"
+);
+for (const [scope, name] of Object.entries({
+    baseTotal: "BASE_TOTAL_BUDGET",
+    completeTotal: "TOTAL_BUDGET",
+    entry: "BUDGET",
+    legacyTotal: "LEGACY_TOTAL_BUDGET",
+})) {
+    assert.deepEqual(
+        preRecoveryCaps[name],
+        autoRecoveryEvidence.budget_before[scope]
+    );
+    assert.deepEqual(
+        latestCaps[name],
+        autoRecoveryEvidence.budget_after[scope]
+    );
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            latestCaps[name][metric] - preRecoveryCaps[name][metric],
+            AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE[metric],
+            name + " counts the Auto recovery entry cost exactly once"
+        );
+}
+for (const [name, recorded] of Object.entries({
+    OPTIONAL_BUDGET: autoRecoveryEvidence.optionalBudget,
+    OPTIONAL_BUDGETS: autoRecoveryEvidence.optionalBudgets,
+    PROVIDER_BUDGET: autoRecoveryEvidence.providerBudget,
+})) {
+    const actual = require("../scripts/classic-size.cjs")[name];
+    assert.deepEqual(actual, preRecoveryCaps[name]);
+    assert.deepEqual(actual, recorded);
+}
+// The paired record lists every unchanged provider/optional asset. Rebuild
+// both payload totals from those measurements, so entry-only growth cannot
+// hide an omitted asset or an independently increased provider/optional cost.
+const recoveryAssetPaths = new Map();
+for (const entry of ARTIFACTS) {
+    const directory = path.posix.dirname(entry);
+    for (const name of Object.keys(CLASSIC_PROVIDER_BUNDLES))
+        recoveryAssetPaths.set(
+            directory + "/provider-" + name + ".js",
+            "providers"
+        );
+    for (const name of Object.keys(CLASSIC_OPTIONAL_BUNDLES))
+        recoveryAssetPaths.set(
+            directory + "/" + name + ".js",
+            "optionalAssets"
+        );
+}
+assert.equal(recoveryAssetPaths.size, 72);
+assert.equal(autoRecoveryEvidence.unchangedAssets.length, 72);
+assert.deepEqual(autoRecoveryEvidence.assetDifferences, []);
+const recoveryAssets = new Map();
+for (const asset of autoRecoveryEvidence.unchangedAssets) {
+    assert.equal(recoveryAssetPaths.get(asset.path), asset.group, asset.path);
+    assert(!recoveryAssets.has(asset.path), "duplicate asset: " + asset.path);
+    assert.match(asset.sha256, /^[0-9a-f]{64}$/);
+    const cap =
+        asset.group === "providers"
+            ? PROVIDER_BUDGET
+            : OPTIONAL_BUDGETS[path.posix.basename(asset.path, ".js")];
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert(Number.isSafeInteger(asset[metric]) && asset[metric] > 0);
+        assert(
+            asset[metric] <= cap[metric],
+            asset.path + " retains its existing cap"
+        );
+    }
+    recoveryAssets.set(asset.path, asset);
+}
+assert.deepEqual(
+    [...recoveryAssets.keys()].sort(),
+    [...recoveryAssetPaths.keys()].sort()
+);
+for (const entry of autoRecoveryEvidence.entries) {
+    const payload = autoRecoveryEvidence.payloads.find(
+        (row) => row.entry === entry.path
+    );
+    const assets = [...recoveryAssets.values()].filter(
+        (row) => path.posix.dirname(row.path) === path.posix.dirname(entry.path)
+    );
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const delta = entry.candidate[metric] - entry.base[metric];
+        assert.equal(entry.delta[metric], delta);
+        assert(entry.candidate[metric] <= latestCaps.BUDGET[metric]);
+        for (const [scope, name] of Object.entries({
+            legacyTotal: "LEGACY_TOTAL_BUDGET",
+            total: "TOTAL_BUDGET",
+        })) {
+            const included =
+                scope === "legacyTotal"
+                    ? assets.filter((row) => row.group === "providers")
+                    : assets;
+            const unchanged = included.reduce(
+                (sum, row) => sum + row[metric],
+                0
+            );
+            for (const stage of ["base", "candidate"])
+                assert.equal(
+                    payload[scope][stage][metric],
+                    entry[stage][metric] + unchanged,
+                    entry.path +
+                        " " +
+                        scope +
+                        " preserves every unchanged asset"
+                );
+            assert.equal(payload[scope].delta[metric], delta);
+            assert.equal(
+                payload[scope].candidate[metric] - payload[scope].base[metric],
+                delta,
+                "each payload grows by one entry, never by all three variants"
+            );
+            assert(
+                payload[scope].candidate[metric] <= latestCaps[name][metric]
+            );
+        }
+    }
+}
+for (const arm of ["A", "B"]) {
+    assert.equal(autoRecoveryEvidence.validation[arm].inputValid, true);
+    assert.deepEqual(
+        autoRecoveryEvidence.identities[arm].map((row) => row.path).sort(),
+        [...ARTIFACTS].sort()
+    );
+    for (const identity of autoRecoveryEvidence.identities[arm])
+        assert.deepEqual(
+            identity.sourceRevisions,
+            [""],
+            "same dirty identity mode in both arms"
+        );
+}
+
 // Qualify the new EPG layer against exact paired output, keeping old receipts immutable.
-const epgBaseline = capsWithoutAllowances(["EPG_PRESENTATION_ENTRY_ALLOWANCE"]);
+const epgBaseline = historicalCapsWithoutAllowances([
+    "EPG_PRESENTATION_ENTRY_ALLOWANCE",
+]);
 const epgEvidence = require("../docs/evidence/epg-presentation-size.json");
 assert(Object.isFrozen(EPG_PRESENTATION_ENTRY_ALLOWANCE));
 assert.deepEqual(EPG_PRESENTATION_ENTRY_ALLOWANCE, epgEvidence.allowance);
@@ -140,7 +309,7 @@ for (const metric of ["bytes", "gzipBytes"]) {
         epgEvidence.previousEntryCap[metric]
     );
     assert.equal(
-        latestCaps.BUDGET[metric] - epgEvidence.candidate[metric],
+        preRecoveryCaps.BUDGET[metric] - epgEvidence.candidate[metric],
         epgBaseline.BUDGET[metric] - epgEvidence.baseline[metric]
     );
     for (const name of [
@@ -150,7 +319,7 @@ for (const metric of ["bytes", "gzipBytes"]) {
         "TOTAL_BUDGET",
     ])
         assert.equal(
-            latestCaps[name][metric] - epgBaseline[name][metric],
+            preRecoveryCaps[name][metric] - epgBaseline[name][metric],
             delta
         );
 }
@@ -161,7 +330,7 @@ for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET", "OPTIONAL_BUDGETS"])
     );
 // This feature changes only the shared entry. Retain historical receipts and
 // verify the exact increment once in each affected aggregate.
-const visibilityBaseline = capsWithoutAllowances([
+const visibilityBaseline = historicalCapsWithoutAllowances([
     "CATEGORY_VISIBILITY_ENTRY_ALLOWANCE",
     "EPG_PRESENTATION_ENTRY_ALLOWANCE",
 ]);
@@ -200,17 +369,17 @@ for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET", "OPTIONAL_BUDGETS"])
         require("../scripts/classic-size.cjs")[name],
         visibilityBaseline[name]
     );
-const favoritesCategoryPersistenceBaseline = capsWithoutAllowances([
+const favoritesCategoryPersistenceBaseline = historicalCapsWithoutAllowances([
     "FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE",
 ]);
-const localFavoritesPathCaps = latestCaps;
-const localFavoritesPathBaseline = capsWithoutAllowances([
+const localFavoritesPathCaps = preRecoveryCaps;
+const localFavoritesPathBaseline = historicalCapsWithoutAllowances([
     "LOCAL_FAVORITES_PATH_ALLOWANCE",
 ]);
-const localFavoriteWriteRecoveryBaseline = capsWithoutAllowances([
+const localFavoriteWriteRecoveryBaseline = historicalCapsWithoutAllowances([
     "LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE",
 ]);
-const historicalIncomingCaps = capsWithoutAllowances([
+const historicalIncomingCaps = historicalCapsWithoutAllowances([
     "EPG_PRESENTATION_ENTRY_ALLOWANCE",
     "CATEGORY_VISIBILITY_ENTRY_ALLOWANCE",
     "NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE",
@@ -576,7 +745,7 @@ const historicalCaps = Object.fromEntries(
 );
 try {
     const windowEvidence = require("../docs/evidence/native-window-controls-size-20261103.json");
-    const withoutWindowControls = capsWithoutAllowances([
+    const withoutWindowControls = historicalCapsWithoutAllowances([
         "NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE",
     ]);
     assert.deepEqual(
@@ -592,7 +761,8 @@ try {
             "TOTAL_BUDGET",
         ])
             assert.equal(
-                latestCaps[name][metric] - withoutWindowControls[name][metric],
+                preRecoveryCaps[name][metric] -
+                    withoutWindowControls[name][metric],
                 NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE[metric],
                 name + " counts the window-controls entry cost once"
             );
@@ -643,7 +813,7 @@ try {
     assert(Object.isFrozen(MODERN_REPAINT_OPTIONAL_ALLOWANCE));
     assert.equal(repaint.delta.bytes, -83);
     assert.equal(repaint.delta.gzipBytes, 196);
-    const actualCaps = require("../scripts/classic-size.cjs");
+    const actualCaps = preRecoveryCaps;
     for (const [name, before] of Object.entries(repaint.budgets.before)) {
         const after = structuredClone(before);
         if (name === "OPTIONAL_BUDGETS")
@@ -664,7 +834,7 @@ try {
         repaint.candidate.output.gzipBytes - repaint.baseline.output.gzipBytes,
         repaint.delta.gzipBytes
     );
-    const withoutRepaint = capsWithoutAllowances([
+    const withoutRepaint = historicalCapsWithoutAllowances([
         "MODERN_REPAINT_OPTIONAL_ALLOWANCE",
     ]);
     for (const name of Object.keys(repaint.budgets.before)) {
@@ -716,7 +886,7 @@ try {
             "TOTAL_BUDGET",
         ])
             assert.equal(
-                latestCaps[name][metric] -
+                preRecoveryCaps[name][metric] -
                     localFavoriteWriteRecoveryBaseline[name][metric],
                 entry +
                     (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
@@ -724,9 +894,9 @@ try {
                         : 0),
                 name + " counts each write-recovery component once"
             );
-        for (const name of Object.keys(latestCaps.OPTIONAL_BUDGETS))
+        for (const name of Object.keys(preRecoveryCaps.OPTIONAL_BUDGETS))
             assert.equal(
-                latestCaps.OPTIONAL_BUDGETS[name][metric] -
+                preRecoveryCaps.OPTIONAL_BUDGETS[name][metric] -
                     localFavoriteWriteRecoveryBaseline.OPTIONAL_BUDGETS[name][
                         metric
                     ],
@@ -807,7 +977,7 @@ try {
             "TOTAL_BUDGET",
         ])
             assert.equal(
-                latestCaps[name][metric] -
+                preRecoveryCaps[name][metric] -
                     favoritesCategoryPersistenceBaseline[name][metric],
                 entry +
                     (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
@@ -816,16 +986,16 @@ try {
                 name + " counts each category persistence component once"
             );
         assert.equal(
-            latestCaps.OPTIONAL_BUDGETS["favorites-transfer"][metric] -
+            preRecoveryCaps.OPTIONAL_BUDGETS["favorites-transfer"][metric] -
                 favoritesCategoryPersistenceBaseline.OPTIONAL_BUDGETS[
                     "favorites-transfer"
                 ][metric],
             favorites
         );
-        for (const name of Object.keys(latestCaps.OPTIONAL_BUDGETS))
+        for (const name of Object.keys(preRecoveryCaps.OPTIONAL_BUDGETS))
             if (name !== "favorites-transfer")
                 assert.equal(
-                    latestCaps.OPTIONAL_BUDGETS[name][metric],
+                    preRecoveryCaps.OPTIONAL_BUDGETS[name][metric],
                     favoritesCategoryPersistenceBaseline.OPTIONAL_BUDGETS[name][
                         metric
                     ]
@@ -4889,6 +5059,8 @@ try {
     );
     const failed = diagnose();
     for (const [key, allowance] of Object.entries({
+        autoRelayStallRecoveryEntryAllowance:
+            AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE,
         favoritesCategoryPersistenceAllowance:
             FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
         localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,

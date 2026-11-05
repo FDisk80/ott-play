@@ -2376,6 +2376,7 @@ function startCorePlayback(
         var media = video!;
         var attempt = _coreNativeAttempt;
         var nativeAttached = false;
+        var initialSeekRevision = _coreSeekRevision;
         var active = function (): boolean {
             return (
                 session === _playSession &&
@@ -2389,7 +2390,10 @@ function startCorePlayback(
                 ? media.currentTime || position
                 : undefined;
         };
-        var attachNative = function (sourceUrl: string): void {
+        var attachNative = function (
+            sourceUrl: string,
+            directRetry?: boolean
+        ): void {
             if (!active()) return;
             nativeAttached = true;
             media.src = sourceUrl;
@@ -2409,7 +2413,7 @@ function startCorePlayback(
                     if (_coreNativeHlsCleanup) _coreNativeHlsCleanup();
                     _coreNativeHlsCleanup = null;
                     resetCoreNativeBitrate();
-                    attachNative(url);
+                    attachNative(url, true);
                 };
                 media.addEventListener("error", directFallback);
                 _coreNativeHlsCleanup = function (): void {
@@ -2458,6 +2462,14 @@ function startCorePlayback(
                             (window as any).__TAURI__ ||
                             (window as any).__TAURI_INTERNALS__
                         ),
+                        // A failed relay gets one direct native chance before Auto
+                        // gives up on a buffered attempt which never displays video.
+                        monitorInitialStall: directRetry,
+                        recoveryRevision: function () {
+                            return initialSeekRevision === _coreSeekRevision
+                                ? _corePauseRevision
+                                : null;
+                        },
                         restore: function () {
                             var nextPosition = resumePosition();
                             cancelCoreSeek();
@@ -2465,7 +2477,7 @@ function startCorePlayback(
                             // Reload through the same transport, preserving native.
                             media.src = sourceUrl;
                             if (nextPosition)
-                                seekCoreMedia(nextPosition, session);
+                                seekCoreMedia(nextPosition, session, true);
                             if ((window as any).forcePlay !== false)
                                 playCoreMedia(media);
                         },
@@ -2482,7 +2494,7 @@ function startCorePlayback(
                   active: active,
                   changed: updateCoreVideoInfo,
                   failed: function (): void {
-                      attachNative(url);
+                      attachNative(url, true);
                   },
                   ready: attachNative,
               });

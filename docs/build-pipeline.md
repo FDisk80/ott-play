@@ -141,10 +141,10 @@ manifest hash together cannot authorize another import or a removed guard.
 The loader recipe lives in the already-fingerprinted builder. Both runtime and
 worker remain staged together, with their licenses, in every web/native root.
 
-Each final classic entry bundle is limited to 1,184,448 UTF-8 bytes and 361,805
+Each final classic entry bundle is limited to 1,193,990 UTF-8 bytes and 365,123
 bytes compressed with gzip level 9. The entry plus all nine provider families
-must fit within 1,429,504 bytes and 446,060 gzip bytes. Including all optional
-bundles, the complete total is limited to 1,850,873 bytes and 571,000 gzip bytes,
+must fit within 1,439,046 bytes and 449,378 gzip bytes. Including all optional
+bundles, the complete total is limited to 1,874,791 bytes and 578,442 gzip bytes,
 summed per file. These limits apply independently to server, Tauri and
 Capacitor artifacts. The complete-total limit includes the measured
 [308-byte / 70-gzip-byte Plex selected-metadata allowance](evidence/plex-queue-step-size-20261029.json);
@@ -155,6 +155,21 @@ These budgets cover the classic entry, providers and optional bundles, not
 external media libraries or the complete application download. Raise a budget
 only with a reviewed feature/size tradeoff.
 The authoritative limits and measurement history are in `scripts/classic-size.cjs`.
+
+Bounded Auto recovery after a failed native relay adds 425 raw bytes per entry
+and 259 gzip bytes on the server, or 258 on Tauri and Capacitor. The
+[paired measurement](evidence/auto-relay-stall-recovery-size-20261105.json)
+uses the same `8eead4670fb272f4e3a50e503353b44fd1705ab8` Git HEAD, Node
+22.23.4, zlib 1.3.1-e00f703 and empty embedded source revision in both arms.
+An inert untracked marker makes both checkouts explicitly dirty; only the
+candidate receives the recorded feature patch. All 72 provider and optional
+assets remain byte-identical, and each aggregate grows by its entry delta.
+Allocate the measured maximum of 259 gzip bytes once to the entry and each
+applicable total, without rounding or additional reserve. Raw measurements
+already fit existing caps, so raw, provider and optional caps remain unchanged.
+The existing source-identity reserve is preserved. Baseline tests and build pass;
+candidate tests pass while its original size gate fails. This measurement does
+not replace the final committed, source-stamped CI checks.
 
 Atomic relative VOD seeking adds a measured 2,613 raw and 768 gzip bytes per
 entry on Node 22.23.4. The same increment is counted once in each complete
