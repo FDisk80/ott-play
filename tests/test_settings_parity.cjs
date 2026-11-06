@@ -71,7 +71,8 @@ function fixture(
     profile = "server",
     limited = false,
     distribution = "full",
-    device
+    device,
+    persisted = []
 ) {
     // This suite exercises menu parity, not first-install PIN migration.
     const stored = new Map([
@@ -79,6 +80,7 @@ function fixture(
             "parentPIN",
             require("./helpers/protected-pin-fixture.cjs").record("1234"),
         ],
+        ...persisted,
     ]);
     const storage = {
         del: (key) => stored.delete(key),
@@ -440,6 +442,370 @@ function fixture(
 function save(w) {
     w.listKeyHandlerFn(w.keys.GREEN);
 }
+
+// Timezone UI regression: the real settings page, draft and storage codec.
+{
+    const expectedOffsets = [
+        -720, -660, -600, -570, -540, -480, -420, -360, -300, -240, -210, -180,
+        -150, -120, -60, 0, 60, 120, 180, 210, 240, 270, 300, 330, 345, 360,
+        390, 420, 480, 525, 540, 570, 600, 630, 660, 720, 765, 780, 825, 840,
+    ];
+    const persistedOffsets = [
+        null,
+        ...Array.from({ length: 25 }, (_, index) => {
+            const id = index + 1;
+            return 60 * (id <= 13 ? id - 1 : 13 - id);
+        }),
+        780,
+        840,
+        -570,
+        -210,
+        -150,
+        210,
+        270,
+        330,
+        345,
+        390,
+        525,
+        570,
+        630,
+        765,
+        825,
+    ];
+    const fixedLabel = (offset) =>
+        "UTC" +
+        (offset < 0 ? "−" : "+") +
+        String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0") +
+        ":" +
+        String(Math.abs(offset) % 60).padStart(2, "0");
+    for (const [locale, systemLabel] of [
+        ["english", "system"],
+        ["russian", "системный"],
+    ]) {
+        const dictionary = {};
+        vm.runInNewContext(
+            fs.readFileSync(path.join(root, "locales", locale + ".js"), "utf8"),
+            dictionary
+        );
+        const boot = (saved = []) => {
+            const f = fixture("server", true, "full", "lg-webos", saved);
+            f.w._ = (key) => dictionary.keyStrings[key] || key;
+            vm.runInContext("loadSettings();", f.w);
+            f.w.timezoneEffects = [];
+            vm.runInContext(
+                "Date.setTimezoneOffset = function (offset) { timezoneEffects.push(offset); };",
+                f.w
+            );
+            vm.runInContext(
+                compile(selectedSource("src/index.ts", ["setTimezone"])),
+                f.w
+            );
+            return f;
+        };
+        const open = (f) => {
+            f.w.settingsInterface();
+            return f.w.listArray.find((row) => row.settingId === "timezone");
+        };
+        const f = boot();
+        let row = open(f);
+        assert.equal(
+            row.values.length,
+            41,
+            "Timezone selector must expose System and the complete fixed-offset list"
+        );
+        assert.deepEqual(Array.from(row.values), [
+            systemLabel,
+            ...expectedOffsets.map(fixedLabel),
+        ]);
+        for (const [id, offset] of persistedOffsets.entries())
+            assert.equal(
+                row.values[row.settingValues.indexOf(id)],
+                id === 0 ? systemLabel : fixedLabel(offset),
+                "Stable timezone ID " + id
+            );
+        assert.equal(row.val, 0, "Fresh settings default to System");
+        assert.equal(f.typed().timezone, 0);
+        assert.equal(f.stored.has("sTimezone"), false);
+        assert.equal(
+            f.w.arrTimezone,
+            undefined,
+            "The page must not require an undeclared legacy global"
+        );
+        row.val = row.settingValues.indexOf(34);
+        assert.equal(row.values[row.val], "UTC+05:45");
+        assert.equal(
+            f.typed().timezone,
+            0,
+            "A choice only changes the draft before Save"
+        );
+        assert.deepEqual(f.w.timezoneEffects, []);
+        f.w.listKeyHandlerFn(f.w.keys.RETURN);
+        assert.equal(f.typed().timezone, 0);
+        assert.equal(f.stored.has("sTimezone"), false);
+        row = open(f);
+        assert.equal(row.val, 0, "Cancel restores System on reopening");
+        row.val = row.settingValues.indexOf(34);
+        save(f.w);
+        assert.equal(
+            f.stored.get("sTimezone"),
+            "34",
+            "Save stores the stable ID, not the sorted row index"
+        );
+        assert.equal(f.typed().timezone, 34);
+        assert.deepEqual(f.w.timezoneEffects, [-345]);
+        const restored = boot([...f.stored]);
+        row = open(restored);
+        assert.equal(
+            row.values[row.val],
+            "UTC+05:45",
+            "A fresh settings instance restores the chosen offset"
+        );
+        row.val = 0;
+        save(restored.w);
+        assert.equal(restored.stored.get("sTimezone"), "0");
+        assert.deepEqual(
+            restored.w.timezoneEffects,
+            [null],
+            "System clears the fixed override"
+        );
+        const utc = boot([["sTimezone", "1"]]);
+        row = open(utc);
+        assert.equal(
+            row.values[row.val],
+            "UTC+00:00",
+            "Explicit UTC remains distinct from System"
+        );
+        save(utc.w);
+        assert.equal(utc.stored.get("sTimezone"), "1");
+        assert.deepEqual(
+            utc.w.timezoneEffects,
+            [],
+            "Saving an unchanged choice does not reapply it"
+        );
+        utc.w.setTimezone();
+        assert.equal(Object.is(utc.w.timezoneEffects[0], -0), true);
+        const old = boot([["sTimezone", "13"]]);
+        delete old.w.__ottAppearanceHost.timezoneOffsets;
+        row = open(old);
+        assert.equal(
+            row.values.length,
+            26,
+            "An older host retains its complete supported legacy choices"
+        );
+        assert.equal(row.values[row.val], "UTC+12:00");
+        assert.deepEqual(
+            Array.from(row.settingValues).sort((a, b) => a - b),
+            Array.from({ length: 26 }, (_, id) => id)
+        );
+        row.val = row.settingValues.indexOf(1);
+        save(old.w);
+        assert.equal(old.stored.get("sTimezone"), "1");
+        for (const [raw, id, expected] of [
+            [null, 0, systemLabel],
+            ["0", 0, systemLabel],
+            ["1", 1, "UTC+00:00"],
+            ["3", 3, "UTC+02:00"],
+            ["25", 25, "UTC−12:00"],
+            ["40", 40, "UTC+13:45"],
+        ]) {
+            const saved = boot(raw === null ? [] : [["sTimezone", raw]]);
+            const savedRow = open(saved);
+            assert.equal(saved.typed().timezone, id);
+            assert.equal(savedRow.values[savedRow.val], expected);
+            saved.w.listKeyHandlerFn(saved.w.keys.RETURN);
+            if (id !== 25 && id !== 40) continue;
+            const backup = saved.w.exportSettings();
+            assert.equal(JSON.parse(backup).settings.timezone, id);
+            const imported = boot();
+            let accepted;
+            imported.w.importSettings(backup, (ok) => {
+                accepted = ok;
+            });
+            assert.equal(
+                accepted,
+                true,
+                "The supported boundary ID survives actual export/import"
+            );
+            assert.equal(imported.typed().timezone, id);
+            assert.equal(imported.stored.get("sTimezone"), String(id));
+            imported.w.importSettings(
+                JSON.stringify({
+                    ...JSON.parse(backup),
+                    settings: { timezone: "1" },
+                }),
+                (ok) => {
+                    accepted = ok;
+                }
+            );
+            assert.equal(
+                accepted,
+                false,
+                "Typed imports must reject string timezone IDs"
+            );
+            assert.equal(imported.typed().timezone, id);
+        }
+        const cycle = boot([["sTimezone", "1"]]);
+        let cycleRow = open(cycle);
+        cycleRow.val = 0;
+        save(cycle.w);
+        cycleRow = open(cycle);
+        cycleRow.val = cycleRow.settingValues.indexOf(1);
+        save(cycle.w);
+        assert.deepEqual(cycle.w.timezoneEffects, [null, -0]);
+        assert.equal(cycle.stored.get("sTimezone"), "1");
+    }
+    const invalid = fixture("server", true, "full", "lg-webos", [
+        ["sTimezone", "41"],
+    ]);
+    vm.runInContext("loadSettings();", invalid.w);
+    assert.equal(
+        invalid.typed().timezone,
+        0,
+        "An out-of-range persisted ID falls back to System"
+    );
+    invalid.w.timezoneEffects = [];
+    vm.runInContext(
+        "Date.setTimezoneOffset = function (offset) { timezoneEffects.push(offset); };",
+        invalid.w
+    );
+    for (const [id, offset] of persistedOffsets.entries()) {
+        invalid.w.validTimezone = id;
+        assert.equal(
+            vm.runInContext("applyTimezoneSetting(validTimezone)", invalid.w),
+            id
+        );
+        assert.equal(
+            invalid.w.timezoneEffects.at(-1),
+            id === 0 ? null : -offset
+        );
+    }
+    for (const value of [-1, 41, Infinity, NaN, 1.5, "1", null, undefined]) {
+        invalid.w.invalidTimezone = value;
+        assert.equal(
+            vm.runInContext("applyTimezoneSetting(invalidTimezone)", invalid.w),
+            0
+        );
+        assert.equal(
+            invalid.w.timezoneEffects.at(-1),
+            null,
+            "Invalid IDs never pass NaN to Date"
+        );
+    }
+    console.log(
+        "PASS timezone settings: 41 choices, English/Russian, draft Save/Cancel, fresh restore, explicit UTC, legacy fallback and invalid IDs"
+    );
+}
+// End timezone UI regression.
+
+// A new VM restores only durable bytes, never the previous SettingsStore/facade.
+for (const platform of ["webOS", "PalmSystem"]) {
+    for (const hiddenPip of [
+        ["popTogglePip"],
+        ["popStopPip"],
+        ["popTogglePip", "popStopPip"],
+    ]) {
+        function boot(persisted) {
+            const f = fixture("server", false, "full", "lg-webos", persisted);
+            const { w, stored } = f;
+            vm.runInContext(
+                compile(
+                    selectedSource("src/ui/index.ts", [
+                        "popTogglePip",
+                        "popStopPip",
+                    ])
+                ),
+                w
+            );
+            w.popupActions.splice(2, 0, w.popTogglePip, w.popStopPip);
+            w.popupArray.splice(2, 0, "Call PiP / PiP exchange", "Close PiP");
+            Object.assign(w, {
+                [platform]: {},
+                console: { log() {} },
+                stbGetItem: (key) => stored.get(key) ?? null,
+                stbInit: () => false,
+                stbSetItem: (key, value) => stored.set(key, String(value)),
+                version: "fixture",
+            });
+            vm.runInContext(
+                fs.readFileSync(
+                    path.join(root, "devices/lg/webos/device.js"),
+                    "utf8"
+                ),
+                w
+            );
+            assert.equal(
+                w.stbInit(),
+                false,
+                "LG keeps the deferred initializer contract"
+            );
+            vm.runInContext("loadSettings();", w);
+            w.settingsMenu();
+            return f;
+        }
+        const first = boot([["sHideMenus", "provider-owned-action"]]);
+        const row = (f, id) =>
+            f.w.listArray.find((item) => item.optionId === id);
+        for (const id of ["popTogglePip", "popStopPip"])
+            assert.equal(
+                row(first, id).val,
+                0,
+                "PiP remains visible by default"
+            );
+        row(first, "channels").val = 1;
+        for (const id of hiddenPip) row(first, id).val = 1;
+        save(first.w);
+        const saved = first.stored.get("sHideMenus");
+        assert.deepEqual(saved.split(","), [
+            "provider-owned-action",
+            "channels",
+            ...hiddenPip,
+        ]);
+        first.w.settingsMenu();
+        for (const id of hiddenPip) row(first, id).val = 0;
+        first.w.listKeyHandlerFn(first.w.keys.RETURN);
+        assert.equal(
+            first.stored.get("sHideMenus"),
+            saved,
+            "Cancel keeps the saved hidden items"
+        );
+
+        const reopened = boot([...first.stored]);
+        assert.notEqual(reopened.w, first.w);
+        assert.notEqual(reopened.typed(), first.typed());
+        assert.equal(
+            reopened.stored.get("sHideMenus"),
+            saved,
+            "LG startup must preserve saved PiP visibility bytes"
+        );
+        assert.deepEqual(
+            Array.from(reopened.typed().hideMenus),
+            saved.split(",")
+        );
+        assert.equal(row(reopened, "channels").val, 1);
+        for (const id of ["popTogglePip", "popStopPip"])
+            assert.equal(
+                row(reopened, id).val,
+                hiddenPip.includes(id) ? 1 : 0,
+                "Menu items settings restores the saved PiP choice"
+            );
+        for (const id of hiddenPip) row(reopened, id).val = 0;
+        save(reopened.w);
+        const enabled = boot([...reopened.stored]);
+        assert.deepEqual(Array.from(enabled.typed().hideMenus), [
+            "provider-owned-action",
+            "channels",
+        ]);
+        for (const id of ["popTogglePip", "popStopPip"])
+            assert.equal(
+                row(enabled, id).val,
+                0,
+                "Explicitly re-enabling PiP also survives restart"
+            );
+    }
+}
+console.log(
+    "PASS LG PiP menu visibility Save/Cancel and fresh-context restart (6 cases)"
+);
 
 // Interface presentation regression; kept before the broad platform matrix.
 {
@@ -2104,7 +2470,7 @@ console.log(
     w.settingsInterface();
     const timezone = w.listArray.find((row) => row.settingId === "timezone");
     const font = w.listArray.find((row) => row.settingId === "fontSize");
-    timezone.val = 2;
+    timezone.val = timezone.settingValues.indexOf(2);
     font.val = 3;
     w.listArray.reverse();
     save(w);

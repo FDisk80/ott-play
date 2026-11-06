@@ -1116,8 +1116,6 @@ Studio 2026 เป็นธีมเริ่มต้น ยังเลือ�
 
 [รีวิวความเชื่อถือได้พร้อมภาพ](docs/plex-provider.md#reliability-review-process-and-results) อธิบายกฎโหลดและยกเลิก การแก้แค็ตตาล็อกให้ครบและเปลี่ยนไฟล์ รวมถึงผลตรวจ Chromium/WebKit ที่วัดได้
 
-Integration OTT server แบบเลือกใช้ยังเปิดแค็ตตาล็อก Plex server ที่มีอยู่และการเล่นที่เข้ากันได้ ผ่านรายการคลัง NAS แยกและส่งออก M3U ดู [ตั้งค่าคลังฝั่งเซิร์ฟเวอร์และการเข้าถึงไคลเอนต์](docs/synology-library.md)
-
 <a id="related-repositories"></a>
 
 ## คลังที่เกี่ยวข้อง

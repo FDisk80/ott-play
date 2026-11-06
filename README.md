@@ -1255,8 +1255,6 @@ The [illustrated reliability review](docs/plex-provider.md#reliability-review-pr
 explains the loading and cancellation rules, the fixes for complete catalogs and
 file switching, and the measured Chromium/WebKit validation results.
 
-An optional OTT server integration also exposes an existing Plex server's catalog and compatible playback through a separate NAS library entry and M3U export. See [server-side library configuration and client access](docs/synology-library.md).
-
 ## Related repositories
 
 - [ottplay-core](https://github.com/open-ott-play/ottplay-core) owns the shared

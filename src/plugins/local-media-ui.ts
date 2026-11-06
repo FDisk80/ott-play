@@ -94,18 +94,34 @@ function createLocalMediaUi(w: any, p: any): any {
     }
     function restorePlayback(): void {
         run(function () {
-            return p
-                .requestAccess(function () {
-                    if (!p.resuming || !p.current()) return false;
+            var request = p.revision,
+                owner = p.owner;
+            function resume(): boolean {
+                if (
+                    request === p.revision &&
+                    owner === p.owner &&
+                    p.resuming &&
+                    p.current()
+                ) {
                     if (!p.playable()) return true;
                     p.activate();
-                    return false;
-                })
-                .then(function (value) {
-                    if (p.resuming && p.current() && p.playable()) p.activate();
-                    return value;
-                });
+                }
+                return false;
+            }
+            return p.requestAccess(resume).then(function (value) {
+                if (!(value && (value.cancelled || value.pickerCancelled)))
+                    resume();
+                return value;
+            });
         });
+    }
+    function browserFolder(source: any): boolean {
+        return (
+            source.kind === "folder" &&
+            !p.isNative() &&
+            !p.isTauri() &&
+            !p.remoteEndpoint()
+        );
     }
     function render(message?: string): void {
         if (!p.current()) return;
@@ -117,7 +133,7 @@ function createLocalMediaUi(w: any, p: any): any {
             message =
                 (message ? message + " " : "") +
                 "Reconnect the saved folder to renew its access after a drive or network change.";
-        var readOnly = !!(p.remoteEndpoint() && p.last?.readOnly);
+        var readOnly = p.remoteEndpoint() && p.last?.readOnly;
         var selected = w.selIndex || 0;
         var rows: any[] = [];
         function row(
@@ -239,10 +255,7 @@ function createLocalMediaUi(w: any, p: any): any {
                 return;
             }
             if (
-                source.kind === "folder" &&
-                !p.isNative() &&
-                !p.isTauri() &&
-                !p.remoteEndpoint() &&
+                browserFolder(source) &&
                 typeof p.browser.reconnectSource === "function"
             )
                 row(
@@ -256,10 +269,7 @@ function createLocalMediaUi(w: any, p: any): any {
                     }
                 );
             if (
-                source.kind === "folder" &&
-                !p.isNative() &&
-                !p.isTauri() &&
-                !p.remoteEndpoint() &&
+                browserFolder(source) &&
                 typeof p.browser.bootstrapFile === "function"
             )
                 row(

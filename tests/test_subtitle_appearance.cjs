@@ -287,6 +287,22 @@ const colorSource = colorAst.statements
     )
     .map((node) => node.getText(colorAst))
     .join("\n");
+const timezoneAst = ts.createSourceFile(
+    "settings.ts",
+    fs.readFileSync("src/settings/index.ts", "utf8"),
+    ts.ScriptTarget.Latest,
+    true
+);
+const timezoneSource = timezoneAst.statements
+    .filter(
+        (node) =>
+            ts.isVariableStatement(node) &&
+            node.declarationList.declarations.some(
+                (item) => item.name.getText(timezoneAst) === "timezoneOffsets"
+            )
+    )
+    .map((node) => node.getText(timezoneAst))
+    .join("\n");
 function loaderFixture() {
     const calls = [],
         timers = new Map(),
@@ -329,12 +345,15 @@ function loaderFixture() {
     vm.createContext(f);
     vm.runInContext(
         ts
-            .transpileModule(colorSource + "\n" + loaderSource, {
-                compilerOptions: {
-                    module: ts.ModuleKind.ES2015,
-                    target: ts.ScriptTarget.ES5,
-                },
-            })
+            .transpileModule(
+                colorSource + "\n" + timezoneSource + "\n" + loaderSource,
+                {
+                    compilerOptions: {
+                        module: ts.ModuleKind.ES2015,
+                        target: ts.ScriptTarget.ES5,
+                    },
+                }
+            )
             .outputText.replace(/^export /gm, ""),
         f
     );

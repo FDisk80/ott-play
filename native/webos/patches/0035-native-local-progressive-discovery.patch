@@ -1,0 +1,973 @@
+diff --git a/rust-modules/src/app/ott_local.rs b/rust-modules/src/app/ott_local.rs
+--- a/rust-modules/src/app/ott_local.rs
++++ b/rust-modules/src/app/ott_local.rs
+@@ -161,123 +161,247 @@
+     Ok(())
+ }
+ 
+-/// One recursive policy for both the retained-source task and legacy lookup.
+-/// Only relative directory names are queued; every open starts at the same FD.
++/// One recursive policy for retained-source and legacy catalogue callers.
++/// Only the owner publishes. Four scoped workers retain all admitted I/O until
++/// it returns, even after cancellation; the enclosing catalogue cannot finish
++/// and admit a replacement before that drain completes.
+ fn walk(
+     profile: &ProviderProfile,
+     root: &std::fs::File,
+     cancel: &AtomicBool,
+-    live: &dyn Fn() -> bool,
++    live: &(dyn Fn() -> bool + Sync),
+     emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+ ) -> Result<ScanReport, &'static str> {
+-    walk_with(profile, root, cancel, live, emit, &mut readonly::visit_bounded)
+-}
+-
+-// The directory reader is injected only at this IO boundary. Production and
+-// fault fixtures share all traversal, batching, limit and cancellation policy.
+-fn walk_with<F>(
++    walk_with(profile, root, cancel, live, emit, &|_, _, _| Ok(()))
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum WalkStage { Open, Next, Probe }
++enum WalkTask {
++    Open,
++    Next(readonly::DirectoryCursor, usize),
++    Probe(std::sync::Arc<std::fs::File>, String),
++}
++struct WalkJob { path: String, depth: usize, task: WalkTask }
++impl WalkJob {
++    fn directory(&self) -> bool { !matches!(self.task, WalkTask::Probe(..)) }
++    fn bytes(&self, root_bytes: usize) -> usize {
++        root_bytes.saturating_add(self.path.len()).saturating_add(match &self.task {
++            WalkTask::Probe(_, name) => name.len(), _ => 0,
++        }).saturating_add(1)
++    }
++}
++enum WalkResult {
++    Open(Result<readonly::DirectoryCursor, readonly::ReadError>),
++    Next(readonly::DirectoryCursor, usize, Result<Option<readonly::DirectoryName>, readonly::ReadError>),
++    Probe(Result<EntryKind, readonly::ReadError>),
++    Panic,
++}
++struct WalkEvent { path: String, depth: usize, directory: bool, result: WalkResult }
++
++fn queue_walk(queue: &mut VecDeque<WalkJob>, bytes: &mut usize, root_bytes: usize, job: WalkJob)
++    -> Result<(), &'static str> {
++    let size = job.bytes(root_bytes);
++    if bytes.saturating_add(size) > PENDING_PATH_BYTES { return Err("Local pending folder limit reached"); }
++    *bytes += size;
++    if job.directory() { queue.push_back(job); } else { queue.push_front(job); }
++    Ok(())
++}
++fn execute_walk(job: WalkJob, root: &std::fs::File, check: &mut dyn FnMut() -> bool,
++    before: &(dyn Fn(WalkStage, &str, usize) -> Result<(), readonly::ReadError> + Sync)) -> WalkEvent {
++    let directory = job.directory();
++    let WalkJob { path, depth, task } = job;
++    let (stage, step) = match &task {
++        WalkTask::Open => (WalkStage::Open, 0),
++        WalkTask::Next(_, step) => (WalkStage::Next, *step),
++        WalkTask::Probe(..) => (WalkStage::Probe, 0),
++    };
++    let allowed = if check() { before(stage, &path, step) } else { Err(readonly::ReadError::Aborted) }
++        .and_then(|_| if check() { Ok(()) } else { Err(readonly::ReadError::Aborted) });
++    let result = match task {
++        WalkTask::Open => WalkResult::Open(allowed.and_then(|_| readonly::DirectoryCursor::open(root, &path, check))),
++        WalkTask::Next(mut cursor, step) => {
++            let result = allowed.and_then(|_| cursor.next(check));
++            WalkResult::Next(cursor, step, result)
++        }
++        WalkTask::Probe(directory, name) => WalkResult::Probe(allowed.and_then(|_| readonly::probe_kind(&directory, &name, check))),
++    };
++    WalkEvent { path, depth, directory, result }
++}
++
++// Fault fixtures intercept an actual operation, not a replacement traversal.
++fn walk_with(
+     profile: &ProviderProfile,
+     root: &std::fs::File,
+     cancel: &AtomicBool,
+-    live: &dyn Fn() -> bool,
++    live: &(dyn Fn() -> bool + Sync),
+     emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+-    read_directory: &mut F,
+-) -> Result<ScanReport, &'static str>
+-where
+-    F: FnMut(&std::fs::File, &str, usize, &mut dyn FnMut() -> bool,
+-        &mut dyn FnMut(Option<readonly::DirectoryEntry>, usize) -> Result<bool, readonly::ReadError>)
+-        -> Result<readonly::DirectoryVisit, readonly::ReadError>,
+-{
+-    let mut report = ScanReport::default();
+-    let root_bytes = profile.source.len();
+-    let path_bytes = |relative: &str| root_bytes.saturating_add(if relative.is_empty() { 0 } else { 1 + relative.len() });
+-    let mut pending = VecDeque::from([(String::new(), 0usize)]);
+-    let mut pending_bytes = root_bytes;
+-    let mut files = Vec::with_capacity(BATCH_SIZE);
+-    while let Some((folder, depth)) = pending.pop_front() {
+-        pending_bytes = pending_bytes.saturating_sub(path_bytes(&folder));
+-        if cancelled(cancel, &mut report) { return Ok(report); }
+-        if !live() { return Err("Local source was withdrawn"); }
+-        report.directories += 1;
+-        if report.directories > DIRECTORY_LIMIT {
+-            flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-            return Err("Local folder limit reached");
+-        }
+-        let mut stopped = None;
+-        let visit = read_directory(root, &folder,
+-            ENTRY_LIMIT.saturating_sub(report.inspected),
+-            &mut || !cancel.load(Ordering::Acquire) && live(),
+-            &mut |entry, _| {
+-                report.inspected += 1;
+-                let result = (|| -> Result<bool, &'static str> {
+-                    let Some(entry) = entry else { report.skipped += 1; return Ok(true); };
+-                    let path = Path::new(&folder).join(&entry.name);
+-                    let Some(relative) = relative_name(Path::new(""), &path, &mut report) else { return Ok(true); };
+-                    match entry.kind {
+-                        EntryKind::Directory => {
+-                            if depth >= DEPTH_LIMIT {
+-                                report.depth_limited = true;
+-                                report.skipped += 1;
+-                                return Ok(true);
++    before: &(dyn Fn(WalkStage, &str, usize) -> Result<(), readonly::ReadError> + Sync),
++) -> Result<ScanReport, &'static str> {
++    use std::sync::{Arc, Mutex, mpsc};
++    use std::time::{Duration, Instant};
++    const WORKERS: usize = 4;
++    const CURSORS: usize = 64;
++    let retired = AtomicBool::new(false);
++    std::thread::scope(|scope| {
++        let (jobs, receiver) = mpsc::sync_channel::<WalkJob>(WORKERS);
++        let receiver = Arc::new(Mutex::new(receiver));
++        let (events, results) = mpsc::sync_channel::<WalkEvent>(WORKERS);
++        for _ in 0..WORKERS {
++            let receiver = receiver.clone();
++            let events = events.clone();
++            let retired = &retired;
++            scope.spawn(move || {
++                loop {
++                    // Drop the receive lock before any filesystem operation.
++                    let received = receiver.lock().unwrap().recv();
++                    let job = match received { Ok(job) => job, Err(_) => break };
++                    let path = job.path.clone();
++                    let depth = job.depth;
++                    let directory = job.directory();
++                    let event = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                        execute_walk(job, root, &mut || !retired.load(Ordering::Acquire)
++                            && !cancel.load(Ordering::Acquire) && live(), before)
++                    })).unwrap_or(WalkEvent { path, depth, directory, result: WalkResult::Panic });
++                    if events.send(event).is_err() { break; }
++                }
++            });
++        }
++        drop(events);
++        let root_bytes = profile.source.len();
++        let mut queue = VecDeque::new();
++        let mut queued_bytes = 0;
++        let mut active = 0usize;
++        let mut directory_jobs = 0usize;
++        let mut cursors = 0usize;
++        let mut found_directories = 1usize;
++        let mut report = ScanReport::default();
++        let mut files = Vec::with_capacity(BATCH_SIZE);
++        let mut terminal = None;
++        let mut last_publish = Instant::now();
++        queue_walk(&mut queue, &mut queued_bytes, root_bytes,
++            WalkJob { path: String::new(), depth: 0, task: WalkTask::Open })?;
++        loop {
++            if cancel.load(Ordering::Acquire) { report.cancelled = true; retired.store(true, Ordering::Release); }
++            if !live() { terminal = Some("Local source was withdrawn"); retired.store(true, Ordering::Release); }
++            // A ready next item must not wait for a full batch or unrelated I/O.
++            if !retired.load(Ordering::Acquire) && !files.is_empty()
++                && last_publish.elapsed() >= Duration::from_millis(100) {
++                if let Err(error) = flush(profile, cancel, &mut report, &mut files, live, emit) {
++                    terminal = Some(error); retired.store(true, Ordering::Release);
++                }
++                if report.cancelled { retired.store(true, Ordering::Release); }
++                last_publish = Instant::now();
++            }
++            if retired.load(Ordering::Acquire) {
++                queue.clear(); queued_bytes = 0;
++            } else if terminal.is_some() {
++                // Already observed names may still produce the readable prefix.
++                // Do not discover new names/directories after a terminal failure.
++                queue.retain(|job| !job.directory());
++                queued_bytes = queue.iter().map(|job| job.bytes(root_bytes)).sum();
++            }
++            while active < WORKERS && !queue.is_empty() {
++                let position = queue.iter().position(|job| {
++                    !job.directory() || (directory_jobs < WORKERS - 1
++                        && (!matches!(job.task, WalkTask::Open) || cursors < CURSORS))
++                });
++                let Some(position) = position else { break; };
++                let job = queue.remove(position).expect("queued position");
++                queued_bytes -= job.bytes(root_bytes);
++                if job.directory() { directory_jobs += 1; }
++                if matches!(job.task, WalkTask::Open) { cursors += 1; report.directories += 1; }
++                jobs.send(job).map_err(|_| "Local scan worker failed")?;
++                active += 1;
++            }
++            if active == 0 {
++                if queue.is_empty() { break; }
++                terminal = Some("Local directory cursor limit reached");
++                continue;
++            }
++            let event = match results.recv_timeout(Duration::from_millis(50)) {
++                Ok(event) => event,
++                Err(mpsc::RecvTimeoutError::Timeout) => continue,
++                Err(_) => { terminal = Some("Local scan worker failed"); break; }
++            };
++            active -= 1;
++            if event.directory { directory_jobs -= 1; }
++            if retired.load(Ordering::Acquire) { continue; }
++            let WalkEvent { path, depth, result, .. } = event;
++            let processed = (|| -> Result<(), &'static str> {
++                let failure = match result {
++                    WalkResult::Open(Ok(cursor)) => {
++                        if terminal.is_none() { queue_walk(&mut queue, &mut queued_bytes, root_bytes,
++                            WalkJob { path, depth, task: WalkTask::Next(cursor, 0) })?; }
++                        return Ok(());
++                    }
++                    WalkResult::Open(Err(error)) => { cursors = cursors.saturating_sub(1); error }
++                    WalkResult::Next(cursor, step, Ok(Some(entry))) => {
++                        if report.inspected >= ENTRY_LIMIT { return Err("Local directory entry limit reached"); }
++                        report.inspected += 1;
++                        if let Some(name) = entry.name {
++                            let relative = if path.is_empty() { name.clone() } else { format!("{path}/{name}") };
++                            queue_walk(&mut queue, &mut queued_bytes, root_bytes, WalkJob {
++                                path: relative, depth, task: WalkTask::Probe(cursor.directory(), name),
++                            })?;
++                        } else { report.skipped += 1; }
++                        if terminal.is_none() { queue_walk(&mut queue, &mut queued_bytes, root_bytes,
++                            WalkJob { path, depth, task: WalkTask::Next(cursor, step + 1) })?; }
++                        return Ok(());
++                    }
++                    WalkResult::Next(_, _, Ok(None)) => { cursors = cursors.saturating_sub(1); return Ok(()); }
++                    WalkResult::Next(_, _, Err(error)) => { cursors = cursors.saturating_sub(1); error }
++                    WalkResult::Probe(Ok(kind)) => {
++                        match kind {
++                            EntryKind::Directory if terminal.is_none() => {
++                                if depth >= DEPTH_LIMIT { report.depth_limited = true; report.skipped += 1; }
++                                else {
++                                    if found_directories >= DIRECTORY_LIMIT { return Err("Local folder limit reached"); }
++                                    found_directories += 1;
++                                    queue_walk(&mut queue, &mut queued_bytes, root_bytes,
++                                        WalkJob { path, depth: depth + 1, task: WalkTask::Open })?;
++                                }
+                             }
+-                            let bytes = path_bytes(relative);
+-                            if pending.len() >= DIRECTORY_LIMIT
+-                                || pending_bytes.saturating_add(bytes) > PENDING_PATH_BYTES {
+-                                flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-                                return Err("Local pending folder limit reached");
++                            EntryKind::RegularFile if ott::is_local_video_path(&path) => {
++                                if !ott::valid_local_relative_path(&path) { report.skipped += 1; }
++                                else {
++                                    if report.videos >= ott::MAX_CATALOG_ENTRIES { return Err("Local video limit reached"); }
++                                    report.videos += 1;
++                                    files.push(LocalFile { relative_path: path, size: 0, duration_ms: None });
++                                    if report.videos == 1 || files.len() >= BATCH_SIZE {
++                                        if let Err(error) = flush(profile, cancel, &mut report, &mut files, live, emit) {
++                                            retired.store(true, Ordering::Release);
++                                            return Err(error);
++                                        }
++                                        last_publish = Instant::now();
++                                    }
++                                }
+                             }
+-                            pending_bytes += bytes;
+-                            pending.push_back((relative.to_owned(), depth + 1));
++                            EntryKind::Unreadable => report.skipped += 1,
++                            _ => {},
+                         }
+-                        EntryKind::RegularFile => {
+-                            if !ott::is_local_video_path(relative) { return Ok(true); }
+-                            if !ott::valid_local_relative_path(relative) {
+-                                report.skipped += 1;
+-                                return Ok(true);
+-                            }
+-                            if report.videos >= ott::MAX_CATALOG_ENTRIES {
+-                                flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-                                return Err("Local video limit reached");
+-                            }
+-                            report.videos += 1;
+-                            files.push(LocalFile { relative_path: relative.to_owned(), size: 0, duration_ms: None });
+-                            if report.videos == 1 || files.len() >= BATCH_SIZE {
+-                                flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-                            }
+-                        }
+-                        EntryKind::Unreadable => report.skipped += 1,
+-                        EntryKind::Symlink | EntryKind::Other => {},
++                        return Ok(());
+                     }
+-                    Ok(!report.cancelled)
+-                })();
+-                match result { Ok(more) => Ok(more), Err(error) => { stopped = Some(error); Ok(false) } }
+-            });
+-        if cancelled(cancel, &mut report) { return Ok(report); }
+-        if !live() { return Err("Local source was withdrawn"); }
+-        if let Some(error) = stopped { return Err(error); }
+-        match visit {
+-            Ok(result) if result.reached_end => {},
+-            Ok(_) => {
+-                flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-                return Err("Local directory entry limit reached");
+-            }
+-            Err(error) => {
+-                // Preserve the readable prefix even if readdir fails after
+-                // some entries. A root error stays terminal/incomplete.
+-                flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-                if report.cancelled { return Ok(report); }
+-                if error == readonly::ReadError::AllocationFailed {
+-                    return Err("Local directory allocation failed");
++                    WalkResult::Probe(Err(error)) => error,
++                    WalkResult::Panic => return Err("Local scan worker failed"),
++                };
++                if failure == readonly::ReadError::AllocationFailed { return Err("Local directory allocation failed"); }
++                if failure == readonly::ReadError::Aborted {
++                    if cancel.load(Ordering::Acquire) { report.cancelled = true; retired.store(true, Ordering::Release); return Ok(()); }
++                    return Err("Local source was withdrawn");
+                 }
+                 if depth == 0 { return Err("Local folder cannot be read"); }
+                 report.skipped += 1;
+-                continue;
+-            }
+-        }
+-        flush(profile, cancel, &mut report, &mut files, live, emit)?;
+-        if report.cancelled { return Ok(report); }
+-    }
+-    Ok(report)
++                Ok(())
++            })();
++            if let Err(error) = processed { terminal = Some(error); }
++        }
++        // Closing the queue and leaving scope joins every worker, including a
++        // provider call that ignored cancellation. No detached replacement work.
++        drop(jobs);
++        if !retired.load(Ordering::Acquire) { flush(profile, cancel, &mut report, &mut files, live, emit)?; }
++        match terminal { Some(error) => Err(error), None => Ok(report) }
++    })
+ }
+ 
+ fn cancelled(cancel: &AtomicBool, report: &mut ScanReport) -> bool {
+@@ -285,13 +409,6 @@
+     report.cancelled
+ }
+ 
+-fn relative_name<'a>(root: &Path, path: &'a Path, report: &mut ScanReport) -> Option<&'a str> {
+-    let name = path.strip_prefix(root).ok().and_then(Path::to_str);
+-    if name.is_none() {
+-        report.skipped += 1;
+-    }
+-    name
+-}
+ 
+ fn flush(
+     profile: &ProviderProfile,
+@@ -443,10 +560,9 @@
+         .unwrap();
+         assert_eq!(report.videos, 130);
+         assert_eq!(report.directories, 2);
+-        assert_eq!(
+-            batches.iter().map(Vec::len).collect::<Vec<_>>(),
+-            vec![1, 64, 64, 1]
+-        );
++        assert_eq!(batches.first().unwrap().len(), 1);
++        assert_eq!(batches.iter().map(Vec::len).sum::<usize>(), 130);
++        assert!(batches.iter().all(|batch| !batch.is_empty() && batch.len() <= BATCH_SIZE));
+         for row in batches.iter().flatten() {
+             assert_eq!(row.category, "Folder");
+             assert_eq!(
+@@ -458,55 +574,29 @@
+     }
+ 
+     #[test]
+-    fn disappeared_child_does_not_discard_other_folders() {
+-        let f = Fixture::new();
+-        // Both folders are queued before the first video callback, irrespective of readdir order.
+-        f.file("First/one.mp4");
+-        f.file("Later/two.mp4");
+-        let mut count = 0;
+-        let report = visit_report(&f.profile(), &AtomicBool::new(false), &mut |batch| {
+-            count += batch.len();
+-            if count == 1 {
+-                let other = if batch[0].category == "First" {
+-                    "Later"
+-                } else {
+-                    "First"
+-                };
+-                std::fs::remove_dir_all(f.0.join(other)).unwrap();
+-            }
+-            Ok(())
+-        })
+-        .unwrap();
+-        assert_eq!(report.videos, 1);
+-        assert!(report.skipped > 0);
+-    }
+-
+-    #[cfg(unix)]
+-    #[test]
+-    fn queued_directory_replaced_by_link_cannot_publish_external_names() {
+-        let f = Fixture::new();
+-        f.file("First/one.mp4");
+-        f.file("Later/two.mp4");
+-        let outside = Fixture::new();
+-        outside.file("private.mp4");
+-        let mut rows = Vec::new();
+-        let report = visit_report(&f.profile(), &AtomicBool::new(false), &mut |batch| {
+-            if rows.is_empty() {
+-                let other = if batch[0].category == "First" {
+-                    "Later"
+-                } else {
+-                    "First"
+-                };
+-                std::fs::remove_dir_all(f.0.join(other)).unwrap();
+-                std::os::unix::fs::symlink(&outside.0, f.0.join(other)).unwrap();
+-            }
+-            rows.extend(batch);
+-            Ok(())
+-        })
+-        .unwrap();
+-        assert_eq!(report.videos, 1);
+-        assert_eq!(report.skipped, 1);
+-        assert!(rows.iter().all(|row| row.title != "private.mp4"));
++    fn disappeared_or_symlinked_queued_child_cannot_publish_external_names() {
++        for link in [false, true] {
++            let f = Fixture::new(); f.file("First/one.mp4"); f.file("Later/two.mp4");
++            let outside = Fixture::new(); outside.file("private.mp4");
++            let root = std::fs::File::open(&f.0).unwrap(); let hold = Hold::new(); let mut rows = Vec::new();
++            let report = walk_with(&f.profile(), &root, &AtomicBool::new(false), &|| true,
++                &mut |batch| {
++                    if rows.is_empty() {
++                        std::fs::remove_dir_all(f.0.join("Later")).unwrap();
++                        if link { std::os::unix::fs::symlink(&outside.0, f.0.join("Later")).unwrap(); }
++                        hold.release();
++                    }
++                    rows.extend(batch); Ok(())
++                }, &|stage, path, _| {
++                    if stage == WalkStage::Open && path == "Later" { hold.block()?; }
++                    if stage == WalkStage::Probe && path == "First/one.mp4" && !hold.wait_entered(1) {
++                        return Err(readonly::ReadError::Io(std::io::ErrorKind::TimedOut));
++                    }
++                    Ok(())
++                }).unwrap();
++            assert_eq!(report.videos, 1); assert_eq!(report.skipped, 1);
++            assert!(rows.iter().all(|row| row.title != "private.mp4"));
++        }
+     }
+ 
+     #[test]
+@@ -548,30 +638,6 @@
+             )),
+             Err("receiver closed")
+         );
+-    }
+-
+-    #[cfg(unix)]
+-    #[test]
+-    fn unrepresentable_name_is_reported_without_discarding_readable_videos() {
+-        use std::os::unix::ffi::OsStringExt;
+-        let f = Fixture::new();
+-        f.file("one.mp4");
+-        f.file("two.mp4");
+-        let mut rows = Vec::new();
+-        let mut report = visit_report(&f.profile(), &AtomicBool::new(false), &mut |batch| {
+-            rows.extend(batch);
+-            Ok(())
+-        })
+-        .unwrap();
+-        // APFS refuses invalid UTF-8 names at creation. Exercise the same
+-        // production entry conversion without requiring that OS operation.
+-        let bad =
+-            f.0.join(std::ffi::OsString::from_vec(b"bad\xff.mp4".to_vec()));
+-        assert!(relative_name(&f.0, &bad, &mut report).is_none());
+-        assert_eq!(report.videos, 2);
+-        assert_eq!(report.skipped, 1);
+-        assert_eq!(rows.len(), 2);
+-        assert!(outcome(report).is_err());
+     }
+ 
+     #[cfg(target_os = "linux")]
+@@ -655,41 +721,193 @@
+         assert!(source.is_live(), "worker must not withdraw the shared grant");
+     }
+ 
++    struct Hold {
++        released: std::sync::Mutex<bool>,
++        changed: std::sync::Condvar,
++        entered: std::sync::atomic::AtomicUsize,
++    }
++    impl Hold {
++        fn new() -> Self { Self { released: std::sync::Mutex::new(false),
++            changed: std::sync::Condvar::new(), entered: std::sync::atomic::AtomicUsize::new(0) } }
++        fn block(&self) -> Result<(), readonly::ReadError> {
++            let lock = self.released.lock().unwrap();
++            self.entered.fetch_add(1, Ordering::Release);
++            self.changed.notify_all();
++            let (lock, timeout) = self.changed.wait_timeout_while(lock,
++                std::time::Duration::from_secs(5), |released| !*released).unwrap();
++            if timeout.timed_out() && !*lock { return Err(readonly::ReadError::Io(std::io::ErrorKind::TimedOut)); }
++            Ok(())
++        }
++        fn wait_entered(&self, count: usize) -> bool {
++            let lock = self.released.lock().unwrap();
++            drop(self.changed.wait_timeout_while(lock, std::time::Duration::from_secs(3),
++                |_| self.entered.load(Ordering::Acquire) < count).unwrap());
++            self.entered.load(Ordering::Acquire) >= count
++        }
++        fn release(&self) { *self.released.lock().unwrap() = true; self.changed.notify_all(); }
++    }
++
++    #[test]
++    fn ready_file_precedes_stalled_file_child_and_parent_operations() {
++        for stage in [WalkStage::Probe, WalkStage::Open, WalkStage::Next] {
++            let f = Fixture::new();
++            f.file("ready/ready.mp4");
++            if stage == WalkStage::Probe { f.file("held.mp4"); }
++            if stage == WalkStage::Open { f.file("held/blocked.mp4"); }
++            let root = std::fs::File::open(&f.0).unwrap();
++            let profile = f.profile();
++            let hold = Hold::new();
++            let cancel = AtomicBool::new(false);
++            std::thread::scope(|scope| {
++                let (sent, received) = std::sync::mpsc::channel();
++                let (profile, root, cancel, hold) = (&profile, &root, &cancel, &hold);
++                let run = scope.spawn(move || walk_with(profile, root, cancel, &|| true,
++                    &mut |rows| { for row in rows { sent.send(row).unwrap(); } Ok(()) },
++                    &|operation, path, step| {
++                        let target = match stage {
++                            WalkStage::Probe => operation == stage && path == "held.mp4",
++                            WalkStage::Open => operation == stage && path == "held",
++                            WalkStage::Next => operation == stage && path.is_empty() && step == 1,
++                        };
++                        if target { hold.block()?; }
++                        Ok(())
++                    }));
++                let entered = hold.wait_entered(1);
++                let first = received.recv_timeout(std::time::Duration::from_secs(2));
++                cancel.store(true, Ordering::Release);
++                let drained_early = run.is_finished();
++                hold.release();
++                let report = run.join().unwrap().unwrap();
++                assert!(entered, "controlled {stage:?} operation was not reached");
++                let first = first.expect("ready file must precede release of the stalled operation");
++                assert!(matches!(first.media, MediaLocator::Local { ref relative_path } if relative_path == "ready/ready.mp4"));
++                assert!(!drained_early, "the catalogue worker must own the stalled raw call");
++                assert!(report.cancelled);
++            });
++        }
++    }
++
++    #[test]
++    fn ready_tail_is_published_while_an_unrelated_operation_is_still_held() {
++        let f = Fixture::new();
++        for name in ["first.mp4", "second.mp4", "held.mp4"] { f.file(name); }
++        let root = std::fs::File::open(&f.0).unwrap(); let profile = f.profile();
++        let hold = Hold::new(); let cancel = AtomicBool::new(false);
++        std::thread::scope(|scope| {
++            let (sent, received) = std::sync::mpsc::channel();
++            let (profile, root, cancel, hold) = (&profile, &root, &cancel, &hold);
++            let run = scope.spawn(move || walk_with(profile, root, cancel, &|| true,
++                &mut |rows| { sent.send(rows.len()).unwrap(); Ok(()) },
++                &|stage, path, _| { if stage == WalkStage::Probe && path == "held.mp4" { hold.block()?; } Ok(()) }));
++            let entered = hold.wait_entered(1);
++            let first = received.recv_timeout(std::time::Duration::from_secs(2));
++            let second = received.recv_timeout(std::time::Duration::from_secs(2));
++            let finished = run.is_finished();
++            cancel.store(true, Ordering::Release); hold.release();
++            let report = run.join().unwrap().unwrap();
++            assert!(entered); assert_eq!(first.unwrap(), 1);
++            assert_eq!(second.expect("ready tail must flush before the unrelated call drains"), 1);
++            assert!(!finished); assert_eq!(report.videos, 2); assert!(report.cancelled);
++        });
++    }
++
++    #[test]
++    fn metadata_saturation_keeps_a_probe_lane_and_drains_before_completion() {
++        let f = Fixture::new();
++        for name in ["a", "b", "c", "d"] { f.file(&format!("{name}/ready.mp4")); }
++        let root = std::fs::File::open(&f.0).unwrap();
++        let profile = f.profile();
++        let hold = Hold::new();
++        let chosen = AtomicBool::new(false);
++        let cancel = AtomicBool::new(false);
++        std::thread::scope(|scope| {
++            let (sent, received) = std::sync::mpsc::channel();
++            let (profile, root, cancel, hold, chosen) = (&profile, &root, &cancel, &hold, &chosen);
++            let run = scope.spawn(move || walk_with(profile, root, cancel, &|| true,
++                &mut |_| Ok(()), &|stage, path, step| {
++                    if stage == WalkStage::Next && !path.is_empty() && step == 1 { hold.block()?; }
++                    if stage == WalkStage::Probe && path.ends_with("/ready.mp4")
++                        && !chosen.swap(true, Ordering::AcqRel) {
++                        if !hold.wait_entered(3) { return Err(readonly::ReadError::Io(std::io::ErrorKind::TimedOut)); }
++                        sent.send(()).unwrap();
++                    }
++                    Ok(())
++                }));
++            let advanced = received.recv_timeout(std::time::Duration::from_secs(4));
++            let admitted = hold.entered.load(Ordering::Acquire);
++            cancel.store(true, Ordering::Release);
++            let drained_early = run.is_finished();
++            hold.release();
++            let report = run.join().unwrap().unwrap();
++            assert!(advanced.is_ok(), "file probe progresses while three metadata operations remain held");
++            assert_eq!(admitted, 3, "a fourth metadata operation cannot consume the file lane");
++            assert!(!drained_early);
++            assert!(report.cancelled);
++        });
++    }
++
++    #[test]
++    fn queued_file_probe_precedes_unrelated_directory_continuation() {
++        let f = Fixture::new();
++        let root = std::fs::File::open(&f.0).unwrap();
++        let mut queue = VecDeque::new(); let mut bytes = 0;
++        queue_walk(&mut queue, &mut bytes, 0, WalkJob { path: "later".into(), depth: 1, task: WalkTask::Open }).unwrap();
++        queue_walk(&mut queue, &mut bytes, 0, WalkJob { path: "ready.mp4".into(), depth: 0,
++            task: WalkTask::Probe(std::sync::Arc::new(root), "ready.mp4".into()) }).unwrap();
++        assert!(!queue.front().unwrap().directory());
++        assert!(queue.back().unwrap().directory());
++        let previous = bytes;
++        let oversized = WalkJob { path: "x".repeat(PENDING_PATH_BYTES), depth: 1, task: WalkTask::Open };
++        assert_eq!(queue_walk(&mut queue, &mut bytes, 0, oversized), Err("Local pending folder limit reached"));
++        assert_eq!(bytes, previous);
++        assert_eq!(queue.len(), 2);
++    }
++
++    #[test]
++    fn cancellation_or_withdrawal_never_finishes_or_publishes_before_raw_drain() {
++        for withdraw in [false, true] {
++            let f = Fixture::new(); f.file("held.mp4");
++            let root = std::fs::File::open(&f.0).unwrap(); let profile = f.profile();
++            let hold = Hold::new(); let live = AtomicBool::new(true); let cancel = AtomicBool::new(false);
++            let published = std::sync::atomic::AtomicUsize::new(0);
++            std::thread::scope(|scope| {
++                let run = scope.spawn(|| walk_with(&profile, &root, &cancel,
++                    &|| live.load(Ordering::Acquire), &mut |rows| { published.fetch_add(rows.len(), Ordering::Relaxed); Ok(()) },
++                    &|stage, path, _| { if stage == WalkStage::Probe && path == "held.mp4" { hold.block()?; } Ok(()) }));
++                let entered = hold.wait_entered(1);
++                if withdraw { live.store(false, Ordering::Release); } else { cancel.store(true, Ordering::Release); }
++                std::thread::sleep(std::time::Duration::from_millis(100));
++                let drained_early = run.is_finished();
++                hold.release();
++                let result = run.join().unwrap();
++                assert!(entered); assert!(!drained_early); assert_eq!(published.load(Ordering::Acquire), 0);
++                if withdraw { assert!(result.is_err()); } else { assert!(result.unwrap().cancelled); }
++            });
++        }
++    }
++
+     #[test]
+     fn read_error_flushes_last_prefix_before_child_warning_or_root_resource_failure() {
+         for (child, allocation) in [(false, false), (true, false), (true, true)] {
+             let f = Fixture::new();
++            let folder = if child { "child/" } else { "" };
++            for name in ["first.mp4", "last.mp4"] { f.file(&format!("{folder}{name}")); }
+             let root = std::fs::File::open(&f.0).unwrap();
+             let mut rows = Vec::new();
+             let result = walk_with(&f.profile(), &root, &AtomicBool::new(false),
+                 &|| true, &mut |batch| { rows.extend(batch); Ok(()) },
+-                &mut |_, relative, _, check, emit| {
+-                    assert!(check());
+-                    if child && relative.is_empty() {
+-                        assert!(emit(Some(readonly::DirectoryEntry {
+-                            name: "child".into(), kind: EntryKind::Directory,
+-                        }), 5)?);
+-                        return Ok(readonly::DirectoryVisit { reached_end: true, complete: true });
++                &|stage, relative, step| {
++                    if stage == WalkStage::Next && relative == (if child { "child" } else { "" }) && step == 2 {
++                        return Err(if allocation { readonly::ReadError::AllocationFailed }
++                            else { readonly::ReadError::Io(std::io::ErrorKind::Other) });
+                     }
+-                    assert_eq!(relative, if child { "child" } else { "" });
+-                    // Model two successful readdir observations followed by EIO.
+-                    // Both use the real traversal/batching code; no terminal
+-                    // report or Event is synthesized by this reader seam.
+-                    for name in ["first.mp4", "last.mp4"] {
+-                        assert!(emit(Some(readonly::DirectoryEntry {
+-                            name: name.into(), kind: EntryKind::RegularFile,
+-                        }), name.len())?);
+-                    }
+-                    Err(if allocation { readonly::ReadError::AllocationFailed }
+-                        else { readonly::ReadError::Io(std::io::ErrorKind::Other) })
++                    Ok(())
+                 });
+             assert_eq!(rows.len(), 2, "the final sub-64 prefix must not disappear");
+             if child && !allocation {
+                 let report = result.unwrap();
+-                assert_eq!(report.videos, rows.len());
+-                assert_eq!(report.skipped, 1);
+-                assert!(report.warning().is_some());
+-                assert!(!report.cancelled && !report.depth_limited);
++                assert_eq!(report.videos, rows.len()); assert_eq!(report.skipped, 1);
++                assert!(report.warning().is_some()); assert!(!report.cancelled && !report.depth_limited);
+             } else { assert!(result.is_err(), "root/resource failure is incomplete"); }
+         }
+     }
+@@ -697,31 +915,22 @@
+     #[test]
+     fn failed_child_read_does_not_flush_after_cancellation_or_withdrawal() {
+         for withdraw in [false, true] {
+-            let f = Fixture::new();
++            let f = Fixture::new(); f.file("child/first.mp4"); f.file("child/buffered.mp4");
+             let root = std::fs::File::open(&f.0).unwrap();
+-            let live = std::cell::Cell::new(true);
+-            let cancel = AtomicBool::new(false);
++            let live = AtomicBool::new(true); let cancel = AtomicBool::new(false); let first = Hold::new();
+             let mut rows = Vec::new();
+             let result = walk_with(&f.profile(), &root, &cancel,
+-                &|| live.get(), &mut |batch| { rows.extend(batch); Ok(()) },
+-                &mut |_, relative, _, _, emit| {
+-                    if relative.is_empty() {
+-                        assert!(emit(Some(readonly::DirectoryEntry {
+-                            name: "child".into(), kind: EntryKind::Directory,
+-                        }), 5)?);
+-                        return Ok(readonly::DirectoryVisit { reached_end: true, complete: true });
++                &|| live.load(Ordering::Acquire), &mut |batch| { rows.extend(batch); first.release(); Ok(()) },
++                &|stage, path, _| {
++                    if stage == WalkStage::Probe && path == "child/buffered.mp4" {
++                        first.block()?;
++                        if withdraw { live.store(false, Ordering::Release); } else { cancel.store(true, Ordering::Release); }
++                        return Err(readonly::ReadError::Io(std::io::ErrorKind::Other));
+                     }
+-                    for name in ["first.mp4", "buffered.mp4"] {
+-                        assert!(emit(Some(readonly::DirectoryEntry {
+-                            name: name.into(), kind: EntryKind::RegularFile,
+-                        }), name.len())?);
+-                    }
+-                    if withdraw { live.set(false); } else { cancel.store(true, Ordering::Release); }
+-                    Err(readonly::ReadError::Io(std::io::ErrorKind::Other))
++                    Ok(())
+                 });
+             assert_eq!(rows.len(), 1, "revoked buffered rows must not be emitted");
+-            if withdraw { assert!(result.is_err()); }
+-            else { assert!(result.unwrap().cancelled); }
++            if withdraw { assert!(result.is_err()); } else { assert!(result.unwrap().cancelled); }
+         }
+     }
+ 
+diff --git a/rust-modules/platform/src/storage/readonly.rs b/rust-modules/platform/src/storage/readonly.rs
+--- a/rust-modules/platform/src/storage/readonly.rs
++++ b/rust-modules/platform/src/storage/readonly.rs
+@@ -243,6 +243,96 @@
+     pub complete: bool,
+ }
+ 
++/// One owned directory stream. It can move between workers, but no two calls
++/// may access its readdir state concurrently. Type probes only share the held FD.
++pub struct DirectoryCursor {
++    directory: std::sync::Arc<File>,
++    stream: *mut libc::DIR,
++}
++// readdir/closedir operate on this exclusively owned stream; next requires &mut.
++unsafe impl Send for DirectoryCursor {}
++impl Drop for DirectoryCursor {
++    fn drop(&mut self) { unsafe { libc::closedir(self.stream); } }
++}
++
++pub struct DirectoryName {
++    pub name: Option<String>,
++    pub bytes: usize,
++}
++impl DirectoryCursor {
++    pub fn open(root: &File, relative: &str, check: &mut dyn FnMut() -> bool) -> Result<Self, ReadError> {
++        let directory = std::sync::Arc::new(open_directory(root, relative, check)?);
++        checkpoint(check)?;
++        let duplicate = unsafe { libc::fcntl(directory.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
++        if duplicate < 0 { return Err(io_error(io::Error::last_os_error())); }
++        let stream = unsafe { libc::fdopendir(duplicate) };
++        if stream.is_null() {
++            let error = io::Error::last_os_error();
++            unsafe { libc::close(duplicate); }
++            return Err(io_error(error));
++        }
++        let cursor = Self { directory, stream };
++        checkpoint(check)?;
++        Ok(cursor)
++    }
++    pub fn directory(&self) -> std::sync::Arc<File> { self.directory.clone() }
++    /// Read one non-dot name, without stat/open of that child. A slow child
++    /// probe therefore cannot hold the iterator needed to find a ready sibling.
++    pub fn next(&mut self, check: &mut dyn FnMut() -> bool) -> Result<Option<DirectoryName>, ReadError> {
++        loop {
++            checkpoint(check)?;
++            unsafe {
++                #[cfg(target_os = "macos")]
++                let errno = libc::__error();
++                #[cfg(not(target_os = "macos"))]
++                let errno = libc::__errno_location();
++                *errno = 0;
++            }
++            let entry = unsafe { super::read_directory_entry(self.stream) };
++            let error = entry.is_null().then(io::Error::last_os_error);
++            checkpoint(check)?;
++            if let Some(error) = error {
++                return if error.raw_os_error().unwrap_or(0) == 0 { Ok(None) } else { Err(io_error(error)) };
++            }
++            let raw = unsafe { std::ffi::CStr::from_ptr((*entry).d_name.as_ptr()) };
++            if raw.to_bytes() == b"." || raw.to_bytes() == b".." { continue; }
++            let bytes = raw.to_bytes().len();
++            let name = raw.to_str().ok().filter(|name| valid_component(name));
++            let name = match name {
++                Some(name) => {
++                    let mut value = String::new();
++                    value.try_reserve_exact(name.len()).map_err(|_| ReadError::AllocationFailed)?;
++                    value.push_str(name); Some(value)
++                }
++                None => None,
++            };
++            return Ok(Some(DirectoryName { name, bytes }));
++        }
++    }
++}
++fn valid_component(name: &str) -> bool {
++    !name.is_empty() && name != "." && name != ".." && !name.contains(['/', '\\'])
++        && !name.chars().any(char::is_control)
++}
++/// No-follow observation under the exact directory retained by the cursor.
++/// No root path is reconstructed and no body/thumbnail/duration is read.
++pub fn probe_kind(directory: &File, name: &str, check: &mut dyn FnMut() -> bool) -> Result<EntryKind, ReadError> {
++    if !valid_component(name) { return Err(ReadError::InvalidPath); }
++    let raw = std::ffi::CString::new(name).map_err(|_| ReadError::InvalidPath)?;
++    checkpoint(check)?;
++    let mut stat = std::mem::MaybeUninit::<NativeStat>::uninit();
++    let result = unsafe { stat_at(directory.as_raw_fd(), raw.as_ptr(), stat.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) };
++    checkpoint(check)?;
++    Ok(if result != 0 { EntryKind::Unreadable } else {
++        match unsafe { stat.assume_init() }.st_mode & libc::S_IFMT {
++            libc::S_IFREG => EntryKind::RegularFile,
++            libc::S_IFDIR => EntryKind::Directory,
++            libc::S_IFLNK => EntryKind::Symlink,
++            _ => EntryKind::Other,
++        }
++    })
++}
++
+ /// Visit one directory beneath the held root without collecting its entries.
+ /// At most `max_entries` non-dot names are delivered. The callback receives
+ /// `None` for an unrepresentable name and the original name's byte length, so
+@@ -257,48 +347,23 @@
+     check: &mut dyn FnMut() -> bool,
+     visit: &mut dyn FnMut(Option<DirectoryEntry>, usize) -> Result<bool, ReadError>,
+ ) -> Result<DirectoryVisit, ReadError> {
+-    let directory = open_directory(root, parent_relative, check)?;
++    let mut cursor = DirectoryCursor::open(root, parent_relative, check)?;
+     let mut examined = 0usize;
+     let mut complete = true;
+-    let reached_end = super::visit_directory_names_with::<ReadError>(
+-        &directory,
+-        super::read_directory_entry,
+-        || checkpoint(check),
+-        |raw| {
+-            if raw.to_bytes() == b"." || raw.to_bytes() == b".." {
+-                return Ok(true);
++    while let Some(entry) = cursor.next(check)? {
++        if examined == max_entries { return Ok(DirectoryVisit { reached_end: false, complete: false }); }
++        examined += 1;
++        let value = match entry.name {
++            Some(name) => {
++                let kind = probe_kind(&cursor.directory, &name, check)?;
++                if kind == EntryKind::Unreadable { complete = false; }
++                Some(DirectoryEntry { name, kind })
+             }
+-            if examined == max_entries { return Ok(false); }
+-            examined += 1;
+-            let bytes = raw.to_bytes().len();
+-            let name = raw.to_str().ok().filter(|name| !name.is_empty()
+-                && !name.contains(['/', '\\']) && !name.chars().any(char::is_control));
+-            let Some(name) = name else {
+-                complete = false;
+-                return visit(None, bytes);
+-            };
+-            let mut stat = std::mem::MaybeUninit::<NativeStat>::uninit();
+-            let result = unsafe {
+-                stat_at(directory.as_raw_fd(), raw.as_ptr(), stat.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW)
+-            };
+-            let kind = if result != 0 {
+-                complete = false;
+-                EntryKind::Unreadable
+-            } else {
+-                match unsafe { stat.assume_init() }.st_mode & libc::S_IFMT {
+-                    libc::S_IFREG => EntryKind::RegularFile,
+-                    libc::S_IFDIR => EntryKind::Directory,
+-                    libc::S_IFLNK => EntryKind::Symlink,
+-                    _ => EntryKind::Other,
+-                }
+-            };
+-            let mut owned = String::new();
+-            owned.try_reserve_exact(name.len()).map_err(|_| ReadError::AllocationFailed)?;
+-            owned.push_str(name);
+-            visit(Some(DirectoryEntry { name: owned, kind }), bytes)
+-        },
+-    )?;
+-    Ok(DirectoryVisit { reached_end, complete: complete && reached_end })
++            None => { complete = false; None }
++        };
++        if !visit(value, entry.bytes)? { return Ok(DirectoryVisit { reached_end: false, complete: false }); }
++    }
++    Ok(DirectoryVisit { reached_end: true, complete })
+ }
+ 
+ /// Observe just one directory beneath an authorized root, never a recursive
+@@ -329,3 +394,62 @@
+ #[cfg(test)]
+ #[path = "readonly_tests.rs"]
+ mod tests;
++
++#[cfg(test)]
++mod cursor_tests {
++    use super::*;
++    use std::sync::atomic::{AtomicUsize, Ordering};
++    static NEXT: AtomicUsize = AtomicUsize::new(0);
++    struct Fixture(std::path::PathBuf);
++    impl Fixture {
++        fn new() -> Self {
++            let path = std::env::temp_dir().join(format!("ott-cursor-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
++            std::fs::create_dir(&path).unwrap(); Self(path)
++        }
++        fn root(&self) -> File { File::open(&self.0).unwrap() }
++    }
++    impl Drop for Fixture { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
++
++    #[test]
++    fn one_step_cursor_does_not_require_the_previous_child_to_remain_readable() {
++        let fixture = Fixture::new();
++        for name in ["first.mp4", "second.mp4"] { std::fs::write(fixture.0.join(name), b"media").unwrap(); }
++        let root = fixture.root();
++        let mut cursor = DirectoryCursor::open(&root, "", &mut || true).unwrap();
++        let first = cursor.next(&mut || true).unwrap().unwrap().name.unwrap();
++        std::fs::remove_file(fixture.0.join(&first)).unwrap();
++        let second = cursor.next(&mut || true).unwrap().unwrap().name.unwrap();
++        assert_ne!(first, second);
++        assert_eq!(probe_kind(&cursor.directory(), &first, &mut || true), Ok(EntryKind::Unreadable));
++        assert_eq!(probe_kind(&cursor.directory(), &second, &mut || true), Ok(EntryKind::RegularFile));
++        assert!(cursor.next(&mut || true).unwrap().is_none());
++        // A fresh cursor owns an independent offset even after the old EOF.
++        let mut fresh = DirectoryCursor::open(&root, "", &mut || true).unwrap();
++        assert_eq!(fresh.next(&mut || true).unwrap().unwrap().name.as_deref(), Some(second.as_str()));
++    }
++
++    #[test]
++    fn probe_is_no_follow_and_rechecks_authority_after_the_observation() {
++        let fixture = Fixture::new();
++        std::fs::write(fixture.0.join("movie.mp4"), b"media").unwrap();
++        std::os::unix::fs::symlink("movie.mp4", fixture.0.join("link.mp4")).unwrap();
++        let root = fixture.root();
++        assert_eq!(probe_kind(&root, "link.mp4", &mut || true), Ok(EntryKind::Symlink));
++        assert_eq!(probe_kind(&root, "../movie.mp4", &mut || true), Err(ReadError::InvalidPath));
++        let mut checks = 0;
++        assert_eq!(probe_kind(&root, "movie.mp4", &mut || { checks += 1; checks == 1 }), Err(ReadError::Aborted));
++    }
++
++    #[test]
++    fn bounded_adapter_keeps_early_stop_distinct_from_complete_eof() {
++        let fixture = Fixture::new();
++        std::fs::write(fixture.0.join("movie.mp4"), b"media").unwrap();
++        let root = fixture.root();
++        let bounded = visit_bounded(&root, "", 0, &mut || true, &mut |_, _| panic!("zero limit")).unwrap();
++        assert!(!bounded.reached_end && !bounded.complete);
++        let stopped = visit_bounded(&root, "", 2, &mut || true, &mut |_, _| Ok(false)).unwrap();
++        assert!(!stopped.reached_end && !stopped.complete);
++        let complete = visit_bounded(&root, "", 2, &mut || true, &mut |_, _| Ok(true)).unwrap();
++        assert!(complete.reached_end && complete.complete);
++    }
++}

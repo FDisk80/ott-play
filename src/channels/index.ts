@@ -1709,6 +1709,16 @@ export function formatEpgDate(timestamp: number): string {
     );
 }
 
+/** The marker reflects accepted source-scoped reminder state, never a row position. */
+export function epgReminderMarker(item: EPGEntry, channelId: any): string {
+    var w = window as any;
+    return w.__ottClassicReminders?.hasProgramme(channelId, item)
+        ? '<span class="btn yellow ott-epg-reminder" role="img" aria-label="' +
+              metadataText(w._("Timer")) +
+              '">&nbsp;</span> '
+        : "";
+}
+
 /**
  * Render an EPG list item as an HTML string for display in the channel/EPG list.
  * Highlights the currently-airing program and shows record/archive indicators.
@@ -1743,7 +1753,7 @@ export function itemEPG(item: EPGEntry, index: number): string {
     }
 
     var ch = (channels[epg_ch_id] || {}) as Channel;
-    var prefix = "";
+    var prefix = epgReminderMarker(item, epg_ch_id);
     // Use the same clock as isCurrent (live or archive playhead). time_to
     // marks ended programmes so the current row is not also tagged past —
     // wrong past styling after EPG page-up was easy to miss when rows clipped.
@@ -1762,17 +1772,13 @@ export function itemEPG(item: EPGEntry, index: number): string {
     }
     if (isCurrent) prefix += '<div class="btn red">&nbsp;</div> ';
 
-    var date = formatEpgDate(item.time),
-        endDate = formatEpgDate(item.time_to);
+    var date = formatEpgDate(item.time);
     return (
         "&nbsp;&nbsp;" +
         prefix +
         '<span dir="auto" class="ott-epg-time">' +
         (date ? date + " " : "") +
         formatEpgTime(item.time) +
-        " - " +
-        (endDate && endDate !== date ? endDate + " " : "") +
-        formatEpgTime(item.time_to) +
         '</span><span class="ott-channel-label">&nbsp;' +
         (name || "") +
         "</span>"
@@ -2118,6 +2124,7 @@ export function detailEPG(channelId: number): void {
         '<div id="_name"><div class="ott-epg-detail-title">' +
         metadataText(item.name) +
         '</div><div class="ott-epg-detail-time">' +
+        epgReminderMarker(item, channelId) +
         (typeof w.formatProgramDateTime === "function"
             ? w.formatProgramDateTime(item.time)
             : formatEpgTime(item.time)) +

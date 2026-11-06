@@ -22,7 +22,6 @@ module.exports = defineConfig({
         "media-companion.spec.cjs",
         "torznab-provider-settings.spec.cjs",
         "playback-runtime.spec.cjs",
-        "nas-library.spec.cjs",
         "plex-provider.spec.cjs",
         "media-channel-playlists.spec.cjs",
         "vportal-provider.spec.cjs",

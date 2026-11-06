@@ -379,14 +379,14 @@ function pluginFixture(options = {}) {
             },
         },
         "../offline/browser-local-media": {
-            installBrowserLocalMedia: () => ({ suspend() {} }),
+            installBrowserLocalMedia: () => options.browser || { suspend() {} },
             installOfflineShell() {},
         },
         "../offline/local-media-progress": progress,
         "../offline/playback-selection": selection,
         "../offline/profiles": { installOfflineProfiles() {} },
         "./native-bridge": {
-            resolveNativePlugin: () => ({}),
+            resolveNativePlugin: () => options.native || {},
             tauriInvoke: async (name, args) => {
                 calls.push([name, args]);
                 if (options.invoke) {
@@ -418,6 +418,9 @@ function pluginFixture(options = {}) {
             },
         },
     }).installLocalMedia;
+    if (options.mode) delete w.__TAURI__;
+    if (options.mode === "native")
+        w.Capacitor = { isNativePlatform: () => true };
     if (options.host) Object.assign(w, options.host);
     const api = install(w);
     return {
@@ -2210,7 +2213,7 @@ test("progressive capability follows the implemented backend and settled native 
         });
         await tick();
         assert.equal(f.api.remoteCapabilities().version, 1, platform);
-        assert.equal(f.api.remoteProgressive(), false, platform);
+        assert.equal(f.api.remoteProgressive(), true, platform);
         assert.equal(
             f.calls.length,
             0,
@@ -2218,4 +2221,429 @@ test("progressive capability follows the implemented backend and settled native 
         );
         assert.equal(f.reads, 0);
     }
+});
+
+test("browser remote startup adopts one live scan before its remainder resolves", async () => {
+    let progress,
+        finish,
+        lists = 0,
+        suspended = 0;
+    const browser = {
+        list: (callback, preferred, priorities) => {
+            lists++;
+            assert.deepEqual(Array.from(priorities), [source.id]);
+            progress = callback;
+            return new Promise((resolve) => {
+                finish = resolve;
+            });
+        },
+        sources: async () => ({
+            sources: [{ ...source, available: undefined }],
+        }),
+        suspend() {
+            suspended++;
+        },
+    };
+    const f = pluginFixture({
+        browser,
+        host: { indexedDB: {} },
+        mode: "browser",
+    });
+    const pending = new Promise((resolve) =>
+        execute(f.w, request("shuffle", { progressive: true }), resolve)
+    );
+    await tick();
+    assert.equal(lists, 1);
+    const prefix = {
+        ...catalog(),
+        items: [catalog().items[0]],
+        scanning: true,
+    };
+    progress(prefix);
+    const reply = await pending;
+    assert.equal(reply.status, "ok");
+    assert.equal(reply.data.count, 1);
+    assert.equal(reply.data.scanning, true);
+    f.api.bindPlaybackOwner(() => true);
+    const seen = [];
+    const scan = f.api.playbackList((value) => {
+        seen.push(clone(f.api.playbackFilter(value)));
+        return true;
+    });
+    assert.equal(lists, 1, "provider adopts the same pending iterator");
+    assert.deepEqual(
+        seen.map((value) => value.items.length),
+        [1]
+    );
+    const expanded = { ...catalog(), scanning: true };
+    progress(expanded);
+    assert.deepEqual(
+        seen.map((value) => value.items.length),
+        [1, 3]
+    );
+    assert.equal(
+        seen[1].items[0].id,
+        seen[0].items[0].id,
+        "shuffle prefix is stable"
+    );
+    finish(catalog());
+    assert.equal((await scan).scanning, false);
+    assert.equal(suspended, 0);
+    assert.equal(f.calls.filter(([name]) => name === "provider").length, 1);
+});
+
+test("native progressive import selects the chosen source and adopts its request", async () => {
+    let event,
+        finish,
+        args,
+        lists = 0;
+    const native = {
+        addListener: async (_, callback) => {
+            event = callback;
+            return { remove() {} };
+        },
+        importFolder: async (options) => {
+            assert.equal(options.progressive, true);
+            return { items: [], scanning: true, sourceIds: [source.id] };
+        },
+        list: (options) => {
+            lists++;
+            args = options;
+            return new Promise((resolve) => {
+                finish = resolve;
+            });
+        },
+    };
+    const f = pluginFixture({ mode: "native", native });
+    let resolved = false;
+    const imported = f.api.importFiles(true).then((value) => {
+        resolved = true;
+        return value;
+    });
+    await tick();
+    assert.deepEqual(Array.from(args.sourceIds), [source.id]);
+    event({
+        catalog: { ...catalog(), items: [catalog().items[3]], scanning: true },
+        requestId: args.requestId,
+    });
+    await tick();
+    assert.equal(resolved, false, "unrelated source cannot end import wait");
+    const prefix = {
+        ...catalog(),
+        items: [catalog().items[0]],
+        scanning: true,
+    };
+    event({ catalog: prefix, requestId: args.requestId });
+    await imported;
+    f.api.activate();
+    f.api.bindPlaybackOwner(() => true);
+    const seen = [];
+    const scan = f.api.playbackList((value) => {
+        seen.push(value.items.length);
+        return true;
+    });
+    assert.equal(lists, 1);
+    assert.deepEqual(seen, [1]);
+    assert.equal(f.api.takeImportSelection(), "local-1");
+    finish(catalog());
+    await scan;
+});
+
+test("pending queue completion wakes only for its own append and scan generation", () => {
+    const f = pluginFixture();
+    const value = (items, state = "scanning", generation = 1) => ({
+        ...sourceCatalog(state, generation),
+        items,
+    });
+    const first = catalog().items[0];
+    let resumed = 0;
+    f.api.queueProgress(value([first]));
+    assert.equal(
+        f.api.deferQueueEnd(source.id, () => resumed++),
+        true
+    );
+    f.api.queueProgress(value([first, catalog().items[3]]));
+    assert.equal(resumed, 0, "another source cannot wake this queue");
+    f.api.queueProgress(value([first, catalog().items[1]]));
+    assert.equal(resumed, 1);
+    f.api.queueProgress(value([first, catalog().items[1]]));
+    assert.equal(resumed, 1, "one waiter resumes once");
+    f.api.deferQueueEnd(source.id, () => resumed++);
+    f.api.queueProgress(value([first], "scanning", 2));
+    f.api.queueProgress(value([first, catalog().items[1]], "complete", 2));
+    assert.equal(resumed, 1, "replacement scan retires old EOF");
+    f.api.queueProgress(value([first]));
+    f.api.deferQueueEnd(source.id, () => resumed++);
+    f.api.queueProgress(value([first], "complete"));
+    assert.equal(resumed, 2, "completion settles a queue without more files");
+    assert.equal(
+        f.api.deferQueueEnd(source.id, () => resumed++),
+        false
+    );
+    f.api.queueProgress(value([first]));
+    f.api.deferQueueEnd(source.id, () => resumed++);
+    f.api.queueProgress(null);
+    f.api.queueProgress(value([first, catalog().items[1]]));
+    assert.equal(resumed, 2, "failed scan never revives pending EOF");
+});
+
+test("a fast next batch cannot break native/browser scan adoption", async () => {
+    let finish,
+        lists = 0;
+    const f = pluginFixture({
+        browser: {
+            list: (callback) => {
+                lists++;
+                callback({
+                    ...catalog(),
+                    items: [catalog().items[0]],
+                    scanning: true,
+                });
+                callback({ ...catalog(), scanning: true });
+                return new Promise((resolve) => {
+                    finish = resolve;
+                });
+            },
+            sources: async () => ({ sources: [source] }),
+            suspend() {},
+        },
+        host: { indexedDB: {} },
+        mode: "browser",
+    });
+    const reply = await new Promise((resolve) =>
+        execute(f.w, request("play", { progressive: true }), resolve)
+    );
+    assert.equal(reply.status, "ok");
+    f.api.bindPlaybackOwner(() => true);
+    const batches = [];
+    const pending = f.api.playbackList((value) => {
+        batches.push(
+            Array.from(f.api.playbackFilter(value).items, (item) => item.id)
+        );
+        return true;
+    });
+    assert.equal(lists, 1);
+    assert.deepEqual(batches[0], ["1"]);
+    assert.equal(
+        batches[1][0],
+        "1",
+        "accepted prefix survives a faster background batch"
+    );
+    finish(catalog());
+    await pending;
+});
+
+test("cancelling a pending browser first-file request rejects late work", async () => {
+    let progress,
+        finish,
+        suspended = 0;
+    const f = pluginFixture({
+        browser: {
+            list: (callback) => {
+                progress = callback;
+                return new Promise((resolve) => {
+                    finish = resolve;
+                });
+            },
+            sources: async () => ({ sources: [source] }),
+            suspend() {
+                suspended++;
+            },
+        },
+        host: { indexedDB: {} },
+        mode: "browser",
+    });
+    let replies = 0;
+    const cancel = execute(
+        f.w,
+        request("play", { progressive: true }),
+        () => replies++
+    );
+    await tick();
+    cancel();
+    assert.equal(progress({ ...catalog(), scanning: true }), false);
+    finish(catalog());
+    await tick();
+    assert.equal(replies, 0);
+    assert.equal(suspended, 1);
+    assert.equal(f.calls.filter(([name]) => name === "provider").length, 0);
+});
+
+test("public browser source listing retains real availability checks", async () => {
+    let inventories = 0,
+        scans = 0;
+    const f = pluginFixture({
+        browser: {
+            list: async () => {
+                scans++;
+                return {
+                    items: [],
+                    scanning: false,
+                    sources: [{ ...source, available: false }],
+                };
+            },
+            sources: async () => {
+                inventories++;
+                return { sources: [source] };
+            },
+            suspend() {},
+        },
+        host: { indexedDB: {} },
+        mode: "browser",
+    });
+    const reply = await new Promise((resolve) =>
+        execute(f.w, request("sources"), resolve)
+    );
+    assert.equal(reply.status, "ok");
+    assert.equal(reply.data.sources[0].available, false);
+    assert.equal(inventories, 0);
+    assert.equal(scans, 1);
+});
+
+test("server helper selects from token-scoped inventory and hands off the first source generation", async () => {
+    const base = "http://127.0.0.1:1234/offline-media/test-token";
+    const requests = [];
+    const snapshots = [
+        { ...sourceCatalog("scanning", 17), items: [catalog().items[0]] },
+        sourceCatalog("complete", 17),
+    ];
+    const f = pluginFixture({
+        data: new Map([["localMediaEndpoint", base]]),
+        host: {
+            fetch: async (url) => {
+                requests.push(url);
+                return {
+                    json: async () =>
+                        url === base + "/sources"
+                            ? {
+                                  sources: [
+                                      {
+                                          id: source.id,
+                                          kind: "folder",
+                                          name: source.name,
+                                      },
+                                  ],
+                              }
+                            : snapshots.shift(),
+                    ok: true,
+                };
+            },
+        },
+        mode: "browser",
+    });
+    const reply = await new Promise((resolve) =>
+        execute(f.w, request("shuffle", { progressive: true }), resolve)
+    );
+    assert.equal(reply.status, "ok");
+    assert.equal(reply.data.count, 1);
+    assert.equal(reply.data.scanning, true);
+    assert.deepEqual(requests, [
+        base + "/sources",
+        base + "?sourceId=" + source.id,
+    ]);
+    f.api.bindPlaybackOwner(() => true);
+    const seen = [];
+    const complete = await f.api.playbackList((value) => {
+        seen.push(value.items.length);
+        return true;
+    });
+    assert.deepEqual(seen, [1, 4]);
+    assert.equal(f.api.playbackFilter(complete).scanning, false);
+    assert.ok(requests.every((url) => url.startsWith(base)));
+});
+
+test("helper authentication failures do not fall back to catalog reads", async () => {
+    for (const status of [401, 403, 500]) {
+        const requests = [];
+        const f = pluginFixture({
+            data: new Map([
+                ["localMediaEndpoint", "http://helper/offline-media/token"],
+            ]),
+            host: {
+                fetch: async (url) => {
+                    requests.push(url);
+                    return { ok: false, status };
+                },
+            },
+            mode: "browser",
+        });
+        const reply = await new Promise((resolve) =>
+            execute(f.w, request("play", { progressive: true }), resolve)
+        );
+        assert.notEqual(reply.status, "ok");
+        assert.equal(requests.length, 1);
+        assert.equal(f.calls.filter(([name]) => name === "provider").length, 0);
+    }
+});
+
+test("legacy helper inventory fallback waits for a proven complete catalog", async () => {
+    const base = "http://helper/offline-media/token";
+    const requests = [];
+    let reads = 0;
+    const f = pluginFixture({
+        data: new Map([["localMediaEndpoint", base]]),
+        host: {
+            fetch: async (url) => {
+                requests.push(url);
+                if (url.endsWith("/sources")) return { ok: false, status: 404 };
+                reads++;
+                return {
+                    json: async () => ({ ...catalog(), scanning: reads === 2 }),
+                    ok: true,
+                };
+            },
+        },
+        mode: "browser",
+    });
+    const reply = await new Promise((resolve) =>
+        execute(f.w, request("play", { progressive: true }), resolve)
+    );
+    assert.equal(reply.status, "ok");
+    assert.equal(
+        reply.data.scanning,
+        undefined,
+        "no source generation means no unproven partial handoff"
+    );
+    assert.equal(reads, 3);
+    assert.equal(requests[0], base + "/sources");
+    assert.equal(requests[2], base + "?sourceId=" + source.id);
+});
+
+test("individual file imports can wait for the next independently sourced file", () => {
+    const f = pluginFixture();
+    const first = { id: "file-a", sourceId: "file-a", url: "blob:a" };
+    const second = { id: "file-b", sourceId: "file-b", url: "blob:b" };
+    let resumed = 0;
+    f.api.queueProgress({ items: [first], scanning: true });
+    assert.equal(
+        f.api.deferQueueEnd("", () => resumed++),
+        true
+    );
+    f.api.queueProgress({ items: [first, second], scanning: true });
+    assert.equal(resumed, 1);
+    f.api.deferQueueEnd("", () => resumed++);
+    f.api.cancelQueueEnd();
+    f.api.queueProgress({ items: [first, second], scanning: false });
+    assert.equal(resumed, 1);
+});
+
+test("standby during screen cleanup cancels an accepted remote handoff", async () => {
+    let blocked = false;
+    const f = pluginFixture({
+        connected: true,
+        host: {
+            __ottStandby: { blocked: () => blocked },
+            closeList() {
+                blocked = true;
+                this.__ottLocalMedia.suspend();
+            },
+        },
+    });
+    await tick();
+    f.snapshots.push(sourceCatalog("scanning"));
+    const reply = await new Promise((resolve) =>
+        execute(f.w, request("play", { progressive: true }), resolve)
+    );
+    assert.notEqual(reply.status, "ok");
+    assert.equal(f.calls.filter(([name]) => name === "provider").length, 0);
 });

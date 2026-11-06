@@ -60,10 +60,7 @@ interface VPortalCompletion {
 }
 
 interface VPortalOptions {
-    /** Explicit same-origin installation API; never resolved through the upstream proxy. */
-    directEndpoint?: string;
     isCurrent?: () => boolean;
-    preferDefault?: boolean;
     sourceId?: string;
     title?: string;
 }
@@ -118,9 +115,7 @@ export function createVPortalClient(
     link: string,
     options: VPortalOptions = {}
 ): VPortalClient | null {
-    var direct = options.directEndpoint;
-    if (direct && !/^\/[a-z0-9][a-z0-9/_-]*$/i.test(direct)) return null;
-    var parsed = direct ? { key: "", url: direct } : parseVPortalLink(link);
+    var parsed = parseVPortalLink(link);
     if (!parsed) return null;
     var portal = parsed;
     var w = window as any;
@@ -131,12 +126,6 @@ export function createVPortalClient(
                 (typeof w.Capacitor.isNativePlatform !== "function" ||
                     w.Capacitor.isNativePlatform()))
     );
-    var nasOrigin =
-        direct && w.location
-            ? String(w.location.protocol) + "//" + String(w.location.host)
-            : native && /^https?:\/\/[^/]+\/nas\/api$/i.test(portal.url)
-              ? portal.url.slice(0, -8)
-              : "";
     var foreground: VPortalRequestLane = { pending: null, revision: 0 };
     var background: VPortalRequestLane = { pending: null, revision: 0 };
     var searchLane: VPortalRequestLane = { pending: null, revision: 0 };
@@ -150,103 +139,7 @@ export function createVPortalClient(
     var dialogHandler: any = null;
     var previousDialogHandler: any = null;
     var qualityHandler: any = null;
-    var openingQuality = false;
     var preferredQuality = "";
-    var mediaSession: {
-        stop: string;
-        lane: VPortalRequestLane;
-        url: string;
-        started: boolean;
-        heartbeat: string;
-        timer?: number;
-        pending?: any;
-    } | null = null;
-    var releases = 0;
-    var releaseWaiters: Array<() => void> = [];
-
-    function sessionUrl(value: any): string {
-        if (!nasOrigin || typeof value !== "string") return "";
-        if (
-            value.slice(0, nasOrigin.length).toLowerCase() !==
-            nasOrigin.toLowerCase()
-        )
-            return "";
-        var path = value.slice(nasOrigin.length);
-        return /^\/nas\/stream\/[a-z0-9_-]+\.[a-z0-9_-]+\/media\.[a-z0-9]{1,8}$/i.test(
-            path
-        )
-            ? direct
-                ? path
-                : value
-            : "";
-    }
-
-    function releaseUrl(value: any): void {
-        var path = sessionUrl(value);
-        if (!path) return;
-        releases++;
-        var finished = false;
-        function complete(): void {
-            if (finished) return;
-            finished = true;
-            if (--releases) return;
-            var waiting = releaseWaiters;
-            releaseWaiters = [];
-            waiting.forEach(function (next) {
-                next();
-            });
-        }
-        try {
-            jq.ajax({
-                complete: complete,
-                dataType: "text",
-                timeout: 5000,
-                type: "GET",
-                url: path,
-            });
-        } catch (_) {
-            complete();
-        }
-    }
-
-    function stop(url?: string): void {
-        var session = mediaSession;
-        if (!session || (url && session.url !== url)) return;
-        mediaSession = null;
-        w.clearInterval(session.timer);
-        if (session.pending) session.pending.abort();
-        releaseUrl(session.stop);
-    }
-
-    function heartbeat(session: NonNullable<typeof mediaSession>): void {
-        if (!session.heartbeat || session.timer !== undefined) return;
-        session.timer = w.setInterval(function () {
-            if (mediaSession !== session || session.pending) return;
-            var finished = false;
-            try {
-                var pending = jq.ajax({
-                    complete: function () {
-                        finished = true;
-                        session.pending = null;
-                    },
-                    dataType: "text",
-                    timeout: 5000,
-                    type: "GET",
-                    url: session.heartbeat,
-                });
-                if (!finished && mediaSession === session)
-                    session.pending = pending;
-            } catch (_) {
-                /* A failed heartbeat must not interrupt playback or display credentials. */
-            }
-        }, 30000);
-    }
-
-    function afterRelease(next: () => void): void {
-        if (releases) releaseWaiters.push(next);
-        else next();
-    }
-
     function translate(text: string): string {
         return typeof w._ === "function" ? w._(text) : text;
     }
@@ -275,12 +168,6 @@ export function createVPortalClient(
 
     function cancelAutomatic(): void {
         ++background.revision;
-        if (
-            mediaSession &&
-            mediaSession.lane === background &&
-            !mediaSession.started
-        )
-            stop();
         var request = background.pending;
         background.pending = null;
         if (request && typeof request.abort === "function") request.abort();
@@ -288,7 +175,6 @@ export function createVPortalClient(
 
     function cancel(): void {
         var token = ++foreground.revision;
-        if (mediaSession && !mediaSession.started && !openingQuality) stop();
         var request = foreground.pending;
         foreground.pending = null;
         // Invalidate all lanes before abort callbacks can start newer work.
@@ -367,11 +253,11 @@ export function createVPortalClient(
     ): void {
         var body = copyRequest(params);
         body.app = "ott-play";
-        if (!direct) body.key = portal.key;
+        body.key = portal.key;
         var hosted = !native && w.__OTTPLAY_HOSTED__ !== undefined;
         var endpoint: string | null =
             String(w.host || "").replace(/\/$/, "") + "/vportal/api";
-        if (native || direct) endpoint = portal.url;
+        if (native) endpoint = portal.url;
         else if (hosted)
             endpoint = hostedVPortalRoute(portal.url, w.__OTTPLAY_HOSTED__);
         var finished = false;
@@ -399,9 +285,7 @@ export function createVPortalClient(
                 },
                 contentType: "application/json; charset=UTF-8",
                 data: JSON.stringify(
-                    native || direct || hosted
-                        ? body
-                        : { params: body, url: portal.url }
+                    native || hosted ? body : { params: body, url: portal.url }
                 ),
                 dataType: "json",
                 error: function (_xhr: any, status: string): void {
@@ -429,8 +313,6 @@ export function createVPortalClient(
                 success: function (data: any): void {
                     if (!finished && isCurrent(token, lane) && guard())
                         accept(data);
-                    else if (data && lane !== pageLane && lane !== catalogLane)
-                        releaseUrl(data.stop);
                 },
                 timeout: 30000,
                 type: "POST",
@@ -500,7 +382,7 @@ export function createVPortalClient(
                 }
                 var base = new Resolver(
                     portal.url,
-                    nasOrigin ? nasOrigin + "/" : w.location && w.location.href
+                    w.location && w.location.href
                 );
                 var resolved = new Resolver(value, base.href);
                 if (
@@ -1819,12 +1701,6 @@ export function createVPortalClient(
         function fail(): void {
             if (finished || !current()) return;
             finished = true;
-            if (
-                mediaSession &&
-                mediaSession.lane === lane &&
-                !mediaSession.started
-            )
-                stop();
             // Retire only this launch's wait before displaying its error.
             var beforeError = resolved && (resolved as any).beforeError;
             if (typeof beforeError === "function") beforeError();
@@ -1855,243 +1731,188 @@ export function createVPortalClient(
             // its previous URL with the newly resolved URL before updating it.
             var playable = copyRequest(item);
             playable.stream_url = url;
-            var session = mediaSession;
-            if (session) {
-                var lifecycle =
-                    result &&
-                    ((result.sessions && result.sessions[url]) ||
-                        (url === result.url && result));
-                session.stop = lifecycle ? lifecycle.stop : "";
-                session.heartbeat = sessionUrl(
-                    lifecycle && lifecycle.heartbeat
-                );
-                session.url = url;
-                session.started = true;
-            }
-            try {
-                if (resolved) resolved(playable);
-                else w._playMedia(playable, false, true);
-                if (session && mediaSession === session) heartbeat(session);
-            } catch (error) {
-                if (mediaSession === session) stop();
-                throw error;
-            }
+            if (resolved) resolved(playable);
+            else w._playMedia(playable, false, true);
         }
-        stop();
-        afterRelease(function () {
-            if (!current()) return;
-            if (!item.request || typeof item.request !== "object") {
+        if (!current()) return;
+        if (!item.request || typeof item.request !== "object") {
+            if (
+                (automatic && item.__ottVPortalQueue) ||
+                item.__ottVPortalDirect
+            ) {
+                var direct = item.__ottVPortalDirect;
+                var origin = item.__ottMediaOrigin;
+                var target = origin && origin.target;
                 if (
-                    (automatic && item.__ottVPortalQueue) ||
-                    item.__ottVPortalDirect
+                    !direct ||
+                    !target ||
+                    !target.request ||
+                    typeof target.request !== "object" ||
+                    Array.isArray(target.request) ||
+                    !Object.keys(target.request).length ||
+                    (options.sourceId &&
+                        target.vportalSource !== options.sourceId)
                 ) {
-                    var direct = item.__ottVPortalDirect;
-                    var origin = item.__ottMediaOrigin;
-                    var target = origin && origin.target;
-                    if (
-                        !direct ||
-                        !target ||
-                        !target.request ||
-                        typeof target.request !== "object" ||
-                        Array.isArray(target.request) ||
-                        !Object.keys(target.request).length ||
-                        (options.sourceId &&
-                            target.vportalSource !== options.sourceId)
-                    ) {
-                        fail();
-                        return;
-                    }
-                    var page: any = null;
-                    request(
-                        target.request,
-                        token,
-                        function (data): void {
-                            if (current()) {
-                                page = data;
-                            }
-                        },
-                        function (): void {
-                            if (!current()) return;
-                            if (!page) {
-                                fail();
-                                return;
-                            }
-                            if (
-                                [
-                                    "videoportal",
-                                    "category",
-                                    "multistream",
-                                ].indexOf(page.type) === -1 ||
-                                !Array.isArray(page.items) ||
-                                page.items.length > 10000 ||
-                                page.truncated
-                            ) {
-                                fail();
-                                return;
-                            }
-                            var matches: any[] = [];
-                            var occurrence = 0;
-                            page.items.forEach(function (candidate: any): void {
-                                if (!candidate || candidate.type !== "stream")
-                                    return;
-                                if (direct.id) {
-                                    var id = candidate[direct.id.field];
-                                    if (
-                                        (typeof id === "string" ||
-                                            typeof id === "number") &&
-                                        String(id) === direct.id.value
-                                    )
-                                        matches.push(candidate);
-                                } else if (
-                                    String(candidate.title || "") ===
-                                    direct.title
-                                ) {
-                                    if (occurrence++ === direct.occurrence)
-                                        matches.push(candidate);
-                                }
-                            });
-                            var fresh =
-                                matches.length === 1 ? matches[0] : null;
-                            if (
-                                !fresh ||
-                                (fresh.request &&
-                                    typeof fresh.request === "object") ||
-                                !validStream(fresh.url)
-                            ) {
-                                fail();
-                                return;
-                            }
-                            start(fresh.url);
-                        },
-                        current,
-                        lane,
-                        fail
-                    );
+                    fail();
                     return;
                 }
-                start(item.stream_url);
+                var page: any = null;
+                request(
+                    target.request,
+                    token,
+                    function (data): void {
+                        if (current()) {
+                            page = data;
+                        }
+                    },
+                    function (): void {
+                        if (!current()) return;
+                        if (!page) {
+                            fail();
+                            return;
+                        }
+                        if (
+                            ["videoportal", "category", "multistream"].indexOf(
+                                page.type
+                            ) === -1 ||
+                            !Array.isArray(page.items) ||
+                            page.items.length > 10000 ||
+                            page.truncated
+                        ) {
+                            fail();
+                            return;
+                        }
+                        var matches: any[] = [];
+                        var occurrence = 0;
+                        page.items.forEach(function (candidate: any): void {
+                            if (!candidate || candidate.type !== "stream")
+                                return;
+                            if (direct.id) {
+                                var id = candidate[direct.id.field];
+                                if (
+                                    (typeof id === "string" ||
+                                        typeof id === "number") &&
+                                    String(id) === direct.id.value
+                                )
+                                    matches.push(candidate);
+                            } else if (
+                                String(candidate.title || "") === direct.title
+                            ) {
+                                if (occurrence++ === direct.occurrence)
+                                    matches.push(candidate);
+                            }
+                        });
+                        var fresh = matches.length === 1 ? matches[0] : null;
+                        if (
+                            !fresh ||
+                            (fresh.request &&
+                                typeof fresh.request === "object") ||
+                            !validStream(fresh.url)
+                        ) {
+                            fail();
+                            return;
+                        }
+                        start(fresh.url);
+                    },
+                    current,
+                    lane,
+                    fail
+                );
                 return;
             }
-            request(
-                item.request,
-                token,
-                function (data): void {
-                    if (current()) {
-                        result = data;
-                        if (nasOrigin && data && data.stop)
-                            mediaSession = {
-                                heartbeat: "",
-                                lane: lane,
-                                started: false,
-                                stop: data.stop,
-                                url: data.url || "",
-                            };
-                    } else if (data) releaseUrl(data.stop);
-                },
-                function (): void {
+            start(item.stream_url);
+            return;
+        }
+        request(
+            item.request,
+            token,
+            function (data): void {
+                if (current()) result = data;
+            },
+            function (): void {
+                if (!current()) return;
+                if (!result || result.type === "error") {
+                    fail();
+                    return;
+                }
+                var variants = result.variants;
+                var names =
+                    variants && typeof variants === "object"
+                        ? Object.keys(variants).filter(function (name) {
+                              return validStream(variants[name]);
+                          })
+                        : [];
+                var url = validStream(result.url)
+                    ? result.url
+                    : names.length
+                      ? variants[names[0]]
+                      : "";
+                if (!url) {
+                    fail();
+                    return;
+                }
+                if (
+                    automatic ||
+                    names.length < 2 ||
+                    typeof w.showSelectBox !== "function"
+                ) {
+                    if (automatic && names.indexOf(preferredQuality) !== -1)
+                        url = variants[preferredQuality];
+                    start(url);
+                    return;
+                }
+                var selected = 0;
+                names.forEach(function (name, index) {
+                    if (variants[name] === url) selected = index;
+                });
+                w.showSelectBox(
+                    selected,
+                    names.map(metadataText),
+                    function (index: number) {
+                        if (current() && index >= 0 && index < names.length) {
+                            preferredQuality = names[index];
+                            start(variants[names[index]]);
+                        }
+                    },
+                    -1,
+                    !!resolved
+                );
+                // showSelectBox closes the old list, which deliberately cancels pending work.
+                token = foreground.revision;
+                view = w._mediaLoadState;
+                var picker = w.selectBoxKeyHandler;
+                qualityHandler = function (code: number): boolean {
                     if (!current()) {
-                        if (
-                            mediaSession &&
-                            mediaSession.lane === lane &&
-                            !mediaSession.started
-                        )
-                            stop();
-                        return;
+                        cancel();
+                        return true;
                     }
-                    if (!result || result.type === "error") {
-                        fail();
-                        return;
+                    var keys = w.keys || {};
+                    if (code === keys.STOP) {
+                        cancel();
+                        if (typeof w.stbStop === "function") w.stbStop();
+                        return true;
                     }
-                    var variants = result.variants;
-                    var names =
-                        variants && typeof variants === "object"
-                            ? Object.keys(variants).filter(function (name) {
-                                  return validStream(variants[name]);
-                              })
-                            : [];
-                    var url = validStream(result.url)
-                        ? result.url
-                        : names.length
-                          ? variants[names[0]]
-                          : "";
-                    if (!url) {
-                        fail();
-                        return;
-                    }
-                    if (
-                        automatic ||
-                        options.preferDefault ||
-                        names.length < 2 ||
-                        typeof w.showSelectBox !== "function"
-                    ) {
-                        if (automatic && names.indexOf(preferredQuality) !== -1)
-                            url = variants[preferredQuality];
-                        start(url);
-                        return;
-                    }
-                    var selected = 0;
-                    names.forEach(function (name, index) {
-                        if (variants[name] === url) selected = index;
-                    });
-                    openingQuality = true;
-                    try {
-                        w.showSelectBox(
-                            selected,
-                            names.map(metadataText),
-                            function (index: number) {
-                                if (
-                                    current() &&
-                                    index >= 0 &&
-                                    index < names.length
-                                ) {
-                                    preferredQuality = names[index];
-                                    start(variants[names[index]]);
-                                }
-                            },
-                            -1,
-                            !!resolved
-                        );
-                    } finally {
-                        openingQuality = false;
-                    }
-                    // showSelectBox closes the old list, which deliberately cancels pending work.
-                    token = foreground.revision;
-                    view = w._mediaLoadState;
-                    var picker = w.selectBoxKeyHandler;
-                    qualityHandler = function (code: number): boolean {
-                        if (!current()) {
-                            cancel();
-                            return true;
-                        }
-                        var keys = w.keys || {};
-                        if (code === keys.STOP) {
-                            cancel();
-                            if (typeof w.stbStop === "function") w.stbStop();
-                            return true;
-                        }
-                        var handled =
-                            typeof picker === "function" ? picker(code) : false;
-                        if (code === keys.RETURN || code === keys.EXIT)
-                            cancel();
-                        return handled;
-                    };
-                    var screen = w.__ottClassicScreenPort;
-                    if (
-                        screen &&
-                        typeof screen.decorateOwnedCallback === "function"
-                    )
-                        qualityHandler = screen.decorateOwnedCallback(
-                            "picker",
-                            picker,
-                            qualityHandler
-                        );
-                    else w.selectBoxKeyHandler = qualityHandler;
-                },
-                current,
-                lane,
-                fail
-            );
-        });
+                    var handled =
+                        typeof picker === "function" ? picker(code) : false;
+                    if (code === keys.RETURN || code === keys.EXIT) cancel();
+                    return handled;
+                };
+                var screen = w.__ottClassicScreenPort;
+                if (
+                    screen &&
+                    typeof screen.decorateOwnedCallback === "function"
+                )
+                    qualityHandler = screen.decorateOwnedCallback(
+                        "picker",
+                        picker,
+                        qualityHandler
+                    );
+                else w.selectBoxKeyHandler = qualityHandler;
+            },
+            current,
+            lane,
+            fail
+        );
     }
 
     return {
@@ -2104,7 +1925,6 @@ export function createVPortalClient(
             if (typeof w.removeEventListener === "function")
                 w.removeEventListener("pagehide", pagehide);
             cancel();
-            stop();
         },
         load: load,
         page: page,
@@ -2132,140 +1952,14 @@ export function createVPortalClient(
                 }
             );
         },
-        stop: function (url?: string) {
-            if (!nasOrigin || (mediaSession && url && mediaSession.url !== url))
-                return;
-            cancel();
-            stop(url);
-        },
+        // The shared media adapter calls this hook; ordinary VPortal streams
+        // have no external playback session to release.
+        stop: function () {},
     };
 }
 
 (window as any).parseVPortalLink = parseVPortalLink;
 (window as any).createVPortalClient = createVPortalClient;
-
-/** A local installation advertises its catalog without exposing a NAS/Plex access key. */
-export function createNasLibrary(host: any): any {
-    var revision = 0;
-    var pending: any = null;
-    var source: any = null;
-    var api: any;
-    function retire(): void {
-        var previous = source;
-        source = null;
-        if (!previous) return;
-        if (host.__ottMedia && host.__ottMedia.usesSource(previous))
-            host.__ottMedia.useSource(null);
-        previous.client.dispose();
-    }
-    function init(): void {
-        var token = ++revision;
-        if (pending && typeof pending.abort === "function") pending.abort();
-        pending = null;
-        // Native shells use explicitly configured VPortal links and their normal transport.
-        if (
-            !host.location ||
-            !/^https?:$/.test(host.location.protocol) ||
-            host.__TAURI__ ||
-            (host.Capacitor &&
-                (typeof host.Capacitor.isNativePlatform !== "function" ||
-                    host.Capacitor.isNativePlatform()))
-        )
-            return;
-        var jq = host.jQuery || host.$;
-        if (!jq || typeof jq.ajax !== "function") return;
-        var finished = false;
-        try {
-            var request = jq.ajax({
-                cache: false,
-                complete: function () {
-                    finished = true;
-                    if (token === revision) pending = null;
-                },
-                contentType: "application/json",
-                dataType: "json",
-                success: function (config: any): void {
-                    if (token !== revision) return;
-                    if (
-                        !config ||
-                        config.enabled !== true ||
-                        config.api !== "/nas/api" ||
-                        typeof config.sourceId !== "string" ||
-                        !/^[a-z0-9:_-]{1,160}$/i.test(config.sourceId)
-                    ) {
-                        retire();
-                        return;
-                    }
-                    if (source && source.sourceId === config.sourceId) return;
-                    retire();
-                    var title =
-                        typeof config.title === "string" && config.title.trim()
-                            ? config.title.trim().slice(0, 120)
-                            : "Synology";
-                    var next: any = {
-                        read: function (key: string) {
-                            // A fresh NAS namespace must never claim the active provider's legacy journal.
-                            return typeof host.stbGetItem === "function"
-                                ? host.stbGetItem("installation:" + key)
-                                : null;
-                        },
-                        sourceId: config.sourceId,
-                        title: title,
-                        write: function (key: string, value: string) {
-                            if (typeof host.stbSetItem === "function")
-                                host.stbSetItem("installation:" + key, value);
-                        },
-                    };
-                    next.client = createVPortalClient("", {
-                        directEndpoint: config.api,
-                        isCurrent: function () {
-                            return (
-                                source === next &&
-                                host.__ottMedia.usesSource(next)
-                            );
-                        },
-                        preferDefault: true,
-                        sourceId: next.sourceId,
-                        title: title,
-                    });
-                    if (!next.client) return;
-                    source = next;
-                },
-                timeout: 5000,
-                type: "GET",
-                url: "/nas/config",
-            });
-            if (!finished && token === revision) pending = request;
-        } catch (_) {
-            /* An absent optional installation must never block startup. */
-        }
-    }
-    api = {
-        available: function () {
-            return !!source;
-        },
-        dispose: function () {
-            revision++;
-            if (pending && typeof pending.abort === "function") pending.abort();
-            pending = null;
-            retire();
-        },
-        init: init,
-        open: function () {
-            if (!source || !host.__ottMedia) return;
-            host.__ottMedia.useSource(source);
-            host.__ottMedia.open(null, source.title);
-        },
-        title: function () {
-            return source ? metadataText(source.title) : "Synology";
-        },
-    };
-    return api;
-}
-(window as any).__ottNasLibrary = createNasLibrary(window);
-(window as any).popNasMedia = function () {
-    (window as any).__ottNasLibrary.open();
-};
 
 (window as any).__ottVPortal = {
     create: createVPortalClient,

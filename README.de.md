@@ -1116,8 +1116,6 @@ Jeder Player kann sich über den Provider **Plex** mit einem Plex-Konto oder Ple
 
 Der [illustrierte Zuverlässigkeitsbericht](docs/plex-provider.md#reliability-review-process-and-results) erklärt Lade- und Abbruchregeln, Korrekturen für vollständige Kataloge und Dateiwechsel sowie gemessene Chromium-/WebKit-Prüfergebnisse.
 
-Eine optionale OTT-Serverintegration stellt außerdem den Katalog eines vorhandenen Plex-Servers und kompatible Wiedergabe über einen separaten NAS-Bibliothekseintrag und M3U-Export bereit. Siehe [serverseitige Bibliothekskonfiguration und Clientzugriff](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Verwandte Repositorys

@@ -53,7 +53,7 @@
 
 ## تنظیم منابع و بررسی مشکلات
 
-- [ورود و پخش Plex](../plex-provider.md)، [کتابخانهٔ رسانه سمت سرور](../synology-library.md)، [معماری راهنمای برنامه](../guide-architecture.md) و[عیب‌یابی EPG میزبانی‌شده](../hosted-epg-diagnostics.md).
+- [ورود و پخش Plex](../plex-provider.md)، [معماری راهنمای برنامه](../guide-architecture.md) و[عیب‌یابی EPG میزبانی‌شده](../hosted-epg-diagnostics.md).
 - [تنظیمات رابط](../interface-settings.md)، [تاریخچهٔ طراحی و قدردانی](../interface-history.md) و[کاتالوگ‌های زبان/صفحه‌کلیدها](../localization.md).
 - [میزکار راه‌دور](../remote-workbench.md)، [عیب‌یابی زمان اجرا](../runtime-debug.md) و[رضایت عیب‌یابی، پوشاندن داده و نگهداری](../diagnostic-security.md).
 - [فهرست بررسی دستگاه بومی](../mode-b-device-smoke.md)، [فهرست دستگاه Tauri](../mode-b-tauri-smoke.md) و[کنترل پنجرهٔ مرورگر](../browser-window-controls.md).

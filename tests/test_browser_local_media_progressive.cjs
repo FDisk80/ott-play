@@ -227,7 +227,591 @@ async function flushScans() {
     for (let i = 0; i < 150; i++) await Promise.resolve();
 }
 
+async function requestAccessGenerationRegressions() {
+    function gate() {
+        let resolve, reject;
+        const promise = new Promise((yes, no) => {
+            resolve = yes;
+            reject = no;
+        });
+        return { promise, resolve, reject };
+    }
+    async function setup(waits = {}) {
+        const f = fixture(2, "mp4", -1, undefined, waits);
+        const initial = await settle(
+            f.api.list((catalog) => !catalog.sources.length)
+        );
+        assert.equal(initial.cancelled, true);
+        assert.equal(f.permissionQueries(), 0);
+        const handle = f.saved()[0].handle;
+        const permission = gate();
+        let requests = 0;
+        handle.requestPermission = function (options) {
+            assert.equal(this, handle);
+            assert.equal(options.mode, "read");
+            requests++;
+            return permission.promise;
+        };
+        return { f, handle, permission, requests: () => requests };
+    }
+    function complete(permission, outcome) {
+        if (outcome === "grant") permission.resolve("granted");
+        else {
+            permission.reject(
+                Object.assign(new Error("Permission request rejected"), {
+                    name: "NotAllowedError",
+                })
+            );
+        }
+    }
+    function cancelled(result) {
+        assert.equal(result.cancelled, true);
+        assert.equal(result.pickerCancelled, true);
+        assert.equal(result.scanning, false);
+        assert.equal(result.items.length, 0);
+        assert.equal(result.sources.length, 0);
+    }
+    function sourcePreserved(f, handle) {
+        assert.equal(f.saved().length, 1);
+        assert.equal(f.saved()[0].id, "source-movies");
+        assert.equal(f.saved()[0].handle, handle);
+        assert.equal(f.revoked(), 0);
+    }
+    function completed(f, result) {
+        assert.equal(result.cancelled, false);
+        assert.equal(result.scanning, false);
+        assert.deepEqual(Array.from(result.items, (item) => item.name), [
+            "movie-0.mp4",
+            "movie-1.mp4",
+        ]);
+        assert.equal(result.sources[0].id, "source-movies");
+        assert.equal(result.sources[0].access, "granted");
+        assert.ok(result.items.every((item) => item.url && item.available));
+        assert.ok(result.items.every((item) => item.sourceId === "source-movies"));
+        assert.equal(f.permissionQueries(), 1);
+        assert.equal(f.iteratorCreations(), 1);
+        assert.equal(f.reads(), 2);
+        assert.equal(f.writes(), 2, "only the successful scan caches its files");
+    }
+    for (const outcome of ["grant", "reject"]) {
+        for (const withProgress of [true, false]) {
+            const { f, handle, permission, requests } = await setup();
+            let callbacks = 0;
+            const pending = f.api.requestAccess(
+                withProgress
+                    ? () => {
+                          callbacks++;
+                      }
+                    : undefined
+            );
+            assert.equal(requests(), 1);
+            f.api.suspend();
+            complete(permission, outcome);
+            const result = await settle(pending);
+            // Check work before shape: a late response must not revive a scan,
+            // including the public requestAccess() path without a callback.
+            assert.equal(
+                callbacks,
+                0,
+                outcome + " after suspend publishes nothing"
+            );
+            assert.equal(f.permissionQueries(), 0);
+            assert.equal(f.iteratorCreations(), 0);
+            assert.equal(f.reads(), 0);
+            assert.equal(f.writes(), 0);
+            cancelled(result);
+            sourcePreserved(f, handle);
+        }
+        const iterator = gate();
+        const { f, handle, permission, requests } = await setup({
+            iterator: iterator.promise,
+        });
+        let oldCallbacks = 0,
+            newerPublishedPlayable = false;
+        const old = f.api.requestAccess(() => {
+            oldCallbacks++;
+        });
+        const newer = f.api.list((catalog) => {
+            if (catalog.items.some((item) => item.url)) {
+                newerPublishedPlayable = true;
+            }
+        });
+        let oldResult, newerResult;
+        try {
+            await flushScans();
+            assert.equal(requests(), 1);
+            assert.equal(
+                f.iteratorCreations(),
+                1,
+                "new scan awaits native iteration"
+            );
+            assert.equal(f.permissionQueries(), 1);
+            assert.equal(f.reads(), 0);
+            complete(permission, outcome);
+            await flushScans();
+            iterator.resolve();
+            [oldResult, newerResult] = await settle(Promise.all([old, newer]));
+        } finally {
+            // Settle both controlled native promises even on setup failure.
+            complete(permission, outcome);
+            iterator.resolve();
+            await settle(Promise.all([old, newer]));
+        }
+        assert.equal(
+            oldCallbacks,
+            0,
+            outcome + " cannot publish into retired owner"
+        );
+        assert.equal(newerPublishedPlayable, true);
+        completed(f, newerResult);
+        cancelled(oldResult);
+        sourcePreserved(f, handle);
+
+        const current = await setup();
+        let currentCallbacks = 0;
+        const resumed = current.f.api.requestAccess(() => {
+            currentCallbacks++;
+        });
+        complete(current.permission, outcome);
+        completed(current.f, await settle(resumed));
+        assert.equal(current.requests(), 1);
+        assert.ok(currentCallbacks > 0);
+        sourcePreserved(current.f, current.handle);
+    }
+    for (const suspendBeforeThrow of [false, true]) {
+        const { f, handle } = await setup();
+        let requests = 0,
+            callbacks = 0;
+        handle.requestPermission = function () {
+            assert.equal(this, handle);
+            requests++;
+            if (suspendBeforeThrow) f.api.suspend();
+            throw Object.assign(new Error("Synchronous permission failure"), {
+                name: "NotAllowedError",
+            });
+        };
+        const result = await settle(
+            f.api.requestAccess(() => {
+                callbacks++;
+            })
+        );
+        assert.equal(requests, 1);
+        if (suspendBeforeThrow) {
+            assert.equal(callbacks, 0);
+            assert.equal(f.permissionQueries(), 0);
+            assert.equal(f.iteratorCreations(), 0);
+            assert.equal(f.reads(), 0);
+            assert.equal(f.writes(), 0);
+            cancelled(result);
+        } else {
+            // A current rejection/throw still recovers through the native
+            // query; requestPermission itself does not grant access.
+            completed(f, result);
+            assert.ok(callbacks > 0);
+        }
+        sourcePreserved(f, handle);
+    }
+    console.log(
+        "PASS permission request ownership: stale grant/rejection/throw, no callback, newer scan and current recovery"
+    );
+}
+
+async function siblingRegressions() {
+    function gate() {
+        let release;
+        const promise = new Promise((resolve) => {
+            release = resolve;
+        });
+        return { promise, release };
+    }
+    function file(name, blocked, read) {
+        return {
+            getFile: () => {
+                if (read) read();
+                return Promise.resolve(blocked).then(() => ({
+                    lastModified: 1,
+                    name,
+                    size: 1,
+                    type: "video/mp4",
+                }));
+            },
+            kind: "file",
+            name,
+        };
+    }
+    function folder(name, values) {
+        return {
+            kind: "directory",
+            name,
+            values: () => {
+                let index = 0;
+                return {
+                    next: () => {
+                        const value = values[index++];
+                        return value && typeof value.then === "function"
+                            ? value
+                            : Promise.resolve(
+                                  value
+                                      ? { done: false, value }
+                                      : { done: true }
+                              );
+                    },
+                };
+            },
+        };
+    }
+    for (const kind of ["file", "directory", "parent"]) {
+        const f = fixture(0),
+            held = gate();
+        const ready = file("ready.mp4");
+        const waiting =
+            kind === "file"
+                ? file("held.mp4", held.promise)
+                : folder("held", [held.promise]);
+        const nested = folder("ready", [ready]);
+        f.saved()[0].handle.values = folder(
+            "root",
+            kind === "parent" ? [nested, held.promise] : [waiting, nested]
+        ).values;
+        let first;
+        const pending = f.api.list((value) => {
+            if (value.items.length) {
+                first = value.items[0];
+                return false;
+            }
+        });
+        try {
+            await flushScans();
+            assert.equal(
+                first && first.name,
+                "ready/ready.mp4",
+                "ready nested file precedes held " + kind + " I/O"
+            );
+            assert.equal(
+                (await settle(pending)).cancelled,
+                true,
+                "prefix cancellation settles without waiting for held I/O"
+            );
+        } finally {
+            f.api.suspend();
+            held.release({ done: true });
+            await settle(pending);
+            await flushScans();
+        }
+    }
+    const saturated = fixture(0),
+        a = gate(),
+        b = gate(),
+        c = gate(),
+        d = gate(),
+        parent = gate();
+    let readyReads = 0,
+        first;
+    saturated.saved()[0].handle.values = folder("root", [
+        folder("a", [a.promise]),
+        folder("b", [b.promise]),
+        folder("c", [c.promise]),
+        folder("d", [d.promise]),
+        parent.promise,
+    ]).values;
+    const pending = saturated.api.list((value) => {
+        if (value.items.length) {
+            first = value.items[0];
+            return false;
+        }
+    });
+    try {
+        await flushScans();
+        a.release({
+            done: false,
+            value: file("ready.mp4", null, () => readyReads++),
+        });
+        await flushScans();
+        assert.equal(
+            readyReads,
+            1,
+            "a discovered file gets admission ahead of queued directory reads"
+        );
+        assert.equal(first && first.name, "a/ready.mp4");
+    } finally {
+        saturated.api.suspend();
+        [a, b, c, d, parent].forEach((item) => item.release({ done: true }));
+        await settle(pending);
+        await flushScans();
+    }
+    const bounded = fixture(0),
+        held = gate();
+    let directoryReads = 0;
+    bounded.saved()[0].handle.values = () => ({
+        next: () => {
+            directoryReads++;
+            return held.promise;
+        },
+    });
+    const retired = [];
+    try {
+        for (let index = 0; index < 8; index++) {
+            bounded.saved()[0].id = "source-" + index;
+            retired.push(bounded.api.list());
+            await flushScans();
+        }
+        assert.equal(
+            directoryReads,
+            3,
+            "repeated replacements retain three real directory admissions until settlement"
+        );
+    } finally {
+        bounded.api.suspend();
+        held.release({ done: true });
+        await settle(Promise.all(retired));
+        await flushScans();
+    }
+    const demand = fixture(0),
+        block = gate();
+    let probes = 0;
+    const stalled = [
+        file("one.mp4", block.promise, () => probes++),
+        file("two.mp4", block.promise, () => probes++),
+    ];
+    const chosen = file("chosen.mp4");
+    demand.saved()[0].handle.values = folder("root", stalled).values;
+    demand.saved()[0].handle.getFileHandle = async () => chosen;
+    demand.saved()[0].handle.resolve = async () => ["chosen.mp4"];
+    const scanning = demand.api.list();
+    try {
+        await flushScans();
+        assert.equal(probes, 2);
+        const direct = await settle(
+            demand.api.bootstrapFile("source-movies", "chosen.mp4")
+        );
+        assert.equal(
+            direct.items[0].name,
+            "chosen.mp4",
+            "explicit playback bypasses both held scan probes"
+        );
+        assert.equal((await settle(scanning)).cancelled, true);
+    } finally {
+        demand.api.suspend();
+        block.release();
+        await settle(scanning);
+        await flushScans();
+    }
+    for (const phase of ["resolve", "getFile"]) {
+        const cached = fixture(0),
+            cacheGate = gate();
+        let cacheReads = 0,
+            treeReads = 0;
+        const cachedHeld = file(
+            "held.mp4",
+            phase === "getFile" ? cacheGate.promise : null,
+            () => cacheReads++
+        );
+        cached.saved()[0].bootstrap = [
+            { handle: cachedHeld, path: "held.mp4" },
+        ];
+        cached.saved()[0].handle.resolve = () =>
+            phase === "resolve"
+                ? cacheGate.promise
+                : Promise.resolve(["held.mp4"]);
+        cached.saved()[0].handle.values = folder("root", [
+            file("new.mp4", null, () => treeReads++),
+            file("second.mp4"),
+        ]).values;
+        let first;
+        const warm = cached.api.list((value) => {
+            if (value.items.length) {
+                first = value.items[0];
+                return false;
+            }
+        });
+        try {
+            await flushScans();
+            assert.equal(
+                first && first.name,
+                "new.mp4",
+                "held cached " +
+                    phase +
+                    " must not hide a new uncached tree file"
+            );
+            assert.equal(treeReads, 1);
+            assert.equal(cacheReads, phase === "getFile" ? 1 : 0);
+            assert.equal(
+                (await settle(warm)).cancelled,
+                true,
+                "cancellation retires the cache/tree owner before raw cache settlement"
+            );
+        } finally {
+            cached.api.suspend();
+            cacheGate.release(["held.mp4"]);
+            await settle(warm);
+            await flushScans();
+        }
+    }
+    for (const phase of ["resolve", "getFile"]) {
+        const failed = fixture(0),
+            warmGate = gate();
+        let failRoot,
+            urls = 0;
+        const rootFailure = new Promise((_, reject) => {
+            failRoot = reject;
+        });
+        const cached = file(
+            "cached.mp4",
+            phase === "getFile" ? warmGate.promise : null
+        );
+        failed.saved()[0].bootstrap = [{ handle: cached, path: cached.name }];
+        failed.saved()[0].handle.resolve = () =>
+            phase === "resolve"
+                ? warmGate.promise
+                : Promise.resolve([cached.name]);
+        failed.saved()[0].handle.values = () => ({ next: () => rootFailure });
+        failed.w.URL.createObjectURL = () => {
+            urls++;
+            return "blob:late";
+        };
+        const timers = new Map();
+        failed.w.setTimeout = (callback, delay) => {
+            if (delay !== 100) return setTimeout(callback, delay);
+            const token = {};
+            timers.set(token, callback);
+            return token;
+        };
+        failed.w.clearTimeout = (token) => {
+            if (!timers.delete(token)) clearTimeout(token);
+        };
+        const progress = [];
+        const pending = failed.api.list((value) => progress.push(value));
+        await flushScans();
+        failRoot(
+            Object.assign(new Error("root unavailable"), {
+                name: "NotReadableError",
+            })
+        );
+        const final = await settle(pending);
+        assert.equal(final.scanning, false);
+        const count = progress.length;
+        for (const callback of timers.values()) callback();
+        warmGate.release([cached.name]);
+        await flushScans();
+        assert.equal(
+            progress.length,
+            count,
+            "late warm " +
+                phase +
+                " cannot publish after failed tree completion"
+        );
+        assert.equal(urls, 0, "failed tree cannot adopt a late cache URL");
+        failed.api.suspend();
+    }
+    const expiredCache = fixture(0),
+        rawCache = gate(),
+        treeGate = gate();
+    const deadlines = new Map();
+    expiredCache.w.setTimeout = (callback, delay) => {
+        if (delay !== 10000) return setTimeout(callback, delay);
+        const token = {};
+        deadlines.set(token, callback);
+        return token;
+    };
+    expiredCache.w.clearTimeout = (token) => {
+        if (!deadlines.delete(token)) clearTimeout(token);
+    };
+    let cachedReads = 0,
+        afterDeadline;
+    expiredCache.saved()[0].bootstrap = ["held.mp4", "also-held.mp4"].map(
+        (name) => ({
+            handle: file(name, rawCache.promise, () => cachedReads++),
+            path: name,
+        })
+    );
+    expiredCache.saved()[0].handle.resolve = async (handle) => [handle.name];
+    expiredCache.saved()[0].handle.values = folder("root", [
+        treeGate.promise,
+    ]).values;
+    const expiring = expiredCache.api.list((value) => {
+        if (value.items.length) {
+            afterDeadline = value;
+            return false;
+        }
+    });
+    try {
+        await flushScans();
+        for (const callback of [...deadlines.values()]) callback();
+        await flushScans();
+        assert.equal(
+            cachedReads,
+            1,
+            "a timeout cannot consume the tree lane with another cache read"
+        );
+        treeGate.release({ done: false, value: file("new-after-timeout.mp4") });
+        await flushScans();
+        assert.equal(afterDeadline?.items[0].name, "new-after-timeout.mp4");
+        assert.equal(
+            afterDeadline?.reconnectRequired,
+            false,
+            "best-effort cache timeout does not discard an available tree file"
+        );
+        assert.equal((await settle(expiring)).cancelled, true);
+    } finally {
+        expiredCache.api.suspend();
+        rawCache.release();
+        treeGate.release({ done: true });
+        await settle(expiring);
+        await flushScans();
+    }
+    for (const grouped of [true, false]) {
+        const selected = fixture(0),
+            selectedGate = gate();
+        const handles = [
+            file("held.mp4", selectedGate.promise),
+            file("ready.mp4"),
+        ];
+        handles.forEach((handle) => {
+            handle.queryPermission = async () => "granted";
+        });
+        selected.saved().splice(
+            0,
+            1,
+            ...handles.map((handle, index) => ({
+                created: index,
+                handle,
+                id: "selected-" + index,
+                name: handle.name,
+            }))
+        );
+        let chosen;
+        const listing = selected.api.list(
+            (value) => {
+                if (value.items.length) {
+                    chosen = value.items[0];
+                    return false;
+                }
+            },
+            undefined,
+            grouped ? ["selected-0", "selected-1"] : ["selected-0"]
+        );
+        try {
+            await flushScans();
+            assert.equal(
+                chosen && chosen.id,
+                grouped ? "selected-1" : undefined,
+                "only an explicitly selected group may start a later source before the earlier source"
+            );
+        } finally {
+            selected.api.suspend();
+            selectedGate.release();
+            await settle(listing);
+            await flushScans();
+        }
+    }
+    console.log(
+        "PASS browser sibling scheduler: held file/directory/parent, ready-file priority, cross-cancel bounds and independent playback"
+    );
+}
+
 (async () => {
+    await requestAccessGenerationRegressions();
+    await siblingRegressions();
     const paths = fixture(0);
     const file = (name) => ({
         getFile: async () => ({
@@ -657,7 +1241,10 @@ async function flushScans() {
             name: "NotReadableError",
         });
     };
-    cachedWaits.iterator = new Promise(() => {});
+    let releaseCachedIterator;
+    cachedWaits.iterator = new Promise((resolve) => {
+        releaseCachedIterator = resolve;
+    });
     const readsBeforeBootstrap = cachedSource.iteratorReads();
     const cachedRestart = cachedSource.reinstall();
     const bootstrapped = await settle(
@@ -670,10 +1257,12 @@ async function flushScans() {
     assert.equal(bootstrapped.items[0].relativePath, candidates[2].path);
     assert.equal(
         cachedSource.iteratorReads(),
-        readsBeforeBootstrap,
-        "missing preferred resumes a cached readable file before native enumeration"
+        readsBeforeBootstrap + 1,
+        "missing preferred resumes a cached readable file while native enumeration is pending"
     );
     assert.equal(bootstrapped.preferred.state, "missing");
+    releaseCachedIterator();
+    await flushScans();
 
     const movedCache = fixture(1);
     await settle(movedCache.api.list());
@@ -722,8 +1311,11 @@ async function flushScans() {
         "the fresh walk upgrades the row without changing its earlier snapshot"
     );
 
+    let releaseDirectIterator;
     const directFile = fixture(3, "mp4", -1, undefined, {
-        iterator: new Promise(() => {}),
+        iterator: new Promise((resolve) => {
+            releaseDirectIterator = resolve;
+        }),
     });
     const directRoot = directFile.saved()[0].handle;
     directRoot.getDirectoryHandle = async (name) => {
@@ -788,9 +1380,11 @@ async function flushScans() {
     assert.equal(fromDirectCache.items[0].id, selectedFile.items[0].id);
     assert.equal(
         directFile.iteratorReads(),
-        0,
-        "next startup consumes the persisted reference before listing"
+        1,
+        "next startup consumes the persisted reference while listing starts"
     );
+    releaseDirectIterator();
+    await flushScans();
 
     let releaseDirectFile;
     const cancelledDirect = fixture(1, "mp4", -1, undefined, {
@@ -908,7 +1502,11 @@ async function flushScans() {
     sleepingGate.set(true);
     sleeping.api.suspend();
     assert.equal(sleepingGate.snapshot().state, "suspending");
-    assert.equal(sleepingGate.snapshot().pending, 2);
+    assert.equal(
+        sleepingGate.snapshot().pending,
+        3,
+        "standby retains the catalog and both admitted file probes"
+    );
     releaseFile();
     const stoppedScan = await scan;
     await Promise.resolve();
@@ -916,8 +1514,8 @@ async function flushScans() {
     assert.equal(stoppedScan.items.length, 0);
     assert.equal(
         sleeping.reads(),
-        1,
-        "Standby prevents another filesystem read"
+        2,
+        "Standby prevents reads beyond the two already admitted probes"
     );
     assert.equal(sleepingGate.snapshot().state, "suspended");
     let releaseDirectory;
@@ -1264,6 +1862,23 @@ async function flushScans() {
     await require("./helpers/browser-import-regression.cjs")();
     console.log(
         "PASS progressive local media: 10,000 entries, early playback, bounded immutable batches, yielding, direct saved-file lookup, stable URLs, cancellation, and nonmedia heartbeats"
+    );
+})().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});
+
+(async function sourceInventoryDoesNotTouchMedia() {
+    const f = fixture(10);
+    const value = await f.api.sources();
+    assert.equal(value.sources.length, 1);
+    assert.equal(value.sources[0].id, "source-movies");
+    assert.equal(value.sources[0].available, undefined);
+    assert.equal(f.reads(), 0);
+    assert.equal(f.iteratorReads(), 0);
+    assert.equal(f.permissionQueries(), 0);
+    console.log(
+        "PASS browser source inventory reads saved metadata without probing media"
     );
 })().catch((error) => {
     console.error(error);

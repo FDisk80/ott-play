@@ -51,7 +51,7 @@
 
 ## 소스 설정과 문제 조사
 
-- [Plex 로그인과 재생](../plex-provider.md), [서버 측 미디어 라이브러리](../synology-library.md), [프로그램 가이드 구조](../guide-architecture.md), [호스팅된 EPG 진단](../hosted-epg-diagnostics.md).
+- [Plex 로그인과 재생](../plex-provider.md), [프로그램 가이드 구조](../guide-architecture.md), [호스팅된 EPG 진단](../hosted-epg-diagnostics.md).
 - [인터페이스 설정](../interface-settings.md), [설계 역사와 기여자](../interface-history.md), [언어 카탈로그/키보드](../localization.md).
 - [원격 작업대](../remote-workbench.md), [런타임 진단](../runtime-debug.md), [진단 동의·민감 정보 가리기·보관](../diagnostic-security.md).
 - [네이티브 장치 점검표](../mode-b-device-smoke.md), [Tauri 장치 점검표](../mode-b-tauri-smoke.md), [브라우저 창 제어](../browser-window-controls.md).

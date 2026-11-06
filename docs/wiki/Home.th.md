@@ -51,7 +51,7 @@
 
 ## ตั้งค่าแหล่งและตรวจปัญหา
 
-- [ลงชื่อเข้าใช้และเล่น Plex](../plex-provider.md), [คลังสื่อฝั่งเซิร์ฟเวอร์](../synology-library.md), [สถาปัตยกรรมผังรายการ](../guide-architecture.md) และ[วินิจฉัย EPG แบบโฮสต์](../hosted-epg-diagnostics.md)
+- [ลงชื่อเข้าใช้และเล่น Plex](../plex-provider.md), [สถาปัตยกรรมผังรายการ](../guide-architecture.md) และ[วินิจฉัย EPG แบบโฮสต์](../hosted-epg-diagnostics.md)
 - [การตั้งค่าอินเทอร์เฟซ](../interface-settings.md), [ประวัติการออกแบบและเครดิต](../interface-history.md) และ[แค็ตตาล็อกภาษา/แป้นพิมพ์](../localization.md)
 - [โต๊ะทำงานระยะไกล](../remote-workbench.md), [วินิจฉัยรันไทม์](../runtime-debug.md) และ[ความยินยอม การปกปิด และการเก็บข้อมูลวินิจฉัย](../diagnostic-security.md)
 - [รายการตรวจอุปกรณ์เนทีฟ](../mode-b-device-smoke.md), [รายการตรวจอุปกรณ์ Tauri](../mode-b-tauri-smoke.md) และ[ตัวควบคุมหน้าต่างเบราว์เซอร์](../browser-window-controls.md)

@@ -6806,9 +6806,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                         dates: rows.map((row) =>
                             date.format(new Date(row.time * 1000))
                         ),
-                        endingDate: date.format(
-                            new Date(rows[1].time_to * 1000)
-                        ),
+                        endTimes: rows.map((row) => row.time_to),
                         start,
                     };
                 });
@@ -6817,10 +6815,10 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 for (let index = 0; index < 2; index++) {
                     const row = page.locator("#it" + index);
                     await expect(row).toContainText(expected.dates[index]);
-                    await expect(row).toContainText(
-                        index
-                            ? "10:00 - " + expected.endingDate + " 00:30"
-                            : "10:00 - 10:30"
+                    // Programme list labels are start-only, including rows
+                    // whose retained end timestamp falls on the next day.
+                    await expect(row.locator(".ott-epg-time")).toHaveText(
+                        expected.dates[index] + " 10:00"
                     );
                     await expect(row.locator('span[dir="auto"]')).toHaveCSS(
                         "color",
@@ -6859,8 +6857,14 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 const timeLabel = (row) => row.locator('span[dir="auto"]');
                 await expect(page.locator("body")).toHaveClass(/theme-studio/);
                 await expect(first).toHaveClass(/ott-selected/);
+                await expect(
+                    page.locator(".ott-epg-detail-time")
+                ).toContainText(" - 10:30 (30 ");
                 await page.keyboard.press("ArrowDown");
                 await expect(second).toHaveClass(/ott-selected/);
+                await expect(
+                    page.locator(".ott-epg-detail-time")
+                ).toContainText(" - 00:30 (870 ");
                 await expect(timeLabel(first)).toHaveCSS(
                     "color",
                     "rgb(0, 255, 255)"
@@ -6930,10 +6934,11 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 }
                 const identity = await page.evaluate(() =>
                     window.listArray.map(
-                        ({ programmeId, providerId, time }) => ({
+                        ({ programmeId, providerId, time, time_to }) => ({
                             programmeId,
                             providerId,
                             time,
+                            time_to,
                         })
                     )
                 );
@@ -6945,6 +6950,9 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     expected.start,
                     expected.start + 86400,
                 ]);
+                expect(identity.map((row) => row.time_to)).toEqual(
+                    expected.endTimes
+                );
                 expect(
                     identity.every(
                         (row) =>
@@ -6967,10 +6975,11 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                 expect(
                     await page.evaluate(() =>
                         window.epgArray.map(
-                            ({ programmeId, providerId, time }) => ({
+                            ({ programmeId, providerId, time, time_to }) => ({
                                 programmeId,
                                 providerId,
                                 time,
+                                time_to,
                             })
                         )
                     )

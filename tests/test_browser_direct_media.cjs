@@ -427,7 +427,9 @@ deadline.unref();
             )
         );
         await profilePage.close();
+        checkpoint("create reopened-profile page");
         profilePage = await profileContext.newPage();
+        checkpoint("navigate reopened-profile page");
         await profilePage.goto(address);
         checkpoint("profile import/load after reopen");
         const profilePhasePrefix = "[direct-media-profile] ";

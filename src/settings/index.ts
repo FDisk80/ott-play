@@ -35,16 +35,60 @@ export function epgTimeColorPair(value: number): number[] | null {
     return [Math.floor((value - 6) / 101), (value - 6) % 101];
 }
 
-// The polyfill preserves this getter so "system" also restores native DST rules.
-const systemTimezoneOffset =
-    (Date as any).nativeGetTimezoneOffset || Date.prototype.getTimezoneOffset;
+/** Minutes east of UTC. Keep legacy IDs 0..25 stable; 0 is System. */
+export const timezoneOffsets: (number | null)[] = [
+    null,
+    0,
+    60,
+    120,
+    180,
+    240,
+    300,
+    360,
+    420,
+    480,
+    540,
+    600,
+    660,
+    720,
+    -60,
+    -120,
+    -180,
+    -240,
+    -300,
+    -360,
+    -420,
+    -480,
+    -540,
+    -600,
+    -660,
+    -720,
+    780,
+    840,
+    -570,
+    -210,
+    -150,
+    210,
+    270,
+    330,
+    345,
+    390,
+    525,
+    570,
+    630,
+    765,
+    825,
+];
 
-/** Apply the legacy timezone menu index; zero restores the system timezone. */
+/** Apply the persisted timezone ID; zero restores the system timezone. */
 export function applyTimezoneSetting(index: number): number {
-    if (!Number.isInteger(index) || index < 0 || index > 25) index = 0;
-    var hours = index <= 13 ? index - 1 : 13 - index;
-    var offset =
-        index === 0 ? systemTimezoneOffset.call(new Date()) : -60 * hours;
+    if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= timezoneOffsets.length
+    )
+        index = 0;
+    var offset = index === 0 ? null : -(timezoneOffsets[index] as number);
     if (typeof (Date as any).setTimezoneOffset === "function") {
         (Date as any).setTimezoneOffset(offset);
     }
@@ -88,7 +132,7 @@ export function applyTimezoneSetting(index: number): number {
  * @property seek79Duration    - Long skip duration (seconds).
  * @property noColorKeys       - Disable colour-key shortcuts (0/1).
  * @property noNumbersKeys     - Disable numeric key shortcuts (0/1).
- * @property timezone          - UTC offset override (applied via polyfill).
+ * @property timezone          - Persisted timezone ID: 0=System, 1=UTC, then fixed offsets.
  * @property sleepTimeout      - Inactivity sleep timer menu index (off, 30m, 1h, 2h, 3h).
  * @property epgRemindMinutes  - Minutes before an EPG timer to show a reminder OSD (0 = off).
  * @property volumeStep        - Volume increment per key press (%).
@@ -760,7 +804,7 @@ export const settingsSchema: SettingDefinition[] = [
         "timezone",
         "sTimezone",
         {
-            range: [0, 25],
+            range: [0, timezoneOffsets.length - 1],
         },
         ["setTimezone"]
     ),

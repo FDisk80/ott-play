@@ -3,7 +3,6 @@ mod companion;
 mod control_discovery;
 mod hosted_epg;
 mod msx;
-mod nas_library;
 mod normalization;
 mod stalker_api;
 mod swop;
@@ -118,6 +117,9 @@ struct Cli {
         default_value_if("stalker_relay_only", "true", "127.0.0.1")
     )]
     host: String,
+    /// Allow read-only local media on an explicitly selected private LAN IP.
+    #[arg(long)]
+    allow_lan_local_media: bool,
     /// Serve only health and explicitly configured, authenticated Stalker routes.
     #[arg(long, requires = "stalker_relay_config")]
     stalker_relay_only: bool,
@@ -312,10 +314,14 @@ async fn main() -> anyhow::Result<()> {
         None
     };
     let readonly_paths = match std::env::var("OTT_OFFLINE_MEDIA_READONLY_PATHS") {
-        Ok(value) => Some(parse_readonly_paths(&value, &cli.host)?),
+        Ok(value) => Some(parse_readonly_paths(&value, &cli.host, cli.allow_lan_local_media)?),
         Err(std::env::VarError::NotPresent) => None,
         Err(error) => return Err(error.into()),
     };
+    anyhow::ensure!(
+        !cli.allow_lan_local_media || readonly_paths.is_some(),
+        "--allow-lan-local-media requires OTT_OFFLINE_MEDIA_READONLY_PATHS"
+    );
     let (http_ports, https_ports) = cli.listen_ports()?;
     // rustls 0.23: both aws-lc-rs and ring end up linked (reqwest + tokio-rustls feature
     // unification). Install an explicit process default before ServerConfig::builder(),
@@ -395,7 +401,6 @@ async fn main() -> anyhow::Result<()> {
         .layer(cors)
         // Installation-authenticated relay must not inherit permissive asset CORS.
         .merge(swop::routes_from_env()?)
-        .merge(nas_library::routes_from_env()?)
         .merge(normalization::routes_from_env(&cli.host).await?)
         .merge(control_discovery::routes())
         .merge(offline_media_routes(None).await?);
@@ -416,9 +421,15 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Media import is disabled unless an operator configures both storage and a secret.
-fn parse_readonly_paths(value: &str, host: &str) -> anyhow::Result<Vec<std::path::PathBuf>> {
-    anyhow::ensure!(host.parse::<std::net::IpAddr>().is_ok_and(|ip| ip.is_loopback()),
-        "Read-only local media requires an explicit loopback --host (127.0.0.1 or ::1)");
+fn parse_readonly_paths(value: &str, host: &str, allow_lan: bool) -> anyhow::Result<Vec<std::path::PathBuf>> {
+    let allowed = host.parse::<std::net::IpAddr>().is_ok_and(|ip| {
+        ip.is_loopback() || (allow_lan && match ip {
+            std::net::IpAddr::V4(address) => address.is_private(),
+            std::net::IpAddr::V6(address) => address.segments()[0] & 0xfe00 == 0xfc00,
+        })
+    });
+    anyhow::ensure!(allowed,
+        "Read-only local media requires an explicit loopback --host, or --allow-lan-local-media with a specific private LAN IP");
     let paths: Vec<std::path::PathBuf> = serde_json::from_str(value)
         .context("OTT_OFFLINE_MEDIA_READONLY_PATHS must be a JSON array of absolute folder paths")?;
     anyhow::ensure!(!paths.is_empty() && paths.len() <= 32 && paths.iter().all(|path| path.is_absolute()),
@@ -630,14 +641,29 @@ mod listener_tests {
     fn readonly_library_requires_explicit_loopback_and_absolute_folder_list() {
         // Use a native absolute path; /tmp is not absolute on Windows.
         let paths = serde_json::to_string(&vec![std::env::temp_dir().join("media")]).unwrap();
-        assert_eq!(parse_readonly_paths(&paths, "127.0.0.1").unwrap().len(), 1);
-        assert!(parse_readonly_paths(&paths, "::1").is_ok());
+        assert_eq!(parse_readonly_paths(&paths, "127.0.0.1", false).unwrap().len(), 1);
+        assert!(parse_readonly_paths(&paths, "::1", false).is_ok());
         for host in ["0.0.0.0", "::", "localhost", "192.168.1.2"] {
-            assert!(parse_readonly_paths(&paths, host).is_err());
+            assert!(parse_readonly_paths(&paths, host, false).is_err());
         }
         for value in ["[]", r#"["relative"]"#, r#""/tmp/media""#, "invalid"] {
-            assert!(parse_readonly_paths(value, "127.0.0.1").is_err());
+            assert!(parse_readonly_paths(value, "127.0.0.1", false).is_err());
         }
+    }
+
+    #[test]
+    fn readonly_lan_is_explicit_and_never_all_interfaces_or_public() {
+        let paths = serde_json::to_string(&vec![std::env::temp_dir().join("media")]).unwrap();
+        for host in ["10.2.3.4", "172.16.1.2", "172.31.255.254", "192.168.1.2", "fd12::2", "fc00::1"] {
+            assert!(parse_readonly_paths(&paths, host, false).is_err(), "{host}");
+            assert!(parse_readonly_paths(&paths, host, true).is_ok(), "{host}");
+        }
+        for host in ["0.0.0.0", "::", "8.8.8.8", "172.15.1.2", "172.32.1.2", "169.254.1.2", "100.64.1.2", "2001:4860::1", "fe80::1", "::ffff:192.168.1.2", "::ffff:127.0.0.1", "::ffff:7f00:1", "localhost", "media.local"] {
+            assert!(parse_readonly_paths(&paths, host, true).is_err(), "{host}");
+        }
+        let cli = Cli::try_parse_from(["ottplay-server", "--allow-lan-local-media", "--host", "192.168.1.2"]).unwrap();
+        assert!(cli.allow_lan_local_media);
+        assert!(!Cli::try_parse_from(["ottplay-server"]).unwrap().allow_lan_local_media);
     }
 
     #[test]

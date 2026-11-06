@@ -291,6 +291,34 @@ sys.exit(113)
             self.assertNotIn("--cert", config["ProgramArguments"])
             self.assertNotIn("--https-port", config["ProgramArguments"])
 
+    def test_retired_nas_environment_is_not_imported_or_migrated(self):
+        retired = ("OTTPLAY_PLEX_URL", "OTTPLAY_PLEX_TOKEN", "OTTPLAY_NAS_KEY",
+                   "OTTPLAY_NAS_BROWSER_HOSTS")
+        for existing in ({}, {key: "saved-operator-" + key for key in retired}):
+            with self.subTest(existing=bool(existing)), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                plist = root / "player.plist"
+                operator = dict(existing, OPERATOR_OPTION="keep")
+                plist.write_bytes(plistlib.dumps({"EnvironmentVariables": operator}))
+                env = {key: value for key, value in os.environ.items()
+                       if not key.startswith("SWOP_")}
+                env.update({key: "unrelated-shell-" + key for key in retired})
+                args = [sys.executable, "-", str(plist), str(root / "ottplay-server"),
+                        str(root), "com.ottplay-foss-local", str(root / "archive"),
+                        "8443 8444 8445 8446"]
+                result = subprocess.run(args, input=embedded_python("PYPLIST"), env=env,
+                                        text=True, capture_output=True, check=True)
+                saved = plistlib.loads(plist.read_bytes())["EnvironmentVariables"]
+                for key in retired:
+                    if key in existing:
+                        self.assertEqual(saved[key], existing[key])
+                    else:
+                        self.assertNotIn(key, saved)
+                    self.assertNotIn(env[key], result.stdout + result.stderr)
+                self.assertEqual(saved["OPERATOR_OPTION"], "keep")
+                self.assertEqual(plist.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(set(root.iterdir()), {plist})
+
     def test_swop_installation_credential_is_private_and_survives_reinstall(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

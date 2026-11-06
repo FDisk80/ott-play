@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Install the read-only local media helper as a private macOS LaunchAgent."""
 import argparse
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -18,7 +19,27 @@ import urllib.request
 LABEL = "com.ottplay.media-helper"
 
 
-def plan(binary, directories, state, port=8448, label=LABEL, home=None):
+def listen_address(value, allow_lan=False):
+    if "%" in value:
+        raise ValueError("Scoped interface addresses are not supported")
+    address = ipaddress.ip_address(value)
+    if address.version == 6 and address.ipv4_mapped is not None:
+        raise ValueError("IPv4-mapped IPv6 addresses are not supported; use the IPv4 address")
+    private_networks = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+    if not address.is_loopback and not (allow_lan and any(
+            address in ipaddress.ip_network(network) for network in private_networks)):
+        raise ValueError("Use a loopback address, or --allow-lan with a specific private LAN IP")
+    return str(address)
+
+
+def authority(config):
+    host = config["host"]
+    return f"[{host}]:{config['port']}" if ":" in host else f"{host}:{config['port']}"
+
+
+def plan(binary, directories, state, port=8448, label=LABEL, home=None,
+         host="127.0.0.1", allow_lan=False):
+    host = listen_address(host, allow_lan)
     home = Path(home or Path.home())
     binary = Path(binary).expanduser().resolve(strict=True)
     if not binary.is_file() or not os.access(binary, os.X_OK):
@@ -43,6 +64,7 @@ def plan(binary, directories, state, port=8448, label=LABEL, home=None):
             raise ValueError("Private helper state must be separate from every media directory")
     return {
         "binary": binary, "roots": roots, "state": state, "port": port, "label": label,
+        "host": host, "allow_lan": allow_lan,
         "plist": home / "Library/LaunchAgents" / (label + ".plist"),
     }
 
@@ -97,7 +119,8 @@ def prepare(config):
             os.unlink(temporary)
     agent = {
         "Label": config["label"],
-        "ProgramArguments": [str(installed), "--host", "127.0.0.1", "--port", str(config["port"])],
+        "ProgramArguments": [str(installed), "--host", config["host"], "--port", str(config["port"])]
+            + (["--allow-lan-local-media"] if config["allow_lan"] else []),
         "WorkingDirectory": str(state),
         "EnvironmentVariables": {
             "OTT_OFFLINE_MEDIA_READONLY_PATHS": json.dumps([str(root) for root in config["roots"]]),
@@ -111,7 +134,7 @@ def prepare(config):
     }
     config["plist"].parent.mkdir(parents=True, exist_ok=True)
     write_private(config["plist"], plistlib.dumps(agent))
-    url = f"http://127.0.0.1:{config['port']}/offline-media/{token}"
+    url = f"http://{authority(config)}/offline-media/{token}"
     write_private(state / "library-url.txt", (url + "\n").encode())
     return agent
 
@@ -157,7 +180,7 @@ def start(config):
         raise RuntimeError("Helper service has not finished unloading; retry the installation")
     subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(config["plist"])], check=True)
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    health = f"http://127.0.0.1:{config['port']}/health"
+    health = f"http://{authority(config)}/health"
     catalog = (config["state"] / "library-url.txt").read_text().strip()
     for _ in range(8):
         try:
@@ -181,11 +204,14 @@ def main():
     parser.add_argument("--directory", action="append", required=True)
     parser.add_argument("--state-dir", default=str(Path.home() / "Library/Application Support/OTTplay/MediaHelper"))
     parser.add_argument("--port", type=int, default=8448)
+    parser.add_argument("--listen-address", default="127.0.0.1", help="Specific loopback or private LAN interface IP")
+    parser.add_argument("--allow-lan", action="store_true", help="Opt in to serving authorized folders on the selected private LAN IP")
     parser.add_argument("--label", default=LABEL)
     parser.add_argument("--dry-run", action="store_true", help="Validate and show paths without writing or launching")
     parser.add_argument("--no-start", action="store_true", help="Prepare private files but do not touch launchd")
     args = parser.parse_args()
-    config = plan(args.binary, args.directory, args.state_dir, args.port, args.label)
+    config = plan(args.binary, args.directory, args.state_dir, args.port, args.label,
+                  host=args.listen_address, allow_lan=args.allow_lan)
     if args.dry_run:
         print(json.dumps({key: [str(p) for p in value] if isinstance(value, list) else str(value)
                           for key, value in config.items()}, indent=2))
@@ -197,7 +223,7 @@ def main():
     prepare(config)
     if not args.no_start:
         start(config)
-    print(f"Prepared {'and started ' if not args.no_start else ''}{config['label']} on 127.0.0.1:{config['port']}")
+    print(f"Prepared {'and started ' if not args.no_start else ''}{config['label']} on {authority(config)}")
     print(f"Private player URL: {config['state'] / 'library-url.txt'}")
     print(f"Private log: {config['state'] / 'logs/helper.log'}")
 

@@ -486,16 +486,6 @@ function createScreenMenuRegistry() {
                 title: title,
             });
         });
-        var nas = host.__ottNasLibrary;
-        if (nas && nas.available() && typeof host.popNasMedia === "function")
-            records.push({
-                action: host.popNasMedia,
-                detail: nas.title(),
-                id: "media.nas",
-                legacyId: "popNasMedia",
-                sourceIndex: -1,
-                title: nas.title(),
-            });
         return records;
     }
     function available(record: ScreenMenuRecord, host: any): boolean {

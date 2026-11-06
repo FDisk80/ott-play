@@ -51,7 +51,7 @@ Bu, kaynak deposundaki sürümlenen belgelerin ana sayfasıdır. GitHub bu Markd
 
 ## Kaynakları yapılandırma ve sorunları inceleme
 
-- [Plex oturumu ve oynatma](../plex-provider.md), [sunucu tarafı medya kitaplığı](../synology-library.md), [rehber mimarisi](../guide-architecture.md) ve [barındırılan EPG tanılaması](../hosted-epg-diagnostics.md).
+- [Plex oturumu ve oynatma](../plex-provider.md), [rehber mimarisi](../guide-architecture.md) ve [barındırılan EPG tanılaması](../hosted-epg-diagnostics.md).
 - [Arayüz ayarları](../interface-settings.md), [tasarım geçmişi ve katkılar](../interface-history.md) ve [dil katalogları/klavyeler](../localization.md).
 - [Uzak çalışma tezgâhı](../remote-workbench.md), [çalışma zamanı tanılaması](../runtime-debug.md) ve [tanılama onayı, maskeleme ve saklama](../diagnostic-security.md).
 - [Yerel cihaz kontrol listesi](../mode-b-device-smoke.md), [Tauri cihaz kontrol listesi](../mode-b-tauri-smoke.md) ve [tarayıcı pencere denetimleri](../browser-window-controls.md).

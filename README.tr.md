@@ -1118,8 +1118,6 @@ Her oynatıcı **Plex** sağlayıcısıyla bir Plex hesabına veya Plex Media Se
 
 [Resimli güvenilirlik incelemesi](docs/plex-provider.md#reliability-review-process-and-results), yükleme ve iptal kurallarını, tam katalog ve dosya geçişi düzeltmelerini, ölçülmüş Chromium/WebKit doğrulama sonuçlarını açıklar.
 
-İsteğe bağlı OTT sunucu entegrasyonu, mevcut Plex sunucusunun kataloğunu ve uyumlu oynatmasını ayrı NAS kitaplığı girdisi ve M3U dışa aktarımıyla da sunar. [Sunucu kitaplığı yapılandırması ve istemci erişimine](docs/synology-library.md) bakın.
-
 <a id="related-repositories"></a>
 
 ## İlgili depolar

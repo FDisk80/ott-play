@@ -13,6 +13,10 @@ function classicPlaybackHost(): any {
     return window as any;
 }
 
+function cancelClassicLocalQueue(w: any): void {
+    w.__ottLocalMedia?.cancelQueueEnd?.();
+}
+
 function classicPlaybackSource(w: any): string {
     return w.__ottSourceIdentity.current(w);
 }
@@ -233,6 +237,8 @@ function classicPlaybackCommand(command: any): boolean | void {
     )
         return;
     var type = command.type;
+    if (type === "pause" || type === "stop" || type === "resume")
+        cancelClassicLocalQueue(w);
     if (type === "playing" && state.target && classicPlaybackStartedAt === null)
         classicPlaybackStartedAt = Date.now() / 1000;
     if (
@@ -1214,11 +1220,13 @@ function classicPlaybackProgramme(): any {
 
 (window as any).__ottClassicPlayback = {
     beforeSeek: function (value: number): (() => void) | void {
+        cancelClassicLocalQueue(classicPlaybackHost());
         classicPlaybackCapture();
         return classicPlaybackRuntime().beforeSeek(value);
     },
     bookmark: classicPlaybackBookmark,
     cancel: function (): void {
+        cancelClassicLocalQueue(classicPlaybackHost());
         classicPlaybackStopTicket = null;
         if (classicPlaybackController) classicPlaybackController.cancel();
         var archive = classicPlaybackHost().__ottClassicArchive;
@@ -1286,6 +1294,7 @@ function classicPlaybackProgramme(): any {
     reconcile: classicPlaybackReconcile,
     select: classicPlaybackSelect,
     shift: function (delta: number): void {
+        cancelClassicLocalQueue(classicPlaybackHost());
         classicPlaybackCapture();
         classicPlaybackRuntime().request(
             delta === -6e6

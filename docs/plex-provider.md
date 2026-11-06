@@ -83,6 +83,19 @@ A successful response contains only the field names, `provider: "plex"`, and `sa
 
 Account sign-in tokens remain in memory during server discovery. No environment variables, central player-server configuration or NAS deployment are required. A settings backup containing this profile also contains its server credential.
 
+## Replacing an old server-library connection
+
+The separate **Synology** library entry and OTT server `/nas` endpoints have
+been removed. Open the player's provider settings, choose **Plex**, and use
+**Sign in with Plex** to select your media server. For a manual connection, use
+the Plex server address and its Plex access token, as described above.
+
+An old VPortal or M3U address pointing to OTT server `/nas` is not a Plex server
+address. Replace that connection with the Plex provider; the old NAS access key
+is not a Plex access token. Existing Plex provider profiles remain usable. The
+installer preserves operator-owned configuration but no longer imports the
+removed server-library environment settings.
+
 ## Ordered queues from the command server
 
 An updated player and controller support an explicit list of Plex `ratingKey` IDs:

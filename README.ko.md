@@ -1116,8 +1116,6 @@ PlxNative에서 파생된 별도 애플리케이션 [OTTPlay native webOS](docs/
 
 [그림이 있는 신뢰성 검토](docs/plex-provider.md#reliability-review-process-and-results)는 로드/취소 규칙, 전체 카탈로그와 파일 전환 수정, 측정한 Chromium/WebKit 검증 결과를 설명합니다.
 
-선택적 OTT 서버 통합도 별도 NAS 라이브러리 항목과 M3U 내보내기로 기존 Plex 서버의 카탈로그 및 호환 재생을 제공합니다. [서버 라이브러리 설정 및 클라이언트 접근](docs/synology-library.md)을 참고하세요.
-
 <a id="related-repositories"></a>
 
 ## 관련 저장소

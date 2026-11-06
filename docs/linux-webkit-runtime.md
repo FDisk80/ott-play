@@ -55,11 +55,16 @@ installed by the production workflow.
 
 ## Reproduction and release requirements
 
-The diagnostic source is pinned at
-`1d0e8d1ac6e44d99967adfd2af4c8acd2a79f419`. Its temporary `native-parity.yml`
-and `scripts/foss-runtime-generation.py` preserve the exact candidate, runtime
-digests, source checks, original assertions, package inventory, loaded files,
-per-scenario results and container status. That temporary workflow is diagnostic
+The diagnostic source is the historical snapshot
+[`1d0e8d1ac6e44d99967adfd2af4c8acd2a79f419`](https://github.com/open-ott-play/ottplay-foss/tree/1d0e8d1ac6e44d99967adfd2af4c8acd2a79f419).
+Its [temporary workflow](https://github.com/open-ott-play/ottplay-foss/blob/1d0e8d1ac6e44d99967adfd2af4c8acd2a79f419/.github/workflows/native-parity.yml)
+and [runtime collector](https://github.com/open-ott-play/ottplay-foss/blob/1d0e8d1ac6e44d99967adfd2af4c8acd2a79f419/scripts/foss-runtime-generation.py)
+preserve the exact candidate, runtime digests, source checks, original assertions,
+package inventory, loaded files, per-scenario results and container status.
+The collector is not part of the current checkout. A replay requires that complete
+historical snapshot and the retained artifact identified above; a current build
+cannot substitute for the fixed candidate. If those inputs are unavailable, the
+historical comparison cannot be reproduced. The temporary workflow is diagnostic
 only and must not replace the production native workflow.
 
 The production workflow installs the selected browser and its normal supported

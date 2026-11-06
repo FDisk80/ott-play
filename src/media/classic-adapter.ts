@@ -1320,8 +1320,30 @@ function classicMediaRuntime(): any {
         var members = channel.list.members();
         var index = members.indexOf(channel.id);
         if (index < 0 || !members.length) return;
-        if (natural && w.__ottKiosk?.folderLoop?.()) {
-            var folderId = w.__ottKiosk.folderNext(channel.id, members);
+        var pinned =
+            natural &&
+            w.__ottKiosk &&
+            w.__ottKiosk.locked() &&
+            w.__ottKiosk.allowed(channel.id);
+        var folderLoop = natural && w.__ottKiosk?.folderLoop?.();
+        var folderId = folderLoop
+            ? w.__ottKiosk.folderNext(channel.id, members)
+            : null;
+        if (
+            natural &&
+            (folderLoop || (!pinned && repeat !== "one")) &&
+            (index + direction >= members.length ||
+                (folderLoop && members.indexOf(folderId) <= index)) &&
+            w.__ottLocalMedia?.deferQueueEnd?.(
+                w.channels[channel.id]?.__ottLocalSource,
+                function () {
+                    if (!admit || admit())
+                        movePlaylistEntry(playback, direction, natural, admit);
+                }
+            )
+        )
+            return;
+        if (folderLoop) {
             var folderIndex = members.indexOf(folderId);
             var folderCategory = channel.list.category();
             if (folderIndex < 0 || folderCategory < 0) return;
@@ -1336,11 +1358,6 @@ function classicMediaRuntime(): any {
             );
             return;
         }
-        var pinned =
-            natural &&
-            w.__ottKiosk &&
-            w.__ottKiosk.locked() &&
-            w.__ottKiosk.allowed(channel.id);
         var next =
             natural && (pinned || repeat === "one") ? index : index + direction;
         if (natural && !pinned && repeat === "off" && next >= members.length)

@@ -51,7 +51,7 @@
 
 ## स्रोत कॉन्फ़िगर करें और समस्याएँ जाँचें
 
-- [Plex साइन-इन और प्लेबैक](../plex-provider.md), [सर्वर-साइड मीडिया लाइब्रेरी](../synology-library.md), [गाइड संरचना](../guide-architecture.md) और [होस्ट किया EPG निदान](../hosted-epg-diagnostics.md)।
+- [Plex साइन-इन और प्लेबैक](../plex-provider.md), [गाइड संरचना](../guide-architecture.md) और [होस्ट किया EPG निदान](../hosted-epg-diagnostics.md)।
 - [इंटरफ़ेस सेटिंग](../interface-settings.md), [डिज़ाइन इतिहास और श्रेय](../interface-history.md) तथा [भाषा कैटलॉग/कीबोर्ड](../localization.md)।
 - [दूरस्थ वर्कबेंच](../remote-workbench.md), [रनटाइम निदान](../runtime-debug.md) तथा [निदान की सहमति, गोपनीय जानकारी हटाना और प्रतिधारण](../diagnostic-security.md)।
 - [नेटिव उपकरण जाँच-सूची](../mode-b-device-smoke.md), [Tauri उपकरण जाँच-सूची](../mode-b-tauri-smoke.md) और [ब्राउज़र विंडो नियंत्रण](../browser-window-controls.md)।

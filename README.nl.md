@@ -1118,8 +1118,6 @@ Elke speler kan via de provider **Plex** verbinding maken met een Plex-account o
 
 De [geïllustreerde betrouwbaarheidsanalyse](docs/plex-provider.md#reliability-review-process-and-results) legt laad- en annuleringsregels uit, correcties voor volledige catalogi en bestandswissels, en gemeten Chromium-/WebKit-validatieresultaten.
 
-Een optionele OTT-serverintegratie biedt ook de catalogus en compatibel afspelen van een bestaande Plex-server via een afzonderlijke NAS-bibliotheekvermelding en M3U-export. Zie [serverbibliotheekconfiguratie en clienttoegang](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Gerelateerde repositories

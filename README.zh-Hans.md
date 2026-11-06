@@ -1116,8 +1116,6 @@ EPG_URLS="http://example.com/epg.xml.gz" ./target/release/ottplay-server --port 
 
 [图解可靠性审查](docs/plex-provider.md#reliability-review-process-and-results)说明加载和取消规则、完整目录与文件切换的修复，以及实测Chromium/WebKit验证结果。
 
-可选OTT服务器集成也可通过独立NAS媒体库入口和M3U导出，提供已有Plex服务器目录及兼容播放。参见[服务器端媒体库配置与客户端访问](docs/synology-library.md)。
-
 <a id="related-repositories"></a>
 
 ## 相关仓库

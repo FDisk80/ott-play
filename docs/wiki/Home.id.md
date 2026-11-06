@@ -51,7 +51,7 @@ Ini adalah halaman utama dokumentasi berversi dalam repositori sumber. GitHub da
 
 ## Mengonfigurasi sumber dan menyelidiki masalah
 
-- [Masuk dan pemutaran Plex](../plex-provider.md), [pustaka media sisi server](../synology-library.md), [arsitektur panduan](../guide-architecture.md), dan [diagnostik EPG yang dihosting](../hosted-epg-diagnostics.md).
+- [Masuk dan pemutaran Plex](../plex-provider.md), [arsitektur panduan](../guide-architecture.md), dan [diagnostik EPG yang dihosting](../hosted-epg-diagnostics.md).
 - [Pengaturan antarmuka](../interface-settings.md), [riwayat desain dan kredit](../interface-history.md), serta [katalog bahasa/papan ketik](../localization.md).
 - [Meja kerja jarak jauh](../remote-workbench.md), [diagnostik runtime](../runtime-debug.md), dan [persetujuan, penyamaran, serta retensi diagnostik](../diagnostic-security.md).
 - [Daftar periksa perangkat native](../mode-b-device-smoke.md), [daftar periksa perangkat Tauri](../mode-b-tauri-smoke.md), dan [kontrol jendela browser](../browser-window-controls.md).

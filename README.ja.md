@@ -1116,8 +1116,6 @@ Studio 2026が既定UIテーマです。ClassicとPLi-HDも選択でき、保存
 
 [図解付き信頼性レビュー](docs/plex-provider.md#reliability-review-process-and-results)は、読込／キャンセル規則、完全なカタログとファイル切り替えの修正、Chromium/WebKitでの実測検証を説明します。
 
-任意のOTTサーバー統合でも、独立NASライブラリー入口とM3U出力を通じ、既存Plexサーバーのカタログと対応再生を提供できます。[サーバー側ライブラリー設定とクライアントアクセス](docs/synology-library.md)を参照してください。
-
 <a id="related-repositories"></a>
 
 ## 関連リポジトリー

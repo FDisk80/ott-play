@@ -51,7 +51,7 @@ Questa è la pagina iniziale della documentazione versionata nel repository sorg
 
 ## Configurare le sorgenti e analizzare i problemi
 
-- [Accesso e riproduzione Plex](../plex-provider.md), [libreria multimediale lato server](../synology-library.md), [architettura della guida](../guide-architecture.md) e [diagnostica EPG ospitata](../hosted-epg-diagnostics.md).
+- [Accesso e riproduzione Plex](../plex-provider.md), [architettura della guida](../guide-architecture.md) e [diagnostica EPG ospitata](../hosted-epg-diagnostics.md).
 - [Impostazioni dell’interfaccia](../interface-settings.md), [storia del design e riconoscimenti](../interface-history.md) e [cataloghi linguistici/tastiere](../localization.md).
 - [Banco di lavoro remoto](../remote-workbench.md), [diagnostica runtime](../runtime-debug.md) e [consenso, oscuramento e conservazione della diagnostica](../diagnostic-security.md).
 - [Lista di controllo dispositivi nativi](../mode-b-device-smoke.md), [lista dispositivi Tauri](../mode-b-tauri-smoke.md) e [controlli della finestra del browser](../browser-window-controls.md).

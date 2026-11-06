@@ -1118,8 +1118,6 @@ Každý přehrávač se může přes poskytovatele **Plex** připojit k účtu P
 
 [Ilustrovaný přehled spolehlivosti](docs/plex-provider.md#reliability-review-process-and-results) vysvětluje pravidla načítání a rušení, opravy úplných katalogů a přepínání souborů a naměřené výsledky ověření Chromium/WebKit.
 
-Volitelná integrace OTT serveru také zpřístupňuje katalog existujícího Plex serveru a kompatibilní přehrávání přes samostatnou položku knihovny NAS a export M3U. Viz [nastavení serverové knihovny a přístup klienta](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Související úložiště

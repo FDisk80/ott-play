@@ -51,7 +51,7 @@ To strona główna wersjonowanej dokumentacji w repozytorium źródłowym. GitHu
 
 ## Konfigurowanie źródeł i badanie problemów
 
-- [Logowanie i odtwarzanie Plex](../plex-provider.md), [biblioteka multimediów po stronie serwera](../synology-library.md), [architektura przewodnika](../guide-architecture.md) i [hostowana diagnostyka EPG](../hosted-epg-diagnostics.md).
+- [Logowanie i odtwarzanie Plex](../plex-provider.md), [architektura przewodnika](../guide-architecture.md) i [hostowana diagnostyka EPG](../hosted-epg-diagnostics.md).
 - [Ustawienia interfejsu](../interface-settings.md), [historia projektu i podziękowania](../interface-history.md) oraz [katalogi językowe/klawiatury](../localization.md).
 - [Zdalny warsztat](../remote-workbench.md), [diagnostyka wykonania](../runtime-debug.md) i [zgoda, redakcja i przechowywanie diagnostyki](../diagnostic-security.md).
 - [Lista kontrolna urządzeń natywnych](../mode-b-device-smoke.md), [lista urządzeń Tauri](../mode-b-tauri-smoke.md) i [sterowanie oknem przeglądarki](../browser-window-controls.md).

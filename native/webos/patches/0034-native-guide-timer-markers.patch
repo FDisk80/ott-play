@@ -1,0 +1,275 @@
+diff --git a/rust-modules/screens/src/ott/mod.rs b/rust-modules/screens/src/ott/mod.rs
+--- a/rust-modules/screens/src/ott/mod.rs
++++ b/rust-modules/screens/src/ott/mod.rs
+@@ -590,6 +590,11 @@
+                 classic::list_label(row, snapshot.classic_preferences, self.guide_clock.now_for(row.guide.as_ref()))
+             } else { row.title.clone() }).server_label()
+                 .detail(if classic_catalogue { String::new() } else { row.detail.clone() }).server_detail().checked(row.favorite);
++            if row.favorite && matches!(&row.action, OttAction::GuideProgramme { .. }) {
++                // Guide rows use the accepted checked state as a timer marker,
++                // before their date rather than in the title's checkbox slot.
++                presentation = presentation.checked(false).detail_marker(theme::CLASSIC_REMOTE_YELLOW);
++            }
+             if catalogue_item {
+                 catalogue_number += 1;
+                 presentation.set_secondary_label_start(classic::list_secondary_start(row,
+@@ -2423,3 +2428,40 @@
+ #[cfg(test)]
+ #[path = "records_tests.rs"]
+ mod records_tests;
++
++#[cfg(test)]
++mod guide_timer_marker_tests {
++    use super::*;
++    use plx_ui::Painter;
++    #[test]
++    fn native_guide_snapshot_projects_timer_to_date_in_classic_and_modern() {
++        let _serial = plx_base::testlock::serial();
++        let measure = plx_ui::fixture::FixtureMeasure;
++        let frame = Rect::new(0.0, 0.0, 900.0, 2400.0);
++        for classic in [false, true] {
++            let mut screen = OttScreen::new(EntryId(195), InstanceId(195));
++            screen.classic_mode = classic;
++            screen.form.table.set_classic(classic);
++            let mut snapshot = OttView { page_id: "guide".into(), rows: vec![OttRow {
++                current_programme: None, content_title: None, guide: None,
++                guide_available: false, records_available: false, media: None,
++                id: "programme".into(), title: "Programme".into(), detail: "12:34".into(),
++                description: String::new(), poster: None,
++                action: OttAction::GuideProgramme { generation: 1, programme_id: "programme".into() },
++                enabled: true, favorite: false,
++            }], ..Default::default() };
++            let dots = |screen: &OttScreen| plx_ui::draw_census::capture_rect_inks(||
++                screen.form.table.draw(Painter::recording(), frame, &measure))
++                .iter().filter(|(r,_,_)| r.w == 8.0 && r.h == 8.0).count();
++            screen.install(Arc::new(snapshot.clone())); let plain = dots(&screen);
++            snapshot.rows[0].favorite = true; snapshot.revision += 1;
++            screen.install(Arc::new(snapshot.clone())); assert_eq!(dots(&screen), plain + 1);
++            let row = screen.form.table.sections.iter().flat_map(|s| &s.rows)
++                .find(|r| r.label == "Programme").unwrap();
++            assert!(!row.checked, "timer is not a title checkbox");
++            assert_eq!(row.detail, "12:34", "marker never rewrites programme data");
++            snapshot.rows[0].favorite = false; snapshot.revision += 1;
++            screen.install(Arc::new(snapshot)); assert_eq!(dots(&screen), plain);
++        }
++    }
++}
+diff --git a/rust-modules/src/app/ott_guide_runtime.rs b/rust-modules/src/app/ott_guide_runtime.rs
+--- a/rust-modules/src/app/ott_guide_runtime.rs
++++ b/rust-modules/src/app/ott_guide_runtime.rs
+@@ -527,8 +527,17 @@
+         .unwrap_or_default()
+ }
+ 
+-fn programme_row(state: &State, programme: &Programme) -> OttRow {
++fn programme_row(runtime: &Runtime, state: &State, programme: &Programme, source_id: Option<&str>) -> OttRow {
+     let id = programme_id(programme);
++    // Only the committed book can mark a row. Pending saves and stale source
++    // snapshots do not acquire presentation authority.
++    let reminder = programme.end > (runtime.wall_clock_ms / 1000) as i64
++        && source_id.is_some_and(|source_id| {
++            runtime.reminder_contains(&Key {
++                source_id: source_id.into(), channel_id: state.entry.id.clone(),
++                programme_id: id.clone(), start_s: programme.start,
++            })
++        });
+     let mut item = row(
+         id.clone(),
+         programme.title.clone(),
+@@ -537,7 +546,7 @@
+             generation: state.request_generation,
+             programme_id: id,
+         },
+-        false,
++        reminder,
+     );
+     item.description = programme.description.clone();
+     item.poster = entry_poster(&state.entry);
+@@ -551,6 +560,7 @@
+     }
+     let state = runtime.guide.as_ref()?;
+     let current = source_current(runtime, state);
++    let reminder_source = current.then(|| runtime.reminder_source_id()).flatten();
+     let mut rows = Vec::new();
+     let generation = state.request_generation;
+     if runtime.page == "guide-programme" {
+@@ -560,7 +570,7 @@
+             .and_then(|id| selected(state, id).ok())
+         {
+             let id = programme_id(programme);
+-            rows.push(programme_row(state, programme));
++            rows.push(programme_row(runtime, state, programme, reminder_source.as_deref()));
+             let now = (runtime.wall_clock_ms / 1000) as i64;
+             let interval = plx_data::ott::archive::ArchiveInterval {
+                 start: programme.start,
+@@ -666,7 +676,7 @@
+         if let Some(result) = &state.result {
+             rows.extend(
+                 state.programme_order.iter()
+-                    .map(|&i| programme_row(state, &result.programmes[i])),
++                    .map(|&i| programme_row(runtime, state, &result.programmes[i], reminder_source.as_deref())),
+             );
+         }
+     }
+diff --git a/rust-modules/src/app/ott_guide_runtime_tests.rs b/rust-modules/src/app/ott_guide_runtime_tests.rs
+--- a/rust-modules/src/app/ott_guide_runtime_tests.rs
++++ b/rust-modules/src/app/ott_guide_runtime_tests.rs
+@@ -321,3 +321,47 @@
+     runtime.generation = runtime.generation.wrapping_add(1);
+     assert!(!view(&runtime).unwrap().status_working, "retired source must not look pending");
+ }
++
++#[test]
++fn programme_timer_marker_follows_only_committed_source_bound_reminders() {
++    use super::super::reminders::SaveFailure;
++    use plx_data::ott::reminders::Record;
++    let mut runtime = fixture();
++    open(&mut runtime, "channel-one").unwrap();
++    let mut reply = response(&runtime);
++    let programme = &mut reply.result.as_mut().unwrap().programmes[0];
++    programme.start = 1700000120;
++    programme.end = 1700000240;
++    let programme = programme.clone();
++    let id = programme_id(&programme);
++    assert!(accept(&mut runtime, &reply));
++    runtime.reminders.load_committed(&runtime.saved, runtime.wall_clock_ms, 1).unwrap();
++    let record = Record { key: Key {
++        source_id: runtime.reminder_source_id().unwrap(),
++        channel_id: "channel-one".into(), programme_id: id.clone(), start_s: programme.start,
++    }, end_s: programme.end, title: programme.title.clone() };
++    let marked = |runtime: &Runtime| view(runtime).unwrap().rows.iter()
++        .find(|row| row.id == id).unwrap().favorite;
++    assert!(!marked(&runtime));
++    let (_, rejected) = runtime.reminders.toggle(&runtime.saved, record.clone(), runtime.wall_clock_ms).unwrap();
++    assert!(!marked(&runtime), "an unacknowledged save cannot acquire a marker");
++    runtime.reminders.finish_save(rejected, Err(SaveFailure::Rejected)).unwrap();
++    assert!(!marked(&runtime));
++    let (saved, token) = runtime.reminders.toggle(&runtime.saved, record.clone(), runtime.wall_clock_ms).unwrap();
++    runtime.reminders.finish_save(token, Ok(&saved)).unwrap();
++    runtime.saved = saved;
++    assert!(marked(&runtime));
++    runtime.reminders.invalidate(); assert!(!marked(&runtime));
++    runtime.reminders.load_committed(&runtime.saved, runtime.wall_clock_ms, 2).unwrap();
++    assert!(marked(&runtime), "a verified reload restores the same marker");
++    runtime.saved.profiles.profiles[0].source.push_str("?other");
++    assert!(!marked(&runtime), "same programme under a changed source is not its timer");
++    runtime.saved.profiles.profiles[0].source.truncate("https://fixture.invalid/list.m3u".len());
++    assert!(marked(&runtime));
++    runtime.wall_clock_ms = programme.end as u64 * 1000;
++    assert!(!marked(&runtime), "an ended timer has no pending marker");
++    runtime.wall_clock_ms = 1700000000000;
++    let (saved, token) = runtime.reminders.toggle(&runtime.saved, record, runtime.wall_clock_ms).unwrap();
++    runtime.reminders.finish_save(token, Ok(&saved)).unwrap(); runtime.saved = saved;
++    assert!(!marked(&runtime));
++}
+diff --git a/rust-modules/ui/src/table.rs b/rust-modules/ui/src/table.rs
+--- a/rust-modules/ui/src/table.rs
++++ b/rust-modules/ui/src/table.rs
+@@ -65,6 +65,7 @@
+     pub label_origin: Origin,
+     pub detail: String, // optional sub-line ("" = none)
+     pub detail_origin: Origin,
++    detail_marker: Option<[f32; 4]>,
+     pub badges: Vec<Badge>,
+     pub checked: bool, // shows the leading checkmark (the ACTIVE item)
+     /// A **switch** rather than a choice: `Some(on)` states itself as the word `On`/`Off` at the
+@@ -117,6 +118,7 @@
+             label_origin: Origin::default(),
+             detail: String::new(),
+             detail_origin: Origin::default(),
++            detail_marker: None,
+             badges: Vec::new(),
+             checked: false,
+             toggle: None,
+@@ -249,6 +251,14 @@
+     pub fn detail(mut self, d: impl Into<String>) -> Self {
+         self.detail = d.into();
+         self
++    }
++    /// Small status dot before the detail, with width reserved by the same layout.
++    pub fn detail_marker(mut self, color: [f32; 4]) -> Self {
++        self.detail_marker = Some(color);
++        self
++    }
++    fn detail_marker_width(&self) -> f32 {
++        if self.detail_marker.is_some() && !self.detail.is_empty() { 16.0 } else { 0.0 }
+     }
+     pub fn badge(mut self, b: Badge) -> Self {
+         self.badges.push(b);
+@@ -1307,7 +1317,7 @@
+             }
+             for row in section.rows.iter().filter(|row| !row.sep) {
+                 let (label, value) = self.row_runs(row, measure);
+-                let detail = if self.is_classic_menu() { 0.0 } else { measure.width_str(&row.detail, theme::size::CAPTION, false) };
++                let detail = if self.is_classic_menu() { 0.0 } else { row.detail_marker_width() + measure.width_str(&row.detail, theme::size::CAPTION, false) };
+                 let primary = (label / h).max(detail / h);
+                 let text = match value {
+                     Some(value) => primary + ROW_VALUE_GAP + value / h,
+@@ -1417,7 +1427,7 @@
+                 if lw > label_budget {
+                     out.push(FitIssue { role: FitRole::Label, origin: row.label_origin, text: row.label.clone(), natural: lw, budget: label_budget });
+                 }
+-                let dw = measure.width_str(&row.detail, theme::size::CAPTION, false);
++                let dw = row.detail_marker_width() + measure.width_str(&row.detail, theme::size::CAPTION, false);
+                 if !self.is_classic_menu() && dw > label_budget {
+                     out.push(FitIssue { role: FitRole::Detail, origin: row.detail_origin, text: row.detail.clone(), natural: dw, budget: label_budget });
+                 }
+@@ -2407,13 +2417,19 @@
+             // occupies the sub-line's band too, and an unbounded sub-line would run under it.
+             if !self.is_classic_menu() && !row.detail.is_empty() {
+                 let sub = on_pill(dimc, if classic { theme::with_a(ink, 0.6) } else { theme::scrim_black(0.6) });
+-                let detail = plx_gfx::text::elide_by(&row.detail, text_w, false, |t| {
++                let marker_w = row.detail_marker_width().min(text_w.max(0.0));
++                if let Some(color) = row.detail_marker.filter(|_| marker_w >= 8.0) {
++                    let (top, bottom) = crate::typography::text_cap_band(theme::size::CAPTION, 0);
++                    p.rect(Rect::new(label_x, detail_y + (top + bottom) * 0.5 - 4.0, 8.0, 8.0),
++                        4.0, color, color, 0.0);
++                }
++                let detail = plx_gfx::text::elide_by(&row.detail, (text_w - marker_w).max(0.0), false, |t| {
+                     measure.width_str(t, theme::size::CAPTION, false)
+                 });
+                 if let Ok(cd) = CString::new(detail) {
+                     p.text(
+                         cd.as_ptr(),
+-                        label_x,
++                        label_x + marker_w,
+                         detail_y,
+                         theme::size::CAPTION,
+                         sub,
+@@ -4303,3 +4319,36 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod detail_marker_tests {
++    use super::*;
++    #[test]
++    fn accepted_marker_paints_before_detail_without_shifting_title_in_both_modes() {
++        let _serial = plx_base::testlock::serial();
++        let measure = crate::fixture::FixtureMeasure;
++        let frame = Rect::new(0.0, 0.0, 900.0, 300.0);
++        for classic in [false, true] {
++            let mut table = TableView::new(); table.set_classic(classic);
++            let make = || Row::new("Programme").detail("12:34");
++            table.set_sections(vec![Section::new("").row(make())], 0, false);
++            let plain = crate::draw_census::capture_runs(|| table.draw(Painter::recording(), frame, &measure));
++            let title = plain.iter().find(|r| r.text == "Programme").unwrap().at.x;
++            let date = plain.iter().find(|r| r.text == "12:34").unwrap().at.x;
++            table.set_sections(vec![Section::new("").row(make().detail_marker(theme::CLASSIC_REMOTE_YELLOW))], 0, false);
++            let mut marked = Vec::new();
++            let rects = crate::draw_census::capture_rect_inks(|| {
++                marked = crate::draw_census::capture_runs(|| table.draw(Painter::recording(), frame, &measure));
++            });
++            let detail = marked.iter().find(|r| r.text == "12:34").unwrap();
++            assert_eq!(marked.iter().find(|r| r.text == "Programme").unwrap().at.x, title);
++            assert_eq!(detail.at.x, date + 16.0);
++            let dot = rects.iter().find(|(rect, _, _)| rect.w == 8.0 && rect.h == 8.0).unwrap().0;
++            assert_eq!(dot.x, date); assert!(dot.x + dot.w < detail.at.x);
++            assert_eq!(table.sections[0].rows[0].detail_marker, Some(theme::CLASSIC_REMOTE_YELLOW));
++            table.set_sections(vec![Section::new("").row(make())], 0, false);
++            let removed = crate::draw_census::capture_rect_inks(|| table.draw(Painter::recording(), frame, &measure));
++            assert!(!removed.iter().any(|(rect, _, _)| rect.w == 8.0 && rect.h == 8.0));
++        }
++    }
++}

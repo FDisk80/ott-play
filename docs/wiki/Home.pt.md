@@ -51,7 +51,7 @@ Esta é a página inicial da documentação versionada no repositório-fonte. O 
 
 ## Configurar fontes e investigar problemas
 
-- [Login e reprodução Plex](../plex-provider.md), [biblioteca de mídia no servidor](../synology-library.md), [arquitetura do guia](../guide-architecture.md) e [diagnóstico EPG hospedado](../hosted-epg-diagnostics.md).
+- [Login e reprodução Plex](../plex-provider.md), [arquitetura do guia](../guide-architecture.md) e [diagnóstico EPG hospedado](../hosted-epg-diagnostics.md).
 - [Configurações da interface](../interface-settings.md), [história do design e créditos](../interface-history.md) e [catálogos de idiomas/teclados](../localization.md).
 - [Bancada remota](../remote-workbench.md), [diagnóstico de execução](../runtime-debug.md) e [consentimento, ocultação e retenção de diagnósticos](../diagnostic-security.md).
 - [Lista de verificação de dispositivos nativos](../mode-b-device-smoke.md), [lista de dispositivos Tauri](../mode-b-tauri-smoke.md) e [controles da janela do navegador](../browser-window-controls.md).

@@ -9,13 +9,12 @@ test.use({
     launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"] },
 });
 
-async function boot(page, context, baseURL) {
+async function boot(page, context, baseURL, media = false) {
     const origin = new URL(baseURL).origin;
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await context.route("**/*", async (route) => {
         const url = new URL(route.request().url());
-        if (url.origin !== origin) return route.abort("blockedbyclient");
         if (url.pathname === "/random-fixture/channels.m3u")
             return route.fulfill({
                 body:
@@ -36,17 +35,11 @@ async function boot(page, context, baseURL) {
                     "/random-fixture/index.m3u8?id=ace\n",
                 contentType: "application/vnd.apple.mpegurl",
             });
-        if (url.pathname === "/nas/config")
-            return route.fulfill({
-                json: {
-                    api: "/nas/api",
-                    enabled: true,
-                    sourceId: "synology:random-fixture",
-                    title: "Random media fixture",
-                },
-            });
-        if (url.pathname === "/nas/api") {
-            const request = route.request().postDataJSON();
+        if (url.pathname.endsWith("/vportal/api")) {
+            const body = route.request().postDataJSON();
+            expect(body.url).toBe("https://portal.fixture/api/");
+            expect(body.params.key).toBe("RANDOM_FIXTURE_KEY");
+            const request = body.params;
             return route.fulfill({
                 json:
                     request.cmd === "play"
@@ -68,6 +61,7 @@ async function boot(page, context, baseURL) {
                           },
             });
         }
+        if (url.origin !== origin) return route.abort("blockedbyclient");
         if (url.pathname.startsWith("/random-fixture/")) {
             const segment = url.pathname.endsWith(".ts");
             return route.fulfill({
@@ -85,25 +79,51 @@ async function boot(page, context, baseURL) {
         return route.continue();
     });
     await context.routeWebSocket("**/*", (socket) => socket.close());
-    await context.addInitScript((origin) => {
-        localStorage.setItem("ottplaylang", "_eng");
-        localStorage.setItem("ottplayprov", "m3u");
-        localStorage.setItem("m3usPlayers", "1");
-        localStorage.setItem(
-            "m3um3uArr",
-            JSON.stringify({
-                active: 0,
-                M3Us: [{ www: origin + "/random-fixture/channels.m3u" }],
-            })
-        );
-        const play = HTMLMediaElement.prototype.play;
-        HTMLMediaElement.prototype.play = function () {
-            this.muted = true;
-            return play.call(this);
-        };
-    }, origin);
+    await context.addInitScript(
+        ({ origin, media }) => {
+            localStorage.setItem("ottplaylang", "_eng");
+            localStorage.setItem("ottplayprov", media ? "vportal" : "m3u");
+            if (media)
+                localStorage.setItem(
+                    "vportalprofiles",
+                    JSON.stringify({
+                        active: 0,
+                        portals: [
+                            {
+                                link: "portal::[key:RANDOM_FIXTURE_KEY]https://portal.fixture/api/",
+                                name: "Random media fixture",
+                                sections: [],
+                            },
+                        ],
+                    })
+                );
+            localStorage.setItem(
+                media ? "vportalsPlayers" : "m3usPlayers",
+                "1"
+            );
+            localStorage.setItem(
+                "m3um3uArr",
+                JSON.stringify({
+                    active: 0,
+                    M3Us: [{ www: origin + "/random-fixture/channels.m3u" }],
+                })
+            );
+            const play = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function () {
+                this.muted = true;
+                return play.call(this);
+            };
+        },
+        { media, origin }
+    );
     await page.goto("/f/pc/");
     await page.waitForFunction(() => window.commandChannelsReady === true);
+    if (media) {
+        await page.evaluate(() =>
+            window.__ottMenuRegistry.open(window).invoke("media.open")
+        );
+        return errors;
+    }
     await page.evaluate(() => {
         const group = window.catsArray.indexOf("Selected group");
         if (group < 0) throw new Error("Fixture group was not loaded");
@@ -314,16 +334,25 @@ test("PC R selects a media item without shuffling the displayed folder", async (
     context,
     baseURL,
 }) => {
-    const errors = await boot(page, context, baseURL);
-    await page.waitForFunction(() => window.__ottNasLibrary?.available());
-    await page.evaluate(() =>
-        window.__ottMenuRegistry.open(window).invoke("media.nas")
-    );
+    const errors = await boot(page, context, baseURL, true);
     await expect(page.locator("#listIn")).toContainText("Film 1");
-    const order = await page.evaluate(() =>
-        window.__ottMedia.snapshot().frame.items.map((item) => item.title)
-    );
+    // VPortal exposes its flat films through the channel list, not a legacy
+    // MediaLibrary frame. Capture both identities and labels from that list.
+    const initial = await channelState(page);
+    const order = initial.order;
+    expect(
+        await page.evaluate(() =>
+            window.curList.map((id) => window.channels[id].channel_name)
+        )
+    ).toEqual([
+        "Random media fixture - Film 1",
+        "Random media fixture - Film 2",
+    ]);
+    expect(await page.evaluate(() => window.listArray.slice())).toEqual(order);
     await page.keyboard.press("r");
+    await expect
+        .poll(async () => (await channelState(page)).id)
+        .not.toBe(initial.id);
     await expect
         .poll(() =>
             page.evaluate(() => window.__ottClassicPlayback.programme()?.title)
@@ -333,6 +362,10 @@ test("PC R selects a media item without shuffling the displayed folder", async (
     const title = await page.evaluate(
         () => window.__ottClassicPlayback.programme().title
     );
+    expect(await channelState(page)).toMatchObject({
+        category: initial.category,
+        order,
+    });
     await page.keyboard.press("l");
     await page.waitForFunction(() => !!document.fullscreenElement);
     await page.locator("#video").focus();
@@ -342,11 +375,16 @@ test("PC R selects a media item without shuffling the displayed folder", async (
             page.evaluate(() => window.__ottClassicPlayback.programme()?.title)
         )
         .not.toBe(title);
-    expect(
-        await page.evaluate(() =>
-            window.__ottMedia.snapshot().frame.items.map((item) => item.title)
-        )
-    ).toEqual(order);
+    expect(await channelState(page)).toMatchObject({
+        category: initial.category,
+        order,
+    });
+    await page.evaluate(() =>
+        window.channelsList(window.catIndex, window.primaryIndex)
+    );
+    expect(await page.evaluate(() => window.listArray.slice())).toEqual(order);
+    await expect(page.locator("#listIn")).toContainText("Film 1");
+    await expect(page.locator("#listIn")).toContainText("Film 2");
     expect(errors).toEqual([]);
 });
 

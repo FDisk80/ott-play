@@ -8,15 +8,20 @@ export function installBrowserLocalMedia(w: any): any {
     var scanGeneration = 0;
     var reconnectTransactions: any[] = [];
     var pendingReads: any = Object.create(null);
-    var pendingReadCounts = [0, 0];
+    var pendingReadCounts = [0, 0, 0];
     var fileTimeoutMessage = "Local file did not respond";
     var pendingDirectories: any = Object.create(null);
+    var pendingDirectoryCount = 0;
+    var scanRetirements: Array<() => void> = [];
     var cacheWrites = Promise.resolve();
     var urlApi = w.URL || w.webkitURL;
     var available = !!(w.indexedDB && urlApi && urlApi.createObjectURL);
 
     function retireScans(): number {
         scanGeneration++;
+        scanRetirements.slice().forEach(function (retire) {
+            retire();
+        });
         // The native picker cannot be cancelled from JavaScript. A transaction
         // that has not committed yet can, so discard its eventual selection.
         reconnectTransactions.slice().forEach(function (tx) {
@@ -127,11 +132,13 @@ export function installBrowserLocalMedia(w: any): any {
     function readHandle(
         id: string,
         handle: any,
-        permission?: boolean
+        permission?: boolean,
+        background?: boolean
     ): Promise<any> {
         // Neither browser call can be cancelled. Keep independent file and
         // permission limits across scans until the native calls really settle.
-        var kind = permission ? 1 : 0;
+        // Discovery cannot consume the independent direct-playback allowance.
+        var kind = permission ? 1 : background ? 2 : 0;
         var key = kind + ":" + id;
         var old = pendingReads[key];
         if (old)
@@ -172,10 +179,19 @@ export function installBrowserLocalMedia(w: any): any {
         });
         return entry.result;
     }
-    function firstDirectoryRead(id: string, handle: any): any {
-        if (pendingDirectories[id]) return pendingDirectories[id];
-        var entry: any = {};
+    function directoryRead(id: string, handle: any, opening?: any): any {
+        var existing = pendingDirectories[id];
+        if (existing) {
+            // Only an unresolved first result is a complete starting point.
+            // A new scan cannot adopt the middle of an abandoned iterator.
+            if (!opening && existing.initial) return existing;
+            return { pending: Promise.reject(readTimeout(false, true)) };
+        }
+        if (pendingDirectoryCount >= 3)
+            return { pending: Promise.reject(readTimeout(false, true)) };
+        var entry: any = { initial: !opening };
         pendingDirectories[id] = entry;
+        pendingDirectoryCount++;
         entry.pending = new Promise(function (resolve, reject) {
             var timedOut = false;
             // Chrome may enumerate an entire network directory before returning
@@ -186,15 +202,17 @@ export function installBrowserLocalMedia(w: any): any {
                 var error: any = new Error("Local folder did not respond");
                 error.name = "TimeoutError";
                 error.localMediaReconnectRequired = true;
+                error.localMediaTraversalTimeout = !!opening;
                 reject(error);
             }, 2700000);
             var pending = observeRead(function () {
-                entry.iterator = handle.values();
+                entry.iterator = opening ? opening.iterator : handle.values();
                 return entry.iterator.next();
             });
             function finish(error: any, value?: any): void {
                 if (pendingDirectories[id] === entry)
                     delete pendingDirectories[id];
+                pendingDirectoryCount--;
                 w.clearTimeout(timer);
                 if (timedOut) return;
                 if (error) reject(error);
@@ -510,19 +528,21 @@ export function installBrowserLocalMedia(w: any): any {
         function readPhase(
             name: string,
             read: () => any,
-            force = false
+            force = false,
+            current = active
         ): Promise<any> {
+            if (!current()) return Promise.resolve(null);
             phase = name;
             progress(force);
-            if (!active()) return Promise.resolve(null);
+            if (!current()) return Promise.resolve(null);
             // Fast reads keep batch publication cheap. A pending browser call
             // exposes its real phase once, without inventing scan progress.
             var timer = w.setTimeout(function () {
-                progress(true);
+                if (current()) progress(true);
             }, 100);
             return Promise.resolve()
                 .then(function () {
-                    return active() ? read() : null;
+                    return current() ? read() : null;
                 })
                 .then(
                     function (value) {
@@ -535,92 +555,237 @@ export function installBrowserLocalMedia(w: any): any {
                     }
                 );
         }
-        // Manual async iteration keeps legacy ES5 bundles compatible. Push into
-        // one result array instead of copying a growing array for every file.
+        // One-step directory reads and file probes share a bounded window.
+        // A child never owns its parent's iterator while its I/O is pending.
         function walk(
             handle: any,
             prefix: string,
-            sourceId: string
+            sourceId: string,
+            warm?: (current: () => boolean) => Promise<void>
         ): Promise<void> {
-            if (!active()) return Promise.resolve();
-            phase = "enumerating";
-            var opening: any = null;
-            function next(): Promise<void> {
-                if (!active()) return Promise.resolve();
-                return readPhase(
-                    "enumerating",
-                    function () {
-                        if (!opening) {
-                            opening = firstDirectoryRead(
-                                sourceId + ":" + prefix,
-                                handle
-                            );
-                            return opening.pending;
+            return new Promise(function (resolve, reject) {
+                var queue: any[] = [],
+                    pending = 0,
+                    directories = 0,
+                    files = 0;
+                var finished = false,
+                    scheduled: any = null,
+                    turns = 0;
+                function current(): boolean {
+                    return !finished && active();
+                }
+                function retire(): void {
+                    finish();
+                }
+                function finish(error?: any): void {
+                    if (finished) return;
+                    finished = true;
+                    queue = [];
+                    if (scheduled !== null) w.clearTimeout(scheduled);
+                    var index = scanRetirements.indexOf(retire);
+                    if (index >= 0) scanRetirements.splice(index, 1);
+                    if (error) reject(error);
+                    else resolve();
+                }
+                function enqueue(run: () => any, file = false): void {
+                    if (finished || !active()) return;
+                    var job = { file: file, run: run };
+                    if (file) queue.unshift(job);
+                    else queue.push(job);
+                }
+                function pump(): void {
+                    if (finished) return;
+                    if (!active()) {
+                        finish();
+                        return;
+                    }
+                    if (scheduled !== null) return;
+                    while (pending < 4 && queue.length) {
+                        var index = -1;
+                        for (var q = 0; q < queue.length; q++)
+                            if (
+                                queue[q].file
+                                    ? files < (warm ? 1 : 2)
+                                    : directories < 3
+                            ) {
+                                index = q;
+                                break;
+                            }
+                        if (index < 0) break;
+                        var job = queue.splice(index, 1)[0];
+                        pending++;
+                        if (job.file) files++;
+                        else directories++;
+                        (function (owned) {
+                            Promise.resolve()
+                                .then(function () {
+                                    return !finished && active()
+                                        ? owned.run()
+                                        : null;
+                                })
+                                .then(
+                                    function () {
+                                        settled(owned);
+                                    },
+                                    function (error) {
+                                        settled(owned, error);
+                                    }
+                                );
+                        })(job);
+                        if (++turns % 32 === 0) {
+                            scheduled = w.setTimeout(function () {
+                                scheduled = null;
+                                pump();
+                            }, 0);
+                            break;
                         }
-                        return opening.iterator.next();
-                    },
-                    discovered === 0
-                ).then(function (step) {
-                    if (!step || step.done || !active()) return;
-                    var child = step.value,
-                        name = prefix + child.name;
-                    discovered++;
-                    var visited = visit(discovered === 1);
-                    var work: Promise<any>;
-                    if (child.kind === "directory")
-                        work = visited.then(function () {
-                            return walk(child, name + "/", sourceId);
-                        });
-                    // A known non-media extension cannot become playable by
-                    // reading its bytes. Unknown extensions still use MIME.
-                    else if (
-                        /\.(txt|json|xml|csv|log|md|srt|vtt|jpg|jpeg|png|gif|webp|pdf|zip|rar)$/i.test(
-                            child.name
+                    }
+                    if (!pending && !queue.length) finish();
+                }
+                function settled(job: any, error?: any): void {
+                    pending--;
+                    if (job.file) files--;
+                    else directories--;
+                    if (finished) return;
+                    if (error) {
+                        finish(error);
+                        return;
+                    }
+                    pump();
+                }
+                function failure(error: any): void {
+                    if (!current()) return;
+                    readFailure(error);
+                    if (
+                        !error ||
+                        error.localMediaLimit ||
+                        !/^(NotFoundError|NotAllowedError|SecurityError|NotReadableError|TimeoutError)$/.test(
+                            error.name
                         )
                     )
-                        work = visited;
-                    else
-                        work = visited
-                            .then(function () {
-                                return readPhase("metadata", function () {
-                                    return active()
-                                        ? readHandle(
-                                              sourceId + ":" + name,
-                                              child
-                                          )
-                                        : null;
-                                });
-                            })
-                            .then(function (file) {
-                                if (active() && file && media(file)) {
-                                    remember(sourceId, name, child);
-                                    add(
-                                        sourceId + ":" + name,
-                                        file,
-                                        name,
-                                        sourceId,
-                                        name
+                        throw error;
+                }
+                function directory(
+                    folder: any,
+                    path: string,
+                    depth: number
+                ): void {
+                    if (depth > 64)
+                        throw new Error("Local folder depth limit reached");
+                    var opening: any = null;
+                    function next(): Promise<void> {
+                        return readPhase(
+                            "enumerating",
+                            function () {
+                                var read = directoryRead(
+                                    sourceId + ":" + path,
+                                    folder,
+                                    opening
+                                );
+                                if (!opening) opening = read;
+                                return read.pending;
+                            },
+                            discovered === 0,
+                            current
+                        )
+                            .then(function (step) {
+                                if (!step || step.done || finished || !active())
+                                    return;
+                                var child = step.value,
+                                    name = path + child.name;
+                                if (++discovered > 100000)
+                                    throw new Error(
+                                        "Local scan exceeds 100000 entries"
                                     );
-                                }
+                                return visit(discovered === 1).then(
+                                    function () {
+                                        if (finished || !active()) return;
+                                        if (child.kind === "directory") {
+                                            directory(
+                                                child,
+                                                name + "/",
+                                                depth + 1
+                                            );
+                                        } else if (
+                                            !/\.(txt|json|xml|csv|log|md|srt|vtt|jpg|jpeg|png|gif|webp|pdf|zip|rar)$/i.test(
+                                                child.name
+                                            )
+                                        ) {
+                                            enqueue(function () {
+                                                return readPhase(
+                                                    "metadata",
+                                                    function () {
+                                                        return active()
+                                                            ? scanHandle(
+                                                                  sourceId +
+                                                                      ":" +
+                                                                      name,
+                                                                  child
+                                                              )
+                                                            : null;
+                                                    },
+                                                    false,
+                                                    current
+                                                )
+                                                    .then(function (file) {
+                                                        if (
+                                                            !finished &&
+                                                            active() &&
+                                                            file &&
+                                                            media(file)
+                                                        ) {
+                                                            remember(
+                                                                sourceId,
+                                                                name,
+                                                                child
+                                                            );
+                                                            add(
+                                                                sourceId +
+                                                                    ":" +
+                                                                    name,
+                                                                file,
+                                                                name,
+                                                                sourceId,
+                                                                name
+                                                            );
+                                                        }
+                                                    })
+                                                    .catch(failure);
+                                            }, true);
+                                        }
+                                        enqueue(next);
+                                    }
+                                );
+                            })
+                            .catch(function (error) {
+                                // A failed root keeps the existing source-unavailable
+                                // contract; a failed child does not hide other branches.
+                                if (depth === 0) throw error;
+                                failure(error);
                             });
-                    return work
-                        .catch(function (error) {
-                            if (active()) readFailure(error);
-                            // Files can disappear or have narrower permissions than
-                            // their parent. Keep scanning readable siblings.
-                            if (
-                                !error ||
-                                error.localMediaLimit ||
-                                !/^(NotFoundError|NotAllowedError|SecurityError|NotReadableError|TimeoutError)$/.test(
-                                    error.name
-                                )
-                            )
-                                throw error;
-                        })
-                        .then(next);
-                });
-            }
-            return next();
+                    }
+                    enqueue(next);
+                }
+                scanRetirements.push(retire);
+                // A stale cache reference gets one lane; the tree retains the
+                // other even if that uncancellable cache call times out.
+                if (warm) {
+                    pending++;
+                    warm(current).then(function () {
+                        pending--;
+                        pump();
+                    }, finish);
+                }
+                directory(handle, prefix, 0);
+                pump();
+            });
+        }
+        function scanHandle(
+            id: string,
+            handle: any,
+            permission?: boolean
+        ): Promise<any> {
+            return readHandle(id, handle, permission, true);
         }
         function preferred(record: any): Promise<void> {
             var prefix = record.id + ":";
@@ -656,7 +821,7 @@ export function installBrowserLocalMedia(w: any): any {
                 .then(function (fileHandle) {
                     return active() && fileHandle
                         ? readPhase("metadata", function () {
-                              return readHandle(preferredId!, fileHandle);
+                              return scanHandle(preferredId!, fileHandle);
                           })
                         : Promise.reject();
                 })
@@ -683,22 +848,26 @@ export function installBrowserLocalMedia(w: any): any {
                     }
                 });
         }
-        function bootstrap(record: any): Promise<void> {
+        function bootstrap(record: any, current: () => boolean): Promise<void> {
             if (
                 firstPlayable ||
                 (preferredResult && preferredResult.state !== "missing")
             )
                 return Promise.resolve();
             var candidates = (record.bootstrap || []).slice(0, 8);
-            var chain = Promise.resolve();
-            candidates.forEach(function (candidate: any) {
-                chain = chain.then(function () {
-                    if (!active() || firstPlayable || !candidate.handle) return;
-                    // A cached handle can survive a move. Re-resolve it against
-                    // its selected root before treating the old path as proof.
-                    return readPhase("metadata", function () {
+            var index = 0;
+            function next(): Promise<void> {
+                if (!current() || firstPlayable || index >= candidates.length)
+                    return Promise.resolve();
+                var candidate = candidates[index++];
+                if (!candidate.handle) return next();
+                // A cached handle can survive a move. Re-resolve it against
+                // its selected root before treating the old path as proof.
+                return readPhase(
+                    "metadata",
+                    function () {
                         return typeof record.handle.resolve === "function"
-                            ? readHandle(
+                            ? scanHandle(
                                   "resolve:" + record.id + ":" + candidate.path,
                                   {
                                       getFile: function () {
@@ -709,45 +878,57 @@ export function installBrowserLocalMedia(w: any): any {
                                   }
                               )
                             : null;
-                    })
-                        .then(function (parts: any) {
-                            if (!active()) return;
-                            if (
-                                typeof record.handle.resolve === "function" &&
-                                (!Array.isArray(parts) ||
-                                    parts.join("/") !== candidate.path)
-                            )
-                                return;
-                            return readPhase("metadata", function () {
-                                return readHandle(
+                    },
+                    false,
+                    current
+                )
+                    .then(function (parts: any) {
+                        if (!current()) return;
+                        if (
+                            typeof record.handle.resolve === "function" &&
+                            (!Array.isArray(parts) ||
+                                parts.join("/") !== candidate.path)
+                        )
+                            return;
+                        return readPhase(
+                            "metadata",
+                            function () {
+                                return scanHandle(
                                     record.id + ":" + candidate.path,
                                     candidate.handle
                                 );
-                            }).then(function (file) {
-                                if (active() && file && media(file))
-                                    add(
-                                        record.id + ":" + candidate.path,
-                                        file,
-                                        candidate.path,
-                                        record.id,
-                                        Array.isArray(parts)
-                                            ? candidate.path
-                                            : null
-                                    );
-                            });
-                        })
-                        .catch(function (error) {
-                            if (error && error.name === "NotFoundError")
-                                record.bootstrap = (
-                                    record.bootstrap || []
-                                ).filter(function (entry: any) {
-                                    return entry.path !== candidate.path;
-                                });
-                            if (error?.localMediaLimit) throw error;
+                            },
+                            false,
+                            current
+                        ).then(function (file) {
+                            if (current() && file && media(file))
+                                add(
+                                    record.id + ":" + candidate.path,
+                                    file,
+                                    candidate.path,
+                                    record.id,
+                                    Array.isArray(parts) ? candidate.path : null
+                                );
                         });
-                });
-            });
-            return chain;
+                    })
+                    .catch(function (error) {
+                        if (!current()) return;
+                        if (error && error.name === "NotFoundError")
+                            record.bootstrap = (record.bootstrap || []).filter(
+                                function (entry: any) {
+                                    return entry.path !== candidate.path;
+                                }
+                            );
+                        if (error?.localMediaLimit) throw error;
+                        if (error?.name === "TimeoutError") {
+                            // The native call still owns the cache lane. Do
+                            // not start another candidate after its deadline.
+                            index = candidates.length;
+                        }
+                    })
+                    .then(next);
+            }
+            return next();
         }
         if (!available) return Promise.resolve(catalog(false));
         progress(true);
@@ -799,127 +980,157 @@ export function installBrowserLocalMedia(w: any): any {
                             (right < 0 ? prioritySources!.length : right)
                         );
                     });
-                var chain = Promise.resolve();
-                saved.forEach(function (record) {
-                    chain = chain.then(function () {
-                        if (!active()) return;
-                        if (record.blob) {
-                            add(
-                                record.id,
-                                record.blob,
-                                record.name,
-                                record.id,
-                                null
-                            );
-                            return visit();
-                        }
-                        var source = {
-                            access: "unknown",
-                            available: false,
-                            id: record.id,
-                            kind:
-                                record.handle.kind === "directory"
-                                    ? "folder"
-                                    : "file",
-                            name: record.name,
-                        };
-                        sources.push(source);
-                        phase = "permission";
-                        record.access = "unknown";
-                        progress(true);
-                        if (!active()) return;
-                        return readHandle(record.id, record.handle, true)
-                            .then(function (access) {
-                                if (!active()) return;
-                                if (access !== "granted") {
-                                    source.access = "permission-required";
-                                    return;
-                                }
-                                source.access = "granted";
-                                source.available = true;
-                                record.access = "granted";
-                                phase = "files";
-                                progress(true);
-                                if (!active()) return;
-                                if (record.handle.kind === "directory")
-                                    return preferred(record)
-                                        .then(function () {
-                                            return bootstrap(record);
-                                        })
-                                        .then(function () {
-                                            return walk(
-                                                record.handle,
-                                                "",
-                                                record.id
-                                            );
-                                        });
-                                discovered++;
-                                return readPhase(
-                                    "metadata",
-                                    function () {
-                                        return readHandle(
-                                            record.id,
-                                            record.handle
-                                        );
-                                    },
-                                    true
-                                ).then(function (file) {
-                                    if (
-                                        active() &&
-                                        preferredResult &&
-                                        preferredId === record.id
-                                    )
-                                        preferredResult.state =
-                                            file && media(file)
-                                                ? "found"
-                                                : "missing";
-                                    if (active() && file && media(file))
-                                        add(
-                                            record.id,
-                                            file,
-                                            file.name,
-                                            record.id,
-                                            null
-                                        );
+                function scanSource(record: any): Promise<void> | undefined {
+                    if (!active()) return;
+                    if (record.blob) {
+                        add(
+                            record.id,
+                            record.blob,
+                            record.name,
+                            record.id,
+                            null
+                        );
+                        return visit();
+                    }
+                    var source = {
+                        access: "unknown",
+                        available: false,
+                        id: record.id,
+                        kind:
+                            record.handle.kind === "directory"
+                                ? "folder"
+                                : "file",
+                        name: record.name,
+                    };
+                    sources.push(source);
+                    phase = "permission";
+                    record.access = "unknown";
+                    progress(true);
+                    if (!active()) return;
+                    return scanHandle(record.id, record.handle, true)
+                        .then(function (access) {
+                            if (!active()) return;
+                            if (access !== "granted") {
+                                source.access = "permission-required";
+                                return;
+                            }
+                            source.access = "granted";
+                            source.available = true;
+                            record.access = "granted";
+                            phase = "files";
+                            progress(true);
+                            if (!active()) return;
+                            if (record.handle.kind === "directory")
+                                return preferred(record).then(function () {
+                                    return walk(
+                                        record.handle,
+                                        "",
+                                        record.id,
+                                        record.bootstrap?.length &&
+                                            !firstPlayable &&
+                                            (!preferredResult ||
+                                                preferredResult.state ===
+                                                    "missing")
+                                            ? function (current) {
+                                                  return bootstrap(
+                                                      record,
+                                                      current
+                                                  );
+                                              }
+                                            : undefined
+                                    );
                                 });
-                            })
-                            .catch(function (error) {
-                                if (!active()) return;
-                                readFailure(error);
+                            discovered++;
+                            return readPhase(
+                                "metadata",
+                                function () {
+                                    return scanHandle(record.id, record.handle);
+                                },
+                                true
+                            ).then(function (file) {
                                 if (
+                                    active() &&
                                     preferredResult &&
-                                    preferredId === record.id &&
-                                    error &&
-                                    error.name === "NotFoundError"
+                                    preferredId === record.id
                                 )
-                                    preferredResult.state = "missing";
-                                (source as any).readErrorName = readErrorName;
-                                (source as any).readErrorPhase = readErrorPhase;
-                                (source as any).reconnectRequired =
-                                    !!error?.localMediaReconnectRequired;
-                                source.access =
-                                    error && error.name === "NotAllowedError"
-                                        ? "permission-required"
-                                        : "missing";
-                            })
-                            .then(function () {
-                                source.available = source.access === "granted";
-                                record.access = source.access;
-                                if (!source.available && active())
-                                    items.push({
-                                        access: source.access,
-                                        available: false,
-                                        id: record.id,
-                                        name: record.name,
-                                        relativePath: null,
-                                        size: 0,
-                                        source: "linked",
-                                        sourceId: record.id,
-                                        url: "",
-                                    });
-                                return visit();
+                                    preferredResult.state =
+                                        file && media(file)
+                                            ? "found"
+                                            : "missing";
+                                if (active() && file && media(file))
+                                    add(
+                                        record.id,
+                                        file,
+                                        file.name,
+                                        record.id,
+                                        null
+                                    );
                             });
+                        })
+                        .catch(function (error) {
+                            if (!active()) return;
+                            if (error?.localMediaTraversalTimeout) throw error;
+                            readFailure(error);
+                            if (
+                                preferredResult &&
+                                preferredId === record.id &&
+                                error &&
+                                error.name === "NotFoundError"
+                            )
+                                preferredResult.state = "missing";
+                            (source as any).readErrorName = readErrorName;
+                            (source as any).readErrorPhase = readErrorPhase;
+                            (source as any).reconnectRequired =
+                                !!error?.localMediaReconnectRequired;
+                            source.access =
+                                error && error.name === "NotAllowedError"
+                                    ? "permission-required"
+                                    : "missing";
+                        })
+                        .then(function () {
+                            source.available = source.access === "granted";
+                            record.access = source.access;
+                            if (!source.available && active())
+                                items.push({
+                                    access: source.access,
+                                    available: false,
+                                    id: record.id,
+                                    name: record.name,
+                                    relativePath: null,
+                                    size: 0,
+                                    source: "linked",
+                                    sourceId: record.id,
+                                    url: "",
+                                });
+                            return visit();
+                        });
+                }
+                // A multi-file picker selects a group. Keep exact single-source
+                // requests ordered, but let either of two selected files start.
+                var group =
+                    prioritySources && prioritySources.length > 1
+                        ? saved.filter(function (record) {
+                              return prioritySources!.indexOf(record.id) >= 0;
+                          })
+                        : [];
+                if (
+                    group.some(function (record) {
+                        return record.handle?.kind !== "file";
+                    })
+                )
+                    group = [];
+                var lanes = [Promise.resolve(), Promise.resolve()];
+                group.forEach(function (record, index) {
+                    lanes[index % 2] = lanes[index % 2].then(function () {
+                        return scanSource(record);
                     });
+                });
+                var chain = Promise.all(lanes).then(function () {});
+                saved.forEach(function (record) {
+                    if (group.indexOf(record) < 0)
+                        chain = chain.then(function () {
+                            return scanSource(record);
+                        });
                 });
                 return chain;
             })
@@ -1177,7 +1388,18 @@ export function installBrowserLocalMedia(w: any): any {
         onProgress?: (catalog: any) => boolean | void,
         preferredId?: string
     ): Promise<any> {
+        var generation = scanGeneration;
         function resume(): Promise<any> {
+            // A native prompt can outlive cancellation or a newer scan. Its
+            // eventual result must not retire the current scan or publish data.
+            if (generation !== scanGeneration)
+                return Promise.resolve({
+                    cancelled: true,
+                    items: [],
+                    pickerCancelled: true,
+                    scanning: false,
+                    sources: [],
+                });
             return list(onProgress, preferredId);
         }
         // A restored Chrome grant can cover all previously connected handles.
@@ -1342,6 +1564,27 @@ export function installBrowserLocalMedia(w: any): any {
         remove: remove,
         removeSource: remove,
         requestAccess: requestAccess,
+        sources: function () {
+            return records().then(function (saved) {
+                return {
+                    sources: saved
+                        .filter(function (record) {
+                            return !!record.handle;
+                        })
+                        .map(function (record) {
+                            return {
+                                access: "unknown",
+                                id: record.id,
+                                kind:
+                                    record.handle.kind === "directory"
+                                        ? "folder"
+                                        : "file",
+                                name: record.name,
+                            };
+                        }),
+                };
+            });
+        },
         suspend: function () {
             retireScans();
         },

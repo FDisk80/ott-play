@@ -1,4 +1,4 @@
-# Read-only media helper for a browser on this Mac
+# Read-only media helper
 
 Use this helper when Chrome's direct folder access cannot start a video while a
 large SMB/AFP folder is being enumerated. The helper reads the original files
@@ -8,9 +8,12 @@ small catalog records; it does not copy the videos.
 
 This is an optional source for the existing **Local videos → Server library…**
 setting. It runs on `127.0.0.1:8448` and can serve only browsers on the same Mac.
-The URL will not work on an Android tablet or another computer: their loopback
+The default URL will not work on an Android tablet or another computer: their loopback
 address refers to that other device. Browser-local folders, Tauri and Capacitor
 continue to use their existing source implementations.
+
+To serve a Roku, tablet or another computer, explicitly enable the private-LAN
+mode described below. The default remains limited to this Mac.
 
 ## Install and connect
 
@@ -56,6 +59,42 @@ For a read-only library, OTT hides upload/import, source-disconnect and delete
 controls. **Refresh**, playback, and **Server library…** remain available. Clear
 the Server library value to return to the original browser-local sources. Their
 saved handles, original media and source IDs are not deleted by using the helper.
+
+## Connect another device on a private LAN
+
+Use a build that supports `--allow-lan-local-media`. Choose the Mac's current
+private network interface address, then explicitly enable LAN access:
+
+```sh
+python3 scripts/install-ottplay-media-helper.py \
+  --binary "$PWD/target/release/ottplay-server" \
+  --directory /Volumes/data/FFFF \
+  --listen-address 192.168.1.20 --allow-lan
+```
+
+Replace `192.168.1.20` with the address actually assigned to this Mac. The
+installer accepts specific RFC 1918 IPv4 or IPv6 unique-local addresses. It
+rejects wildcard, public, link-local and hostname binds. The server separately
+enforces the same rule and requires the explicit opt-in flag. A missing
+interface causes binding to fail; it does not fall back to every interface.
+
+Paste the updated private `library-url.txt` into the other player's **Local
+videos** server setting. Keep the whole URL private: its token grants read
+access to the configured folders. This HTTP connection is intended for a
+trusted private network. The installer does not open firewall ports, configure
+router forwarding, or publish an Internet address. If the host firewall blocks
+the selected port, use the host's normal application/network controls.
+
+LAN mode still serves only health and authenticated read-only media routes.
+Clients cannot add folders, upload files, delete originals or use the full
+server's proxy/control APIs. The existing token, source IDs and metadata are
+preserved when changing the bind address. Rerun the same command, including the
+LAN options, for later updates. To return to local-only access, rerun it without
+those options and replace any saved URL with the resulting loopback URL.
+
+Older helper builds remain loopback-only. An operator-managed gateway can relay
+their authenticated media routes, but is not installed or configured by this
+helper.
 
 ## Persistence, updates and recovery
 

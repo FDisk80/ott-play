@@ -172,9 +172,7 @@ config.update(Label=label, ProgramArguments=[binary, "--host", "0.0.0.0"] +
 env = config.setdefault("EnvironmentVariables", {})
 env.setdefault("EPG_URLS", "http://epg.it999.ru/epg2.xml.gz")
 env["OTTPLAY_DEBUG_ARCHIVE"] = archive
-for key in ("SWOP_BASE_URL", "SWOP_INSTALLATION_TOKEN",
-            "OTTPLAY_PLEX_URL", "OTTPLAY_PLEX_TOKEN", "OTTPLAY_NAS_KEY",
-            "OTTPLAY_NAS_BROWSER_HOSTS"):
+for key in ("SWOP_BASE_URL", "SWOP_INSTALLATION_TOKEN"):
     if os.environ.get(key, "").strip():
         env[key] = os.environ[key].strip()
 if env.get("SWOP_INSTALLATION_TOKEN"):

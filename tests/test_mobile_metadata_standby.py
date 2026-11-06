@@ -156,6 +156,7 @@ class JSONObject(val raw: String, val grant: String = raw) {
 class PluginCall(val requested: String? = null) {
   var replies = 0; var errors = 0
   fun getString(key: String) = requested
+  fun getBoolean(key: String): Boolean? = null // Historical import path in these cases.
   fun resolve(value: Any) { replies++ }
   fun reject(value: String) { errors++ }
 }
@@ -183,7 +184,9 @@ class Harness(val ticket: NativeWork.Ticket) {
   fun run(sources: Boolean) = if (sources) sourceMetadata() else metadata()
   fun publish(call: PluginCall) = resolveSnapshot(call)
 }
+class JSObject { fun put(key: String, value: Any): JSObject = this }
 data class Uri(val value: String) {
+  val lastPathSegment: String? get() = value
   override fun toString() = value
   companion object { fun parse(value: String) = Uri(value) }
 }
@@ -202,6 +205,10 @@ class Resolver {
 }
 class Context { val contentResolver = Resolver() }
 class ImportHarness(val ticket: NativeWork.Ticket, val rows: List<JSONObject>, val cancelAt: String) {
+  val currentWork = ThreadLocal<NativeWork.Ticket>().apply { set(ticket) }
+  fun sourceMetadata(): List<JSONObject> = emptyList()
+  fun sourceId(uri: Uri) = uri.toString()
+  fun resolveRegistration(call: PluginCall, ids: List<String>) { ticket.commit { call.resolve(ids) } }
   var picking = true
   var reads = 0
   val context = Context()

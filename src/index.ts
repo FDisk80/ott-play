@@ -186,6 +186,7 @@ import {
     type PlayerSettings,
     saveSettings,
     settings,
+    timezoneOffsets,
 } from "./settings";
 import { cloudLoadSettings, cloudSendSettings } from "./settings/cloud";
 import { setSleepTimeout } from "./settings/sleep-timer";
@@ -2291,8 +2292,6 @@ function onStbReady(): void {
             (window as any).__ottControlDiscovery.start();
         if (typeof (window as any).applyLocalSwopConfig === "function")
             (window as any).applyLocalSwopConfig();
-        if ((window as any).__ottNasLibrary)
-            (window as any).__ottNasLibrary.init();
         installLocalMedia(window);
         installMediaCompanion(window);
         initUIReferences();
@@ -4741,6 +4740,7 @@ window.settingsInterface = function settingsInterface(): void {
             if (index >= 0) subtitleAppearanceReady.splice(index, 1);
         };
     },
+    timezoneOffsets: timezoneOffsets,
 };
 (window as any).applySubtitleAppearance = function (): void {
     var w = window as any;
