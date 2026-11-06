@@ -1,0 +1,178 @@
+diff --git a/tests/ott_classic_ui.py b/tests/ott_classic_ui.py
+--- a/tests/ott_classic_ui.py
++++ b/tests/ott_classic_ui.py
+@@ -174,6 +174,11 @@
+         self.receipt["inputs"].append(token)
+         self.sim.key(token)
+         self.pause()
++
++    def expect_focus(self, elem, label):
++        expected = f"focus route=ott elem={elem} press=0"
++        self.wait(lambda: self.focus() == expected, f"{label}: expected {expected}")
++        self.receipt.setdefault("navigation", []).append({"label": label, "focus": expected})
+ 
+     def saved(self):
+         try:
+@@ -278,9 +283,24 @@
+         self.saved_when(profile_matches, "ordinary M3U profile Saved acknowledgement")
+         self.wait(lambda: self.server.counts().get("/fixture.m3u", 0) and self.server.counts().get("/fixture.xml", 0), "playlist and EPG requests")
+         self.capture("modern-channel-list")
+-        # Previous actual fixture captures establish these Modern navigation points.
+-        for token in ("back", "back", "ck:158,177", "ck:1120,606", "ck:1192,940", "up", "ok"):
++        # These two opening clicks are unchanged in the captured Modern fixture.
++        for token in ("back", "back", "ck:158,177", "ck:1120,606"):
+             self.key(token)
++        # In this fresh eight-channel fixture, Settings allocates keys 43..56:
++        # seven groups (including Interface colors), Profiles/Parental/Remote,
++        # then Interface mode at 53. The old row-coordinate now opens Remote.
++        # Walk real Down input and fail at the first changed/missed focus instead
++        # of continuing blind clicks into another page. Keys 57/58 are the new
++        # Classic/Modern picker rows; Modern is the initially selected value.
++        for elem in range(43, 54):
++            if elem != 43:
++                self.key("down")
++            self.expect_focus(elem, "Settings row")
++        self.key("ok")
++        self.expect_focus(58, "Modern mode picker")
++        self.key("up")
++        self.expect_focus(57, "Classic mode picker")
++        self.key("ok")
+         self.receipt["classic_preference"] = self.wait(self.mode, "ordinary Classic mode write")
+         self.capture("classic-selected")
+         self.key("back")
+diff --git a/tests/test_harness.py b/tests/test_harness.py
+--- a/tests/test_harness.py
++++ b/tests/test_harness.py
+@@ -9387,6 +9387,132 @@
+         self.assertIn("[mock ok]", grid[0])
+ 
+ 
++class ClassicUiNavigation(unittest.TestCase):
++    """Driver-only regression using the observed old Remote route, not a renderer proof."""
++
++    def drive(self, fault=None):
++        import ott_classic_ui
++
++        class CapturedClassic(Exception):
++            pass
++
++        class Scenario(ott_classic_ui.Scenario):
++            def __init__(self):
++                self.receipt = {"inputs": []}
++                self.server = mock.Mock(url="http://127.0.0.1/fixture.m3u")
++                self.server.counts.return_value = {"/fixture.m3u": 1, "/fixture.xml": 1}
++                self.sim = mock.Mock(dir=ott_classic_ui.Path("unused-fixture-root"))
++                self.started = False
++                self.opening = iter(("back", "back", "ck:158,177", "ck:1120,606"))
++                self.elem = None
++                self.page = "catalog"
++                self.persisted = False
++
++            def wait(self, predicate, label, timeout=15):
++                # The prefix's real import/FIFO IO is outside this driver unit test.
++                # All focus/picker/write predicates below run unchanged, without sleeping.
++                if label == "remote FIFO ready":
++                    return True
++                value = predicate()
++                if not value:
++                    raise TimeoutError(label)
++                return value
++
++            def saved_when(self, *args):
++                return None
++
++            def capture(self, name):
++                if name == "modern-channel-list":
++                    self.started = True
++                if name == "classic-selected":
++                    raise CapturedClassic
++
++            def focus(self):
++                return f"focus route=ott elem={self.elem} press=0"
++
++            def mode(self):
++                return {"revision": 2} if self.persisted else None
++
++            def key(self, token):
++                self.receipt["inputs"].append(token)
++                if not self.started:
++                    return
++                opening = next(self.opening, None)
++                if opening is not None:
++                    if token != opening:
++                        raise AssertionError((token, opening))
++                    if token == "ck:1120,606":
++                        self.page, self.elem = "settings", 44 if fault == "root" else 43
++                    return
++                if token == "ck:1192,940":
++                    # Captured ffd trace: Settings Remote key 52 opens its Back key 59.
++                    self.page, self.elem = "remote", 59
++                elif self.page == "settings" and token == "down":
++                    if not (fault == "missed-down" and self.elem == 45):
++                        self.elem += 1
++                    if fault == "remote-row" and self.elem == 53:
++                        self.elem = 52
++                elif self.page == "settings" and token == "ok" and self.elem == 53:
++                    self.page, self.elem = "picker", 59 if fault == "wrong-picker" else 58
++                elif self.page == "picker" and token == "up":
++                    self.elem -= 1
++                elif self.page == "picker" and token == "ok" and self.elem == 57:
++                    self.persisted = fault != "write-refused"
++                elif self.page == "remote" and token == "up":
++                    self.elem = 1
++                elif self.page == "remote" and token == "ok":
++                    self.page, self.elem = "browse", 7
++                else:
++                    raise AssertionError((self.page, self.elem, token))
++
++        driver = Scenario()
++        try:
++            driver.run()
++        except CapturedClassic:
++            return driver, None
++        except TimeoutError as error:
++            return driver, str(error)
++        self.fail("driver did not reach or reject Classic capture")
++
++    def test_current_settings_reaches_real_mode_write_gate(self):
++        driver, error = self.drive()
++        self.assertIsNone(error, "ordinary Classic mode write must follow the mode picker")
++        self.assertTrue(driver.persisted)
++        self.assertEqual(driver.receipt["classic_preference"], {"revision": 2})
++        self.assertEqual([row["focus"] for row in driver.receipt["navigation"]],
++                         [f"focus route=ott elem={n} press=0" for n in (*range(43, 54), 58, 57)])
++        self.assertNotIn("ck:1192,940", driver.receipt["inputs"])
++
++    def test_changed_root_stops_before_walking(self):
++        driver, error = self.drive("root")
++        self.assertIn("Settings row: expected focus route=ott elem=43 press=0", error)
++        self.assertEqual(driver.receipt["inputs"][-1], "ck:1120,606")
++
++    def test_missed_down_stops_before_another_row_is_activated(self):
++        driver, error = self.drive("missed-down")
++        self.assertIn("Settings row: expected focus route=ott elem=46 press=0", error)
++        self.assertEqual(driver.receipt["inputs"][-1], "down")
++        self.assertFalse(driver.persisted)
++
++    def test_remote_row_cannot_pass_mode_checkpoint(self):
++        driver, error = self.drive("remote-row")
++        self.assertIn("Settings row: expected focus route=ott elem=53 press=0", error)
++        self.assertEqual(driver.page, "settings")
++        self.assertEqual(driver.receipt["inputs"][-1], "down")
++        self.assertFalse(driver.persisted)
++
++    def test_wrong_picker_cannot_receive_classic_activation(self):
++        driver, error = self.drive("wrong-picker")
++        self.assertIn("Modern mode picker: expected focus route=ott elem=58 press=0", error)
++        self.assertEqual(driver.elem, 59)
++        self.assertFalse(driver.persisted)
++
++    def test_focus_does_not_substitute_for_durable_mode_write(self):
++        driver, error = self.drive("write-refused")
++        self.assertEqual(error, "ordinary Classic mode write")
++        self.assertNotIn("classic_preference", driver.receipt)
++
++
+ def load_tests(loader, tests, pattern):
+     """Whole-module runs (`python3 tests/test_harness.py`, `make check`) run `DepGates` in
+     parallel; naming a test on the command line still runs it alone, in the foreground.
