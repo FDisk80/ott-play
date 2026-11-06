@@ -1,0 +1,94 @@
+diff --git a/rust-modules/src/app/ott_runtime_tests/plex_settings_fields.rs b/rust-modules/src/app/ott_runtime_tests/plex_settings_fields.rs
+--- a/rust-modules/src/app/ott_runtime_tests/plex_settings_fields.rs
++++ b/rust-modules/src/app/ott_runtime_tests/plex_settings_fields.rs
+@@ -60,6 +60,11 @@
+         .settings
+         .insert("nativePlexSources".into(), json!([original]));
+     runtime.saved.validate().unwrap();
++    assert!(!runtime.plex_refresh_pending, "no restoration worker was admitted");
++    // This fixture models verifier/save completion, not boot/source restoration.
++    // The unloaded tick can queue restoration; do not let it race the writer on
++    // the redirected completion channel after this synthetic state is loaded.
++    runtime.plex_refresh_requested = false;
+     runtime.loaded = true;
+     runtime.entropy = Some([1; 16]);
+     runtime.sync_saved_context();
+@@ -90,6 +95,56 @@
+     let _ = capture_refused_write(app);
+ }
+ 
++// Never format Job or its payload: a completion may contain private source
++// settings. These closed labels distinguish expiry from the expected refusal.
++fn write_completion_diagnostic(
++    job: &Job,
++    request: &Invocation,
++) -> (&'static str, &'static str, Option<bool>, Option<bool>) {
++    let same_invocation = |invocation: &Option<Invocation>| {
++        invocation.as_ref().map(|inv| inv.id == request.id)
++    };
++    match job {
++        Job::Saved(result, invocation, reload, _) => (
++            "saved",
++            match result {
++                Ok(_) => "ok",
++                Err("Could not prepare protected OTT settings for saving") => "prepare_refused",
++                Err("Settings request expired") => "expired",
++                Err(_) => "other_error",
++            },
++            same_invocation(invocation),
++            Some(*reload),
++        ),
++        Job::SaveRejected(_, invocation, reload, _) => (
++            "save_rejected",
++            "not_applied",
++            same_invocation(invocation),
++            Some(*reload),
++        ),
++        Job::Uncertain(_, invocation) => (
++            "uncertain",
++            "unknown",
++            same_invocation(invocation),
++            None,
++        ),
++        Job::Preplay(..) => ("preplay", "not_write", None, None),
++        Job::VPortalPrepared(..) => ("vportal_prepared", "not_write", None, None),
++        Job::HlsTrack(..) => ("hls_track", "not_write", None, None),
++        Job::Parental(..) => ("parental", "not_write", None, None),
++        Job::PublicLoaded(..) => ("public_loaded", "not_write", None, None),
++        Job::PublicSaved(..) => ("public_saved", "not_write", None, None),
++        Job::Loaded(..) => ("loaded", "not_write", None, None),
++        Job::LoadedItemsUncertain(..) => ("loaded_items_uncertain", "not_write", None, None),
++        Job::PlexRestored(..) => ("plex_restored", "not_write", None, None),
++        Job::PlexVerified(..) => ("plex_verified", "not_write", None, None),
++        Job::Play(..) => ("play", "not_write", None, None),
++        Job::PlexPrepared(..) => ("plex_prepared", "not_write", None, None),
++        Job::FavoriteCommit(..) => ("favorite_commit", "not_write", None, None),
++        Job::FavoriteRecovery(..) => ("favorite_recovery", "not_write", None, None),
++    }
++}
++
+ fn verified_write(app: &mut App, request: &Invocation) -> (Saved, Job) {
+     let verified_source = source(&request.params["settings"]);
+     let mut candidate = app.ott.as_ref().unwrap().saved.clone();
+@@ -112,12 +167,20 @@
+         .unwrap_or_else(|_| panic!("fixture receiver disappeared"));
+     runtime_tick(app);
+     app.ott.as_mut().unwrap().tx = original_tx;
++    assert!(
++        !app.ott.as_ref().unwrap().plex_refresh_pending,
++        "verifier/save fixture must not admit background source restoration"
++    );
+     let job = write_rx
+         .recv_timeout(Duration::from_secs(5))
+         .expect("actual writer completion");
+     assert!(
+         matches!(&job, Job::Saved(Err("Could not prepare protected OTT settings for saving"), Some(inv), true, _)
+-        if inv.id == request.id)
++        if inv.id == request.id),
++        "actual writer completion: {:?}; request_deadline_ms={}; acceptance_sample_ms={}",
++        write_completion_diagnostic(&job, request),
++        request.deadline_ms,
++        app.ott.as_ref().unwrap().now_ms()
+     );
+     let runtime = app.ott.as_ref().unwrap();
+     assert!(runtime.saving);

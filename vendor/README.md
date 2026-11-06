@@ -67,9 +67,10 @@ unchanged. File dragging remains enabled. These guards do not catch arbitrary
 exceptions thrown by AppKit itself or establish that every crash has this cause.
 No JavaScript or playback behavior is changed.
 
-Each `.provenance.json` inventories every published file and identifies the
-single changed macOS source file. Each `-macos-drag-pasteboard.patch` is the
-complete local diff. This is a local hardening patch, not a claimed upstream
+Each `.provenance.json` inventories every published file and identifies its
+patched files. Each `-macos-drag-pasteboard.patch` records the single-file drag
+guard; Tao also carries the separately recorded window patch below. The drag
+guard is a local hardening patch, not a claimed upstream
 release or advisory fix; the shared Cargo cache is never changed. Remove these
 overrides after a compatible official release supplies equivalent guards.
 
@@ -80,11 +81,30 @@ node scripts/check-macos-drag-backport.cjs
 The checker verifies the complete source inventories, all original/patched
 hashes, lockfile overrides and that reversing each exact diff recovers its
 published source. All platforms must receive these vendor directories before
-Cargo resolves the workspace, even though the code changes are macOS-only.
+Cargo resolves the workspace, even though the drag guards are macOS-only.
 
 The macOS CI job also runs the [native drag regression](../tests/macos-drag-regression/README.md).
 It invokes both dependencies' real hover/drop callbacks on isolated pasteboards
 and verifies 32 cases, including missing data, wrong types and Unicode paths.
+
+### Tao window geometry patch
+
+`tao-0.35.3-window-aspect.patch` records the five additional files used by
+[native window aspect locking](../docs/native-window-aspect-lock.md). Four
+Linux files expose the X11 control and keep aspect, minimum and maximum size
+hints under one Tao/GTK owner, with guards around fullscreen and maximize
+transitions. The macOS window file keeps the simple-fullscreen restore frame
+separate from the frame used by Zoom. The existing drag patch is unchanged.
+
+The provenance manifest retains every published file hash and adds the five
+resulting hashes plus the separate patch hash. The checker requires exactly
+these files, verifies the entire crate inventory, and reverses each patch to
+its published bytes. Missing, duplicated or unrelated patch entries are
+rejected; changing a hash alone cannot bypass reconstruction. The lightweight
+regressions run with `node tests/test_tauri_dependencies.cjs` and include
+tampered files, patches and provenance. They do not establish native runtime
+acceptance. Wayland remains unsupported by the aspect control; platform
+acceptance is tracked in the linked guide.
 
 ## Shared OttPlay domain core
 

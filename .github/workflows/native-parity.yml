@@ -562,7 +562,7 @@ jobs:
       - name: Install existing Linux dependencies and owned X11 session tools
         run: |
           bash scripts/ci-tauri-linux-deps.sh
-          sudo apt-get install -y xvfb xauth dbus-x11 openbox x11-utils
+          sudo apt-get install -y xvfb xauth dbus-x11 openbox x11-utils xdotool
       - run: npm ci --ignore-scripts
       - run: npm run build --ignore-scripts
       - name: Validate window evidence checker contracts

@@ -1,6 +1,6 @@
 {
   "identifier": "main-window-controls",
-  "description": "Main desktop window always-on-top control",
+  "description": "Main desktop window fullscreen, always-on-top and aspect controls",
   "windows": [
     "main"
   ],
@@ -24,6 +24,8 @@
   },
   "permissions": [
     "allow-set-always-on-top",
+    "allow-set-fullscreen",
+    "allow-toggle-fullscreen",
     "allow-window-aspect-lock"
   ],
   "platforms": [

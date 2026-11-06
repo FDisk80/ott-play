@@ -330,6 +330,7 @@ impl<T: 'static> EventLoop<T> {
                 maximize_process.next_step()
               });
             } else {
+              util::aspect_transition(&window, WindowState::MAXIMIZED, false);
               window.unmaximize();
             }
           }
@@ -359,27 +360,34 @@ impl<T: 'static> EventLoop<T> {
               );
             }
           }
-          WindowRequest::Fullscreen(fullscreen) => match fullscreen {
-            Some(f) => {
-              if let Fullscreen::Borderless(m) = f {
-                if let Some(monitor) = m {
-                  let display = window.display();
-                  let monitor = monitor.inner;
-                  let monitors = display.n_monitors();
-                  for i in 0..monitors {
-                    let m = display.monitor(i).unwrap();
-                    if m == monitor.monitor {
-                      let screen = display.default_screen();
-                      window.fullscreen_on_monitor(&screen, i);
+          WindowRequest::Fullscreen(fullscreen) => {
+            match fullscreen {
+              Some(f) => {
+                if let Fullscreen::Borderless(m) = f {
+                  if let Some(monitor) = m {
+                    let display = window.display();
+                    let monitor = monitor.inner;
+                    let monitors = display.n_monitors();
+                    for i in 0..monitors {
+                      let m = display.monitor(i).unwrap();
+                      if m == monitor.monitor {
+                        let screen = display.default_screen();
+                        util::aspect_transition(&window, WindowState::FULLSCREEN, true);
+                        window.fullscreen_on_monitor(&screen, i);
+                      }
                     }
+                  } else {
+                    util::aspect_transition(&window, WindowState::FULLSCREEN, true);
+                    window.fullscreen();
                   }
-                } else {
-                  window.fullscreen();
                 }
               }
+              None => {
+                util::aspect_transition(&window, WindowState::FULLSCREEN, false);
+                window.unfullscreen();
+              }
             }
-            None => window.unfullscreen(),
-          },
+          }
           WindowRequest::Decorations(decorations) => window.set_decorated(decorations),
           WindowRequest::AlwaysOnBottom(always_on_bottom) => {
             window.set_keep_below(always_on_bottom)

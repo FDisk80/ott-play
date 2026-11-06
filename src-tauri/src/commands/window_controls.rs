@@ -293,7 +293,12 @@ mod tests {
         );
         assert_eq!(
             controls["permissions"],
-            serde_json::json!(["allow-set-always-on-top", "allow-window-aspect-lock"])
+            serde_json::json!([
+                "allow-set-always-on-top",
+                "allow-set-fullscreen",
+                "allow-toggle-fullscreen",
+                "allow-window-aspect-lock"
+            ])
         );
         assert_eq!(controls["remote"], default["remote"]);
         assert!(controls.get("webviews").is_none());
@@ -304,6 +309,8 @@ mod tests {
             .any(|permission| {
                 permission == "allow-window-aspect-lock"
                     || permission == "allow-set-always-on-top"
+                    || permission == "allow-set-fullscreen"
+                    || permission == "allow-toggle-fullscreen"
                     || permission == "core:window:allow-set-always-on-top"
             }));
     }

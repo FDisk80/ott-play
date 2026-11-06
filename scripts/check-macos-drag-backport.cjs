@@ -15,6 +15,13 @@ const crates = [
     {
         archiveSha256:
             "d1c93047acf68669466a34690ac58cca7010bd1b201e1ec86f1fd0a75d3dd4a9",
+        aspectSources: [
+            "src/platform/unix.rs",
+            "src/platform_impl/linux/event_loop.rs",
+            "src/platform_impl/linux/util.rs",
+            "src/platform_impl/linux/window.rs",
+            "src/platform_impl/macos/window.rs",
+        ],
         name: "tao",
         source: "src/platform_impl/macos/window_delegate.rs",
         version: "0.35.3",
@@ -40,7 +47,9 @@ function files(directory, prefix = "") {
 // change without writing to the checkout or requiring platform-specific tools.
 function originalSource(patched, patch, source) {
     const input = patched.split("\n");
-    const diff = patch.trimEnd().split("\n");
+    // Remove the file terminator only: a final " " line is a real empty
+    // context line and must participate in the hunk counts.
+    const diff = patch.replace(/\n$/, "").split("\n");
     assert.equal(diff.shift(), "--- a/" + source);
     assert.equal(diff.shift(), "+++ b/" + source);
     let cursor = 0;
@@ -101,7 +110,10 @@ for (const crate of crates) {
         files(sourceRoot).sort(),
         Object.keys(manifest.files).sort()
     );
-    assert.deepEqual(Object.keys(manifest.patchedFiles), [crate.source]);
+    assert.deepEqual(
+        Object.keys(manifest.patchedFiles).sort(),
+        [crate.source, ...(crate.aspectSources || [])].sort()
+    );
     for (const [file, originalHash] of Object.entries(manifest.files)) {
         assert.equal(
             sha256(fs.readFileSync(path.join(sourceRoot, file))),
@@ -124,6 +136,32 @@ for (const crate of crates) {
         manifest.files[crate.source],
         "reversing the exact patch must recover the published source"
     );
+    if (crate.aspectSources) {
+        assert.equal(manifest.aspectPatch, directory + "-window-aspect.patch");
+        const aspectPatch = fs.readFileSync(
+            path.join(root, "vendor", manifest.aspectPatch),
+            "utf8"
+        );
+        assert.equal(sha256(aspectPatch), manifest.aspectPatchSha256);
+        const chunks = aspectPatch.split(/(?=^--- a\/)/m).filter(Boolean);
+        // Exact ordered coverage rejects missing, duplicate or unrelated files.
+        assert.deepEqual(
+            chunks.map((chunk) => /^--- a\/(.+)$/m.exec(chunk)?.[1]),
+            crate.aspectSources
+        );
+        for (let index = 0; index < chunks.length; index++) {
+            const source = crate.aspectSources[index];
+            const current = fs.readFileSync(
+                path.join(sourceRoot, source),
+                "utf8"
+            );
+            assert.equal(
+                sha256(originalSource(current, chunks[index], source)),
+                manifest.files[source],
+                source + " aspect patch must recover the published source"
+            );
+        }
+    }
     assert.ok(
         overrides.includes(`${crate.name} = { path = "vendor/${directory}" }`),
         crate.name + " must use its local patched dependency"

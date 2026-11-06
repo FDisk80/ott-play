@@ -1,5 +1,5 @@
-//! Main-window native interactive resize constraint. This makes no explicit
-//! current-window resize request and does not alter video geometry or PiP.
+//! Main-window native resize constraint. Linux window managers may immediately
+//! normalize the size when it is enabled. Video geometry and PiP are independent.
 #[cfg(any(target_os = "windows", test))]
 mod geometry;
 #[cfg(target_os = "linux")]
@@ -139,6 +139,21 @@ fn persist_confirmed(
     Ok(result)
 }
 
+fn persist_explicit_request(
+    result: AspectState,
+    requested: bool,
+    initialized: &mut bool,
+    persist: impl FnOnce(bool) -> Result<(), String>,
+) -> Result<AspectState, String> {
+    persist_confirmed(result, requested, |confirmed| {
+        // A confirmed explicit request supersedes the saved startup preference.
+        // Keep this true even if persistence fails: GET must not restore the old
+        // preference over an already successful native mutation.
+        *initialized = true;
+        persist(confirmed)
+    })
+}
+
 #[tauri::command]
 pub async fn set_window_aspect_lock(
     app: tauri::AppHandle,
@@ -148,10 +163,11 @@ pub async fn set_window_aspect_lock(
 ) -> Result<AspectState, String> {
     main_only(window.label())?;
     let mut initialized = persistence.0.lock().await;
-    restore(&app, &window, &mut initialized).await?;
     let root = crate::instance::app_data_dir(&app)?;
+    // Apply the requested value first. Restoring a saved/default true value
+    // before an initial SET(false) could resize the window just to disable it.
     let result = native(&window, Some(enabled)).await?;
-    persist_confirmed(result, enabled, |confirmed| {
+    persist_explicit_request(result, enabled, &mut initialized, |confirmed| {
         crate::window_preferences::write_aspect_lock(&root, confirmed).map_err(|_| {
             "The native constraint changed, but its preference could not be saved".into()
         })
@@ -203,5 +219,50 @@ mod tests {
             .unwrap_err(),
             "disk failure"
         );
+    }
+
+    #[test]
+    fn confirmed_explicit_off_initializes_before_persistence() {
+        let mut initialized = false;
+        let mut persisted = None;
+        let result = persist_explicit_request(
+            state(Some((false, false))),
+            false,
+            &mut initialized,
+            |enabled| {
+                persisted = Some(enabled);
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(initialized);
+        assert_eq!(persisted, Some(false));
+        assert!(!result.enabled);
+    }
+
+    #[test]
+    fn unconfirmed_explicit_request_does_not_initialize_or_persist() {
+        for result in [state(None), state(Some((true, true)))] {
+            let mut initialized = false;
+            assert!(persist_explicit_request(result, false, &mut initialized, |_| {
+                panic!("unconfirmed state must not persist")
+            })
+            .is_err());
+            assert!(!initialized);
+        }
+    }
+
+    #[test]
+    fn explicit_native_success_stays_initialized_after_disk_failure() {
+        let mut initialized = false;
+        let error = persist_explicit_request(
+            state(Some((false, false))),
+            false,
+            &mut initialized,
+            |_| Err("disk failure".into()),
+        )
+        .unwrap_err();
+        assert_eq!(error, "disk failure");
+        assert!(initialized);
     }
 }

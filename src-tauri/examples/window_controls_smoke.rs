@@ -128,7 +128,11 @@ mod smoke {
         topmost: bool,
         win32_topmost: bool,
         rect: [i32; 4],
+        client_size: [i32; 2],
     }
+
+    #[cfg(target_os = "windows")]
+    struct WindowsBaseline(Snapshot);
 
     #[cfg(target_os = "windows")]
     fn snapshot(window: &tauri::WebviewWindow) -> Result<Snapshot, String> {
@@ -136,6 +140,7 @@ mod smoke {
         let hwnd = window.hwnd().map_err(|e| e.to_string())?.0 as *mut std::ffi::c_void;
         let mut pid = 0;
         let mut rect = Rect::default();
+        let mut client = Rect::default();
         // SAFETY: hwnd comes from our live fixture, and both output pointers are valid.
         // Verify ownership before inspecting its native style or geometry.
         unsafe {
@@ -151,15 +156,62 @@ mod smoke {
             if GetWindowRect(hwnd, &mut rect) == 0 {
                 return Err("GetWindowRect failed".into());
             }
+            if GetClientRect(hwnd, &mut client) == 0 {
+                return Err("GetClientRect failed".into());
+            }
             let state = Snapshot {
                 fullscreen: window.is_fullscreen().map_err(|e| e.to_string())?,
                 topmost: window.is_always_on_top().map_err(|e| e.to_string())?,
                 win32_topmost: style & 0x8 != 0, // WS_EX_TOPMOST
                 rect: [rect.left, rect.top, rect.right, rect.bottom],
+                client_size: [client.right - client.left, client.bottom - client.top],
             };
             trace("snapshot-finished", json!({"window": window.label()}));
             Ok(state)
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn windows_prepare(app: &mut tauri::App) -> Result<(), String> {
+        let main = app.get_webview_window("main").ok_or("Owned main missing")?;
+        let baseline = snapshot(&main)?;
+        let [width, height] = baseline.client_size;
+        if width <= 0
+            || height <= 0
+            || (i64::from(width) * 9 - i64::from(height) * 16).abs() <= 4
+        {
+            return Err("Windows fixture must start with non-16:9 content".into());
+        }
+        // Capture immediately after main creation, before the second page can
+        // admit exercise and before production initialize is scheduled.
+        app.manage(WindowsBaseline(baseline));
+        Ok(())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn unchanged_windows_startup(
+        window: &tauri::WebviewWindow,
+    ) -> Result<(Snapshot, Snapshot), String> {
+        let before = window
+            .try_state::<WindowsBaseline>()
+            .ok_or("Missing pre-initialize Windows geometry")?
+            .0
+            .clone();
+        let after = snapshot(window)?;
+        if before
+            .rect
+            .iter()
+            .zip(after.rect)
+            .any(|(a, b)| (i64::from(*a) - i64::from(b)).abs() > 2)
+            || before
+                .client_size
+                .iter()
+                .zip(after.client_size)
+                .any(|(a, b)| (i64::from(*a) - i64::from(b)).abs() > 2)
+        {
+            return Err(format!("Aspect initialization changed native Windows geometry: {before:?} -> {after:?}"));
+        }
+        Ok((before, after))
     }
 
     async fn invoke(
@@ -577,9 +629,12 @@ mod smoke {
             );
         }
         denials.push(denied(&aux, "set_always_on_top", json!({"alwaysOnTop": true})).await?);
+        denials.push(denied(&aux, "set_fullscreen", json!({"fullscreen": true})).await?);
+        denials.push(denied(&aux, "toggle_fullscreen", json!({})).await?);
         denials.push(denied(&aux, "get_window_aspect_lock", json!({})).await?);
         denials.push(denied(&aux, "set_window_aspect_lock", json!({"enabled": true})).await?);
         let aspect_initial = aspect_state(&main, true, true).await?;
+        let (pre_initialize, post_initialize) = unchanged_windows_startup(&main)?;
         let mut aspect_sequence = Vec::new();
         let mut aspect_geometry = Vec::new();
         for enabled in [true, true, false, false] {
@@ -651,6 +706,7 @@ mod smoke {
             json!({"status": "pass", "mode": "production-permissions", "implementation": "production handlers via WebView2 JavaScript IPC",
             "denials": denials, "topmost_sequence": states, "fullscreen_sequence": fullscreen_states,
             "initial": baseline, "final": final_state, "aux_unchanged": true,
+            "pre_initialize": pre_initialize, "post_initialize": post_initialize,
             "aspect": {"initial": aspect_initial, "set_sequence": aspect_sequence, "set_geometry": aspect_geometry,
                 "fullscreen_sequence": aspect_fullscreen, "sizing_enabled": sizing_enabled,
                 "sizing_disabled": sizing_disabled, "final": aspect_final}}),
@@ -662,6 +718,10 @@ mod smoke {
         Pin,
         Unpin,
         VerifyOff,
+        #[cfg(target_os = "linux")]
+        ColdOff,
+        #[cfg(target_os = "linux")]
+        ColdPendingOff,
     }
 
     impl PreferencePhase {
@@ -670,6 +730,10 @@ mod smoke {
                 Self::Pin => "pin",
                 Self::Unpin => "unpin",
                 Self::VerifyOff => "verify-off",
+                #[cfg(target_os = "linux")]
+                Self::ColdOff => "cold-off",
+                #[cfg(target_os = "linux")]
+                Self::ColdPendingOff => "cold-pending-off",
             }
         }
     }
@@ -693,6 +757,7 @@ mod smoke {
             !matches!(phase, PreferencePhase::VerifyOff),
         )
         .await?;
+        let (pre_initialize, post_initialize) = unchanged_windows_startup(&main)?;
         let target = matches!(phase, PreferencePhase::Pin);
         if !matches!(phase, PreferencePhase::VerifyOff) {
             top(&main, target).await?;
@@ -707,6 +772,7 @@ mod smoke {
         Ok(
             json!({"status": "pass", "mode": "preference-restoration", "phase": phase.name(),
             "initial": initial, "final": final_state, "aux_unchanged": true,
+            "pre_initialize": pre_initialize, "post_initialize": post_initialize,
             "aspect_initial": aspect_initial, "aspect_final": aspect_final, "aspect_sizing": aspect_sizing}),
         )
     }
@@ -738,10 +804,19 @@ mod smoke {
                 "pin" => PreferencePhase::Pin,
                 "unpin" => PreferencePhase::Unpin,
                 "verify-off" => PreferencePhase::VerifyOff,
+                #[cfg(target_os = "linux")]
+                "cold-off" => PreferencePhase::ColdOff,
+                #[cfg(target_os = "linux")]
+                "cold-pending-off" => PreferencePhase::ColdPendingOff,
                 _ => return Err("Unknown preference phase".into()),
             }),
             _ => return Err("Unsupported fixture arguments".into()),
         };
+        #[cfg(target_os = "linux")]
+        let eager_aspect_initialize = !matches!(phase,
+            Some(PreferencePhase::ColdOff | PreferencePhase::ColdPendingOff));
+        #[cfg(not(target_os = "linux"))]
+        let eager_aspect_initialize = true;
         let started = Instant::now();
         let _ = START_TIME.set(started);
         trace("startup", json!({"missing_permission": missing}));
@@ -821,18 +896,24 @@ mod smoke {
                     #[cfg(target_os = "linux")]
                     let builder = builder.min_inner_size(320.0, 180.0).max_inner_size(1600.0, 1000.0);
                     builder.build()?;
+                    #[cfg(target_os = "windows")]
+                    if label == "main" {
+                        windows_prepare(app)?;
+                    }
                     trace("window-build-finished", json!({"window": label}));
                 }
                 #[cfg(target_os = "macos")]
                 appkit_prepare(app)?;
-                if let Some(webview) = app.get_webview_window("main") {
-                    let window = webview.as_ref().window();
-                    let handle = app.handle().clone();
-                    tauri::async_runtime::spawn(async move {
-                        if let Err(error) = window_aspect::initialize(handle, window).await {
-                            tracing::warn!(%error, "Fixture aspect restore failed");
-                        }
-                    });
+                if eager_aspect_initialize {
+                    if let Some(webview) = app.get_webview_window("main") {
+                        let window = webview.as_ref().window();
+                        let handle = app.handle().clone();
+                        tauri::async_runtime::spawn(async move {
+                            if let Err(error) = window_aspect::initialize(handle, window).await {
+                                tracing::warn!(%error, "Fixture aspect restore failed");
+                            }
+                        });
+                    }
                 }
                 // A page callback can already have admitted exercise; never overwrite it.
                 let _ = PHASE.compare_exchange(2, 8, Ordering::SeqCst, Ordering::SeqCst);

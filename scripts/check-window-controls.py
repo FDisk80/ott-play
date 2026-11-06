@@ -77,13 +77,38 @@ def validate_sizing_probe(probe, enabled):
             require(after[1] == before[1], "Opposite top edge moved")
 
 
+def validate_windows_startup(report):
+    snapshots = []
+    for name in ["pre_initialize", "post_initialize"]:
+        value = report.get(name)
+        require(isinstance(value, dict), "Missing pre/post-initialize Windows geometry")
+        rect, client = value.get("rect"), value.get("client_size")
+        require(isinstance(rect, list) and len(rect) == 4
+                and all(type(v) is int for v in rect)
+                and rect[2] > rect[0] and rect[3] > rect[1],
+                "Invalid startup Windows frame")
+        require(isinstance(client, list) and len(client) == 2
+                and all(type(v) is int and v > 0 for v in client)
+                and client[0] <= rect[2] - rect[0] and client[1] <= rect[3] - rect[1],
+                "Invalid startup Windows client size")
+        snapshots.append(value)
+    before, after = snapshots
+    width, height = before["client_size"]
+    require(abs(width * 9 - height * 16) > 4,
+            "Windows fixture did not start with non-16:9 content")
+    require(all(abs(a - b) <= 2 for key in ["rect", "client_size"]
+                for a, b in zip(before[key], after[key])),
+            "Aspect initialization changed native Windows geometry")
+
+
 def validate_evidence(report, missing, *, platform="windows"):
     require(platform in {"windows", "macos", "linux"}, "Unsupported native fixture platform")
     if platform in {"macos", "linux"}:
         require(report.get("platform") == ("linux-x11" if platform == "linux" else "macos"), "Wrong native fixture platform")
     validate_common_evidence(report)
     denials = report.get("denials", [])
-    expected = ({"set_always_on_top", "set_fullscreen", "toggle_fullscreen"} if missing else {"set_always_on_top"}) | {"get_window_aspect_lock", "set_window_aspect_lock"}
+    expected = {"set_always_on_top", "set_fullscreen", "toggle_fullscreen",
+                "get_window_aspect_lock", "set_window_aspect_lock"}
     require(len(denials) == len(expected), "Missing ACL denial evidence")
     require({entry.get("command") for entry in denials} == expected, "Wrong denied commands")
     require(all(entry.get("window") == ("main" if missing else "pip")
@@ -91,12 +116,13 @@ def validate_evidence(report, missing, *, platform="windows"):
     require(report.get("mode") == ("missing-permission" if missing else "production-permissions"), "Wrong ACL mode")
     if missing:
         if platform == "linux":
-            validate_x11_snapshot(report.get("baseline"), report.get("baseline"), active=False, startup=True)
+            validate_x11_snapshot(report.get("baseline"), report.get("baseline"), active=True, startup=True)
         return
     if platform == "linux":
         return validate_x11_evidence(report)
     if platform == "macos":
         return validate_appkit_evidence(report)
+    validate_windows_startup(report)
     require(report.get("aux_unchanged") is True, "Auxiliary window changed")
     top = report.get("topmost_sequence", [])
     full = report.get("fullscreen_sequence", [])
@@ -143,6 +169,7 @@ def validate_restoration_evidence(report, phase, *, platform="windows"):
     if platform == "macos":
         return validate_appkit_restoration(report, phase)
     validate_common_evidence(report)
+    validate_windows_startup(report)
     require(report.get("mode") == "preference-restoration" and report.get("phase") == phase,
             "Wrong preference restoration phase")
     require(report.get("aux_unchanged") is True, "Auxiliary window changed")
@@ -229,6 +256,22 @@ def validate_appkit_evidence(report):
     require(report.get("aux_unchanged") is True, "Auxiliary AppKit window changed")
     validate_aspect_state(report.get("initial_state"), True, True)
     validate_appkit_snapshot(report.get("initial"), baseline, active=True)
+    denials = report.get("denials", [])
+    expected_denials = {"set_always_on_top", "set_fullscreen", "toggle_fullscreen",
+                        "get_window_aspect_lock", "set_window_aspect_lock"}
+    require(len(denials) == len(expected_denials)
+            and all(isinstance(item, dict) for item in denials)
+            and {item.get("command") for item in denials} == expected_denials,
+            "Incomplete AppKit PiP denials")
+    for item in denials:
+        require(item.get("window") == "pip" and "not allowed" in item.get("error", ""),
+                "Missing AppKit PiP ACL rejection")
+        for key in ["main_before", "main_after", "main_after_get"]:
+            validate_appkit_snapshot(item.get(key), baseline, active=True)
+            require(item[key] == report["initial"],
+                    "Denied PiP command or getter changed the main AppKit window")
+        for key in ["main_state_before", "main_state_after"]:
+            validate_aspect_state(item.get(key), True, True)
     sequence = report.get("set_sequence", [])
     require(len(sequence) == 4, "Incomplete AppKit idempotence sequence")
     for item, enabled in zip(sequence, [True, True, False, False]):
@@ -256,7 +299,7 @@ def validate_appkit_evidence(report):
             require(item.get("native_after_get") == item.get("native"),
                     "Aspect getter changed settled AppKit maximize state")
     menu_transitions = report.get("menu_transitions", [])
-    require(report.get("native_menu_activations") == 2 and len(menu_transitions) == 2,
+    require(report.get("native_menu_activations") == 4 and len(menu_transitions) == 2,
             "Incomplete native Window menu activations")
     for index, (item, target) in enumerate(zip(menu_transitions, [True, False]), 1):
         require(item.get("kind") == "native_menu_zoom" and item.get("menu_id") == "ott.window.zoom"
@@ -273,6 +316,27 @@ def validate_appkit_evidence(report):
                                  target_frame=target_frame if target else None)
         require(item.get("native_after_get") == item.get("native"),
                 "Aspect getter changed settled native Window menu state")
+    mixed = report.get("mixed_transitions", [])
+    expected_mixed = [("native_menu_zoom", True), ("set_fullscreen", True),
+                      ("set_fullscreen", False), ("native_menu_zoom", False)]
+    require(len(mixed) == len(expected_mixed), "Incomplete mixed AppKit transitions")
+    for index, (item, (kind, target)) in enumerate(zip(mixed, expected_mixed)):
+        restored = index == 3
+        require(item.get("kind") == kind and item.get("target") is target
+                and item.get("menu_id") == ("ott.window.zoom" if kind == "native_menu_zoom" else None)
+                and type(item.get("event_count")) is int
+                and item["event_count"] == (4 if restored else 3),
+                "Wrong mixed AppKit transition or native menu event")
+        target_frame = item.get("target_visible_frame")
+        require(target_frame == menu_transitions[0].get("target_visible_frame"),
+                "Mixed AppKit native menu target changed")
+        validate_aspect_state(item.get("state"), True, restored)
+        validate_appkit_snapshot(item.get("native"), baseline, active=restored,
+                                 simple_fullscreen=index == 1, zoomed=False if restored else None,
+                                 original_geometry=restored,
+                                 target_frame=target_frame if index in [0, 2] else None)
+        require(item.get("native_after_get") == item.get("native"),
+                "Aspect getter changed mixed AppKit native state")
     validate_aspect_state(report.get("final_state"), False, False)
     validate_appkit_snapshot(report.get("final"), baseline, active=False)
 
@@ -290,7 +354,8 @@ def validate_appkit_restoration(report, phase):
 
 
 def validate_x11_snapshot(value, baseline, *, active, fullscreen=False,
-                          maximized=False, original_geometry=True, startup=False):
+                          maximized=False, original_geometry=True, startup=False,
+                          min_size=(320, 180), max_size=(1600, 1000)):
     require(isinstance(value, dict) and isinstance(baseline, dict), "Missing X11 native observation")
     require(value.get("label") == "main" and all(type(value.get(k)) is int and value[k] > 0
             for k in ("xid", "pid")) and value["xid"] == baseline.get("xid")
@@ -301,23 +366,29 @@ def validate_x11_snapshot(value, baseline, *, active, fullscreen=False,
     for key, length in (("rect", 4), ("min_size", 2), ("max_size", 2), ("min_aspect", 2), ("max_aspect", 2)):
         require(isinstance(value.get(key), list) and len(value[key]) == length
                 and all(type(x) is int for x in value[key]), "Malformed X11 " + key)
-    require(value["rect"][2] > 0 and value["rect"][3] > 0, "Empty X11 client geometry")
+    width, height = value["rect"][2:]
+    require(width > 0 and height > 0, "Empty X11 client geometry")
     hints = value.get("hints")
     require(type(hints) is int and hints >= 0 and hints & 48 == 48
-            and value["min_size"] == [320, 180] and value["max_size"] == [1600, 1000],
+            and value["min_size"] == list(min_size) and value["max_size"] == list(max_size),
             "X11 min/max hints were lost")
+    if not fullscreen and not maximized:
+        require(min_size[0] <= width <= max_size[0] and min_size[1] <= height <= max_size[1],
+                "X11 geometry exceeded native bounds")
     require(bool(hints & 128) is active, "X11 native aspect hint disagrees")
     if active:
         require(all(pair[0] > 0 and pair[1] > 0 and pair[0] * 9 == pair[1] * 16
                     for pair in (value["min_aspect"], value["max_aspect"])), "X11 ratio is not 16:9")
+        # One native integer-pixel rounding step; not a broad layout tolerance.
+        require(abs(width * 9 - height * 16) <= 16, "X11 content is not constrained to 16:9")
     if original_geometry:
         require(isinstance(baseline.get("rect"), list) and len(baseline["rect"]) == 4
                 and all(type(x) is int for x in baseline["rect"])
                 and all(abs(a - b) <= 2 for a, b in zip(value["rect"], baseline["rect"])),
-                "X11 aspect operation changed initial geometry")
-    if startup:
+                "X11 operation changed the expected restored geometry")
+    if startup and not active:
         require(all(abs(a - b) <= 2 for a, b in zip(value["rect"][2:], [640, 400])),
-                "X11 initial or saved-on layout changed requested content size")
+                "X11 disabled startup changed requested content size")
 
 
 def validate_unsupported_aspect_state(value):
@@ -334,30 +405,138 @@ def validate_unsupported_aspect_rejection(value):
             "Missing explicit unsupported aspect mutation rejection")
 
 
+def validate_x11_drag_probe(probe, enabled, baseline):
+    require(isinstance(probe, dict) and probe.get("kind") == "owned-x11-xtest-edge-drag"
+            and probe.get("enabled") is enabled, "Wrong X11 native drag probe")
+    samples = probe.get("samples", [])
+    require(len(samples) == 8 and all(type(x.get("edge")) is int for x in samples)
+            and [x["edge"] for x in samples] == list(range(1, 9)), "Incomplete X11 drag edges")
+    for sample in samples:
+        before, after = sample.get("before"), sample.get("after")
+        validate_x11_snapshot(before, baseline, active=enabled)
+        validate_x11_snapshot(after, baseline, active=enabled, original_geometry=False)
+        start, end = sample.get("input_start"), sample.get("input_end")
+        require(all(isinstance(v, list) and len(v) == 2 and all(type(x) is int for x in v)
+                    for v in (start, end)) and start != end, "Missing X11 pointer movement")
+        left, top, width, height = before["rect"]
+        point_x, point_y = start
+        require(left <= point_x <= left + width and top <= point_y <= top + height,
+                "X11 drag did not start on the owned window")
+        edge = sample["edge"]
+        if edge in (1, 4, 7):
+            require(point_x - left <= 5, "X11 left drag started at the wrong edge")
+        if edge in (2, 5, 8):
+            require(left + width - point_x <= 5, "X11 right drag started at the wrong edge")
+        if edge in (3, 4, 5):
+            require(point_y - top <= 5, "X11 top drag started at the wrong edge")
+        if edge in (6, 7, 8):
+            require(top + height - point_y <= 5, "X11 bottom drag started at the wrong edge")
+        old, new = before["rect"], after["rect"]
+        require(old[2:] != new[2:], "X11 native drag did not change size")
+        horizontal = edge in (1, 2, 4, 5, 7, 8)
+        vertical = edge in (3, 4, 5, 6, 7, 8)
+        require((not horizontal or new[2] < old[2] - 2)
+                and (not vertical or new[3] < old[3] - 2),
+                "X11 inward drag did not resize the selected axis")
+        if not enabled:
+            require(abs(new[2] * 9 - new[3] * 16) > 16,
+                    "Disabled X11 drag retained the aspect constraint")
+            require((not horizontal or vertical or abs(new[3] - old[3]) <= 2)
+                    and (not vertical or horizontal or abs(new[2] - old[2]) <= 2),
+                    "Disabled X11 single-edge drag changed the other axis")
+        if edge in (1, 4, 7):
+            require(abs(new[0] + new[2] - old[0] - old[2]) <= 2, "X11 opposite right edge moved")
+        if edge in (2, 5, 8):
+            require(abs(new[0] - old[0]) <= 2, "X11 opposite left edge moved")
+        if edge in (3, 4, 5):
+            require(abs(new[1] + new[3] - old[1] - old[3]) <= 2, "X11 opposite bottom edge moved")
+        if edge in (6, 7, 8):
+            require(abs(new[1] - old[1]) <= 2, "X11 opposite top edge moved")
+
+
+def validate_x11_pending_resize(row, kind, baseline):
+    require(isinstance(row, dict) and row.get("kind") == kind, "Missing pending GTK resize probe")
+    initially_on = kind in ("control", "warm-off", "rapid-off-on")
+    final_on = kind in ("control", "rapid-off-on")
+    before, queued, immediate = (row.get(key) for key in ("before", "queued", "immediate"))
+    validate_x11_snapshot(before, baseline, active=initially_on)
+    require(row.get("request") == [800, 450] and before["rect"][2:] != [800, 450],
+            "Pending resize must request a different real size")
+    require(queued == before, "Resize must still be pending before OFF")
+    require(type(row.get("queued_callbacks")) is int and row["queued_callbacks"] == 0
+            and type(row.get("during_off_callbacks")) is int and row["during_off_callbacks"] == 0,
+            "OFF must not synchronously emit GTK check-resize")
+    validate_x11_snapshot(immediate, before, active=kind == "control")
+    require(immediate["rect"] == before["rect"], "OFF changed the immediate native frame")
+    hints = before.get("non_aspect_hints")
+    require(isinstance(hints, list) and len(hints) in (11, 14)
+            and all(type(value) is int and 0 <= value <= 0xffffffff for value in hints)
+            and hints[0] & 1023 == before["hints"] & ~128 & 1023
+            and immediate.get("non_aspect_hints") == hints
+            and immediate["hints"] & ~128 & 1023 == hints[0] & 1023,
+            "OFF changed non-aspect native hints")
+    off_state = row.get("off_state")
+    require(off_state is None if kind == "control" else
+            isinstance(off_state, list) and len(off_state) == 2 and all(value is False for value in off_state),
+            "OFF did not return confirmed disabled native state")
+    if kind == "rapid-off-on":
+        validate_x11_snapshot(row.get("after_on"), before, active=True, original_geometry=False)
+    else:
+        require(row.get("after_on") is None, "Unexpected ON in OFF/control probe")
+    settled = row.get("settled")
+    validate_x11_snapshot(settled, before, active=final_on, original_geometry=False)
+    require(settled["rect"] == before["rect"][:2] + [800, 450],
+            "Normal event loop did not apply the pending user resize")
+    target = [960, 540] if final_on else [800, 500]
+    require(row.get("layout_request") == target, "Missing later layout request")
+    later = row.get("after_layout")
+    validate_x11_snapshot(later, before, active=final_on, original_geometry=False)
+    require(later["rect"] == before["rect"][:2] + target,
+            "Later layout lost/restored the wrong native aspect hint")
+
+
 def validate_x11_evidence(report):
     require(report.get("requested_content") == [640, 400], "Wrong X11 setup geometry")
-    baseline = report.get("baseline")
-    validate_x11_snapshot(baseline, baseline, active=False, startup=True)
-    validate_unsupported_aspect_state(report.get("initial_state"))
+    startup = report.get("baseline")
+    validate_x11_snapshot(startup, startup, active=True, startup=True)
+    validate_aspect_state(report.get("initial_state"), True, True)
     require(report.get("aux_unchanged") is True, "Auxiliary X11 window changed")
+    manual = report.get("manual_enable", {})
+    before, after = manual.get("before"), manual.get("after")
+    validate_x11_snapshot(before, startup, active=False, startup=True, original_geometry=False)
+    validate_x11_snapshot(after, startup, active=True, original_geometry=False)
+    require(before["rect"][2:] != after["rect"][2:], "Manual enable did not normalize off-ratio content")
+    validate_aspect_state(manual.get("state"), True, True)
+    baseline = startup
     sequence = report.get("set_sequence", [])
     require(len(sequence) == 4, "Incomplete X11 on/off sequence")
     for row, enabled in zip(sequence, [True, True, False, False]):
         require(row.get("requested") is enabled, "Wrong X11 mutation request")
-        validate_unsupported_aspect_rejection(row.get("rejection"))
-        validate_unsupported_aspect_state(row.get("state"))
-        validate_x11_snapshot(row.get("native"), baseline, active=False)
+        validate_aspect_state(row.get("state"), enabled, enabled)
+        validate_x11_snapshot(row.get("native"), baseline, active=enabled)
     transitions = report.get("transitions", [])
     expected = [(kind, target) for kind in ("toggle_fullscreen", "set_fullscreen", "maximize")
                 for target in (True, False)]
     require(len(transitions) == len(expected), "Incomplete X11 transition sequence")
     for row, (kind, target) in zip(transitions, expected):
         require(row.get("kind") == kind and row.get("target") is target, "Wrong X11 transition")
-        validate_unsupported_aspect_state(row.get("state"))
-        validate_x11_snapshot(row.get("native"), baseline, active=False,
+        validate_aspect_state(row.get("state"), True, not target)
+        validate_x11_snapshot(row.get("native"), baseline, active=not target,
                               fullscreen=kind != "maximize" and target,
                               maximized=kind == "maximize" and target, original_geometry=not target)
-    validate_unsupported_aspect_state(report.get("final_state"))
+    updates = report.get("bounds_updates", [])
+    require(len(updates) == 2, "Missing X11 live min/max updates")
+    validate_x11_snapshot(updates[0], baseline, active=True, min_size=(400, 225), max_size=(1280, 720))
+    validate_x11_snapshot(updates[1], baseline, active=True)
+    validate_x11_drag_probe(report.get("sizing_enabled"), True, baseline)
+    validate_x11_drag_probe(report.get("sizing_disabled"), False, baseline)
+    pending = report.get("pending_resizes")
+    require(isinstance(pending, list) and len(pending) == 4, "All pending GTK resize probes are required")
+    for row, kind in zip(pending, ("control", "warm-off", "repeat-off", "rapid-off-on")):
+        validate_x11_pending_resize(row, kind, baseline)
+    require(pending[0]["before"] == pending[1]["before"],
+            "Control and OFF must start with identical native state and queued request")
+    validate_aspect_state(report.get("final_state"), False, False)
     validate_x11_snapshot(report.get("final"), baseline, active=False)
 
 
@@ -366,16 +545,40 @@ def validate_x11_restoration(report, phase):
     validate_common_evidence(report)
     require(report.get("mode") == "preference-restoration" and report.get("phase") == phase,
             "Wrong X11 preference phase")
+    if phase == "cold-pending-off":
+        initial = report.get("initial")
+        validate_x11_snapshot(initial, initial, active=False, startup=True)
+        require(report.get("requested_content") == [640, 400] and report.get("aux_unchanged") is True
+                and report.get("initial_state") is None and report.get("startup_initialization_skipped") is True
+                and report.get("first_native_aspect_call") == "OFF"
+                and report.get("first_command") == "set_window_aspect_lock", "Cold pending OFF was not isolated")
+        validate_x11_pending_resize(report.get("pending_resize"), "cold-off", initial)
+        validate_aspect_state(report.get("first_set"), False, False)
+        validate_aspect_state(report.get("final_state"), False, False)
+        final = report.get("final")
+        validate_x11_snapshot(final, initial, active=False, original_geometry=False)
+        require(final["rect"] == initial["rect"][:2] + [800, 500], "Cold pending OFF geometry was lost")
+        return
     require(report.get("requested_content") == [640, 400] and report.get("aux_unchanged") is True,
             "Wrong X11 requested geometry or changed PiP")
     initial = report.get("initial")
-    for name in ("initial", "final"):
-        validate_unsupported_aspect_state(report.get(name + "_state"))
-        validate_x11_snapshot(report.get(name), initial, active=False, startup=True)
-    if phase == "verify-off":
-        require(report.get("set_rejection") is None, "Unexpected X11 verification mutation")
+    enabled = phase in ("pin", "unpin")
+    validate_x11_snapshot(initial, initial, active=enabled, startup=True)
+    if phase == "cold-off":
+        require(report.get("first_command") == "set_window_aspect_lock"
+                and report.get("startup_initialization_skipped") is True,
+                "Cold OFF did not precede initialization and GET")
+        require(report.get("initial_state") is None, "Cold OFF queried before its mutation")
+        validate_aspect_state(report.get("first_set"), False, False)
     else:
-        validate_unsupported_aspect_rejection(report.get("set_rejection"))
+        validate_aspect_state(report.get("initial_state"), enabled, enabled)
+    final_enabled = phase == "pin"
+    if phase == "verify-off":
+        require(report.get("first_set") is None, "Saved OFF verification unexpectedly mutated state")
+    else:
+        validate_aspect_state(report.get("first_set"), final_enabled, final_enabled)
+    validate_aspect_state(report.get("final_state"), final_enabled, final_enabled)
+    validate_x11_snapshot(report.get("final"), initial, active=final_enabled)
 
 
 def stop_owned_process(process, *, platform="windows"):
@@ -414,7 +617,8 @@ def remove_private_data(directory):
 
 
 def run_case(binary, output, missing, *, phase=None, preferences=None, platform="windows"):
-    require(phase in {None, "pin", "unpin", "verify-off"}, "Unknown preference phase")
+    require(phase in {None, "pin", "unpin", "verify-off", "cold-off", "cold-pending-off"}
+            and (phase not in {"cold-off", "cold-pending-off"} or platform == "linux"), "Unknown preference phase")
     require((phase is None) == (preferences is None), "Preference phases need an owned shared directory")
     require(phase is None or not missing, "Preference phases require production permissions")
     name = f"restore-{phase}" if phase else ("missing-permission" if missing else "production-permissions")
@@ -428,15 +632,13 @@ def run_case(binary, output, missing, *, phase=None, preferences=None, platform=
         environment = os.environ.copy()
         environment["OTTPLAY_DATA_DIR"] = str(preferences if phase else directory / "preferences")
         environment.pop("OTTPLAY_INSTANCE", None)
-        if phase and platform == "linux":
-            # Arrange each unsupported-backend scenario before startup, using
-            # only this runner's owned temporary directory. The app must leave
-            # the exact saved bytes intact even when SET requests the opposite.
-            seeded = phase == "unpin"
+        if phase in {"cold-off", "cold-pending-off"}:
+            # These isolated cases skip fixture startup initialization. Neither
+            # first explicit OFF may activate the saved ON.
             aspect_stored = preferences / "window-aspect-lock"
             require(not aspect_stored.is_symlink(), "Invalid fixture preference seed path")
-            aspect_stored.write_bytes(b"1\n" if seeded else b"0\n")
-            result["seeded_aspect_preference"] = seeded
+            aspect_stored.write_bytes(b"1\n")
+            result["seeded_aspect_preference"] = True
         with (output / f"{name}.log").open("w", encoding="utf-8") as log:
             platform_options = {"start_new_session": True} if platform in {"macos", "linux"} else {}
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env=environment, **platform_options)
@@ -459,7 +661,7 @@ def run_case(binary, output, missing, *, phase=None, preferences=None, platform=
                             "Confirmed preference bytes were not retained")
             aspect_stored = preferences / "window-aspect-lock"
             require(aspect_stored.is_file() and not aspect_stored.is_symlink(), "Aspect preference file is missing or invalid")
-            expected_aspect = (phase == "unpin") if platform == "linux" else (phase == "pin")
+            expected_aspect = phase == "pin"
             with aspect_stored.open("rb") as stream:
                 require(stream.read(3) == (b"1\n" if expected_aspect else b"0\n"),
                         "Confirmed aspect preference bytes were not retained")
@@ -470,8 +672,13 @@ def run_case(binary, output, missing, *, phase=None, preferences=None, platform=
             validate_evidence(result["native"], missing, platform=platform)
             if platform == "linux":
                 aspect_stored = directory / "preferences" / "window-aspect-lock"
-                require(not aspect_stored.exists() and not aspect_stored.is_symlink(),
-                        "Unsupported aspect operation created a saved preference")
+                if missing:
+                    require(not aspect_stored.exists() and not aspect_stored.is_symlink(),
+                            "Denied aspect operation created a saved preference")
+                else:
+                    require(aspect_stored.is_file() and not aspect_stored.is_symlink()
+                            and aspect_stored.read_bytes() == b"0\n",
+                            "Final explicit OFF was not persisted")
         result["status"] = "pass"
     except Exception as error:
         result["error"] = str(error)
@@ -506,11 +713,21 @@ def run_restoration_sequence(binary, output, *, platform="windows"):
     preferences = Path(tempfile.mkdtemp(prefix="ott-window-preferences-"))
     summary = {"status": "fail", "runs": []}
     try:
-        for phase in ["pin", "unpin", "verify-off"]:
+        phases = ["pin", "unpin", "verify-off"] + (["cold-off"] if platform == "linux" else [])
+        for phase in phases:
             result = run_case(binary, output, False, phase=phase, preferences=preferences,
                               **({"platform": platform} if platform != "windows" else {}))
             summary["runs"].append(result)
             require(result["status"] == "pass", f"Preference phase failed: {phase}")
+        if platform == "linux":
+            # Fresh process AND a distinct owned directory: do not change the
+            # original cold-off first-IPC or sequential persistence contract.
+            cold_preferences = preferences / "cold-pending-off"
+            cold_preferences.mkdir()
+            result = run_case(binary, output, False, phase="cold-pending-off",
+                              preferences=cold_preferences, platform=platform)
+            summary["runs"].append(result)
+            require(result["status"] == "pass", "Cold pending OFF phase failed")
         summary["status"] = "pass"
     except (OSError, RuntimeError) as error:
         summary["error"] = str(error)

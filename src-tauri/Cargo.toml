@@ -53,6 +53,10 @@ libc = "=0.2.189"
 sha2 = "=0.10.9"
 tao = { version = "=0.35.3", default-features = false }
 
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+# Observe queued GTK resize signals in the owned native smoke fixture.
+gtk = "=0.18.2"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 dispatch2 = "0.3"
 base64 = "0.22"
