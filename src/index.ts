@@ -2291,8 +2291,6 @@ function onStbReady(): void {
             (window as any).__ottControlDiscovery.start();
         if (typeof (window as any).applyLocalSwopConfig === "function")
             (window as any).applyLocalSwopConfig();
-        if ((window as any).__ottNasLibrary)
-            (window as any).__ottNasLibrary.init();
         installLocalMedia(window);
         installMediaCompanion(window);
         initUIReferences();

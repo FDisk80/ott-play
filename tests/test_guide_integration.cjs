@@ -1646,7 +1646,7 @@ for (const delay of [0, -10]) {
 }
 
 check(
-    "EPG rows distinguish calendar days and preserve same-day clock ranges",
+    "EPG rows distinguish calendar days and show only programme start times",
     () => {
         const oldZone = process.env.TZ;
         process.env.TZ = "UTC";
@@ -1674,7 +1674,8 @@ check(
             assert.notEqual(a, b);
             assert.match(a, /Mon 02\/11/);
             assert.match(b, /Tue 03\/11/);
-            assert.match(a, /10:00 - 11:00/);
+            assert.match(a, /10:00<\/span>/);
+            assert(!a.includes("11:00"));
             assert.equal((a.match(/02\/11/g) || []).length, 1);
             assert(!a.includes('style="color:'));
         } finally {
@@ -1700,7 +1701,9 @@ check(
                 ),
                 0
             );
-            assert.match(overnight, /Mon 02\/11 23:30 - Tue 03\/11 00:30/);
+            assert.match(overnight, /Mon 02\/11 23:30<\/span>/);
+            assert(!overnight.includes("Tue 03/11"));
+            assert(!overnight.includes("00:30"));
             const fallback = h.itemEPG(
                 f.row(
                     Date.UTC(2026, 10, 1, 8, 30) / 1000,
@@ -1708,12 +1711,45 @@ check(
                 ),
                 0
             );
-            assert.match(fallback, /Sun 01\/11 01:30 - 01:30/);
+            assert.match(fallback, /Sun 01\/11 01:30<\/span>/);
             assert.equal((fallback.match(/01\/11/g) || []).length, 1);
         } finally {
             if (oldZone === undefined) delete process.env.TZ;
             else process.env.TZ = oldZone;
         }
+    }
+);
+check(
+    "Compact EPG rows retain end times for current, past and archive actions",
+    () => {
+        const f = fixture({ now: 10000 }),
+            h = f.host;
+        h.epgList(0, 0, false);
+        f.tick();
+        f.complete([
+            f.row(9600, 9900, "Past", "past"),
+            f.row(9950, 10050, "Current", "current"),
+            f.row(10100, 10200, "Following", "following"),
+        ]);
+        const original = JSON.stringify(h.listArray);
+        const rows = h.listArray.map((row, index) => h.itemEPG(row, index));
+        assert(rows[0].includes('class="btn green"'));
+        assert(rows[1].includes('class="btn red"'));
+        assert(!rows[2].includes('class="btn red"'));
+        for (let index = 0; index < rows.length; index++) {
+            const time = rows[index].match(
+                /class="ott-epg-time">([^<]*)<\/span>/
+            )[1];
+            assert(time.endsWith(h.formatEpgTime(h.listArray[index].time)));
+            assert(!time.includes(" - "));
+        }
+        assert.equal(JSON.stringify(h.listArray), original);
+        h.selIndex = 0;
+        h.selectEpg();
+        assert(
+            f.calls.some((call) => call[0] === "archive" && call[1] === 9600)
+        );
+        assert.equal(h.listArray[0].time_to, 9900);
     }
 );
 check(
@@ -1927,8 +1963,8 @@ check(
                         }
                     }
                     installPlayerTimezone(h);
-                    // Actual player polyfill: selected offsets are fixed, including
-                    // the current offset captured by its system-timezone setting.
+                    // Actual player polyfill: explicit numeric offsets remain fixed.
+                    // System-mode changes are covered in test_system_timezone.cjs.
                     for (const [offset, year, month, day, hour, minute] of [
                         [-720, 2026, 10, 5, 11, 30],
                         [-345, 2026, 10, 5, 5, 15],

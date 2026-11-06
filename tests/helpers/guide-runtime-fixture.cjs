@@ -40,6 +40,7 @@ const functionNames = sourceNames("src/channels/index.ts", [
     "renderEpgHTML",
     "renderEpgFooter",
     "itemEPG",
+    "epgReminderMarker",
     "detailEPG",
     "epgKeyHandler",
     "selectEpg",

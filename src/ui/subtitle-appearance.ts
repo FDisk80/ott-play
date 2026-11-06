@@ -567,13 +567,7 @@
                 if (row.settingId === "editor")
                     return typeof host.showEditKey2 === "function";
                 if (row.settingId === "medCount")
-                    return (
-                        typeof host.getMediaArray === "function" ||
-                        !!(
-                            host.__ottNasLibrary &&
-                            host.__ottNasLibrary.available()
-                        )
-                    );
+                    return typeof host.getMediaArray === "function";
                 if (row.settingId === "volumeStep")
                     return typeof host.stbGetVolume === "function";
                 if (row.settingId === "osdOpacity")

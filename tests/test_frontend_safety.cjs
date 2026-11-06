@@ -761,6 +761,7 @@ test("EPG list titles are escaped without losing current-programme highlighting"
         w.eval(
             func("src/channels/index.ts", "formatEpgTime") +
                 func("src/channels/index.ts", "formatEpgDate") +
+                func("src/channels/index.ts", "epgReminderMarker") +
                 func("src/channels/index.ts", "itemEPG")
         );
         w.document.getElementById("listIn").innerHTML = w.itemEPG(programme, 0);
@@ -1520,6 +1521,7 @@ test("EPG color updates an already-rendered time row across default, custom and 
                 func("src/index.ts", "setColor") +
                 func("src/channels/index.ts", "formatEpgTime") +
                 func("src/channels/index.ts", "formatEpgDate") +
+                func("src/channels/index.ts", "epgReminderMarker") +
                 func("src/channels/index.ts", "itemEPG")
         );
         const list = w.document.getElementById("listIn");
@@ -1684,6 +1686,7 @@ test("EPG color paints current and future rows without CSS variables", () => {
                 func("src/index.ts", "setColor") +
                 func("src/channels/index.ts", "formatEpgTime") +
                 func("src/channels/index.ts", "formatEpgDate") +
+                func("src/channels/index.ts", "epgReminderMarker") +
                 func("src/channels/index.ts", "itemEPG") +
                 func("src/ui/index.ts", "showPage")
         );
