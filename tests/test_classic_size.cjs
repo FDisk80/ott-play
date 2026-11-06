@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const ts = require("typescript");
 let {
     CLIENT_INTERFACE_COLORS_ALLOWANCE,
+    INTERFACE_FONT_CSP_ASSET_CORRECTION,
     CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE,
     INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
     DESKTOP_DROP_ALLOWANCE,
@@ -126,16 +127,18 @@ function capsWithoutAllowances(names) {
         (a, b) => b.initializer.pos - a.initializer.pos
     )) {
         const neutral =
-            name === "CLIENT_INTERFACE_COLORS_ALLOWANCE"
-                ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),providerEdem:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0}),remoteSettingsLifecycle:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
-                : [
-                        "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
-                        "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
-                    ].includes(name)
-                  ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0})})"
-                  : name === "DESKTOP_DROP_ALLOWANCE"
-                    ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
-                    : "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})";
+            name === "INTERFACE_FONT_CSP_ASSET_CORRECTION"
+                ? "Object.freeze({bytes:0,gzipBytes:0})"
+                : name === "CLIENT_INTERFACE_COLORS_ALLOWANCE"
+                  ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),providerEdem:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0}),remoteSettingsLifecycle:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
+                  : [
+                          "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
+                          "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
+                      ].includes(name)
+                    ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0})})"
+                    : name === "DESKTOP_DROP_ALLOWANCE"
+                      ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
+                      : "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})";
         source =
             source.slice(0, initializer.getStart(parsed)) +
             neutral +
@@ -164,9 +167,169 @@ function capsWithoutAllowances(names) {
         );
     return baseline.exports;
 }
+// CSP font previews were measured after the color evidence. Keep that evidence
+// on its original caps; the live boundary tests still use latestCaps.
+const preFontCspCaps = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
+]);
+{
+    const directory = path.join(
+        __dirname,
+        "../docs/evidence/interface-font-csp-budget-20261106"
+    );
+    const record = require(path.join(directory, "record.json"));
+    const raw = fs.readFileSync(
+        path.join(directory, "actual-diagnostics.json")
+    );
+    const report = JSON.parse(raw);
+    assert.equal(
+        require("node:crypto").createHash("sha256").update(raw).digest("hex"),
+        record.candidate.reportSha256
+    );
+    assert.equal(report.source, record.candidate.merge);
+    assert.equal(report.run, String(record.candidate.run));
+    assert.deepEqual(report.toolchain, record.candidate.toolchain);
+    assert.equal(report.complete, true, "all measurements were collected");
+    assert.equal(report.diagnostic, true, "retain the failed-build diagnostic");
+    assert.deepEqual(report.inputErrors, []);
+    assert(Object.isFrozen(INTERFACE_FONT_CSP_ASSET_CORRECTION));
+    assert.deepEqual(INTERFACE_FONT_CSP_ASSET_CORRECTION, {
+        bytes: 35,
+        gzipBytes: 86,
+    });
+    assert.deepEqual(record.correction, INTERFACE_FONT_CSP_ASSET_CORRECTION);
+    assert.deepEqual(
+        preFontCspCaps.OPTIONAL_BUDGETS["subtitle-appearance"],
+        record.oldAssetCap
+    );
+    assert.deepEqual(
+        latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"],
+        record.newAssetCap
+    );
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            record.newAssetCap[metric] - record.oldAssetCap[metric],
+            INTERFACE_FONT_CSP_ASSET_CORRECTION[metric]
+        );
+    for (const name of [
+        "BUDGET",
+        "BASE_TOTAL_BUDGET",
+        "LEGACY_TOTAL_BUDGET",
+        "TOTAL_BUDGET",
+    ])
+        assert.deepEqual(latestCaps[name], preFontCspCaps[name], name);
+    assert.deepEqual(PROVIDER_BUDGET, preFontCspCaps.PROVIDER_BUDGET);
+    assert.deepEqual(OPTIONAL_BUDGET, preFontCspCaps.OPTIONAL_BUDGET);
+    assert.deepEqual(
+        CLIENT_INTERFACE_COLORS_ALLOWANCE,
+        preFontCspCaps.CLIENT_INTERFACE_COLORS_ALLOWANCE
+    );
+    assert.deepEqual(
+        Object.keys(latestCaps.OPTIONAL_BUDGETS).sort(),
+        Object.keys(preFontCspCaps.OPTIONAL_BUDGETS).sort()
+    );
+    for (const [name, cap] of Object.entries(preFontCspCaps.OPTIONAL_BUDGETS))
+        if (name !== "subtitle-appearance")
+            assert.deepEqual(latestCaps.OPTIONAL_BUDGETS[name], cap, name);
+    assert.deepEqual(report.budget, preFontCspCaps.BUDGET);
+    assert.deepEqual(report.providerBudget, PROVIDER_BUDGET);
+    assert.deepEqual(report.optionalBudgets, preFontCspCaps.OPTIONAL_BUDGETS);
+    assert.deepEqual(report.legacyTotalBudget, latestCaps.LEGACY_TOTAL_BUDGET);
+    assert.deepEqual(report.totalBudget, latestCaps.TOTAL_BUDGET);
+    assert.deepEqual(
+        report.artifacts.map((item) => item.path),
+        [...ARTIFACTS]
+    );
+    assert.deepEqual(
+        report.providerBundles.map((set) => set.entry),
+        [...ARTIFACTS]
+    );
+    const measurements = [];
+    for (const [index, set] of report.providerBundles.entries()) {
+        const entry = report.artifacts[index];
+        const directory = path.posix.dirname(set.entry);
+        for (const [items, names] of [
+            [
+                set.providers,
+                Object.keys(CLASSIC_PROVIDER_BUNDLES).map(
+                    (name) => "provider-" + name
+                ),
+            ],
+            [set.optionalAssets, Object.keys(latestOptionalBundles)],
+        ])
+            assert.deepEqual(
+                items.map((item) => item.path).sort(),
+                names.map((name) => directory + "/" + name + ".js").sort()
+            );
+        const assets = [entry, ...set.providers, ...set.optionalAssets];
+        for (const asset of assets) {
+            assert.match(asset.sha256, /^[0-9a-f]{64}$/);
+            for (const metric of ["bytes", "gzipBytes"])
+                assert(
+                    Number.isSafeInteger(asset[metric]) && asset[metric] > 0
+                );
+        }
+        measurements.push([entry, "BUDGET", "asset"]);
+        measurements.push(
+            ...set.providers.map((asset) => [asset, "PROVIDER_BUDGET", "asset"])
+        );
+        measurements.push(
+            ...set.optionalAssets.map((asset) => [
+                asset,
+                path.posix.basename(asset.path, ".js"),
+                "asset",
+            ])
+        );
+        for (const [scope, cap, included] of [
+            ["legacyTotal", "LEGACY_TOTAL_BUDGET", [entry, ...set.providers]],
+            ["total", "TOTAL_BUDGET", assets],
+        ]) {
+            for (const metric of ["bytes", "gzipBytes"])
+                assert.equal(
+                    set[scope][metric],
+                    included.reduce((sum, item) => sum + item[metric], 0)
+                );
+            measurements.push([{ path: set.entry, ...set[scope] }, cap, scope]);
+        }
+    }
+    assert.equal(
+        measurements.filter(([, , scope]) => scope === "asset").length,
+        81
+    );
+    const replay = (caps) =>
+        measurements.flatMap(([item, name, scope]) => {
+            const cap = caps[name] || caps.OPTIONAL_BUDGETS[name];
+            assert(cap, name);
+            return ["bytes", "gzipBytes"]
+                .filter((metric) => item[metric] > cap[metric])
+                .map((metric) => ({
+                    actual: item[metric],
+                    budget: cap[metric],
+                    metric,
+                    path: item.path,
+                    scope,
+                }));
+        });
+    assert.deepEqual(replay(preFontCspCaps), report.violations);
+    assert.deepEqual(
+        report.violations,
+        ARTIFACTS.flatMap((entry) =>
+            ["bytes", "gzipBytes"].map((metric) => ({
+                actual: record.newAssetCap[metric],
+                budget: record.oldAssetCap[metric],
+                metric,
+                path: path.posix.dirname(entry) + "/subtitle-appearance.js",
+                scope: "asset",
+            }))
+        )
+    );
+    assert.equal(report.violations.length, 6);
+    assert.deepEqual(replay({ ...preFontCspCaps, ...latestCaps }), []);
+}
 // Structural accounting only. The paired hosted inventory supplies the actual
 // per-family measurements; old receipts must not inherit these new allowances.
 const preClientColorsCaps = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
 ]);
 const preClientColorsOptionalBundles = Object.freeze(
@@ -208,7 +371,7 @@ assert.equal(
 );
 assert(!Object.hasOwn(preClientColorsOptionalBundles, "color-appearance"));
 assert.deepEqual(
-    Object.keys(latestCaps.OPTIONAL_BUDGETS).sort(),
+    Object.keys(preFontCspCaps.OPTIONAL_BUDGETS).sort(),
     Object.keys(latestOptionalBundles).sort()
 );
 assert.deepEqual(
@@ -224,17 +387,17 @@ for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
         name + " does not change for client colors"
     );
 assert.deepEqual(
-    latestCaps.OPTIONAL_BUDGETS["color-appearance"],
+    preFontCspCaps.OPTIONAL_BUDGETS["color-appearance"],
     CLIENT_INTERFACE_COLORS_ALLOWANCE.optional
 );
 for (const metric of ["bytes", "gzipBytes"]) {
     const allowance = CLIENT_INTERFACE_COLORS_ALLOWANCE;
     assert.equal(
-        latestCaps.BUDGET[metric] - preClientColorsCaps.BUDGET[metric],
+        preFontCspCaps.BUDGET[metric] - preClientColorsCaps.BUDGET[metric],
         allowance.entry[metric]
     );
     assert.equal(
-        latestCaps.LEGACY_TOTAL_BUDGET[metric] -
+        preFontCspCaps.LEGACY_TOTAL_BUDGET[metric] -
             preClientColorsCaps.LEGACY_TOTAL_BUDGET[metric],
         allowance.entry[metric] + allowance.providerEdem[metric],
         "legacy includes entry and provider cost, without optional assets"
@@ -244,7 +407,7 @@ for (const metric of ["bytes", "gzipBytes"]) {
         ["remote-settings-lifecycle", "remoteSettingsLifecycle"],
     ])
         assert.equal(
-            latestCaps.OPTIONAL_BUDGETS[name][metric] -
+            preFontCspCaps.OPTIONAL_BUDGETS[name][metric] -
                 preClientColorsCaps.OPTIONAL_BUDGETS[name][metric],
             allowance[part][metric],
             name + " counts its own component once"
@@ -255,14 +418,14 @@ for (const metric of ["bytes", "gzipBytes"]) {
     );
     for (const name of ["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"])
         assert.equal(
-            latestCaps[name][metric] - preClientColorsCaps[name][metric],
+            preFontCspCaps[name][metric] - preClientColorsCaps[name][metric],
             completeDelta,
             name + " includes all five components once"
         );
 }
 for (const [name, cap] of Object.entries(preClientColorsCaps.OPTIONAL_BUDGETS))
     if (!["subtitle-appearance", "remote-settings-lifecycle"].includes(name))
-        assert.deepEqual(latestCaps.OPTIONAL_BUDGETS[name], cap, name);
+        assert.deepEqual(preFontCspCaps.OPTIONAL_BUDGETS[name], cap, name);
 // The original hosted receipt and inventories remain unmodified evidence.
 // Complete inventories survived the comparator cardinality failure. This is
 // not a release/build pass; final combined source still needs its ordinary gates.
@@ -272,7 +435,7 @@ require("./helpers/client-colors-size-evidence.cjs").verifyClientColorsEvidence(
         "../docs/evidence/client-interface-colors-size-20261106"
     ),
     {
-        after: latestCaps,
+        after: preFontCspCaps,
         allowance: CLIENT_INTERFACE_COLORS_ALLOWANCE,
         before: preClientColorsCaps,
         optionals: latestOptionalBundles,
@@ -294,6 +457,7 @@ CLASSIC_OPTIONAL_BUNDLES = preClientColorsOptionalBundles;
 // artifacts use different identities; never relabel them as an isolated experiment.
 const notificationEvidence = require("../docs/evidence/interface-notification-settings-size-20261106.json");
 const preNotificationCaps = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
     "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
 ]);
@@ -517,6 +681,7 @@ for (const [name, cap] of Object.entries(preClientColorsCaps.OPTIONAL_BUDGETS))
 // The queue is a separately emitted optional chunk. Keep its measured increment
 // out of older receipts and never treat the version-mismatched entry delta as cost.
 const preQueueCaps = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
     "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
@@ -660,6 +825,7 @@ for (const [name, cap] of Object.entries(preNotificationCaps.OPTIONAL_BUDGETS))
 // inventories. Allocate the largest per-platform delta, never their sum.
 const presentationEvidence = require("../docs/evidence/classic-presentation-settings-size-20261105.json");
 const presentationBaseline = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
     "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
@@ -807,6 +973,7 @@ for (const [name, cap] of Object.entries(preQueueCaps.OPTIONAL_BUDGETS))
 // Qualify desktop startup and its new optional asset independently. Earlier
 // receipts predate both; remove them only from the historical cap projections.
 const desktopBaseline = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
     "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
@@ -874,6 +1041,7 @@ CLASSIC_OPTIONAL_BUNDLES = Object.fromEntries(
 // Remove only those named features from historical projections. Live checks
 // below retain the complete merged caps and restore the full asset inventory.
 const preRecoveryCaps = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
     "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
@@ -882,12 +1050,14 @@ const preRecoveryCaps = capsWithoutAllowances([
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 const withoutAutoRecovery = capsWithoutAllowances([
+    "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
     "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 function historicalCapsWithoutAllowances(names) {
     return capsWithoutAllowances([
+        "INTERFACE_FONT_CSP_ASSET_CORRECTION",
         "CLIENT_INTERFACE_COLORS_ALLOWANCE",
         "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
         "DESKTOP_VIDEO_QUEUE_ALLOWANCE",

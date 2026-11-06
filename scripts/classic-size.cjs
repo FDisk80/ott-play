@@ -847,6 +847,15 @@ const CLIENT_INTERFACE_COLORS_ALLOWANCE = Object.freeze({
         gzipBytes: 145,
     }),
 });
+// The nonce-safe font preview used existing asset headroom first. Ordinary CI
+// still exceeded this asset's ceiling by 35 raw / 86 gzip bytes. Cover only that
+// remaining shortfall; entry, provider, complete and historical color budgets
+// stay unchanged. This is not an isolated feature-cost measurement.
+// Evidence: docs/evidence/interface-font-csp-budget-20261106/.
+const INTERFACE_FONT_CSP_ASSET_CORRECTION = Object.freeze({
+    bytes: 35,
+    gzipBytes: 86,
+});
 const BUDGET = Object.freeze({
     bytes:
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
@@ -1358,12 +1367,14 @@ const OPTIONAL_BUDGETS = Object.freeze({
     // Keep the existing lazy editor and its original measurement headroom.
     "subtitle-appearance": Object.freeze({
         bytes:
+            INTERFACE_FONT_CSP_ASSET_CORRECTION.bytes +
             CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.bytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.bytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.bytes +
             8100 +
             MODERN_INTERFACE_RELATED_ALLOWANCES["subtitle-appearance"].bytes,
         gzipBytes:
+            INTERFACE_FONT_CSP_ASSET_CORRECTION.gzipBytes +
             CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.gzipBytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
@@ -2253,6 +2264,7 @@ module.exports = {
     FAVORITES_TRANSFER_ENTRY_ALLOWANCE,
     FAVORITES_TRANSFER_OPTIONAL_ALLOWANCE,
     FAVORITES_TRANSFER_PLEX_ALLOWANCE,
+    INTERFACE_FONT_CSP_ASSET_CORRECTION,
     INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
     inspectBundleSets,
     inspectBundles,

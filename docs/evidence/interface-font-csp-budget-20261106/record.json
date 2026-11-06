@@ -1,0 +1,139 @@
+{
+  "status": "OBSERVED_REMAINING_SHORTFALL_CORRECTION_NOT_ISOLATED_FEATURE_COST",
+  "baseline": {
+    "head": "fc175795d7f9e4e181901b69f6b7569092702a2f",
+    "merge": "7512097440a2f7e573afe74e2cf8d8079b60f75c",
+    "run": 42223835311,
+    "artifact": 13505331730,
+    "reportSha256": "dbc0e34e98590eecca752265591da08c7c78784f1bca79206aa69bc7ba42edf5",
+    "toolchain": {
+      "node": "22.23.4",
+      "zlib": "1.3.1-e00f703"
+    },
+    "reportFile": "baseline-report.json"
+  },
+  "candidate": {
+    "head": "c05462ca5e11f33fefbe570534ffd8e708feb3af",
+    "merge": "d001fd7c2b46c3887f40f0abaf49933cacb45eb9",
+    "runtimeHead": "fcc75306986b23f0b4e4efe7c51bbef1240c4b1a",
+    "run": "42230364638",
+    "attempt": "1",
+    "artifact": 13510681822,
+    "reportSha256": "b2b23ddae3d2afb5ddcaf8f6468ff3fd169c106ce9b86347b5d51035660a4749",
+    "reportFile": "actual-diagnostics.json",
+    "toolchain": {
+      "node": "22.23.4",
+      "zlib": "1.3.1-e00f703"
+    }
+  },
+  "compatibility": {
+    "sameToolchain": true,
+    "sameHeadOrMerge": false,
+    "isolatedFeatureMeasurement": false,
+    "newCombinedHeadGateRequired": true
+  },
+  "oldAssetCap": {
+    "bytes": 9221,
+    "gzipBytes": 3918
+  },
+  "newAssetCap": {
+    "bytes": 9256,
+    "gzipBytes": 4004
+  },
+  "correction": {
+    "bytes": 35,
+    "gzipBytes": 86
+  },
+  "previousHeadroom": {
+    "bytes": 398,
+    "gzipBytes": 49
+  },
+  "observedAssetDelta": {
+    "bytes": 433,
+    "gzipBytes": 135
+  },
+  "newAssetHeadroom": {
+    "bytes": 0,
+    "gzipBytes": 0
+  },
+  "assets": [
+    {
+      "path": "dist/subtitle-appearance.js",
+      "before": {
+        "bytes": 8823,
+        "gzipBytes": 3869,
+        "path": "dist/subtitle-appearance.js",
+        "sha256": "d6136c7d15b8021bb99b113e4b61f68b703a53e5000ec65132508fd2f894b21a"
+      },
+      "after": {
+        "bytes": 9256,
+        "gzipBytes": 4004,
+        "path": "dist/subtitle-appearance.js",
+        "sha256": "6f335018098f57d0f7a9449d2d9e18c805f86df6d9474b004bf04d313dff2b0a"
+      },
+      "observedDelta": {
+        "bytes": 433,
+        "gzipBytes": 135
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+      "before": {
+        "bytes": 8823,
+        "gzipBytes": 3869,
+        "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+        "sha256": "d6136c7d15b8021bb99b113e4b61f68b703a53e5000ec65132508fd2f894b21a"
+      },
+      "after": {
+        "bytes": 9256,
+        "gzipBytes": 4004,
+        "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+        "sha256": "6f335018098f57d0f7a9449d2d9e18c805f86df6d9474b004bf04d313dff2b0a"
+      },
+      "observedDelta": {
+        "bytes": 433,
+        "gzipBytes": 135
+      }
+    },
+    {
+      "path": "dist-mobile/dist/subtitle-appearance.js",
+      "before": {
+        "bytes": 8823,
+        "gzipBytes": 3869,
+        "path": "dist-mobile/dist/subtitle-appearance.js",
+        "sha256": "d6136c7d15b8021bb99b113e4b61f68b703a53e5000ec65132508fd2f894b21a"
+      },
+      "after": {
+        "bytes": 9256,
+        "gzipBytes": 4004,
+        "path": "dist-mobile/dist/subtitle-appearance.js",
+        "sha256": "6f335018098f57d0f7a9449d2d9e18c805f86df6d9474b004bf04d313dff2b0a"
+      },
+      "observedDelta": {
+        "bytes": 433,
+        "gzipBytes": 135
+      }
+    }
+  ],
+  "unchangedCaps": [
+    "entry",
+    "provider",
+    "otherOptionalAssets",
+    "legacyTotal",
+    "baseTotal",
+    "total"
+  ],
+  "qualification": "The existing run failed six asset budget checks. Replaying its recorded measurements against the corrected single-asset ceiling does not relabel that failed run as a passing build. Different commit/merge identities prevent isolated cost attribution. Historical color evidence and allowances are unchanged.",
+  "inventory": {
+    "artifactPaths": 81,
+    "unchangedFiles": 75,
+    "changedPaths": [
+      "dist/player.js",
+      "src-tauri/frontend/dist/player.js",
+      "dist-mobile/dist/player.js",
+      "dist/subtitle-appearance.js",
+      "src-tauri/frontend/dist/subtitle-appearance.js",
+      "dist-mobile/dist/subtitle-appearance.js"
+    ]
+  }
+}
