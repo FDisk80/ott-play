@@ -68,6 +68,13 @@ pub struct Window {
 }
 
 impl Window {
+  pub(crate) fn gtk_window_aspect_lock(
+    window: &gtk::ApplicationWindow,
+    enabled: Option<bool>,
+  ) -> Result<Option<(bool, bool)>, String> {
+    util::gtk_window_aspect_lock(window, enabled)
+  }
+
   pub(crate) fn new<T>(
     event_loop_window_target: &EventLoopWindowTarget<T>,
     attributes: WindowAttributes,
@@ -120,6 +127,9 @@ impl Window {
 
     // Set Min/Max Size
     util::set_size_constraints(&window, attributes.inner_size_constraints);
+    if attributes.maximized {
+      util::aspect_transition(&window, WindowState::MAXIMIZED, true);
+    }
 
     // Set Position
     if let Some(position) = attributes.position {
@@ -171,10 +181,12 @@ impl Window {
           let m = display.monitor(i).unwrap();
           if m == monitor.monitor {
             let screen = display.default_screen();
+            util::aspect_transition(&window, WindowState::FULLSCREEN, true);
             window.fullscreen_on_monitor(&screen, i);
           }
         }
       } else {
+        util::aspect_transition(&window, WindowState::FULLSCREEN, true);
         window.fullscreen();
       }
     }

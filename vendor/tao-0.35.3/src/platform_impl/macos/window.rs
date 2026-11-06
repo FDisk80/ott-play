@@ -462,6 +462,8 @@ pub struct SharedState {
   pub target_fullscreen: Option<Option<Fullscreen>>,
   pub maximized: bool,
   pub standard_frame: Option<NSRect>,
+  // Simple fullscreen must not overwrite the frame restored by unmaximize.
+  simple_fullscreen_frame: Option<NSRect>,
   is_simple_fullscreen: bool,
   pub saved_style: Option<NSWindowStyleMask>,
   /// Presentation options saved before entering `set_simple_fullscreen`, and
@@ -1595,7 +1597,7 @@ impl WindowExtMacOS for UnownedWindow {
       if fullscreen {
         // Remember the original window's settings
         // Exclude title bar
-        shared_state_lock.standard_frame = Some(NSWindow::contentRectForFrameRect(
+        shared_state_lock.simple_fullscreen_frame = Some(NSWindow::contentRectForFrameRect(
           &self.ns_window,
           NSWindow::frame(&self.ns_window),
         ));
@@ -1648,7 +1650,10 @@ impl WindowExtMacOS for UnownedWindow {
           app.setPresentationOptions(presentation_opts);
         }
 
-        let frame = shared_state_lock.saved_standard_frame();
+        let frame = shared_state_lock
+          .simple_fullscreen_frame
+          .take()
+          .unwrap_or_else(|| shared_state_lock.saved_standard_frame());
         NSWindow::setFrame_display(&self.ns_window, frame, true);
         NSWindow::setMovable(&self.ns_window, true);
 
