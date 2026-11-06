@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ఆదేశం ప్లేయర్ ద్వారా తిరస్కరించబడింది. దాని ప్రొవైడర్ మరియు సెట్టింగ్‌లను తనిఖీ చేయండి.",
     About: "గురించి",
+    "Accent color": "ప్రాధాన్య రంగు",
     "Access code": "యాక్సెస్ కోడ్",
     "Access denied. Check the server access code.":
         "యాక్సెస్ నిరాకరించబడింది. సర్వర్ యాక్సెస్ కోడ్‌ను తనిఖీ చేయండి.",
@@ -79,6 +80,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API విఫలమైంది, M3U ప్రయత్నిస్తోంది...",
     "API Server": "API సర్వర్",
     "API server URL": "API సర్వర్ URL",
+    Apply: "వర్తింపజేయి",
+    "Apply changes to this draft, then use Save Settings.":
+        "ఈ చిత్తుప్రతికి మార్పులను వర్తింపజేసి, తర్వాత «సెట్టింగ్‌లను సేవ్ చేయండి» ఎంచుకోండి.",
     "Applying HTTP remote settings...": "HTTP రిమోట్ సెట్టింగ్‌లను వర్తింపజేస్తోంది...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODEతో %1 కోడ్‌ని ఆమోదించండి:",
@@ -114,6 +118,7 @@ var keyStrings = {
     Blue: "నీలం",
     "Bookmark age (days): %1": "బుక్‌మార్క్ వయస్సు (రోజులు): %1",
     "Bookmark age: %1 days": "బుక్‌మార్క్ వయస్సు: %1 రోజులు",
+    "Border color": "అంచు రంగు",
     Brightness: "ప్రకాశం",
     "Browse folders": "ఫోల్డర్‌లను బ్రౌజ్ చేయండి",
     "Buffer Size, s": "బఫర్ పరిమాణం, s",
@@ -183,6 +188,7 @@ var keyStrings = {
     "Cloud transfer failed": "క్లౌడ్ బదిలీ విఫలమైంది",
     Code: "కోడ్",
     Color: "రంగు",
+    "Color schemes": "రంగుల పథకాలు",
     "Color spectrum": "రంగు స్పెక్ట్రం",
     "Command server": "కమాండ్ సర్వర్",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -319,6 +325,7 @@ var keyStrings = {
         "HTTP రిమోట్ కంట్రోల్‌ని అప్‌డేట్ చేయడం సాధ్యపడలేదు.",
     Country: "దేశం",
     "Create category": "వర్గాన్ని సృష్టించండి",
+    Custom: "అనుకూలం",
     current: "కరెంట్",
     "Debug enabled. Restart to apply.":
         "డీబగ్ ప్రారంభించబడింది. మార్పును వర్తింపజేయడానికి ప్లేయర్‌ను పునఃప్రారంభించండి.",
@@ -477,6 +484,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG మూలం తిరిగి HTTP %1",
     "EPG source: %1": "EPG మూలం: %1",
     "EPG stopped during: %1": "EPG ఈ సమయంలో ఆపివేయబడింది: %1",
+    "EPG time color": "EPG సమయ రంగు",
     "EPG unavailable on this browser": "EPG ఈ బ్రౌజర్‌లో అందుబాటులో లేదు",
     "EPG unavailable: %1": "EPG అందుబాటులో లేదు: %1",
     "EPG update failed; using saved programme guide":
@@ -545,6 +553,7 @@ var keyStrings = {
     "Hide / Return": "దాచు / చూపించు",
     "Hide provider settings?": "ప్రొవైడర్ సెట్టింగ్‌లను దాచాలా?",
     "Hide providers?": "ప్రొవైడర్లను దాచాలా?",
+    "High contrast": "అధిక వ్యత్యాసం",
     "History in Media Library": "మీడియా లైబ్రరీలో చరిత్ర",
     "History of watched movies": "చరిత్రను చూడండి",
     Home: "హోమ్",
@@ -552,6 +561,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP రిమోట్ కంట్రోల్ ఈ పరికరంలో అందుబాటులో లేదు.",
     "HTTPS support": "HTTPS మద్దతు",
+    Hue: "వర్ణఛాయ",
     ID: "ID",
     "Import settings": "సెట్టింగ్‌లను దిగుమతి చేయండి",
     "In live mode: <br/>": "ప్రత్యక్ష ప్రసారంలో:<br/>",
@@ -559,6 +569,8 @@ var keyStrings = {
     "Infobar display timeout, s": "సమాచార పట్టీ ప్రదర్శన సమయం ముగిసింది, s",
     "Infobar settings": "సమాచార పట్టీ సెట్టింగ్‌లు",
     Information: "సమాచారం",
+    Inherited: "వారసత్వంగా పొందినది",
+    "Interface colors": "ఇంటర్‌ఫేస్ రంగులు",
     "Interface credits": "ఇంటర్‌ఫేస్ రూపకర్తలు",
     "Interface mode": "ఇంటర్‌ఫేస్ మోడ్",
     "Interface settings": "ఇంటర్‌ఫేస్ సెట్టింగ్‌లు",
@@ -567,6 +579,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "చెల్లని ఛానెల్ లింక్! మీ ప్రొవైడర్ ఖాతా పేజీలో URL స్ట్రీమ్ నుండి పూర్తి హోస్ట్ పేరును నమోదు చేయండి (ఉదాహరణకు subdomain.cdn-domain.tld ).",
     "Invalid cloud settings response": "చెల్లని క్లౌడ్ సెట్టింగ్‌ల ప్రతిస్పందన",
+    "Invalid color value": "రంగు విలువ చెల్లదు",
     "Invalid protected source configuration": "చెల్లని రక్షిత మూల కాన్ఫిగరేషన్",
     "Invalid range: %1-%2": "చెల్లని పరిధి: %1-%2",
     "Invalid setting": "చెల్లని సెట్టింగ్",
@@ -578,6 +591,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV సెట్టింగ్‌లు",
     "Label (optional)": "పేరు (ఐచ్ఛికం)",
+    Light: "లేత",
     "List created": "జాబితా సృష్టించబడింది",
     "List deleted": "జాబితా తొలగించబడింది",
     "List location": "జాబితా స్థానం",
@@ -639,6 +653,7 @@ var keyStrings = {
     "Media Library URL": "మీడియా లైబ్రరీ URL",
     Menu: "మెను",
     "Menu items settings": "మెనూ ఐటెమ్ సెట్టింగ్‌లు",
+    Midnight: "అర్ధరాత్రి",
     Modern: "ఆధునికం",
     "Modern interface is unavailable. Classic remains active.":
         "ఆధునిక ఇంటర్‌ఫేస్ అందుబాటులో లేదు. క్లాసిక్ సక్రియంగా ఉంటుంది.",
@@ -683,6 +698,7 @@ var keyStrings = {
     no: "కాదు",
     "no epg at current time": "ప్రస్తుత సమయంలో EPG లేదు",
     "not set": "సెట్ చేయబడలేదు",
+    Ocean: "మహాసముద్రం",
     Off: "ఆఫ్",
     Ok: "సరే",
     On: "ఆన్",
@@ -718,6 +734,7 @@ var keyStrings = {
         "జత చేసే సర్వర్ అందుబాటులో లేదు. మళ్లీ ప్రయత్నించడానికి సర్వర్‌ని మళ్లీ కనుగొనండి.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "జత చేయడం తిరస్కరించబడింది లేదా చెల్లని ఆమోదాన్ని అందించింది. మళ్లీ ప్రయత్నించడానికి సర్వర్‌ని మళ్లీ కనుగొనండి.",
+    Palette: "రంగుల పాలెట్",
     "Parental control": "తల్లిదండ్రుల నియంత్రణ",
     Password: "పాస్‌వర్డ్",
     "Paste settings JSON": "సెట్టింగులను అతికించండి JSON",
@@ -763,6 +780,7 @@ var keyStrings = {
     Prepaid: "ప్రీపెయిడ్",
     "Preparing secure remote input...": "సురక్షిత రిమోట్ ఇన్‌పుట్‌ని సిద్ధం చేస్తోంది...",
     Prev: "మునుపటి",
+    Preview: "పరిదృశ్యం",
     "Preview in channel list": "ఛానెల్ జాబితాలో ప్రివ్యూ",
     Previous: "మునుపటి",
     "Privacy policy": "గోప్యతా విధానం",
@@ -892,6 +910,7 @@ var keyStrings = {
     Search: "శోధన",
     "Search languages": "భాషలను శోధించండి",
     "Search programme": "కార్యక్రమాన్ని వెతకండి",
+    "Secondary text color": "ద్వితీయ వచన రంగు",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "సురక్షిత రిమోట్ ఇన్‌పుట్ ప్రారంభం కాలేదు. దయచేసి మళ్లీ ప్రయత్నించండి లేదా ఆన్-స్క్రీన్ కీబోర్డ్‌ని ఉపయోగించండి.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -911,6 +930,8 @@ var keyStrings = {
     "Select screenshot source in browser": "బ్రౌజర్‌లో స్క్రీన్‌షాట్ మూలాన్ని ఎంచుకోండి",
     "Select the player tab or window in the browser sharing dialog.":
         "బ్రౌజర్ షేరింగ్ డైలాగ్‌లో ప్లేయర్ ట్యాబ్ లేదా విండోను ఎంచుకోండి.",
+    "Selected item": "ఎంచుకున్న అంశం",
+    "Selected text color": "ఎంచుకున్న వచన రంగు",
     "Send request": "అభ్యర్థన పంపండి",
     "Send settings": "సెట్టింగ్‌లను పంపండి",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1020,6 +1041,7 @@ var keyStrings = {
     "Subscription information": "సబ్‌స్క్రిప్షన్ సమాచారం",
     Subtitle: "ఉపశీర్షికలు",
     "Subtitle appearance": "ఉపశీర్షికల రూపం",
+    "Surface color": "ఉపరితల రంగు",
     Switch: "మారండి",
     "Switch sound track": "ఆడియో ట్రాక్‌ని మార్చండి",
     "Switch subtitle": "ఉపశీర్షికలను మార్చండి",
@@ -1120,6 +1142,7 @@ var keyStrings = {
         "రిమోట్ డయాగ్నస్టిక్స్ కోసం HTTPS కమాండ్ సర్వర్‌ని ఉపయోగించండి.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "చిరునామాలో వినియోగదారు పేరు లేదా పాస్‌వర్డ్ లేకుండా HTTP లేదా HTTPSని ఉపయోగించండి.",
+    "Use inherited color": "వారసత్వంగా పొందిన రంగును ఉపయోగించు",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "నియంత్రణను ఎంచుకోవడానికి ఎడమ/కుడి, దాన్ని సక్రియం చేయడానికి సరే మరియు స్క్రోల్ చేయడానికి పైకి/క్రిందికి ఉపయోగించండి.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1143,6 +1166,7 @@ var keyStrings = {
         "VPortalని లోడ్ చేయడం సాధ్యపడలేదు. లింక్, యాక్సెస్ కీ మరియు పోర్టల్ లభ్యతను తనిఖీ చేయండి.",
     volume: "శబ్ద స్థాయి",
     "Waiting for sign-in…": "సైన్-ఇన్ కోసం వేచి ఉంది…",
+    "Warm graphite": "వెచ్చని గ్రాఫైట్",
     "Wrong parental code !!!": "తల్లిదండ్రుల కోడ్ తప్పు!",
     "Xtream Codes Provider": "Xtream కోడ్‌ల ప్రదాత",
     "Xtream Codes settings": "Xtream కోడ్‌ల సెట్టింగ్‌లు",

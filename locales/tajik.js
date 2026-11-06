@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Плеер фармонро рад кард. Таъминкунанда ва танзимоти онро санҷед.",
     About: "Дар бораи барнома",
+    "Accent color": "Ранги таъкид",
     "Access code": "Рамзи дастрасӣ",
     "Access denied. Check the server access code.":
         "Дастрасӣ рад шуд. Рамзи дастрасии серверро санҷед.",
@@ -85,6 +86,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Хатои API, кӯшиши M3U…",
     "API Server": "Сервери API",
     "API server URL": "URL-и сервери API",
+    Apply: "Татбиқ",
+    "Apply changes to this draft, then use Save Settings.":
+        "Тағйиротро ба ин пешнавис татбиқ кунед, сипас «Танзимотро захира кунед»-ро интихоб кунед.",
     "Applying HTTP remote settings...":
         "Танзимоти идоракунии дурдасти HTTP татбиқ мешаванд…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Кабуд",
     "Bookmark age (days): %1": "Синну соли хатчӯб (рӯзҳо): %1",
     "Bookmark age: %1 days": "Муҳлати нишона: %1 рӯз",
+    "Border color": "Ранги ҳошия",
     Brightness: "Равшанӣ",
     "Browse folders": "Дидани ҷузвдонҳо",
     "Buffer Size, s": "Андозаи буфер, с",
@@ -195,6 +200,7 @@ var keyStrings = {
     "Cloud transfer failed": "Интиқоли абр ноком шуд",
     Code: "Рамз",
     Color: "Ранг",
+    "Color schemes": "Нақшаҳои ранг",
     "Color spectrum": "Спектри ранг",
     "Command server": "Сервери фармонҳо",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -336,6 +342,7 @@ var keyStrings = {
         "Идоракунии дурдасти HTTP нав карда нашуд.",
     Country: "Кишвар",
     "Create category": "Гурӯҳ созед",
+    Custom: "Фармоишӣ",
     current: "ҷорӣ",
     "Debug enabled. Restart to apply.":
         "Ислоҳи хатоҳо фаъол аст. Барои татбиқи тағйир плеерро аз нав оғоз кунед.",
@@ -499,6 +506,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Манбаи EPG HTTP %1 баргардонд",
     "EPG source: %1": "Манбаи EPG: %1",
     "EPG stopped during: %1": "EPG ҳангоми ин марҳила қатъ шуд: %1",
+    "EPG time color": "Ранги вақти EPG",
     "EPG unavailable on this browser": "EPG дар ин браузер дастрас нест",
     "EPG unavailable: %1": "EPG дастрас нест: %1",
     "EPG update failed; using saved programme guide":
@@ -570,6 +578,7 @@ var keyStrings = {
     "Hide / Return": "Пинҳон кунед / нишон диҳед",
     "Hide provider settings?": "Танзимоти таъминкунанда пинҳон карда шаванд?",
     "Hide providers?": "Таъминкунандагон пинҳон карда шаванд?",
+    "High contrast": "Контрасти баланд",
     "History in Media Library": "Таърих дар китобхонаи медиа",
     "History of watched movies": "Таърихи тамошо",
     Home: "Асосӣ",
@@ -577,6 +586,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Идоракунии дурдасти HTTP дар ин дастгоҳ дастрас нест.",
     "HTTPS support": "Дастгирии HTTPS",
+    Hue: "Тобиши ранг",
     ID: "ID",
     "Import settings": "Воридоти танзимот",
     "In live mode: <br/>": "Дар ҳолати пахши зинда:<br/>",
@@ -584,6 +594,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Давомнокии намоиши навори иттилоотӣ, с",
     "Infobar settings": "Танзимоти навори иттилоотӣ",
     Information: "Маълумот",
+    Inherited: "Меросгирифта",
+    "Interface colors": "Рангҳои интерфейс",
     "Interface credits": "Саҳмгузорони интерфейс",
     "Interface mode": "Ҳолати интерфейс",
     "Interface settings": "Танзимоти интерфейс",
@@ -592,6 +604,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Пайванди канал нодуруст аст! Номи пурраи мизбонро аз URL-и пахш дар ҳисоби таъминкунанда ворид кунед (масалан subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Ҷавоби танзимоти абр нодуруст",
+    "Invalid color value": "Қимати ранг нодуруст аст",
     "Invalid protected source configuration":
         "Танзимоти манбаи ҳифзшуда нодуруст аст",
     "Invalid range: %1-%2": "Диапазони нодуруст: %1-%2",
@@ -604,6 +617,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Танзимоти KORONA TV",
     "Label (optional)": "Ном (ихтиёрӣ)",
+    Light: "Равшан",
     "List created": "Рӯйхат сохта шуд",
     "List deleted": "Рӯйхат нест шуд",
     "List location": "Ҷойгиршавии рӯйхат",
@@ -666,6 +680,7 @@ var keyStrings = {
     "Media Library URL": "URL-и китобхонаи медиа",
     Menu: "Меню",
     "Menu items settings": "Танзимоти бандҳои меню",
+    Midnight: "Нисфи шаб",
     Modern: "Муосир",
     "Modern interface is unavailable. Classic remains active.":
         "Интерфейси муосир дастнорас аст. Интерфейси классикӣ фаъол мемонад.",
@@ -712,6 +727,7 @@ var keyStrings = {
     no: "не",
     "no epg at current time": "Дар вақти ҷорӣ EPG нест",
     "not set": "муайян нашудааст",
+    Ocean: "Уқёнус",
     Off: "Хомӯш",
     Ok: "Хуб",
     On: "Фаъол",
@@ -747,6 +763,7 @@ var keyStrings = {
         "Сервери ҷуфткунӣ дастрас нест. Барои кӯшиши дубора серверро боз ёбед.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Ҷуфткунӣ рад шуд ё тасдиқи нодуруст баргашт. Барои кӯшиши дубора серверро боз ёбед.",
+    Palette: "Палитра",
     "Parental control": "Назорати волидайн",
     Password: "Гузарвожа",
     "Paste settings JSON": "JSON-и танзимотро гузоред",
@@ -793,6 +810,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Вуруди дурдасти бехатар омода мешавад…",
     Prev: "Пешина",
+    Preview: "Пешнамоиш",
     "Preview in channel list": "Пешнамоиш дар рӯйхати каналҳо",
     Previous: "Пешина",
     "Privacy policy": "Сиёсати махфият",
@@ -926,6 +944,7 @@ var keyStrings = {
     Search: "Ҷустуҷӯ",
     "Search languages": "Ҷустуҷӯи забонҳо",
     "Search programme": "Барномаро ҷустуҷӯ кунед",
+    "Secondary text color": "Ранги матни дуюмдараҷа",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Вуруди дурдасти бехатар оғоз нашуд. Дубора кӯшиш кунед ё клавиатураи экранро истифода баред.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -948,6 +967,8 @@ var keyStrings = {
         "Дар браузер манбаи скриншотро интихоб кунед",
     "Select the player tab or window in the browser sharing dialog.":
         "Дар муколамаи мубодилаи браузер ҷадвал ё равзанаи плеерро интихоб кунед.",
+    "Selected item": "Унсури интихобшуда",
+    "Selected text color": "Ранги матни интихобшуда",
     "Send request": "Дархост фиристед",
     "Send settings": "Танзимотро фиристед",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1062,6 +1083,7 @@ var keyStrings = {
     "Subscription information": "Маълумоти обуна",
     Subtitle: "Зернависҳо",
     "Subtitle appearance": "Намуди зернависҳо",
+    "Surface color": "Ранги сатҳ",
     Switch: "Иваз кунед",
     "Switch sound track": "Роҳи садоро иваз кунед",
     "Switch subtitle": "Зернависҳоро иваз кунед",
@@ -1168,6 +1190,7 @@ var keyStrings = {
         "Барои ташхиси дурдаст сервери фармонҳои HTTPS-ро истифода баред.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "HTTP ё HTTPS-ро бе номи корбар ва гузарвожа дар суроға истифода баред.",
+    "Use inherited color": "Истифодаи ранги меросгирифта",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Барои интихоби идора чап/рост, барои фаъолсозӣ OK ва барои ҳаракати матн боло/поёнро истифода баред.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1193,6 +1216,7 @@ var keyStrings = {
         "VPortal бор нашуд. Пайванд, калиди дастрасӣ ва дастрасии порталро санҷед.",
     volume: "баландии садо",
     "Waiting for sign-in…": "Интизори воридшавӣ…",
+    "Warm graphite": "Графити гарм",
     "Wrong parental code !!!": "Рамзи назорати волидайн нодуруст аст!",
     "Xtream Codes Provider": "Таъминкунандаи Xtream Codes",
     "Xtream Codes settings": "Танзимоти Xtream Codes",

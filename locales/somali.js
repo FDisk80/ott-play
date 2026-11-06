@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Daaruhu wuu diiday amarka. Hubi bixiyaha iyo dejintiisa.",
     About: "Ku saabsan",
+    "Accent color": "Midabka xoojinta",
     "Access code": "Koodhka gelitaanka",
     "Access denied. Check the server access code.":
         "Gelitaanka waa la diiday. Hubi koodhka gelitaanka seerfarka.",
@@ -85,6 +86,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API waa fashilmay, M3U ayaa la tijaabinayaa…",
     "API Server": "Seerfarka API",
     "API server URL": "URL-ka seerfarka API",
+    Apply: "Dabaq",
+    "Apply changes to this draft, then use Save Settings.":
+        "Isbeddellada ku dabaq qabyo-qoraalkan, dabadeed dooro Kaydi dejinta.",
     "Applying HTTP remote settings...":
         "Dejinta xakamaynta fog ee HTTP ayaa la adeegsanayaa...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Buluug",
     "Bookmark age (days): %1": "Da'da bookmark (maalmo): %1",
     "Bookmark age: %1 days": "Da'da calaamadda: %1 maalmood",
+    "Border color": "Midabka xadka",
     Brightness: "Iftiinka",
     "Browse folders": "Dhex mar galalka",
     "Buffer Size, s": "Cabbirka kaydka sugitaanka, ilb",
@@ -196,6 +201,7 @@ var keyStrings = {
     "Cloud transfer failed": "Wareejinta daruurtu waa fashilantay",
     Code: "Koodh",
     Color: "Midab",
+    "Color schemes": "Qorshayaasha midabada",
     "Color spectrum": "Kala duwanaanta midabada",
     "Command server": "Seerfarka amarrada",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -336,6 +342,7 @@ var keyStrings = {
         "Xakamaynta fog ee HTTP lama cusboonaysiin karin.",
     Country: "Dalka",
     "Create category": "Abuur qayb",
+    Custom: "Gaar loo habeeyey",
     current: "hadda",
     "Debug enabled. Restart to apply.":
         "Cillad-baarista waa la shiday. Dib u bilow si aad u adeegsato.",
@@ -500,6 +507,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Isha EPG waxay soo celisay HTTP %1",
     "EPG source: %1": "Isha EPG: %1",
     "EPG stopped during: %1": "EPG wuxuu joogsaday intii lagu jiray: %1",
+    "EPG time color": "Midabka waqtiga EPG",
     "EPG unavailable on this browser": "EPG lagama heli karo biraawsarkan",
     "EPG unavailable: %1": "EPG lama heli karo: %1",
     "EPG update failed; using saved programme guide":
@@ -576,6 +584,7 @@ var keyStrings = {
     "Hide / Return": "Qari / muuji",
     "Hide provider settings?": "Ma la qariyaa dejinta bixiyaha?",
     "Hide providers?": "Ma la qariyaa bixiyeyaasha?",
+    "High contrast": "Kala duwanaansho sare",
     "History in Media Library": "Taariikhda maktabadda warbaahinta",
     "History of watched movies": "Taariikhda daawashada",
     Home: "Bogga hore",
@@ -583,6 +592,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Kontoroolka fog ee HTTP lagama heli karo qalabkan.",
     "HTTPS support": "Taageerada HTTPS",
+    Hue: "Nooca midabka",
     ID: "Aqoonsiga",
     "Import settings": "Soo geli dejinta",
     "In live mode: <br/>": "Marka si toos ah loo daawanayo:<br/>",
@@ -590,6 +600,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Muddada muujinta barta xogta, ilbiriqsi",
     "Infobar settings": "Dejinta barta xogta",
     Information: "Macluumaad",
+    Inherited: "La dhaxlay",
+    "Interface colors": "Midabada isdhexgalka",
     "Interface credits": "Ka qaybqaatayaasha isdhexgalka",
     "Interface mode": "Qaabka muuqaalka",
     "Interface settings": "Dejinta isdhexgalka",
@@ -599,6 +611,7 @@ var keyStrings = {
         "Xidhiidhka kanaalku sax ma aha! Geli magaca martigeliyaha oo dhan sida uu ugu qoran yahay URL-ka baahinta ee akoonka (tusaale subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Jawaabta habaynta daruuraha ee aan sax ahayn",
+    "Invalid color value": "Qiimaha midabku ma saxna",
     "Invalid protected source configuration":
         "Dejinta isha la ilaaliyey sax ma aha",
     "Invalid range: %1-%2": "Xad aan sax ahayn: %1-%2",
@@ -611,6 +624,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Dejinta KORONA TV",
     "Label (optional)": "Magac (ikhtiyaari)",
+    Light: "Iftiin",
     "List created": "Liiska waa la abuuray",
     "List deleted": "Liiska waa la tirtiray",
     "List location": "Booska liiska",
@@ -676,6 +690,7 @@ var keyStrings = {
     "Media Library URL": "URL-ka maktabadda warbaahinta",
     Menu: "Liiska xulashooyinka",
     "Menu items settings": "Dejinta qodobka liiska xulashooyinka",
+    Midnight: "Saqda dhexe",
     Modern: "Casri",
     "Modern interface is unavailable. Classic remains active.":
         "Muuqaalka casriga ah lama heli karo. Kii caadiga ahaa wuu sii shaqaynayaa.",
@@ -721,6 +736,7 @@ var keyStrings = {
     no: "maya",
     "no epg at current time": "Xogta EPG ee waqtigan lama hayo",
     "not set": "lama dejin",
+    Ocean: "Badweyn",
     Off: "Dansan",
     Ok: "Hagaag",
     On: "Shidan",
@@ -756,6 +772,7 @@ var keyStrings = {
         "Seerfarka lammaanaynta lama heli karo. Mar kale raadi seerfarka si aad dib ugu tijaabiso.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Lammaanaynta waa la diiday ama oggolaansho aan sax ahayn ayaa la soo celiyey. Mar kale raadi seerfarka si aad dib ugu tijaabiso.",
+    Palette: "Looxa midabada",
     "Parental control": "Xakamaynta waalidka",
     Password: "Furaha sirta ah",
     "Paste settings JSON": "Ku dheji JSON-ka dejinta",
@@ -802,6 +819,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Waxaa la diyaarinayaa gelinta fog ee sugan...",
     Prev: "Kii hore",
+    Preview: "Aragti hore",
     "Preview in channel list": "Hordhaca muuqaalka ee liiska kanaallada",
     Previous: "Kii hore",
     "Privacy policy": "Siyaasadda asturnaanta",
@@ -941,6 +959,7 @@ var keyStrings = {
     Search: "Raadi",
     "Search languages": "Raadi luqadaha",
     "Search programme": "Raadi barnaamij",
+    "Secondary text color": "Midabka qoraalka labaad",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Gelinta fog ee sugan way bilaaban weyday. Fadlan mar kale isku day ama isticmaal kiiboodhka shaashadda.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -960,6 +979,8 @@ var keyStrings = {
     "Select screenshot source in browser": "Dooro isha shaashadda ee browserka",
     "Select the player tab or window in the browser sharing dialog.":
         "Dooro tabka ama daaqadda barnaamijka warbaahinta ee sanduuqa wadaagista barowsarka.",
+    "Selected item": "Shayga la doortay",
+    "Selected text color": "Midabka qoraalka la doortay",
     "Send request": "Dir codsi",
     "Send settings": "Dir dejinta",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1073,6 +1094,7 @@ var keyStrings = {
     "Subscription information": "Macluumaadka isdiiwaangelinta",
     Subtitle: "Qoraal-hoosaadyo",
     "Subtitle appearance": "Muuqaalka qoraal-hoosaadka",
+    "Surface color": "Midabka dusha",
     Switch: "Beddel",
     "Switch sound track": "Beddel jidka codka",
     "Switch subtitle": "Beddel qoraal-hoosaadyada",
@@ -1184,6 +1206,7 @@ var keyStrings = {
         "U isticmaal baaritaanka fog ee cilladaha seerfar amarrada qaabila oo HTTPS ah.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Isticmaal HTTP ama HTTPS oo aan cinwaanka ku lahayn magaca isticmaalaha ama furaha sirta ah.",
+    "Use inherited color": "Isticmaal midabka la dhaxlay",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Isticmaal BIDIX/MIDIG si aad u doorato badhan, HAGAAG si aad u hawlgeliso, iyo KOR/HOOS si aad u rogto.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1208,6 +1231,7 @@ var keyStrings = {
         "VPortal waa la soo rari waayey. Hubi xidhiidhka, furaha gelitaanka iyo in bogga adeegga la heli karo.",
     volume: "codka",
     "Waiting for sign-in…": "Waxaa la sugayaa gelitaanka…",
+    "Warm graphite": "Garaafayt diirran",
     "Wrong parental code !!!": "Koodhka waalidku waa khaldan yahay!",
     "Xtream Codes Provider": "Bixiyaha Xtream Codes",
     "Xtream Codes settings": "Dejinta Xtream Codes",

@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Плеер отклонил команду. Проверьте провайдера и настройки.",
     About: "О программе",
+    "Accent color": "Акцентный цвет",
     "Access code": "Код доступа",
     "Access denied. Check the server access code.":
         "Доступ запрещён. Проверьте код доступа к серверу.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Ошибка API, пробуем M3U…",
     "API Server": "Сервер API",
     "API server URL": "Адрес сервера API",
+    Apply: "Применить",
+    "Apply changes to this draft, then use Save Settings.":
+        "Примените изменения к этому черновику, затем выберите Сохранить настройки.",
     "Applying HTTP remote settings...": "Применение настроек HTTP-пульта...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Подтвердите код для %1 командой ott approve NAME CODE:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "Синий",
     "Bookmark age (days): %1": "Давность закладки (дни): %1",
     "Bookmark age: %1 days": "Давность закладки: %1 дн.",
+    "Border color": "Цвет рамки",
     Brightness: "Яркость",
     "Browse folders": "Просмотр по папкам",
     "Buffer Size, s": "Размер буфера, с",
@@ -189,6 +194,7 @@ var keyStrings = {
     "Cloud transfer failed": "Не удалось передать данные через облако",
     Code: "Код",
     Color: "Цвет",
+    "Color schemes": "Цветовые схемы",
     "Color spectrum": "Цветовая палитра",
     "Command server": "Сервер команд",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -328,6 +334,7 @@ var keyStrings = {
         "Не удалось изменить настройки HTTP-пульта.",
     Country: "Страна",
     "Create category": "Создать категорию",
+    Custom: "Свой вариант",
     current: "текущий",
     "Debug enabled. Restart to apply.":
         "Отладка включена. Перезапустите плеер, чтобы применить изменения.",
@@ -491,6 +498,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Источник EPG вернул HTTP %1",
     "EPG source: %1": "Источник EPG: %1",
     "EPG stopped during: %1": "Этап сбоя: %1",
+    "EPG time color": "Цвет времени в EPG",
     "EPG unavailable on this browser": "EPG недоступна в этом браузере",
     "EPG unavailable: %1": "EPG недоступна: %1",
     "EPG update failed; using saved programme guide":
@@ -561,6 +569,7 @@ var keyStrings = {
     "Hide / Return": "Скрыть / показать",
     "Hide provider settings?": "Скрыть настройки провайдера?",
     "Hide providers?": "Скрыть провайдеров?",
+    "High contrast": "Высокий контраст",
     "History in Media Library": "История в медиатеке",
     "History of watched movies": "История просмотра",
     Home: "Главная",
@@ -568,6 +577,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP-пульт недоступен на этом устройстве.",
     "HTTPS support": "Поддержка HTTPS",
+    Hue: "Цветовой тон",
     ID: "ID",
     "Import settings": "Импорт настроек",
     "In live mode: <br/>": "В прямом эфире:<br/>",
@@ -575,6 +585,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Время показа инфопанели, с",
     "Infobar settings": "Настройки инфопанели",
     Information: "Информация",
+    Inherited: "Унаследовано",
+    "Interface colors": "Цвета интерфейса",
     "Interface credits": "Авторы интерфейса",
     "Interface mode": "Режим интерфейса",
     "Interface settings": "Настройки интерфейса",
@@ -583,6 +595,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Некорректная ссылка на канал! Укажите полный хост как в URL потока в кабинете (например subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Облако вернуло некорректные настройки",
+    "Invalid color value": "Недопустимое значение цвета",
     "Invalid protected source configuration":
         "Неверная конфигурация защищённого источника",
     "Invalid range: %1-%2": "Неверный диапазон: %1-%2",
@@ -595,6 +608,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Настройки KORONA TV",
     "Label (optional)": "Название (необязательно)",
+    Light: "Светлая",
     "List created": "Список создан",
     "List deleted": "Список удалён",
     "List location": "Расположение списка",
@@ -657,6 +671,7 @@ var keyStrings = {
     "Media Library URL": "Адрес медиатеки",
     Menu: "Меню",
     "Menu items settings": "Настройки пунктов меню",
+    Midnight: "Полночь",
     Modern: "Современный",
     "Modern interface is unavailable. Classic remains active.":
         "Современный интерфейс недоступен. Классический остаётся активным.",
@@ -703,6 +718,7 @@ var keyStrings = {
     no: "нет",
     "no epg at current time": "Нет программы на текущее время",
     "not set": "не задано",
+    Ocean: "Океан",
     Off: "Выключено",
     Ok: "ОК",
     On: "Включен",
@@ -738,6 +754,7 @@ var keyStrings = {
         "Сервер сопряжения недоступен. Повторите поиск сервера, чтобы попробовать снова.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Сопряжение отклонено или получено неверное подтверждение. Повторите поиск сервера, чтобы попробовать снова.",
+    Palette: "Палитра",
     "Parental control": "Родительский контроль",
     Password: "Пароль",
     "Paste settings JSON": "Вставьте настройки в формате JSON",
@@ -784,6 +801,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Подготовка защищённого удалённого ввода...",
     Prev: "Предыдущая",
+    Preview: "Предпросмотр",
     "Preview in channel list": "Предпросмотр в списке каналов",
     Previous: "Предыдущий канал",
     "Privacy policy": "Политика конфиденциальности",
@@ -916,6 +934,7 @@ var keyStrings = {
     Search: "Поиск",
     "Search languages": "Поиск языков",
     "Search programme": "Поиск передачи",
+    "Secondary text color": "Цвет второстепенного текста",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Не удалось начать защищённый удалённый ввод. Повторите попытку или используйте экранную клавиатуру.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -935,6 +954,8 @@ var keyStrings = {
     "Select screenshot source in browser": "Выбрать источник снимка в браузере",
     "Select the player tab or window in the browser sharing dialog.":
         "Выберите вкладку или окно плеера в диалоге показа экрана браузера.",
+    "Selected item": "Выбранный элемент",
+    "Selected text color": "Цвет выделенного текста",
     "Send request": "Отправить запрос",
     "Send settings": "Отправить настройки",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1049,6 +1070,7 @@ var keyStrings = {
     "Subscription information": "Информация о подписке",
     Subtitle: "Субтитры",
     "Subtitle appearance": "Оформление субтитров",
+    "Surface color": "Цвет поверхности",
     Switch: "Переключить",
     "Switch sound track": "Сменить звуковую дорожку",
     "Switch subtitle": "Сменить субтитры",
@@ -1157,6 +1179,7 @@ var keyStrings = {
         "Для удалённой диагностики используйте сервер управления с HTTPS.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Используйте HTTP или HTTPS без имени пользователя и пароля в адресе.",
+    "Use inherited color": "Использовать унаследованный цвет",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ВЛЕВО/ВПРАВО — выбрать элемент, OK — выполнить действие, ВВЕРХ/ВНИЗ — прокрутить.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1182,6 +1205,7 @@ var keyStrings = {
         "Не удалось загрузить VPortal. Проверьте ссылку, ключ и доступность портала.",
     volume: "громкость",
     "Waiting for sign-in…": "Ожидание входа…",
+    "Warm graphite": "Тёплый графит",
     "Wrong parental code !!!": "Неверный родительский код !!!",
     "Xtream Codes Provider": "Провайдер Xtream Codes",
     "Xtream Codes settings": "Настройки Xtream Codes",
