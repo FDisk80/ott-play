@@ -41,8 +41,9 @@ under **Settings → Interface** in both Classic and Modern presentation.
 after native confirmation, independently of Save Settings. They keep the page
 and its other pending edits open; Cancel does not undo a native window change.
 
-Lock window to 16:9 defaults to off and is saved separately for each desktop
-instance. It constrains the native content area during interactive resizing;
+Lock window to 16:9 defaults to on for new desktop instances and is saved
+separately for each instance. An explicitly saved off value remains off.
+It constrains the native content area during interactive resizing;
 video aspect ratio and the independent PiP window keep their existing controls.
 This feature requires native acceptance before release; see the
 [implementation, platform limits and smoke checks](native-window-aspect-lock.md).

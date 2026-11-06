@@ -52,9 +52,7 @@ entries; the importer cannot reconstruct identity that the old data never record
 Installation libraries and clients declaring `stableRequests` resolve saved request
 IDs directly, without reloading the originating folder. A client's optional
 `persist(payload)` projection removes access URLs and credentials before journal
-writes while retaining stable identity and resume metadata. An independent NAS
-library owns its client, journal and catalog separately from the TV provider;
-browsing another library preserves the current NAS playback checkpoint owner.
+writes while retaining stable identity and resume metadata.
 
 `src/media/journal.ts` stores version 1 documents at
 `mediaJournal.v1:<sourceId>`. Kotlin `mediaCollectionChange` owns deduplication,
@@ -181,9 +179,6 @@ picker, and failures use a generic non-modal notice. Navigation, manual playback
 Stop and source replacement still revoke obsolete automatic work; cancelling
 only automatic work leaves a foreground request intact. Repeated episode changes
 reuse the current screen ownership binding instead of accumulating cleanups.
-NAS playback leases also retain their request lane: cancelling automatic work
-cannot release a foreground lease, and starting another episode waits for the
-previous lease to stop without cancelling an open catalog request.
 Regression tests cover both catalog/episode completion orders and confirming
 SWOP input across a real browser media-ended event.
 

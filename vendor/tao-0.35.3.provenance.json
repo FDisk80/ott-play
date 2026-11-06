@@ -128,8 +128,15 @@
     "src/window.rs": "1c3d9ea5812f08c1c0fc70a0f15e539e8f224b6ce05063f1233da82b2e7c9eb4"
   },
   "patchedFiles": {
+    "src/platform/unix.rs": "2be7357aabe1978d2fed9b74e86b4d1b3b9b9d1adde8f4a923bf2d6f0411e2f6",
+    "src/platform_impl/linux/event_loop.rs": "530fc837add5e5b32b1bc414a4f86eecd0aa927658fbf26386eb13599a899e59",
+    "src/platform_impl/linux/util.rs": "5f9bd9223306ce41046533e2a08151e7c68295b036c8e2d396faa0ff4b0a7b57",
+    "src/platform_impl/linux/window.rs": "6be7ea459c85437fcaf76aadacc902bf6fedee3c175e6ddfc862bcec294dc7f7",
+    "src/platform_impl/macos/window.rs": "d89988a00c1f613a478c7fdf3673e18957c52bd502e6717ebc93439406237c83",
     "src/platform_impl/macos/window_delegate.rs": "8a9f6851ebd230392e153347fec66eeebe4e5d938f3267b11d1f188d757ce983"
   },
   "patch": "tao-0.35.3-macos-drag-pasteboard.patch",
-  "patchSha256": "88a8afe7c02d79c83ca79c80294e759e50b4e8584abff0222c55cbab0c4839f3"
+  "patchSha256": "88a8afe7c02d79c83ca79c80294e759e50b4e8584abff0222c55cbab0c4839f3",
+  "aspectPatch": "tao-0.35.3-window-aspect.patch",
+  "aspectPatchSha256": "f3ea2ecfe236b8cda2d58001610a008b7fd02fde2742cf8ae804475a4337670e"
 }

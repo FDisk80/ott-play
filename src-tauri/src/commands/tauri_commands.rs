@@ -533,6 +533,13 @@ fn is_effectively_fullscreen(window: &tauri::Window) -> Result<bool, String> {
     Ok(native)
 }
 
+fn require_main_fullscreen_window(label: &str) -> Result<(), String> {
+    if label != "main" {
+        return Err("Fullscreen control is restricted to the main window".into());
+    }
+    Ok(())
+}
+
 /// Apply fullscreen without registering any global letter shortcut.
 ///
 /// On macOS prefer `set_simple_fullscreen` so the webview still receives L and
@@ -547,6 +554,7 @@ pub fn apply_fullscreen(
     window: &tauri::Window,
     fullscreen: bool,
 ) -> Result<(), String> {
+    require_main_fullscreen_window(window.label())?;
     #[cfg(target_os = "macos")]
     {
         use std::sync::atomic::Ordering;
@@ -717,6 +725,7 @@ pub async fn set_fullscreen(
     window: tauri::Window,
     fullscreen: bool,
 ) -> Result<FullscreenResult, String> {
+    require_main_fullscreen_window(window.label())?;
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
     confirmed_fullscreen(
         Some(fullscreen),
@@ -737,6 +746,7 @@ pub async fn toggle_fullscreen(
     app: tauri::AppHandle,
     window: tauri::Window,
 ) -> Result<FullscreenResult, String> {
+    require_main_fullscreen_window(window.label())?;
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
     confirmed_fullscreen(
         None,
@@ -757,6 +767,17 @@ mod fullscreen_confirmation_tests {
     use std::cell::Cell;
     use std::collections::VecDeque;
     use std::future::ready;
+
+    #[test]
+    fn fullscreen_admission_is_restricted_to_the_main_window() {
+        assert_eq!(require_main_fullscreen_window("main"), Ok(()));
+        for label in ["pip", "", "Main", "auxiliary"] {
+            assert_eq!(
+                require_main_fullscreen_window(label),
+                Err("Fullscreen control is restricted to the main window".into())
+            );
+        }
+    }
 
     #[tokio::test]
     async fn set_and_toggle_acknowledge_only_matching_readback() {

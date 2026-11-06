@@ -160,6 +160,18 @@
 
 ### Changes
 
+- Enable native 16:9 window constraints on Linux X11 while retaining current
+  size bounds and suspending the constraint in fixed window states. Enabling
+  or restoring it may immediately adjust the window size; disabling it does
+  not request a resize. Wayland continues to report the control as unavailable.
+- Apply explicit window-aspect changes before loading a saved default, so a
+  first disable request cannot briefly enable the constraint. Preserve a
+  confirmed native change if saving its preference fails and report the error.
+- Preserve the original macOS window size when Zoom is followed by fullscreen
+  and restore. Keep fullscreen commands isolated to the main window so PiP
+  cannot alter its saved geometry or aspect-lock state.
+- Verify Windows startup geometry before applying saved aspect-lock settings,
+  including independent launches with the setting enabled and disabled.
 - Reused the live local-folder handle when saving the startup cache while preserving source generation checks.
 - Fixed Enter confirmation and focus restoration in EPG and Classic color pickers.
 - Show confirmed native window state in Interface settings. Keep the current

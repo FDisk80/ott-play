@@ -36,8 +36,6 @@
     "allow-open-plex-sign-in",
     "allow-discover-control-servers",
     "allow-swop-http",
-    "allow-set-fullscreen",
-    "allow-toggle-fullscreen",
     "allow-prevent-sleep",
     "allow-allow-sleep",
     "allow-play-pip",

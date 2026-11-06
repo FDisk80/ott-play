@@ -187,9 +187,9 @@ an already running session. Launcher metadata changes still require a newer
 IPK. Installing an older IPK does not restore an older hosted player because
 its address remains the canonical site.
 
-The TV must be able to reach the HTTPS site. A local NAS provider additionally
-needs a route from the TV to that NAS; desktop SMB/AFP mount paths are not
-transferred to the television. Codec and DRM support remain those available
+The TV must be able to reach the HTTPS site. A Plex or other media server on the
+local network must also be reachable from the TV; desktop SMB/AFP mount paths
+are not transferred to the television. Codec and DRM support remain those available
 through this TV's webOS browser and playback engine.
 
 ## Troubleshooting

@@ -239,6 +239,9 @@ async fn appkit_activate_zoom(window: &tauri::WebviewWindow) -> Result<(), Strin
 async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, String> {
     let aux = main.app_handle().get_webview_window("pip").ok_or("Auxiliary fixture missing")?;
     let baseline = main.state::<AppKitBaseline>().0.clone();
+    // Initialization is asynchronous. Settle its default-ON constraint before
+    // taking any denial baseline, without a GET that could apply it lazily.
+    let initial = appkit_settled(&main, &baseline, true, false, Some(false), true, None).await?;
     let aux_before = appkit_snapshot(&aux).await?;
     let mut denials = Vec::new();
     if missing {
@@ -256,12 +259,32 @@ async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, St
     }
     for (command, args) in [
         ("set_always_on_top", json!({"alwaysOnTop": true})),
+        ("set_fullscreen", json!({"fullscreen": true})),
+        ("toggle_fullscreen", json!({})),
         ("get_window_aspect_lock", json!({})),
         ("set_window_aspect_lock", json!({"enabled": true})),
     ] {
-        denials.push(denied(&aux, command, args).await?);
+        let main_before = appkit_snapshot(&main).await?;
+        let main_state_before = aspect_state(&main, true, true).await?;
+        if main_before != initial || appkit_snapshot(&main).await? != main_before {
+            return Err("PiP denial baseline changed after initialization".into());
+        }
+        let mut denial = denied(&aux, command, args).await?;
+        // Observe native state before GET: a getter must not repair a mutation
+        // made by an unauthorized PiP command and hide it from this fixture.
+        let main_after = appkit_snapshot(&main).await?;
+        let main_state_after = aspect_state(&main, true, true).await?;
+        let main_after_get = appkit_snapshot(&main).await?;
+        if main_after != main_before || main_after_get != main_after {
+            return Err(format!("Denied PiP {command} changed the main AppKit window"));
+        }
+        denial["main_before"] = json!(main_before);
+        denial["main_after"] = json!(main_after);
+        denial["main_after_get"] = json!(main_after_get);
+        denial["main_state_before"] = main_state_before;
+        denial["main_state_after"] = main_state_after;
+        denials.push(denial);
     }
-    let initial = appkit_settled(&main, &baseline, true, false, Some(false), true, None).await?;
     if (initial.content_size[0] * 9.0 - initial.content_size[1] * 16.0).abs() <= 4.0 {
         return Err("AppKit fixture must start with non-16:9 content".into());
     }
@@ -327,6 +350,39 @@ async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, St
             "target": target, "event_count": event_count, "native": native, "state": state,
             "target_visible_frame": menu_target, "native_after_get": native_after_get}));
     }
+    // A fullscreen round-trip while maximized must not overwrite the normal
+    // frame retained by Zoom. Use the real menu again to restore that frame.
+    let mut mixed_transitions = Vec::new();
+    for (index, (kind, target)) in [
+        ("native_menu_zoom", true), ("set_fullscreen", true),
+        ("set_fullscreen", false), ("native_menu_zoom", false),
+    ].into_iter().enumerate() {
+        if kind == "native_menu_zoom" {
+            appkit_activate_zoom(&main).await?;
+        } else {
+            let reply = allowed(&main, "set_fullscreen", json!({"fullscreen": target})).await?;
+            if reply != json!({"ok": true, "fullscreen": target}) {
+                return Err(format!("Unconfirmed mixed fullscreen transition: {reply}"));
+            }
+        }
+        let restored = index == 3;
+        let native = appkit_settled(&main, &baseline, restored, index == 1,
+            if restored { Some(false) } else { None }, restored,
+            if index == 0 || index == 2 { Some(menu_target) } else { None }).await?;
+        let event_count = MENU_ZOOM_EVENTS.load(Ordering::SeqCst);
+        if event_count != if restored { 4 } else { 3 } {
+            return Err(format!("Unexpected mixed native Zoom event count: {event_count}"));
+        }
+        let state = aspect_state(&main, true, restored).await?;
+        let native_after_get = appkit_snapshot(&main).await?;
+        if native_after_get != native {
+            return Err("Aspect getter changed the mixed Zoom/fullscreen native state".into());
+        }
+        mixed_transitions.push(json!({"kind": kind, "target": target,
+            "menu_id": if kind == "native_menu_zoom" { Some("ott.window.zoom") } else { None },
+            "event_count": event_count, "native": native, "state": state,
+            "native_after_get": native_after_get, "target_visible_frame": menu_target}));
+    }
     let final_state = aspect(&main, Some(false), false).await?;
     let final_native = appkit_settled(&main, &baseline, false, false, Some(false), true, None).await?;
     if appkit_snapshot(&aux).await? != aux_before {
@@ -337,6 +393,7 @@ async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, St
         "observation": "owned AppKit constraint readback; geometry in points; no physical drag claim",
         "baseline": baseline, "initial": initial, "initial_state": initial_state,
         "set_sequence": sequence, "transitions": transitions, "menu_transitions": menu_transitions,
+        "mixed_transitions": mixed_transitions,
         "native_menu_activations": MENU_ZOOM_EVENTS.load(Ordering::SeqCst), "final": final_native,
         "final_state": final_state, "denials": denials, "aux_unchanged": true}))
 }

@@ -115,7 +115,7 @@
     "docs/xtream-media.md"
   ],
   "sourceSha256": {
-    "README.md": "a7f07d3347cc4fa038650134effa04daef133f323412709a577996faaf4029c5",
+    "README.md": "41734ff5a9be57717101e2da6fa35f96827abc4c021763fa563bcd2fe560bbb8",
     "docs/audio-video-check.md": "62bd56d6b55842826c140051d634d96dc3c06208c251aa8e187f7649ea9e0775",
     "docs/browser-compatibility.md": "09d121f6a314873c46b716e2af0cf0df1d5b95f3ae094210e511df53b727cda6",
     "docs/guide-binding-accessibility.md": "085cd59604f2dfcd25b2da8e5e0ef833eb0f07a906d8469f2d72a8706d3572e0",
@@ -125,7 +125,7 @@
     "docs/roadmap-delivery.md": "99d4923d39ce0536149f703eb43cbe40ec41c19eb50492a31c6cad48b78c80e2",
     "docs/roadmap-size.md": "a9587cbc8e73f265409a3b065d3f7b214eb836fd43e6e0f8a80e5ab0c562b94c",
     "docs/settings-recovery.md": "2c205fbaca04717a3160f5beeaaec3aef50547568ea40ae6dbfecdefc3ce0ba5",
-    "docs/wiki/Home.md": "6891996054e0c57bba66a8d47e361bb82679647cec93e71f586ec77ddc26c2a5",
+    "docs/wiki/Home.md": "d2c35f7d99242b3a2cfdba1c31225b95bf626f944cdabca021bd30ec09dd0226",
     "docs/xtream-media.md": "e3e02e17d2007cf49b09ad94bb57a9bb3a8a0dbc2fa593cabbcf89319fc97b06"
   }
 }

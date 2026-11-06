@@ -65,6 +65,13 @@ by `test_guide_service.cjs` and `test_guide_integration.cjs`.
 
 ## Screens and durable reminders
 
+Programme list rows show the local start time rather than a start/end range.
+The shared client keeps the start date to distinguish calendar days; native
+Records rows also retain that date. End timestamps remain part of the schedule
+and continue to control the current programme, archive interval and duration.
+They are not inferred from the next row: provider schedules may have gaps or
+overlaps, and alphabetical lists need not be in chronological order.
+
 `src/guide/screen.ts` owns the programme list and selection by programme ID.
 Time, alphabetical and completed-record views are derived from one accepted
 schedule. The classic codec resolves category positions at commit, captures PIN
@@ -88,6 +95,18 @@ inside the provider/M3U-slot storage scope. Provider keys remain portable throug
 existing raw backup/cloud export. Invalid, foreign and future documents are
 read-only. Writes require read-back before accepting new state. Storage reset
 revokes pending guide and reminder work before deleting data.
+
+A yellow marker before the programme date/time identifies an accepted timer in
+both chronological and alphabetical guide lists and in programme details. It is
+not shown while confirmation or durable saving is pending. Removal clears it;
+reloading a source restores its accepted markers. The renderer resolves the
+source, channel and programme identity from the reminder owner, not a list index,
+and omits ended programmes. Legacy timestamp reminders keep their existing
+unique-channel resolution. Row rendering does not read or rewrite storage.
+
+The native webOS guide uses the same committed-state rule through its native
+reminder book. Its Classic and Modern table presentations place the marker before
+the date detail, independently of the title's selection/favourite checkmark.
 
 Legacy `epgTimers` bytes are retained. Import claims the namespace containing the
 legacy bytes before scheduling: provider storage for provider records, global
