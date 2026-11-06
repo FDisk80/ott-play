@@ -194,6 +194,7 @@ jobs:
           python3 tests/test_android_app_update_recovery.py
           python3 tests/test_android_epg_editions.py
           python3 tests/test_android_local_media_availability.py
+          python3 tests/test_native_local_media_handoff.py --platform android
           python3 tests/test_android_network_policy.py
           npm run test:native-dash
           python3 tests/test_native_media_lifecycle.py --platform android
@@ -248,6 +249,7 @@ jobs:
           python3 tests/test_native_media_lifecycle.py --platform ios
           python3 tests/test_mobile_metadata_standby.py --platform ios
           python3 tests/test_mobile_local_paths.py --platform ios
+          python3 tests/test_native_local_media_handoff.py --platform ios
           python3 tests/test_native_epg_cache.py --platform ios
           python3 tests/test_native_xmltv_records.py --platform ios
           python3 tests/test_runtime_diagnostics_native.py --platform ios

@@ -1269,3 +1269,20 @@ async function flushScans() {
     console.error(error);
     process.exitCode = 1;
 });
+
+(async function sourceInventoryDoesNotTouchMedia() {
+    const f = fixture(10);
+    const value = await f.api.sources();
+    assert.equal(value.sources.length, 1);
+    assert.equal(value.sources[0].id, "source-movies");
+    assert.equal(value.sources[0].available, undefined);
+    assert.equal(f.reads(), 0);
+    assert.equal(f.iteratorReads(), 0);
+    assert.equal(f.permissionQueries(), 0);
+    console.log(
+        "PASS browser source inventory reads saved metadata without probing media"
+    );
+})().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});

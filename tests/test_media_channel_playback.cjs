@@ -1901,3 +1901,200 @@ for (const mode of ["play", "cancel", "guard", "kiosk", "missing"]) {
 console.log(
     "PASS single discovery item admission, cancellation, guards and unavailable source"
 );
+
+for (const action of [
+    "append",
+    "complete",
+    "pause",
+    "seek",
+    "stop",
+    "replace",
+]) {
+    const { c, end } = setup("offline");
+    c.parentalArray = [];
+    c.__ottParental = { needs: () => false };
+    c.checkMedia = () => {};
+    c.cats.All = [101];
+    c.curList = c.cList = c.cats.All;
+    c.channels = { 101: { __ottLocalSource: "folder", channel_name: "first" } };
+    c.getChannelUrl = (id) => "file-" + id + ".mp4";
+    while (c.__ottMedia.repeatMode() !== "off") c.__ottMedia.cycleRepeat();
+    let resume,
+        pending = true;
+    c.__ottLocalMedia = {
+        cancelQueueEnd() {
+            resume = null;
+        },
+        deferQueueEnd(source, callback) {
+            assert.equal(source, "folder");
+            if (!pending) return false;
+            resume = callback;
+            return true;
+        },
+    };
+    c._playChannel(0, 0);
+    const moves = [];
+    c.playChannel = (...args) => moves.push(args);
+    end();
+    assert.equal(moves.length, 0, action + " waits at an incomplete queue end");
+    assert.equal(typeof resume, "function");
+    if (["pause", "stop"].includes(action))
+        c.__ottClassicPlayback.command({ type: action });
+    if (action === "seek") c.__ottClassicPlayback.beforeSeek(1);
+    if (action === "replace")
+        c.__ottClassicPlayback.command({ channelId: 102, type: "live" });
+    if (action !== "complete") {
+        c.cats.All.push(102);
+        c.channels[102] = {
+            __ottLocalSource: "folder",
+            channel_name: "second",
+        };
+    }
+    pending = false;
+    if (resume) resume();
+    assert.equal(
+        moves.length,
+        action === "append" ? 1 : 0,
+        action + " respects EOF ownership"
+    );
+    if (moves.length) assert.equal(moves[0][1], 1);
+}
+console.log(
+    "PASS partial Local queue EOF waits for append and respects cancelled playback intent"
+);
+
+// Load the real policy: a folder lock allows every member, including the
+// current item, and therefore must not be mistaken for a single-file pin.
+const kioskPolicyCode = [
+    ["src/plugins/kiosk-video-progress.ts", "createKioskVideoProgress"],
+    ["src/plugins/strict-kiosk-input.ts", "createStrictKioskInput"],
+    ["src/plugins/kiosk.ts", "createKiosk"],
+]
+    .map(([file, name]) => sourceFunctions(file, [name]))
+    .join("\n");
+function restoreLocalKiosk(c, folder) {
+    vm.runInContext(kioskPolicyCode, c);
+    const saved = {
+        __ottKioskV1: JSON.stringify({
+            channel: { id: "101", name: "first" },
+            ...(folder ? { folder: { id: "folder", name: "Folder" } } : {}),
+            provider: "offline",
+            source: c.__ottSourceIdentity.current(c),
+            strict: true,
+        }),
+    };
+    c.stbGetItem = (key) => saved[key];
+    c.stbSetItem = (key, value) => (saved[key] = value);
+    c.__ottKiosk = c.createKiosk(c);
+    c.__ottKiosk.init();
+    assert.equal(c.__ottKiosk.locked(), true);
+    assert.equal(c.__ottKiosk.allowed(101), true);
+    assert.equal(c.__ottKiosk.folderLoop(), folder);
+}
+for (const repeat of ["off", "all", "one"]) {
+    for (const action of [
+        "append",
+        "complete",
+        "pause",
+        "seek",
+        "stop",
+        "replace",
+    ]) {
+        const { c, end } = setup("offline");
+        c.parentalArray = [];
+        c.__ottParental = { needs: () => false };
+        c.checkMedia = () => {};
+        c.cats.All = [101, 102];
+        c.curList = c.cList = c.cats.All;
+        c.channels = {
+            101: { __ottLocalSource: "folder", channel_name: "first" },
+            102: { __ottLocalSource: "other", channel_name: "unrelated" },
+        };
+        c.getChannelUrl = (id) => "file-" + id + ".mp4";
+        while (c.__ottMedia.repeatMode() !== repeat) c.__ottMedia.cycleRepeat();
+        restoreLocalKiosk(c, true);
+        assert.equal(c.__ottKiosk.allowed(102), false);
+        let resume,
+            pending = true;
+        c.__ottLocalMedia = {
+            cancelQueueEnd() {
+                resume = null;
+            },
+            deferQueueEnd(source, callback) {
+                assert.equal(source, "folder");
+                if (!pending) return false;
+                resume = callback;
+                return true;
+            },
+        };
+        c._playChannel(0, 0);
+        const moves = [];
+        c.playChannel = (...args) => moves.push(args);
+        end();
+        assert.equal(
+            moves.length,
+            0,
+            repeat + ": folder lock waits before wrapping an incomplete scan"
+        );
+        assert.equal(typeof resume, "function");
+        // An unrelated append must leave the folder's pending EOF deferred.
+        c.cats.All.push(103);
+        c.channels[103] = {
+            __ottLocalSource: "other",
+            channel_name: "unrelated append",
+        };
+        resume();
+        assert.equal(moves.length, 0);
+        if (["pause", "stop"].includes(action))
+            c.__ottClassicPlayback.command({ type: action });
+        if (action === "seek") c.__ottClassicPlayback.beforeSeek(1);
+        if (action === "replace")
+            c.__ottClassicPlayback.command({ channelId: 102, type: "live" });
+        if (action !== "complete") {
+            c.cats.All.push(104);
+            c.channels[104] = {
+                __ottLocalSource: "folder",
+                channel_name: "second",
+            };
+        }
+        pending = false;
+        if (resume) resume();
+        assert.equal(
+            moves.length,
+            ["append", "complete"].includes(action) ? 1 : 0,
+            repeat + ": " + action + " respects folder EOF ownership"
+        );
+        if (moves.length) {
+            assert.equal(moves[0][1], action === "append" ? 3 : 0);
+            assert.equal(moves[0][5], true);
+            assert.equal(moves[0][6], true);
+            c.__ottMedia.ended(c.__ottClassicPlayback.snapshot().generation);
+            assert.equal(moves.length, 1, "duplicate EOF cannot advance again");
+        }
+    }
+}
+{
+    const { c, end } = setup("offline");
+    c.parentalArray = [];
+    c.__ottParental = { needs: () => false };
+    c.checkMedia = () => {};
+    c.channels = {
+        101: { __ottLocalSource: "folder", channel_name: "first" },
+    };
+    c.getChannelUrl = (id) => "file-" + id + ".mp4";
+    restoreLocalKiosk(c, false);
+    c.__ottLocalMedia = {
+        deferQueueEnd() {
+            assert.fail("single-file pin must replay without waiting for scan");
+        },
+    };
+    c._playChannel(0, 0);
+    const moves = [];
+    c.playChannel = (...args) => moves.push(args);
+    end();
+    assert.equal(moves.length, 1);
+    assert.equal(moves[0][1], 0);
+}
+console.log(
+    "PASS real folder kiosk EOF waits across repeat modes and keeps single-file pin behavior"
+);

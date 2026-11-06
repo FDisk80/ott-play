@@ -628,6 +628,7 @@ function createOfflineDriver(
             ): void {
                 if (!current()) return;
                 clearLoadTimer();
+                if (media.queueProgress) media.queueProgress(null);
                 if (preview) preview.waiting = false;
                 revision++;
                 closeLoading();
@@ -850,6 +851,7 @@ function createOfflineDriver(
                     snapshot.selectedId = catalog.ids[0];
                 done(snapshot, undefined, incremental);
                 if (!current()) return false;
+                if (media.queueProgress) media.queueProgress(value);
                 if (preview && !incremental) {
                     preview.dispatching = false;
                     preview.playbackGeneration =

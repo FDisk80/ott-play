@@ -126,7 +126,16 @@ async function browserImportRegression(
                           {
                               kind: "directory",
                               name: "Nested",
-                              values: () => ({ next: () => blocked.promise }),
+                              values: () => {
+                                  let pending = true;
+                                  return {
+                                      next: () =>
+                                          pending
+                                              ? ((pending = false),
+                                                blocked.promise)
+                                              : Promise.resolve({ done: true }),
+                                  };
+                              },
                           },
                       ]
                     : Array.from({ length: options.count || 2 }, (_, at) =>
@@ -147,17 +156,20 @@ async function browserImportRegression(
                                       { name: options.iteratorError }
                                   )
                               )
-                            : options.blockIterator ||
-                                (options.blockAfterFirst && index > 0)
-                              ? blocked.promise
-                              : Promise.resolve(
-                                    index < entries.length
-                                        ? {
-                                              done: false,
-                                              value: entries[index++],
-                                          }
-                                        : { done: true }
-                                ),
+                            : options.blockIterator
+                              ? index++ === 0
+                                  ? blocked.promise
+                                  : Promise.resolve({ done: true })
+                              : options.blockAfterFirst && index > 0
+                                ? blocked.promise
+                                : Promise.resolve(
+                                      index < entries.length
+                                          ? {
+                                                done: false,
+                                                value: entries[index++],
+                                            }
+                                          : { done: true }
+                                  ),
                 };
             },
         };
@@ -398,8 +410,21 @@ async function browserImportRegression(
             action +
                 " activates as soon as its first readable file is available"
         );
-        assert.equal(f.reads(), 1, "the blocked second file is not awaited");
-        assert.equal(f.timers(), 0, "first-file handoff clears its scan timer");
+        assert.equal(
+            f.reads(),
+            2,
+            "playback starts while the background second read is pending"
+        );
+        assert.ok(
+            f.timers() > 0,
+            "the continuing scan retains its bounded read deadline"
+        );
+        if (action === "add-folder")
+            assert.equal(
+                f.enumerations(),
+                1,
+                "handoff never re-enumerates the folder"
+            );
         assert.equal(f.spinner(), false);
         assert.equal(
             f.writes(),
@@ -426,7 +451,11 @@ async function browserImportRegression(
             0,
             "manager does not traverse an older source first"
         );
-        assert.equal(prioritized.reads(), 1);
+        assert.equal(
+            prioritized.reads(),
+            2,
+            "the selected source continues scanning after first playback"
+        );
         assert.equal(prioritized.handoffs().length, 1);
         assert.match(
             prioritized.handoffs()[0],
@@ -456,7 +485,11 @@ async function browserImportRegression(
         "a later playable selected file starts ahead of older blocked sources"
     );
     assert.equal(mixed.reads(), 2, "both selected handles are checked once");
-    assert.equal(mixed.olderEnumerations(), 0);
+    assert.equal(
+        mixed.olderEnumerations(),
+        1,
+        "older sources continue only after the selected source started"
+    );
     assert.match(mixed.handoffs()[0], /^local-source-/);
 
     const unsupported = fixture({

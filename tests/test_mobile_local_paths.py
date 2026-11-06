@@ -90,7 +90,7 @@ class Harness(val directory: File) {
     fun query(uri: Uri, columns: Array<String>): Cursor? = Cursor(
         if (uri.kind == "children") documents[uri.document].orEmpty() else listOf(listOf("Movies")))
     fun saveSource(uri: Uri, name: String, kind: String) {}
-    fun sourceId(uri: Uri) = "source-${uri.tree}"
+    fun sourceId(uri: Uri) = "source-${uri}"
     fun openSource(item: JSONObject) = Media()
     fun metadata(): List<JSONObject> {
         metadataReads++
@@ -100,6 +100,11 @@ class Harness(val directory: File) {
 ''' + methods + r'''
     fun run() {
         val tree = Uri("selected")
+        val individualBeforeFolder = Uri("selected", "root-clip", "document")
+        val independent = JSONObject().put("id", "individual-before-folder")
+            .put("uri", individualBeforeFolder.toString()).put("grantUri", individualBeforeFolder.toString())
+            .put("sourceId", sourceId(individualBeforeFolder)).put("name", "Clip.mp4").put("mime", "video/mp4")
+        File(directory, "individual-before-folder.json").writeText(independent.toString())
         val legacy = JSONObject().put("id", "legacy").put("uri", Uri("selected", "nested-clip", "document").toString())
             .put("grantUri", tree.toString()).put("sourceId", sourceId(tree)).put("name", "Clip.mp4").put("mime", "video/mp4")
         File(directory, "legacy.json").writeText(legacy.toString())
@@ -109,6 +114,13 @@ class Harness(val directory: File) {
         val byUri = published.associateBy { it.getString("uri") }
         fun row(id: String) = byUri.getValue(Uri("selected", id, "document").toString())
         check(row("root-clip").getString("relativePath") == "Clip.mp4")
+        check(row("root-clip").getString("id") != independent.getString("id"))
+        check(row("root-clip").getString("grantUri") == tree.toString())
+        check(JSONObject(File(directory, "individual-before-folder.json").readText()).getString("grantUri") == individualBeforeFolder.toString())
+        val refreshed = mutableListOf<JSONObject>()
+        scanTree(tree) { refreshed.add(it) }
+        check(refreshed.associate { it.getString("uri") to it.getString("id") } ==
+              published.associate { it.getString("uri") to it.getString("id") })
         check(row("nested-clip").getString("relativePath") == "Season 1/Clip.mp4")
         check(row("nested-clip").getString("name") == "Clip.mp4")
         check(row("unicode-clip").getString("relativePath") == "Кино %20/Фильм.mp4")
@@ -147,18 +159,26 @@ fun main() {
         source = (ROOT / "ios/App/App/Plugins/LocalMedia.swift").read_text()
         methods = "\n".join(function(source, marker) for marker in (
             "private struct LinkedItem:", "private struct Source:", "private func child(",
-            "private func refresh(", "func linked(",
+            "private func linkedItemID(", "private func refresh(", "func linked(",
         ))
         self.assertEqual(source.count('"relativePath": NSNull()'), 3)
         self.assertEqual(source.count('"relativePath": source.kind == "folder" ? item.path as Any : NSNull()'), 2)
         code = r'''
 import Foundation
+import CryptoKit
 class Bridge { func portablePath(fromLocalURL url: URL) -> URL? { url } }
 class Harness {
     let bridge: Bridge? = Bridge()
-    func checkWork() throws {}
-    private func save(_ source: Source) throws {}
+    var cancelled = false
+    var persistenceURL: URL?
+    func checkWork() throws { if cancelled { throw URLError(.cancelled) } }
+    private func save(_ source: Source) throws {
+        try checkWork()
+        if let url = persistenceURL { try JSONEncoder().encode(source).write(to: url, options: .atomic) }
+    }
+    var mediaReads = 0
     func mediaInfo(_ url: URL) -> (String, Int64)? {
+        mediaReads += 1
         var directory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &directory), !directory.boolValue else { return nil }
         return ("video/mp4", 1)
@@ -172,13 +192,60 @@ class Harness {
             try Data([1]).write(to: url)
         }
         var source = Source(id: "folder", name: "Movies", kind: "folder", bookmark: Data(), items: [], excluded: [])
-        try refresh(&source, root: root)
+        let identity = source
+        var streamed: [[String: Any]] = []
+        try refresh(&source, root: root, onItem: { item, url in
+            streamed.append(self.linked(item, identity, url, validated: true))
+        })
+        check(mediaReads == names.count)
+        check(streamed.count == names.count && streamed.allSatisfy { $0["available"] as? Bool == true })
         let rows = source.items.map { linked($0, source, root.appendingPathComponent($0.path)) }
         check(Set(rows.compactMap { $0["relativePath"] as? String }) == Set(names))
         check(rows.allSatisfy { ($0["name"] as? String)?.contains("/") == false })
         var file = Source(id: "file", name: "Clip.mp4", kind: "file", bookmark: Data(), items: [], excluded: [])
+        let beforeFile = mediaReads
         try refresh(&file, root: root.appendingPathComponent("Clip.mp4"))
+        check(mediaReads == beforeFile + 1)
         check(linked(file.items[0], file, root.appendingPathComponent("Clip.mp4"))["relativePath"] is NSNull)
+        // Reopen the actual persisted source after an interrupted first scan.
+        // No item list was committed, so a random per-discovery UUID would fail.
+        persistenceURL = root.deletingLastPathComponent().appendingPathComponent("checkpoint.source.json")
+        var checkpoint = Source(id: "saved-source", name: "Checkpoint", kind: "folder", bookmark: Data(), items: [], excluded: [])
+        try save(checkpoint)
+        let persistedBefore = try Data(contentsOf: persistenceURL!)
+        var firstPublished: (String, String)?
+        do {
+            try refresh(&checkpoint, root: root, onItem: { item, _ in
+                firstPublished = (item.path, item.id)
+                self.cancelled = true
+            })
+            preconditionFailure("cancelled refresh must not finish")
+        } catch { check(cancelled) }
+        check(firstPublished != nil)
+        let persistedAfterCancellation = try Data(contentsOf: persistenceURL!)
+        check(persistedAfterCancellation == persistedBefore)
+        cancelled = false
+        var reopened = try JSONDecoder().decode(Source.self, from: Data(contentsOf: persistenceURL!))
+        check(reopened.items.isEmpty)
+        try refresh(&reopened, root: root)
+        check(reopened.items.first(where: { $0.path == firstPublished!.0 })!.id == firstPublished!.1)
+        let committed = try JSONDecoder().decode(Source.self, from: Data(contentsOf: persistenceURL!))
+        check(committed.items.first(where: { $0.path == firstPublished!.0 })!.id == firstPublished!.1)
+        check(UUID(uuidString: firstPublished!.1) != nil)
+        check(linkedItemID("other-source", path: firstPublished!.0) != firstPublished!.1)
+        check(linkedItemID("saved-source", path: firstPublished!.0 + "/different") != firstPublished!.1)
+        let legacyID = UUID().uuidString.lowercased()
+        reopened.items[0].id = legacyID
+        let legacyPath = reopened.items[0].path
+        try refresh(&reopened, root: root)
+        check(reopened.items.first(where: { $0.path == legacyPath })!.id == legacyID)
+        persistenceURL = nil
+        let beforeSaved = mediaReads
+        check(linked(file.items[0], file, root.appendingPathComponent("Clip.mp4"))["available"] as? Bool == true)
+        check(mediaReads == beforeSaved + 1)
+        try FileManager.default.removeItem(at: root.appendingPathComponent("Clip.mp4"))
+        check(linked(file.items[0], file, root.appendingPathComponent("Clip.mp4"))["available"] as? Bool == false)
+        check(linked(file.items[0], file, root.appendingPathComponent("different.mp4"))["available"] as? Bool == false)
         _ = try JSONSerialization.data(withJSONObject: rows)
         print("PASS actual iOS refresh/row: root, nested, Unicode, individual null")
     }

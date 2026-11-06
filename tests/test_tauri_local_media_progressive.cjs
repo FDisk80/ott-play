@@ -127,6 +127,9 @@ function fixture(snapshots, options = {}) {
         optionsList() {},
         renderButtonHint: () => "",
         showPage() {},
+        stbGetItem() {
+            return "";
+        },
         stbSetItem() {},
     };
     // Exercise the real provider's saved-selection admission with the same
@@ -862,8 +865,15 @@ async function flush() {
         1,
         "first folder import does not wait for all 10,000 files"
     );
-    assert.equal(imported.queued(), 0);
+    assert.equal(
+        imported.queued(),
+        1,
+        "background enumeration remains owned after the first file"
+    );
     assert.equal(imported.reads(), 2);
+    await imported.tick();
+    assert.equal(imported.queued(), 0);
+    assert.equal(imported.reads(), 3);
 
     const ui = fixture([
         catalog(1, 0),
@@ -910,6 +920,8 @@ async function flush() {
         "provider-spinner",
         "old manager completion does not close the provider spinner"
     );
+    assert.equal(ui.queued(), 1, "the provider can adopt the original scan");
+    await ui.tick();
     assert.equal(ui.queued(), 0);
 
     const knownSnapshot = catalog(7, 0);

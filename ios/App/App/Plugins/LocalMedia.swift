@@ -1,4 +1,5 @@
 import Capacitor
+import CryptoKit
 import Foundation
 import UIKit
 import UniformTypeIdentifiers
@@ -11,6 +12,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
     public let jsName = "LocalMedia"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "list", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "sources", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelList", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "importFiles", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise),
@@ -138,14 +140,24 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
         guard resolved == base || resolved.hasPrefix(base + "/") else { return nil }
         return url
     }
+    private func linkedItemID(_ sourceID: String, path: String) -> String {
+        // Source IDs cannot contain NUL; the separator keeps the scoped path
+        // unambiguous. Stable IDs survive cancellation before the final save.
+        var bytes = Array(SHA256.hash(data: Data((sourceID + "\0" + path).utf8)).prefix(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x80
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        return UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+                           bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
+            .uuidString.lowercased()
+    }
     private func refresh(_ source: inout Source, root: URL,
                          onItem: ((LinkedItem, URL) -> Void)? = nil,
                          onScan: (() -> Void)? = nil) throws {
         var indices: [String: Int] = [:]
         for (index, item) in source.items.enumerated() where indices[item.path] == nil { indices[item.path] = index }
-        func append(_ path: String, _ url: URL) throws {
+        func append(_ path: String, _ url: URL, info: (String, Int64)? = nil) throws {
             try checkWork()
-            guard !source.excluded.contains(path), let (mime, size) = mediaInfo(url) else { return }
+            guard !source.excluded.contains(path), let (mime, size) = info ?? mediaInfo(url) else { return }
             let item: LinkedItem
             if let index = indices[path] {
                 source.items[index].name = String(url.lastPathComponent.prefix(256))
@@ -153,7 +165,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                 source.items[index].size = size
                 item = source.items[index]
             } else {
-                item = LinkedItem(id: UUID().uuidString.lowercased(), name: String(url.lastPathComponent.prefix(256)),
+                item = LinkedItem(id: linkedItemID(source.id, path: path), name: String(url.lastPathComponent.prefix(256)),
                                   path: path, mime: mime, size: size)
                 indices[path] = source.items.count
                 source.items.append(item)
@@ -182,9 +194,9 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                 try append(relative, url)
             }
         } else {
-            guard mediaInfo(root) != nil else { throw CocoaError(.fileReadNoSuchFile) }
+            guard let info = mediaInfo(root) else { throw CocoaError(.fileReadNoSuchFile) }
             onScan?()
-            try append("", root)
+            try append("", root, info: info)
         }
         // Keep absent records: the UI can explain a disconnected file instead of silently dropping it.
         try save(source)
@@ -290,10 +302,45 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
         guard let ticket = currentWork else { throw URLError(.cancelled) }
         try ticket.commit { call.resolve(result) }
     }
+    // Source selection reads only app-owned descriptors. A bookmark or saved
+    // URI is not evidence that the original file is currently available.
+    private func sourceDescriptors() throws -> [[String: Any]] {
+        var rows: [[String: Any]] = try sources().map {
+            ["id": $0.id, "name": $0.name, "kind": $0.kind, "access": "unknown"]
+        }
+        let directory = try directory()
+        let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+        for metadata in files where metadata.pathExtension == "json" && !metadata.lastPathComponent.hasSuffix(".source.json") {
+            try checkWork()
+            guard regularPrivateFile(metadata, in: directory), let data = try readMetadata(metadata),
+                  let entry = try? JSONDecoder().decode(Entry.self, from: data), UUID(uuidString: entry.id) != nil else { continue }
+            rows.append(["id": entry.id, "name": entry.name, "kind": "file", "access": "unknown"])
+        }
+        return rows
+    }
+    private func resolveRegistration(_ call: CAPPluginCall, ids: [String]) throws {
+        let result: [String: Any] = ["available": true, "persistent": true, "storage": "device",
+            "directAccess": true, "folderAccess": true, "sourceIds": ids,
+            "items": [], "scanning": true]
+        guard let ticket = currentWork else { throw URLError(.cancelled) }
+        try ticket.commit { call.resolve(result) }
+    }
+    @objc func sources(_ call: CAPPluginCall) {
+        tracked(call) {
+            do {
+                let result: [String: Any] = ["available": true, "persistent": true, "storage": "device",
+                    "sources": try self.sourceDescriptors()]
+                guard let ticket = self.currentWork else { throw URLError(.cancelled) }
+                try ticket.commit { call.resolve(result) }
+            } catch { call.reject("Local media sources unavailable") }
+        }
+    }
     private func progressSnapshot(_ call: CAPPluginCall, requestId: String) throws {
         guard let ticket = currentWork else { throw URLError(.cancelled) }
         let directory = try directory()
-        var saved = try sources()
+        let selectedIds = Set(call.getArray("sourceIds", String.self) ?? [])
+        let stored = try sources()
+        var saved = stored.filter { selectedIds.contains($0.id) } + stored.filter { !selectedIds.contains($0.id) }
         var items: [String: [String: Any]] = [:]
         var order: [String] = []
         var sourceRows: [[String: Any]] = saved.map { ["id": $0.id, "name": $0.name, "kind": $0.kind,
@@ -325,8 +372,10 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
             if id == preferredId && row["available"] as? Bool == true { preferredState = "found" }
             try publish(first && row["available"] as? Bool == true)
         }
-        func linked(_ item: LinkedItem, _ source: Source, _ url: URL?) -> [String: Any] {
-            let portable = url.flatMap { mediaInfo($0) != nil ? bridge?.portablePath(fromLocalURL: $0) : nil }
+        func linked(_ item: LinkedItem, _ source: Source, _ url: URL?, validated: Bool = false) -> [String: Any] {
+            // refresh validated this exact URL immediately before its callback.
+            // Saved records and preferred-item lookups still validate live access.
+            let portable = url.flatMap { validated || mediaInfo($0) != nil ? bridge?.portablePath(fromLocalURL: $0) : nil }
             return ["id": item.id, "name": item.name, "mime": item.mime, "size": item.size,
                 "relativePath": source.kind == "folder" ? item.path as Any : NSNull(),
                 "url": portable?.absoluteString ?? "", "source": "linked", "sourceId": source.id,
@@ -366,7 +415,28 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                 }
             }
         }
+        func scan(_ index: Int) throws {
+            try checkWork()
+            var source = saved[index]
+            do {
+                let root = try resolve(&source)
+                sourceRows[index] = ["id": source.id, "name": source.name, "kind": source.kind, "available": true, "access": "granted"]
+                let identity = source
+                try refresh(&source, root: root, onItem: { item, url in
+                    // The work ticket also owns progress delivery. A cancelled
+                    // source never publishes a late snapshot into the new list.
+                    try? append(linked(item, identity, url, validated: true))
+                }, onScan: { scanned += 1; try? publish() })
+                for item in source.items where items[item.id] == nil && !source.excluded.contains(item.path) {
+                    try append(linked(item, source, child(item.path, root: root)))
+                }
+            } catch {
+                try checkWork()
+                sourceRows[index] = ["id": source.id, "name": source.name, "kind": source.kind, "available": false, "access": "required"]
+            }
+        }
         try publish(true)
+        for index in saved.indices where selectedIds.contains(saved[index].id) { try scan(index) }
         let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
         for metadata in files where metadata.pathExtension == "json" && !metadata.lastPathComponent.hasSuffix(".source.json") {
             try checkWork()
@@ -382,26 +452,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
             }
             try publish()
         }
-        for index in saved.indices {
-            try checkWork()
-            var source = saved[index]
-            do {
-                let root = try resolve(&source)
-                sourceRows[index] = ["id": source.id, "name": source.name, "kind": source.kind, "available": true, "access": "granted"]
-                let identity = source
-                try refresh(&source, root: root, onItem: { item, url in
-                    // The work ticket also owns progress delivery. A cancelled
-                    // source never publishes a late snapshot into the new list.
-                    try? append(linked(item, identity, url))
-                }, onScan: { scanned += 1; try? publish() })
-                for item in source.items where items[item.id] == nil && !source.excluded.contains(item.path) {
-                    try append(linked(item, source, child(item.path, root: root)))
-                }
-            } catch {
-                try checkWork()
-                sourceRows[index] = ["id": source.id, "name": source.name, "kind": source.kind, "available": false, "access": "required"]
-            }
-        }
+        for index in saved.indices where !selectedIds.contains(saved[index].id) { try scan(index) }
         try ticket.commit { call.resolve(catalog(false)) }
     }
     @objc func cancelList(_ call: CAPPluginCall) {
@@ -504,6 +555,7 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
         guard let call = pendingPicker else { return }
         pendingPicker = nil
         replacingSource = nil
+        if call.getBool("progressive") == true { call.resolve(["pickerCancelled": true]); return }
         list(call)
     }
     public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -515,15 +567,19 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
         guard urls.count <= 128 else { call.reject("Select at most 128 files at once"); return }
         tracked(call) {
             var created: [String] = []
+            var selected: [String] = []
+            let progressive = call.getBool("progressive") == true
             do {
                 for url in urls {
                     try self.checkWork()
                     guard url.startAccessingSecurityScopedResource() else { throw CocoaError(.fileReadNoPermission) }
                     defer { url.stopAccessingSecurityScopedResource() }
-                    let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-                    guard values.isSymbolicLink != true,
-                          folder ? values.isDirectory == true : self.mediaInfo(url) != nil else {
-                        throw CocoaError(.fileReadUnsupportedScheme)
+                    if !progressive {
+                        let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                        guard values.isSymbolicLink != true,
+                              folder ? values.isDirectory == true : self.mediaInfo(url) != nil else {
+                            throw CocoaError(.fileReadUnsupportedScheme)
+                        }
                     }
                     var source = Source(id: replacing ?? UUID().uuidString.lowercased(), name: String(url.lastPathComponent.prefix(256)),
                                         kind: folder ? "folder" : "file",
@@ -533,11 +589,14 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                         source.items = old.items
                         source.excluded = old.excluded
                     }
-                    try self.refresh(&source, root: url)
+                    if progressive { try self.save(source) }
+                    else { try self.refresh(&source, root: url) }
                     self.release(source.id)
+                    selected.append(source.id)
                     if replacing == nil { created.append(source.id) }
                 }
-                try self.resolveSnapshot(call)
+                if progressive { try self.resolveRegistration(call, ids: selected) }
+                else { try self.resolveSnapshot(call) }
             } catch {
                 for id in created {
                     self.release(id)

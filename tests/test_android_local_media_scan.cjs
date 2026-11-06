@@ -35,7 +35,7 @@ assert(
 assert.match(scan, /check\(!destroyed\)/);
 assert.match(scan, /require\(\+\+count <= 20000\)/);
 const accept = source.slice(
-    source.indexOf("fun accept(item: JSONObject)"),
+    source.indexOf("fun accept(item: JSONObject"),
     source.indexOf("if (validId(preferredId))")
 );
 assert.match(

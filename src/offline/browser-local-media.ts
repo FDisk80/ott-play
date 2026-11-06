@@ -1342,6 +1342,27 @@ export function installBrowserLocalMedia(w: any): any {
         remove: remove,
         removeSource: remove,
         requestAccess: requestAccess,
+        sources: function () {
+            return records().then(function (saved) {
+                return {
+                    sources: saved
+                        .filter(function (record) {
+                            return !!record.handle;
+                        })
+                        .map(function (record) {
+                            return {
+                                access: "unknown",
+                                id: record.id,
+                                kind:
+                                    record.handle.kind === "directory"
+                                        ? "folder"
+                                        : "file",
+                                name: record.name,
+                            };
+                        }),
+                };
+            });
+        },
         suspend: function () {
             retireScans();
         },

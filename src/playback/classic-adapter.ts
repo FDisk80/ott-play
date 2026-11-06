@@ -233,6 +233,8 @@ function classicPlaybackCommand(command: any): boolean | void {
     )
         return;
     var type = command.type;
+    if (type === "pause" || type === "stop" || type === "resume")
+        w.__ottLocalMedia?.cancelQueueEnd?.();
     if (type === "playing" && state.target && classicPlaybackStartedAt === null)
         classicPlaybackStartedAt = Date.now() / 1000;
     if (
@@ -1214,11 +1216,13 @@ function classicPlaybackProgramme(): any {
 
 (window as any).__ottClassicPlayback = {
     beforeSeek: function (value: number): (() => void) | void {
+        classicPlaybackHost().__ottLocalMedia?.cancelQueueEnd?.();
         classicPlaybackCapture();
         return classicPlaybackRuntime().beforeSeek(value);
     },
     bookmark: classicPlaybackBookmark,
     cancel: function (): void {
+        classicPlaybackHost().__ottLocalMedia?.cancelQueueEnd?.();
         classicPlaybackStopTicket = null;
         if (classicPlaybackController) classicPlaybackController.cancel();
         var archive = classicPlaybackHost().__ottClassicArchive;
@@ -1286,6 +1290,7 @@ function classicPlaybackProgramme(): any {
     reconcile: classicPlaybackReconcile,
     select: classicPlaybackSelect,
     shift: function (delta: number): void {
+        classicPlaybackHost().__ottLocalMedia?.cancelQueueEnd?.();
         classicPlaybackCapture();
         classicPlaybackRuntime().request(
             delta === -6e6

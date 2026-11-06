@@ -24,7 +24,7 @@ available in Capacitor; clearing its URL returns to native file grants. Browser
 local sources do not gain Xvid decoding or upload source files for conversion.
 See [platform support and the finite VOD contract](local-container-compatibility.md).
 
-In a supported desktop browser or Tauri, **Add folder** and **Add files** start
+In a supported desktop browser, Tauri, or an updated Capacitor app, **Add folder** and **Add files** start
 playback as soon as the first playable file is available. The remaining catalog
 loads in the background. The picker saves source references before the scan;
 it does not wait for every file to open before reporting progress. Cancelling
@@ -32,8 +32,8 @@ the picker keeps the current library and does not start playback. Newly selected
 browser sources are read before older sources, so a stalled old folder cannot
 block a newly added video. That new selection is carried through the initial
 player handoff; ordinary restart/resume and active profile restrictions are
-unchanged. Other native
-variants use **Play local videos** after loading the catalog. OTT saves
+unchanged. Older native
+builds use **Play local videos** after loading the catalog. OTT saves
 references and small metadata records, not a second copy of the
 movies. The original disk, SD card, or directory must remain accessible. Moving
 or deleting originals, removing an SD card, or revoking access can make entries
@@ -224,8 +224,23 @@ Updated Capacitor Android/iOS bridges publish request-scoped progress and partia
 catalogs while scanning. Cancel retires the matching native request and its
 listener. Older installed bridges and one-shot server libraries remain compatible
 but cannot supply early batches. Browser/native reads reset their inactivity deadline only on actual progress;
-unchanged polling does not reset it. Check
-the installed build's source revision: earlier 1.1.58 Tauri builds still have the
+unchanged polling does not reset it. Source selection reads saved bindings before
+validating the selected files; a saved binding alone does not prove that its
+storage is available. Remote `play` and `shuffle` use the first eligible batch
+when the player advertises progressive support. The same discovery operation
+continues after playback starts, and later batches retain the playing file and
+the established shuffle order.
+
+If the current video finishes before the selected folder has supplied its next
+entry, playback waits for discovery to provide one. Pausing, seeking, stopping,
+or choosing another video cancels that pending transition. A completed scan
+applies the normal repeat setting.
+
+Desktop and local-helper readers publish ready files independently of slow
+sibling checks. They give active media reads priority over new background
+filesystem operations while still allowing discovery to advance. This does not
+cancel operating-system reads already in progress or bypass a missing mount.
+Check the installed build's source revision: earlier 1.1.58 Tauri builds still have the
 one-shot scan.
 
 - **Capacitor Android:** Android's Storage Access Framework grants read access to
