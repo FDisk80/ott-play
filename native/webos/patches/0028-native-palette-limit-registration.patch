@@ -1,0 +1,14 @@
+diff --git a/ci/list-caps.ini b/ci/list-caps.ini
+--- a/ci/list-caps.ini
++++ b/ci/list-caps.ini
+@@ -1160,6 +1160,10 @@
+ class = not-a-list
+ reason = Slices the heading's fixed stack to the items before the chevron to read the chevron's own room; geometry, not a bound on content.
+ 
++[ui/src/palette.rs::MAX_BYTES]
++class = format
++reason = The interface-color settings JSON format accepts at most 2048 UTF-8 bytes before parsing, bounding untrusted configuration input while preserving all nine color roles; this does not limit browsable content.
++
+ [ui/src/panel_motion.rs::PREWARM_BUDGET_US]
+ class = not-a-list
+ reason = PREWARM_BUDGET_US: uI timing, geometry, recorder or frame-budget bound; not a list.

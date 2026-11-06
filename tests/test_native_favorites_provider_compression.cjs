@@ -65,6 +65,99 @@ console.log(
         " actual-LZ positive/negative cases; no native runtime qualification"
 );
 
+// Exercise the actual generated module graph without creating a generated file
+// or launching a native view. A new storage import must be bundled AND pinned.
+{
+    const crypto = require("node:crypto");
+    const prepare = path.join(
+        root,
+        "src-tauri/examples/favorites-storage-smoke/prepare.cjs"
+    );
+    let generated;
+    vm.runInNewContext(
+        fs.readFileSync(prepare, "utf8"),
+        {
+            __dirname: path.dirname(prepare),
+            require(name) {
+                if (name !== "node:fs") return require(name);
+                return {
+                    readFileSync: fs.readFileSync,
+                    writeFileSync(filename, text) {
+                        assert.equal(
+                            filename,
+                            path.join(
+                                path.dirname(prepare),
+                                "generated-modules.js"
+                            )
+                        );
+                        assert.equal(
+                            generated,
+                            undefined,
+                            "one generated fixture"
+                        );
+                        generated = text;
+                    },
+                };
+            },
+        },
+        { filename: prepare }
+    );
+    assert.equal(typeof generated, "string");
+    const fixture = { document: { cookie: "" }, window: {} };
+    vm.runInNewContext(generated, fixture);
+    const storage = fixture.window.nativeFixtureLoad("storage-main");
+    assert.equal(typeof storage.portableSettingsSnapshot, "function");
+    const colors = fixture.window.nativeFixtureLoad(
+        "../settings/interface-colors"
+    );
+    assert.equal(
+        colors.normalizeInterfaceColorConfig(
+            '{"colors":{"text":"#abcdef"},"version":1}'
+        ),
+        '{"version":1,"colors":{"text":"#ABCDEF"}}'
+    );
+    assert.equal(
+        colors.normalizeInterfaceColorConfig(
+            '{"version":1,"colors":{"unknown":"#ABCDEF"}}'
+        ),
+        null
+    );
+    assert.throws(
+        () => fixture.window.nativeFixtureLoad("missing-module"),
+        /Unknown fixture module/
+    );
+    const tuple = fs
+        .readFileSync(path.join(root, "scripts/ci-native-favorites.py"), "utf8")
+        .match(/MODULE_FILES = \(([^)]+)\)/);
+    assert(tuple, "native verifier retains its explicit module pin list");
+    const expected = [...tuple[1].matchAll(/'([^']+)'/g)].map(
+        (match) => match[1]
+    );
+    assert.equal(
+        new Set(expected).size,
+        expected.length,
+        "unique verifier module pins"
+    );
+    const pins = fixture.window.nativeSourcePins;
+    assert.deepEqual(
+        Object.keys(pins).sort(),
+        expected.sort(),
+        "generated modules match verified modules"
+    );
+    for (const name of expected)
+        assert.equal(
+            pins[name],
+            crypto
+                .createHash("sha256")
+                .update(fs.readFileSync(path.join(root, name)))
+                .digest("hex"),
+            name
+        );
+    console.log(
+        "PASS actual native fixture generated storage/color dependencies, strict unknown import and exact source pins; no native runtime"
+    );
+}
+
 // Exercise the SHA port from the ACTUAL native fixture with the ACTUAL transfer factory.
 // Only storage/clock surfaces are synthetic; no native view, network or target writes.
 (async () => {

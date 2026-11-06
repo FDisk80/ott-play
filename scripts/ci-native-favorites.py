@@ -23,6 +23,7 @@ RUNTIME_JSON = ('intent.json', 'result.json', 'capabilities-writer.json',
                 'capabilities-observer.json', 'capabilities-slot2.json',
                 'capabilities-slot3.json', 'capabilities-slot4.json')
 MODULE_FILES = ('src/storage/favorites-physical-storage.ts', 'src/storage/index.ts',
+                'src/settings/interface-colors.ts',
                 'src/utils/lzstring.ts', 'src/settings/favorites-operation-receipts.ts',
                 'src/settings/favorites-recovery-codec.ts', 'src/commands/favorites-recovery.ts',
                 'src/commands/favorites-transfer.ts')
