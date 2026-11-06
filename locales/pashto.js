@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "د میډیا پلیر لخوا یو قومانده رد شوه. د دې چمتو کونکي او تنظیمات چیک کړئ.",
     About: "په اړه",
+    "Accent color": "د ټینګار رنګ",
     "Access code": "د لاسرسي کوډ",
     "Access denied. Check the server access code.":
         "لاسرسی رد شو. د سرور لاسرسي کوډ چیک کړئ.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ناکام شو، M3U هڅه کوي ...",
     "API Server": "API سرور",
     "API server URL": "API سرور URL",
+    Apply: "پلي کول",
+    "Apply changes to this draft, then use Save Settings.":
+        "بدلونونه په دې مسوده پلي کړئ، بیا «ترتیبات خوندي کړئ» وټاکئ.",
     "Applying HTTP remote settings...": "د HTTP ریموټ ترتیبات پلي کول...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "د ott approve NAME CODE سره د %1 لپاره کوډ تصویب کړئ:",
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "نیلي",
     "Bookmark age (days): %1": "د بک مارک عمر (ورځې): %1",
     "Bookmark age: %1 days": "د نښه کولو عمر: %1 ورځې",
+    "Border color": "د څنډې رنګ",
     Brightness: "روښانتیا",
     "Browse folders": "فولډرې وپلټئ",
     "Buffer Size, s": "د بفر موده، ثانیې",
@@ -190,6 +195,7 @@ var keyStrings = {
     "Cloud transfer failed": "د کلاوډ لیږد ناکام شو",
     Code: "کوډ",
     Color: "رنګ",
+    "Color schemes": "د رنګونو طرحې",
     "Color spectrum": "رنګ طیف",
     "Command server": "د کمانډ سرور",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -327,6 +333,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "HTTP ریموټ کنټرول تازه نشي.",
     Country: "هیواد",
     "Create category": "کټګورۍ جوړه کړئ",
+    Custom: "د خوښې وړ",
     current: "اوسنی",
     "Debug enabled. Restart to apply.":
         "ډیبګ کول فعال شوي. د بدلون پلي کولو لپاره میډیا پلیر بیا پیل کړئ.",
@@ -487,6 +494,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "د EPG سرچینې HTTP %1 راولېږه",
     "EPG source: %1": "EPG سرچینه: %1",
     "EPG stopped during: %1": "EPG په جریان کې ودرول: %1",
+    "EPG time color": "د پروګرام لارښود د وخت رنګ",
     "EPG unavailable on this browser": "EPG په دې براوزر کې شتون نلري",
     "EPG unavailable: %1": "EPG شتون نلري: %1",
     "EPG update failed; using saved programme guide":
@@ -562,6 +570,7 @@ var keyStrings = {
     "Hide / Return": "پټول / ښکاره کول",
     "Hide provider settings?": "د چمتو کونکي ترتیبات پټ کړئ؟",
     "Hide providers?": "برابرونکي پټ کړئ؟",
+    "High contrast": "لوړ توپیر",
     "History in Media Library": "د رسنیو په کتابتون کې تاریخ",
     "History of watched movies": "د کتلو تاریخ",
     Home: "کورپاڼه",
@@ -569,6 +578,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP ریموټ کنټرول په دې وسیله شتون نلري.",
     "HTTPS support": "HTTPS ملاتړ",
+    Hue: "رنګ سیوری",
     ID: "ID",
     "Import settings": "ترتیبات وارد کړئ",
     "In live mode: <br/>": "په ژوندۍ بڼه: <br/>",
@@ -576,6 +586,8 @@ var keyStrings = {
     "Infobar display timeout, s": "د معلوماتي پټي د ښودلو موده، ثانیې",
     "Infobar settings": "د معلوماتو بار ترتیبات",
     Information: "معلومات",
+    Inherited: "په میراث اخیستل شوی",
+    "Interface colors": "د انٹرفېس رنګونه",
     "Interface credits": "د انټرفېس جوړوونکي",
     "Interface mode": "د انٹرفېس حالت",
     "Interface settings": "د انټرفېس ترتیبات",
@@ -584,6 +596,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "ناسم چینل لینک! د خپل چمتو کونکي حساب پاڼې کې د URL جریان څخه بشپړ کوربه نوم دننه کړئ (د مثال په توګه subdomain.cdn-domain.tld).",
     "Invalid cloud settings response": "د بادل ترتیباتو ناسم ځواب",
+    "Invalid color value": "د رنګ ارزښت ناسم دی",
     "Invalid protected source configuration": "ناسم خوندي شوي سرچینې ترتیب",
     "Invalid range: %1-%2": "ناسم حد: %1-%2",
     "Invalid setting": "ناسم ترتیب",
@@ -595,6 +608,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ترتیبات",
     "Label (optional)": "نوم (اختیاري)",
+    Light: "روښانه",
     "List created": "لیست جوړ شو",
     "List deleted": "لیست حذف شوی",
     "List location": "د لیست موقعیت",
@@ -657,6 +671,7 @@ var keyStrings = {
     "Media Library URL": "د رسنیو کتابتون URL",
     Menu: "مینو",
     "Menu items settings": "د مینو توکي ترتیبات",
+    Midnight: "نیمه شپه",
     Modern: "عصري",
     "Modern interface is unavailable. Classic remains active.":
         "عصري انٹرفېس شتون نه لري. کلاسیک فعال پاتې کېږي.",
@@ -703,6 +718,7 @@ var keyStrings = {
     no: "نه",
     "no epg at current time": "په اوسني وخت کې هیڅ EPG نشته",
     "not set": "نه دی ټاکل شوی",
+    Ocean: "سمندر",
     Off: "بند",
     Ok: "سمه ده",
     On: "فعال شوی",
@@ -738,6 +754,7 @@ var keyStrings = {
         "د جوړه کولو سرور شتون نلري. بیا د بیا هڅه کولو لپاره سرور ومومئ.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "جوړه کول رد شوي یا ناسم تصویب بیرته راستانه شوي. بیا د بیا هڅه کولو لپاره سرور ومومئ.",
+    Palette: "د رنګونو تخته",
     "Parental control": "د والدینو کنټرول",
     Password: "پټنوم",
     "Paste settings JSON": "پیسټ ترتیبات JSON",
@@ -783,6 +800,7 @@ var keyStrings = {
     Prepaid: "مخکې تادیه شوی",
     "Preparing secure remote input...": "خوندي ریموټ ان پټ چمتو کول...",
     Prev: "مخکینی",
+    Preview: "مخکتنه",
     "Preview in channel list": "د چینل لیست کې مخکتنه",
     Previous: "مخکینی",
     "Privacy policy": "د محرمیت پالیسي",
@@ -916,6 +934,7 @@ var keyStrings = {
     Search: "لټون",
     "Search languages": "ژبې لټون",
     "Search programme": "پروګرام ولټوئ",
+    "Secondary text color": "د فرعي متن رنګ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "خوندي ریموټ ان پټ پیل نشو. مهرباني وکړئ بیا هڅه وکړئ یا د سکرین کیبورډ وکاروئ.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -937,6 +956,8 @@ var keyStrings = {
         "په براوزر کې د سکرین شاټ سرچینه غوره کړئ",
     "Select the player tab or window in the browser sharing dialog.":
         "د براوزر شریکولو ډیالوګ کې د پلیر ټب یا کړکۍ غوره کړئ.",
+    "Selected item": "ټاکل شوی توکی",
+    "Selected text color": "د ټاکل شوي متن رنګ",
     "Send request": "غوښتنه واستوئ",
     "Send settings": "امستنې واستوئ",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1048,6 +1069,7 @@ var keyStrings = {
     "Subscription information": "د ګډون معلومات",
     Subtitle: "فرعي سرلیکونه",
     "Subtitle appearance": "د فرعي سرلیکونو بڼه",
+    "Surface color": "د سطحې رنګ",
     Switch: "بدلول",
     "Switch sound track": "آډیو ټریک بدل کړئ",
     "Switch subtitle": "فرعي سرلیکونه بدل کړئ",
@@ -1151,6 +1173,7 @@ var keyStrings = {
         "د لرې تشخیص لپاره د HTTPS قوماندې سرور وکاروئ.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "HTTP یا HTTPS وکاروئ، او په پته کې د کارن نوم یا پټنوم مه لیکئ.",
+    "Use inherited color": "په میراث اخیستل شوی رنګ وکاروئ",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "د کنټرول غوره کولو لپاره کیڼ/ښي، د فعالولو لپاره OK، او د متن خوځولو لپاره پورته/ښکته وکاروئ.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1174,6 +1197,7 @@ var keyStrings = {
         "VPortal بار نه شو. تړنه، د لاسرسي کیلي او د پورټل شتون وګورئ.",
     volume: "د غږ کچه",
     "Waiting for sign-in…": "د ننوتلو په تمه…",
+    "Warm graphite": "تود ګرافایټ",
     "Wrong parental code !!!": "د والدینو کوډ ناسم دی!",
     "Xtream Codes Provider": "د Xtream Codes چمتوکوونکی",
     "Xtream Codes settings": "د Xtream Codes ترتیبات",

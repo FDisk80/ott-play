@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Arahan ditolak oleh pemain. Semak penyedia dan tetapannya.",
     About: "Perihal",
+    "Accent color": "Warna aksen",
     "Access code": "Kod akses",
     "Access denied. Check the server access code.":
         "Akses ditolak. Semak kod akses pelayan.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API gagal, mencuba M3U…",
     "API Server": "Pelayan API",
     "API server URL": "URL pelayan API",
+    Apply: "Gunakan",
+    "Apply changes to this draft, then use Save Settings.":
+        "Gunakan perubahan pada draf ini, kemudian pilih Simpan tetapan.",
     "Applying HTTP remote settings...":
         "Menggunakan tetapan kawalan jauh HTTP…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -120,6 +124,7 @@ var keyStrings = {
     Blue: "Biru",
     "Bookmark age (days): %1": "Umur penanda halaman (hari): %1",
     "Bookmark age: %1 days": "Usia penanda: %1 hari",
+    "Border color": "Warna sempadan",
     Brightness: "Kecerahan",
     "Browse folders": "Semak imbas folder",
     "Buffer Size, s": "Saiz penimbal, s",
@@ -193,6 +198,7 @@ var keyStrings = {
     "Cloud transfer failed": "Pemindahan data melalui awan gagal",
     Code: "Kod akses",
     Color: "Warna",
+    "Color schemes": "Skema warna",
     "Color spectrum": "Spektrum warna",
     "Command server": "Pelayan arahan",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -331,6 +337,7 @@ var keyStrings = {
         "Tidak dapat mengemas kini kawalan jauh HTTP.",
     Country: "Negara",
     "Create category": "Cipta kategori",
+    Custom: "Tersuai",
     current: "semasa",
     "Debug enabled. Restart to apply.":
         "Penyahpepijatan diaktifkan. Mulakan semula pemain untuk menggunakannya.",
@@ -492,6 +499,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Sumber EPG mengembalikan HTTP %1",
     "EPG source: %1": "sumber EPG: %1",
     "EPG stopped during: %1": "EPG berhenti semasa: %1",
+    "EPG time color": "Warna masa EPG",
     "EPG unavailable on this browser":
         "EPG tidak tersedia pada penyemak imbas ini",
     "EPG unavailable: %1": "EPG tidak tersedia: %1",
@@ -563,6 +571,7 @@ var keyStrings = {
     "Hide / Return": "Sembunyikan / tunjukkan",
     "Hide provider settings?": "Sembunyikan tetapan penyedia?",
     "Hide providers?": "Sembunyikan penyedia?",
+    "High contrast": "Kontras tinggi",
     "History in Media Library": "Sejarah dalam pustaka media",
     "History of watched movies": "Sejarah tontonan",
     Home: "Utama",
@@ -570,6 +579,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Kawalan jauh HTTP tidak tersedia pada peranti ini.",
     "HTTPS support": "Sokongan HTTPS",
+    Hue: "Rona",
     ID: "ID",
     "Import settings": "Import tetapan",
     "In live mode: <br/>": "Dalam mod langsung:<br/>",
@@ -577,6 +587,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Tempoh paparan bar maklumat, s",
     "Infobar settings": "Tetapan bar maklumat",
     Information: "Maklumat",
+    Inherited: "Diwarisi",
+    "Interface colors": "Warna antara muka",
     "Interface credits": "Penghargaan antara muka",
     "Interface mode": "Mod antara muka",
     "Interface settings": "Tetapan antara muka",
@@ -585,6 +597,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Pautan saluran tidak sah! Masukkan hos penuh seperti dalam URL strim akaun pelanggan (cth. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Respons tetapan awan tidak sah",
+    "Invalid color value": "Nilai warna tidak sah",
     "Invalid protected source configuration":
         "Konfigurasi sumber yang dilindungi tidak sah",
     "Invalid range: %1-%2": "Julat tidak sah: %1-%2",
@@ -597,6 +610,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Tetapan KORONA TV",
     "Label (optional)": "Label (pilihan)",
+    Light: "Cerah",
     "List created": "Senarai dicipta",
     "List deleted": "Senarai dipadam",
     "List location": "Kedudukan senarai",
@@ -659,6 +673,7 @@ var keyStrings = {
     "Media Library URL": "URL pustaka media",
     Menu: "Menu",
     "Menu items settings": "Tetapan item menu",
+    Midnight: "Tengah malam",
     Modern: "Moden",
     "Modern interface is unavailable. Classic remains active.":
         "Antara muka moden tidak tersedia. Antara muka klasik kekal aktif.",
@@ -704,6 +719,7 @@ var keyStrings = {
     no: "tidak",
     "no epg at current time": "Tiada EPG pada masa ini",
     "not set": "belum ditetapkan",
+    Ocean: "Lautan",
     Off: "Mati",
     Ok: "OK",
     On: "Hidup",
@@ -739,6 +755,7 @@ var keyStrings = {
         "Pelayan pemasangan tidak tersedia. Cari pelayan sekali lagi untuk mencuba semula.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Pemasangan ditolak atau kelulusan yang diterima tidak sah. Cari pelayan sekali lagi untuk mencuba semula.",
+    Palette: "Palet",
     "Parental control": "Kawalan ibu bapa",
     Password: "Kata laluan",
     "Paste settings JSON": "Tampal tetapan dalam format JSON",
@@ -783,6 +800,7 @@ var keyStrings = {
     Prepaid: "Prabayar",
     "Preparing secure remote input...": "Menyediakan input jauh selamat...",
     Prev: "Sebelumnya",
+    Preview: "Pratonton",
     "Preview in channel list": "Pratonton dalam senarai saluran",
     Previous: "Sebelumnya",
     "Privacy policy": "Dasar privasi",
@@ -918,6 +936,7 @@ var keyStrings = {
     Search: "Cari",
     "Search languages": "Cari bahasa",
     "Search programme": "Cari rancangan",
+    "Secondary text color": "Warna teks sekunder",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Input jauh selamat tidak dapat dimulakan. Sila cuba lagi atau gunakan papan kekunci pada skrin.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -938,6 +957,8 @@ var keyStrings = {
         "Pilih sumber tangkapan skrin dalam penyemak imbas",
     "Select the player tab or window in the browser sharing dialog.":
         "Pilih tab atau tetingkap pemain dalam dialog perkongsian penyemak imbas.",
+    "Selected item": "Item dipilih",
+    "Selected text color": "Warna teks dipilih",
     "Send request": "Hantar permintaan",
     "Send settings": "Hantar tetapan",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1051,6 +1072,7 @@ var keyStrings = {
     "Subscription information": "Maklumat langganan",
     Subtitle: "Sari kata",
     "Subtitle appearance": "Rupa sari kata",
+    "Surface color": "Warna permukaan",
     Switch: "Tukar",
     "Switch sound track": "Tukar trek audio",
     "Switch subtitle": "Tukar sari kata",
@@ -1159,6 +1181,7 @@ var keyStrings = {
         "Gunakan pelayan arahan HTTPS untuk diagnostik jauh.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Gunakan HTTP atau HTTPS tanpa nama pengguna atau kata laluan dalam alamat.",
+    "Use inherited color": "Gunakan warna yang diwarisi",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Gunakan KIRI/KANAN untuk memilih kawalan, OK untuk mengaktifkannya dan ATAS/BAWAH untuk menatal.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1182,6 +1205,7 @@ var keyStrings = {
         "Tidak dapat memuatkan VPortal. Semak pautan, kunci akses dan ketersediaan portal.",
     volume: "kelantangan",
     "Waiting for sign-in…": "Menunggu untuk log masuk…",
+    "Warm graphite": "Grafit hangat",
     "Wrong parental code !!!": "Kod ibu bapa salah!",
     "Xtream Codes Provider": "Penyedia Xtream Codes",
     "Xtream Codes settings": "Tetapan Xtream Codes",

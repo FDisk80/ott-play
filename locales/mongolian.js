@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Тоглуулагч тушаалыг хүлээн аваагүй. Үйлчилгээ үзүүлэгч болон тохиргоог нь шалгана уу.",
     About: "Тухай",
+    "Accent color": "Онцлох өнгө",
     "Access code": "Хандалтын код",
     "Access denied. Check the server access code.":
         "Хандах эрхгүй. Серверийн хандалтын кодыг шалгана уу.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API амжилтгүй, M3U-г оролдож байна…",
     "API Server": "API сервер",
     "API server URL": "API серверийн URL",
+    Apply: "Хэрэглэх",
+    "Apply changes to this draft, then use Save Settings.":
+        "Өөрчлөлтийг энэ ноорогт хэрэгжүүлээд Тохиргоо хадгалах гэснийг сонгоно уу.",
     "Applying HTTP remote settings...":
         "HTTP алсын удирдлагын тохиргоог хэрэглэж байна...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -122,6 +126,7 @@ var keyStrings = {
     Blue: "Цэнхэр",
     "Bookmark age (days): %1": "Хавчуургын нас (өдөр): %1",
     "Bookmark age: %1 days": "Хавчуургын нас: %1 өдөр",
+    "Border color": "Хүрээний өнгө",
     Brightness: "Гэрэлтэлт",
     "Browse folders": "Хавтас үзэх",
     "Buffer Size, s": "Буферийн хэмжээ, с",
@@ -194,6 +199,7 @@ var keyStrings = {
     "Cloud transfer failed": "Үүлэн дамжуулалт амжилтгүй боллоо",
     Code: "Код",
     Color: "Өнгө",
+    "Color schemes": "Өнгөний загварууд",
     "Color spectrum": "Өнгөний спектр",
     "Command server": "Тушаалын сервер",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -333,6 +339,7 @@ var keyStrings = {
         "HTTP алсын удирдлагыг шинэчилж чадсангүй.",
     Country: "Улс",
     "Create category": "Ангилал үүсгэх",
+    Custom: "Өөрийн",
     current: "одоогийн",
     "Debug enabled. Restart to apply.":
         "Алдаа засах горим идэвхжлээ. Хэрэгжүүлэхийн тулд дахин эхлүүлнэ үү.",
@@ -498,6 +505,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG эх сурвалж HTTP %1 буцаасан",
     "EPG source: %1": "EPG эх сурвалж: %1",
     "EPG stopped during: %1": "EPG зогссон үе шат: %1",
+    "EPG time color": "EPG цагийн өнгө",
     "EPG unavailable on this browser": "Энэ хөтөч дээр EPG боломжгүй",
     "EPG unavailable: %1": "EPG боломжгүй: %1",
     "EPG update failed; using saved programme guide":
@@ -572,6 +580,7 @@ var keyStrings = {
     "Hide / Return": "Нуух / харуулах",
     "Hide provider settings?": "Үйлчилгээ үзүүлэгчийн тохиргоог нуух уу?",
     "Hide providers?": "Үйлчилгээ үзүүлэгчдийг нуух уу?",
+    "High contrast": "Өндөр ялгарал",
     "History in Media Library": "Медиа сангийн түүх",
     "History of watched movies": "Үзсэн түүх",
     Home: "Нүүр",
@@ -579,6 +588,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Энэ төхөөрөмж дээр HTTP алсын удирдлага боломжгүй.",
     "HTTPS support": "HTTPS дэмжлэг",
+    Hue: "Өнгөний туяа",
     ID: "ID",
     "Import settings": "Тохиргоо импортлох",
     "In live mode: <br/>": "Шууд эфирт:<br/>",
@@ -586,6 +596,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Мэдээллийн мөрийг харуулах хугацаа, с",
     "Infobar settings": "Мэдээллийн мөрийн тохиргоо",
     Information: "Мэдээлэл",
+    Inherited: "Өвлөсөн",
+    "Interface colors": "Интерфэйсийн өнгө",
     "Interface credits": "Интерфэйсийн зохиогчид",
     "Interface mode": "Интерфейсийн горим",
     "Interface settings": "Интерфэйсийн тохиргоо",
@@ -594,6 +606,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Сувгийн холбоос буруу! Хувийн кабинетын урсгалын URL дахь хостыг бүтнээр нь оруулна уу (жишээ нь subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Клоуд тохиргооны хариу буруу байна",
+    "Invalid color value": "Өнгөний утга буруу",
     "Invalid protected source configuration":
         "Хамгаалагдсан эх сурвалжийн тохиргоо буруу",
     "Invalid range: %1-%2": "Хүчингүй муж: %1-%2",
@@ -606,6 +619,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV-ийн тохиргоо",
     "Label (optional)": "Нэр (заавал биш)",
+    Light: "Цайвар",
     "List created": "Жагсаалт үүссэн",
     "List deleted": "Жагсаалт устсан",
     "List location": "Жагсаалтын байрлал",
@@ -668,6 +682,7 @@ var keyStrings = {
     "Media Library URL": "Медиа сангийн URL",
     Menu: "Цэс",
     "Menu items settings": "Цэсийн зүйлийн тохиргоо",
+    Midnight: "Шөнө дунд",
     Modern: "Орчин үеийн",
     "Modern interface is unavailable. Classic remains active.":
         "Орчин үеийн интерфейс ашиглах боломжгүй. Сонгодог интерфейс идэвхтэй хэвээр байна.",
@@ -714,6 +729,7 @@ var keyStrings = {
     no: "үгүй",
     "no epg at current time": "Одоогийн цагт EPG алга",
     "not set": "тохируулаагүй",
+    Ocean: "Далай",
     Off: "Унтраалттай",
     Ok: "За",
     On: "Асаалттай",
@@ -749,6 +765,7 @@ var keyStrings = {
         "Хослуулах сервер боломжгүй. Дахин оролдохын тулд серверийг дахин олно уу.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Хослуулахыг татгалзсан эсвэл буруу зөвшөөрөл ирсэн. Дахин оролдохын тулд серверийг дахин олно уу.",
+    Palette: "Өнгөний палитр",
     "Parental control": "Эцэг эхийн хяналт",
     Password: "Нууц үг",
     "Paste settings JSON": "Тохиргооны JSON буулгах",
@@ -795,6 +812,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Алсаас аюулгүй оруулахыг бэлтгэж байна...",
     Prev: "Өмнөх",
+    Preview: "Урьдчилан харах",
     "Preview in channel list": "Сувгийн жагсаалтад урьдчилан үзэх",
     Previous: "Өмнөх",
     "Privacy policy": "Нууцлалын бодлого",
@@ -928,6 +946,7 @@ var keyStrings = {
     Search: "Хайх",
     "Search languages": "Хэл хайх",
     "Search programme": "Нэвтрүүлэг хайх",
+    "Secondary text color": "Туслах бичвэрийн өнгө",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Алсаас аюулгүй оруулж эхэлсэнгүй. Дахин оролдох эсвэл дэлгэцийн гар ашиглана уу.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -948,6 +967,8 @@ var keyStrings = {
         "Хөтөчөөс дэлгэцийн зургийн эх сурвалжийг сонгоно уу",
     "Select the player tab or window in the browser sharing dialog.":
         "Хөтөч хуваалцах цонхноос тоглуулагчийн таб эсвэл цонхыг сонгоно уу.",
+    "Selected item": "Сонгосон зүйл",
+    "Selected text color": "Сонгосон бичвэрийн өнгө",
     "Send request": "Хүсэлт илгээх",
     "Send settings": "Тохиргоо илгээх",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1062,6 +1083,7 @@ var keyStrings = {
     "Subscription information": "Захиалгын мэдээлэл",
     Subtitle: "Хадмал",
     "Subtitle appearance": "Хадмалын харагдах байдал",
+    "Surface color": "Гадаргуугийн өнгө",
     Switch: "Солих",
     "Switch sound track": "Аудио зам солих",
     "Switch subtitle": "Хадмал солих",
@@ -1170,6 +1192,7 @@ var keyStrings = {
         "Алсын оношилгоонд HTTPS тушаалын сервер ашиглана уу.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Хаягтаа хэрэглэгчийн нэр, нууц үг агуулаагүй HTTP эсвэл HTTPS ашиглана уу.",
+    "Use inherited color": "Өвлөсөн өнгийг ашиглах",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Удирдлага сонгоход ЗҮҮН/БАРУУН, идэвхжүүлэхэд OK, гүйлгэхэд ДЭЭШ/ДООШ товч ашиглана уу.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1193,6 +1216,7 @@ var keyStrings = {
         "VPortal ачаалж чадсангүй. Холбоос, хандалтын түлхүүр болон порталын хүртээмжийг шалгана уу.",
     volume: "дууны түвшин",
     "Waiting for sign-in…": "Нэвтрэхийг хүлээж байна…",
+    "Warm graphite": "Дулаан бал чулуу",
     "Wrong parental code !!!": "Эцэг эхийн хяналтын код буруу!",
     "Xtream Codes Provider": "Xtream Codes үйлчилгээ үзүүлэгч",
     "Xtream Codes settings": "Xtream Codes тохиргоо",
