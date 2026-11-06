@@ -2,6 +2,8 @@
 var classicReminderOwner: any = null;
 var classicReminderSource = "";
 var classicReminderRevision = 0;
+var classicReminderIndex: Record<string, ProgrammeReminder> =
+    Object.create(null);
 function reminderHost(): any {
     return window as any;
 }
@@ -71,13 +73,28 @@ function reminderRecord(value: any, source: string): ProgrammeReminder | null {
 }
 function publishReminders(): void {
     var host = reminderHost();
+    classicReminderIndex = Object.create(null);
     host.publishGuideReminders(
         classicReminderOwner
             ? classicReminderOwner.snapshot().map(function (
                   record: ProgrammeReminder
               ) {
+                  var channel = reminderChannel(record);
+                  if (!record.legacy)
+                      classicReminderIndex["p:" + record.programmeId] = record;
+                  else if (channel !== null) {
+                      var reference = host.__ottClassicGuide.reference(channel);
+                      if (reference)
+                          classicReminderIndex[
+                              "l:" +
+                                  JSON.stringify([
+                                      reference.channelId,
+                                      record.start,
+                                  ])
+                          ] = record;
+                  }
                   return {
-                      ci: reminderChannel(record),
+                      ci: channel,
                       n: record.title,
                       programmeId: record.programmeId,
                       t: record.start,
@@ -241,7 +258,34 @@ function reminderOwner(): any {
         classicReminderRevision++;
         var owner = classicReminderOwner;
         classicReminderOwner = null;
+        classicReminderIndex = Object.create(null);
         if (owner) owner.dispose();
+    },
+    hasProgramme: function (channel: any, row: any): boolean {
+        var host = reminderHost(),
+            guide = host.__ottClassicGuide,
+            reference = guide.reference(channel);
+        if (
+            !classicReminderOwner ||
+            !reference ||
+            !guide.valid(reference) ||
+            classicReminderSource !== reference.sourceId ||
+            !row
+        )
+            return false;
+        var record =
+            classicReminderIndex["p:" + row.programmeId] ||
+            classicReminderIndex[
+                "l:" + JSON.stringify([reference.channelId, row.time])
+            ];
+        return (
+            !!record &&
+            record.sourceId === reference.sourceId &&
+            record.start === row.time &&
+            record.end > Date.now() / 1000 &&
+            row.time_to > Date.now() / 1000 &&
+            (record.legacy || record.channelId === reference.channelId)
+        );
     },
     importRecord: function (value: any) {
         var owner = reminderOwner(),

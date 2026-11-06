@@ -3,7 +3,6 @@ mod companion;
 mod control_discovery;
 mod hosted_epg;
 mod msx;
-mod nas_library;
 mod normalization;
 mod stalker_api;
 mod swop;
@@ -395,7 +394,6 @@ async fn main() -> anyhow::Result<()> {
         .layer(cors)
         // Installation-authenticated relay must not inherit permissive asset CORS.
         .merge(swop::routes_from_env()?)
-        .merge(nas_library::routes_from_env()?)
         .merge(normalization::routes_from_env(&cli.host).await?)
         .merge(control_discovery::routes())
         .merge(offline_media_routes(None).await?);

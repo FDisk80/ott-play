@@ -4284,7 +4284,6 @@ name = "ottplay-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-stream",
  "axum 0.7.9",
  "base64 0.22.1",
  "chrono",
@@ -4327,6 +4326,7 @@ dependencies = [
  "chrono",
  "dispatch2",
  "futures-util",
+ "gtk",
  "hyper",
  "hyper-util",
  "libc",

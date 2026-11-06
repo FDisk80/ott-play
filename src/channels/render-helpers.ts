@@ -1,5 +1,5 @@
 /** Optional ESM presentation helpers; active guide rendering is owned by GuideScreen. */
-import { formatEpgTime } from "./index";
+import { epgReminderMarker, formatEpgTime } from "./index";
 import type { EPGEntry } from "./types";
 
 /** List of module state keys that should be persisted via the provider storage API. */
@@ -36,7 +36,12 @@ export function renderEpgHTML(epgData: EPGEntry[]): string {
     if (!(epgData && epgData.length)) return html;
     epgData.forEach(function (entry: EPGEntry) {
         html +=
-            '<div class="epg-entry"><span class="epg-time">' +
+            '<div class="epg-entry">' +
+            epgReminderMarker(
+                entry,
+                (entry as any).ch_id ?? (window as any).epg_ch_id
+            ) +
+            '<span class="epg-time">' +
             formatEpgTime(entry.time) +
             '</span> <span class="epg-name">' +
             entry.name +
