@@ -38,7 +38,7 @@ jobs:
         name: Classify documentation and build inputs
         env:
           DOCUMENTATION_PATHS: '["vendor/README.md"]'
-          REQUIRED_PATHS: '["docs/privacy-policy.md"]'
+          REQUIRED_PATHS: "[\"docs/privacy-policy.md\", \"CHANGELOG.md\"]"
           FORCE_FULL: ${{ inputs.force-full && 'true' || 'false' }}
         run: |
           args=()
@@ -110,6 +110,15 @@ jobs:
       - run: 'python3 -m pip install --require-hashes --only-binary=:all: -r .github/requirements-workflow-contracts.txt'
       - run: python3 scripts/workflow_contracts.py
       - run: python3 -m unittest discover -s .github/workflow-tests -p 'test_*.py'
+      - name: Set up Node for the existing documentation validator
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Validate documentation with the locked compiler
+        run: |
+          node scripts/prepare-docs-validation.cjs "$RUNNER_TEMP/ottplay-docs-validation"
+          npm ci --ignore-scripts --no-audit --no-fund --prefix "$RUNNER_TEMP/ottplay-docs-validation"
+          NODE_PATH="$RUNNER_TEMP/ottplay-docs-validation/node_modules" node tests/test_readme_docs.cjs
     needs:
       - scope
   release-contracts:

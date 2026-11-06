@@ -61,7 +61,7 @@ jobs:
         env:
           DOCUMENTATION_PATHS: '["vendor/README.md"]'
           REQUIRED_PATHS: '["docs/privacy-policy.md"]'
-          FORCE_FULL: 'false'
+          FORCE_FULL: 'true'
         run: |
           args=()
           if [[ "$FORCE_FULL" == true ]]; then args+=(--force); fi
