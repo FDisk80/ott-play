@@ -809,15 +809,16 @@ const CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE = Object.freeze({
     appearance: Object.freeze({ bytes: 195, gzipBytes: 74 }),
     entry: Object.freeze({ bytes: 2281, gzipBytes: 1049 }),
 });
-// Observed RC1-base b158b94 -> PR1070 head55bf1f2 (merge6dc0851) net cost.
-// Node22.23.4/zlib1.3.1 match; build identities differ, so this is not an
-// isolated same-identity optimization experiment. Take the maximum per target:
-// entry +3111/+1055 raw/gzip and appearance +301/+197, without extra reserve.
-// Count each once in its aggregate; retain prior headroom and all other caps.
+// Observed RC1-base b158b94 -> final PR1070 head0d4f69b (mergea9824d1) net cost,
+// including color-picker Enter/focus and live folder-handle cache fixes.
+// Node22.23.4/zlib1.3.1 match; differing build identities preclude an isolated
+// feature measurement. Maximum per target: entry +3389/+1144 raw/gzip and
+// appearance +301/+197. Count each once, preserving prior headroom with no
+// extra reserve. The initial head55bf1f2 measurement omitted the final fixes.
 // Evidence: docs/evidence/interface-notification-settings-size-20261106.json.
 const INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE = Object.freeze({
     appearance: Object.freeze({ bytes: 301, gzipBytes: 197 }),
-    entry: Object.freeze({ bytes: 3111, gzipBytes: 1055 }),
+    entry: Object.freeze({ bytes: 3389, gzipBytes: 1144 }),
 });
 const BUDGET = Object.freeze({
     bytes:

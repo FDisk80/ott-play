@@ -176,6 +176,14 @@ assert.deepEqual(
     notificationEvidence.baseline.toolchain,
     notificationEvidence.candidate.toolchain
 );
+assert.equal(
+    notificationEvidence.candidate.head,
+    "0d4f69b8fbb5db86615c522d8a9ba3ae8e92ce5e"
+);
+assert.equal(
+    notificationEvidence.candidate.report_sha256,
+    "0e810d2022eecf84e3461e980421f1631a68d4136180e8331ea9032f27d329eb"
+);
 assert.deepEqual(
     INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
     notificationEvidence.measured_allowance
@@ -292,6 +300,35 @@ for (const variant of notificationEvidence.variants) {
             );
         }
     }
+}
+// The initial head omitted the final fixes: restore the baseline's 97-byte
+// native legacy headroom, not just the 5–7-byte observed release overrun.
+const nativeNotification = notificationEvidence.variants.find(
+    (variant) => variant.entry === "src-tauri/frontend/dist/player.js"
+);
+assert.equal(
+    preNotificationCaps.LEGACY_TOTAL_BUDGET.gzipBytes -
+        nativeNotification.baseline.legacyTotal.gzipBytes,
+    97
+);
+assert.equal(
+    latestCaps.LEGACY_TOTAL_BUDGET.gzipBytes -
+        nativeNotification.candidate.legacyTotal.gzipBytes,
+    97
+);
+assert.equal(
+    notificationEvidence.release_observation.source,
+    notificationEvidence.candidate.merged_source
+);
+for (const observed of notificationEvidence.release_observation.jobs) {
+    assert(
+        observed.legacy_gzip_bytes >
+            notificationEvidence.release_observation.prior_legacy_gzip_cap
+    );
+    assert(
+        observed.legacy_gzip_bytes < latestCaps.LEGACY_TOTAL_BUDGET.gzipBytes,
+        observed.target + " fits restored headroom without additional reserve"
+    );
 }
 for (const [name, before] of Object.entries(notificationEvidence.caps_before)) {
     const oldCap =

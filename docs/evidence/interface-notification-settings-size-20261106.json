@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "status": "OBSERVED_NET_PAIR_NOT_BUILD_QUALIFICATION",
-  "scope": "Shared local/remote notification renderer, continuous banner presentation and interface settings between RC1 base and PR1070 candidate. This is the observed net entry/appearance increment, not a second allowance for the full renderer.",
+  "scope": "Shared local/remote notification renderer, continuous banner presentation and interface settings, including the final color-picker Enter/focus and live folder-handle cache fixes, between RC1 base and final PR1070 candidate. This is observed net entry/appearance growth, not a second allowance for the full renderer.",
   "policy": "Use maximum observed per-target delta once; preserve all previous headroom. No extra reserve, no changes to unrelated provider or optional caps.",
   "gzip_method": "Node/zlib level-9 reported sizes; aggregate the separately compressed streams without recompression.",
   "compatibility": {
@@ -26,23 +26,27 @@
     }
   },
   "candidate": {
-    "head": "55bf1f2a72a2490494a03a1d0a74a1becd136bc5",
-    "tested_merge": "6dc0851c9574734f259f83f9c80a34d40dd59d23",
-    "run": 42192359193,
-    "artifact_id": 13491190309,
-    "report": "classic-size-diagnostics.json",
-    "report_sha256": "d77aa45371f8e3046498a413364be9137d6aaf99e74db1caad00173337b62290",
-    "version_from_build_log": "1.1.66",
+    "head": "0d4f69b8fbb5db86615c522d8a9ba3ae8e92ce5e",
+    "tested_merge": "a9824d1ae953d47d31b1f594b983fb7c71ea64aa",
+    "tree": "f4189644d8e548d0bb26cb4c873624882a6b5d1e",
+    "merged_source": "14ea5da80b20a8311bb55cee250f794ae278d310",
+    "run": 42204061134,
+    "artifact_id": 13496216739,
+    "artifact_sha256": "033fe7021ad56c8afd2c6093f0f96d82d690ac39bac1d7bcf16dc1f9da8b7fec",
+    "report": "classic-bundle.json",
+    "report_sha256": "0e810d2022eecf84e3461e980421f1631a68d4136180e8331ea9032f27d329eb",
+    "source_binding": "Artifact metadata plus equal reviewed-head, tested-merge and merged-source Git trees; source identity is not intrinsic to the report.",
+    "composition_version": "1.1.66",
     "toolchain": {
       "node": "22.23.4",
       "zlib": "1.3.1-e00f703"
     },
-    "original_gate": "21 size violations; 0 input errors"
+    "original_gate": "PASS; all required PR checks passed."
   },
   "measured_allowance": {
     "entry": {
-      "bytes": 3111,
-      "gzipBytes": 1055
+      "bytes": 3389,
+      "gzipBytes": 1144
     },
     "appearance": {
       "bytes": 301,
@@ -73,20 +77,20 @@
   },
   "caps_after": {
     "BUDGET": {
-      "bytes": 1203382,
-      "gzipBytes": 368427
+      "bytes": 1203660,
+      "gzipBytes": 368516
     },
     "BASE_TOTAL_BUDGET": {
-      "bytes": 1880206,
-      "gzipBytes": 580358
+      "bytes": 1880484,
+      "gzipBytes": 580447
     },
     "LEGACY_TOTAL_BUDGET": {
-      "bytes": 1448438,
-      "gzipBytes": 452682
+      "bytes": 1448716,
+      "gzipBytes": 452771
     },
     "TOTAL_BUDGET": {
-      "bytes": 1890486,
-      "gzipBytes": 584386
+      "bytes": 1890764,
+      "gzipBytes": 584475
     },
     "appearance": {
       "bytes": 8692,
@@ -215,9 +219,9 @@
         "sha256": "e4b947bf6fab8f493a0e44c577a209be702844aa399253faf390b6838c3b2235"
       },
       "candidate": {
-        "bytes": 1203029,
-        "gzipBytes": 368258,
-        "sha256": "7ee7ccb56e6c0dce873760a4c84378c98ba496d77ff7d2e9875d55b82ded9688"
+        "bytes": 1203307,
+        "gzipBytes": 368347,
+        "sha256": "644e2333797bc6a54023ffb5565ce191fe942ea71be52b94dc67f135cf6a64f9"
       }
     },
     {
@@ -579,9 +583,9 @@
         "sha256": "7103625b29143a2053a841af2e33bf5974eefe36c26ece394331f87470ac232d"
       },
       "candidate": {
-        "bytes": 1203067,
-        "gzipBytes": 368201,
-        "sha256": "173a80f9a9cade0e142f3ff5cd4004455ccc64f498c2482f535f537696c2d4ff"
+        "bytes": 1203345,
+        "gzipBytes": 368292,
+        "sha256": "da2168718f57abad18d8930267a3ca7ea37d4505a506914ade16954724bddaff"
       }
     },
     {
@@ -943,9 +947,9 @@
         "sha256": "e4b947bf6fab8f493a0e44c577a209be702844aa399253faf390b6838c3b2235"
       },
       "candidate": {
-        "bytes": 1203029,
-        "gzipBytes": 368258,
-        "sha256": "7ee7ccb56e6c0dce873760a4c84378c98ba496d77ff7d2e9875d55b82ded9688"
+        "bytes": 1203307,
+        "gzipBytes": 368347,
+        "sha256": "644e2333797bc6a54023ffb5565ce191fe942ea71be52b94dc67f135cf6a64f9"
       }
     },
     {
@@ -1202,12 +1206,12 @@
       },
       "candidate": {
         "legacyTotal": {
-          "bytes": 1447940,
-          "gzipBytes": 452528
+          "bytes": 1448218,
+          "gzipBytes": 452619
         },
         "total": {
-          "bytes": 1889745,
-          "gzipBytes": 584011
+          "bytes": 1890023,
+          "gzipBytes": 584102
         }
       }
     },
@@ -1225,12 +1229,12 @@
       },
       "candidate": {
         "legacyTotal": {
-          "bytes": 1447902,
-          "gzipBytes": 452585
+          "bytes": 1448180,
+          "gzipBytes": 452674
         },
         "total": {
-          "bytes": 1889707,
-          "gzipBytes": 584068
+          "bytes": 1889985,
+          "gzipBytes": 584157
         }
       }
     },
@@ -1248,15 +1252,73 @@
       },
       "candidate": {
         "legacyTotal": {
-          "bytes": 1447902,
-          "gzipBytes": 452585
+          "bytes": 1448180,
+          "gzipBytes": 452674
         },
         "total": {
-          "bytes": 1889707,
-          "gzipBytes": 584068
+          "bytes": 1889985,
+          "gzipBytes": 584157
         }
       }
     }
   ],
-  "qualification": "Base report passed. Candidate report is the original failed size-gate diagnostic. Matching Node/zlib and unchanged other asset hashes are observed; equal build identities or all compiler versions are not claimed. New caps require fresh CI on the final source."
+  "qualification": "Base and final PR candidate reports passed. The final candidate used the same source tree as the merged release source; the stamped beta release subsequently exceeded the former legacy gzip cap. Matching Node/zlib and unchanged other asset hashes are observed; equal build identities or all compiler versions are not claimed. Corrected caps require fresh CI and release qualification.",
+  "initial_measurement": {
+    "candidate": {
+      "head": "55bf1f2a72a2490494a03a1d0a74a1becd136bc5",
+      "tested_merge": "6dc0851c9574734f259f83f9c80a34d40dd59d23",
+      "run": 42192359193,
+      "artifact_id": 13491190309,
+      "report": "classic-size-diagnostics.json",
+      "report_sha256": "d77aa45371f8e3046498a413364be9137d6aaf99e74db1caad00173337b62290",
+      "version_from_build_log": "1.1.66",
+      "toolchain": {
+        "node": "22.23.4",
+        "zlib": "1.3.1-e00f703"
+      },
+      "original_gate": "21 size violations; 0 input errors"
+    },
+    "measured_allowance": {
+      "entry": {
+        "bytes": 3111,
+        "gzipBytes": 1055
+      },
+      "appearance": {
+        "bytes": 301,
+        "gzipBytes": 197
+      }
+    },
+    "note": "Superseded by final PR head above; the initial measurement predates the color-picker Enter/focus and live folder-handle cache fixes."
+  },
+  "release_observation": {
+    "run": 42211732003,
+    "source": "14ea5da80b20a8311bb55cee250f794ae278d310",
+    "version": "1.1.66-beta.1",
+    "build_number": 10590,
+    "prior_legacy_gzip_cap": 452682,
+    "purpose": "Cross-check only, not a basis for the allowance. Release identity differs from CI; no isolated suffix cost is claimed.",
+    "jobs": [
+      {
+        "job": 127878295429,
+        "url": "https://github.com/open-ott-play/ottplay-foss/actions/runs/42211732003/job/127878295429",
+        "target": "web staged native",
+        "log_sha256": "c4c79ae6e7c6c9e6780c18b611f839e2cc673981d521e3948e6bda9a9be328a4",
+        "legacy_gzip_bytes": 452687
+      },
+      {
+        "job": 127878295550,
+        "url": "https://github.com/open-ott-play/ottplay-foss/actions/runs/42211732003/job/127878295550",
+        "target": "macOS staged native",
+        "log_sha256": "4907acb521cbe5abdb896e528a43f94553b6eb9f031de77b83982d257d7437ef",
+        "legacy_gzip_bytes": 452687
+      },
+      {
+        "job": 127878295569,
+        "url": "https://github.com/open-ott-play/ottplay-foss/actions/runs/42211732003/job/127878295569",
+        "target": "Android",
+        "log_sha256": "af3c8a9caee500907ee5a777a1fe10e4a061aa963587674e5a6937f6571523b5",
+        "legacy_gzip_bytes": 452689
+      }
+    ]
+  }
 }

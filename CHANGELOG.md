@@ -148,6 +148,11 @@
 
 ## [1.1.66] - Development line
 
+- Account for the final interface fixes in Classic bundle limits. The initial
+  measurement omitted the color-picker Enter/focus and folder-cache changes,
+  leaving too little of the existing headroom for the beta release identity.
+  Preserve the previous measured headroom without adding extra reserve.
+
 ### Changes
 
 - Reused the live local-folder handle when saving the startup cache while preserving source generation checks.
