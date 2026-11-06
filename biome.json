@@ -251,6 +251,17 @@
       }
     },
     {
+      "includes": [
+        "docs/evidence/client-interface-colors-size-20261106/DATA-COMPARISON.json",
+        "docs/evidence/client-interface-colors-size-20261106/DATA-VERIFY.json",
+        "docs/evidence/client-interface-colors-size-20261106/manifest.json",
+        "docs/evidence/client-interface-colors-size-20261106/receipt.json"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": ["contracts/ottplay-wire-v1.json"],
       "formatter": {
         "enabled": false

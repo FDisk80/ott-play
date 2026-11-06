@@ -66,7 +66,7 @@
 - **節目指南**：XMLTV匹配、時移/回看、節目標題搜尋（EPG中的N5）、提醒，以及託管/原生XMLTV路徑中針對準確頻道的手動節目來源/ID綁定。參見[綁定與無障礙](docs/guide-binding-accessibility.zh-Hant.md)。
 - **收藏**：在支援的裝置上，跨已設定的提供商和設定檔使用一個有序的[混合收藏集](docs/mixed-favorites.md)，支援透過CLI進行可移轉的匯出/匯入；保留家長控制PIN。備援模式下仍可使用各來源的收藏清單。
 - **設定**：設定和收藏的JSON匯入/匯出、支援的localStorage批次操作撤銷日誌、區分來源的回看續播，以及控制器工作流程所用的已存設定精確比較。恢復假定只有一個寫入者；自訂儲存適配器仍為盡力回復。參見[設定恢復](docs/settings-recovery.zh-Hant.md)。
-- **共享介面**：OTT Server、Tauri和Capacitor使用相同的頻道列表主題與可見性設定。介面設定控制醒目提示和選中色；頻道列表設定控制頻道名稱、圖示、目前節目、進度及回看標記。
+- **共享介面**：OTT Server、Tauri和Capacitor使用相同的頻道列表主題與可見性設定。[介面色彩](docs/interface-colors.md)支援按九種用途分別設定顏色，提供調色盤、精確的HEX/RGB/HSV數值輸入和五種配色方案，設定按用戶端儲存。頻道列表設定控制頻道名稱、圖示、目前節目、進度及回看標記。
 - **提供商**：M3U/M3U8、Xtream直播及[點播電影/劇集目錄](docs/xtream-media.zh-Hant.md)、支援[電影和巢狀分集](docs/stalker-media.md)的Stalker/Ministra、Plex和VPortal。可用回看與媒體庫功能取決於提供商能力和帳號權限。
 - **推送命令**：透過webhook遠端控制——切換頻道、提供商、播放列表以及顯示彈窗。
 - **遠端文字輸入（swop）**：電視和手機處於不同網路時，透過Cloudflare Worker使用手機鍵盤（安裝授權工作階段；虛擬鍵盤上的♥™）。

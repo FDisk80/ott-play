@@ -19,3 +19,9 @@ The worker changes by **27 / 3** and is checked separately, outside the classic 
 `DATA-VERIFY.json` and `DATA-COMPARISON.json` preserve the subsequent data-only reconciliation of all 734 archive files. They do not replace the failed original receipt. The regression test also verifies the supplemental comparison against every original inventory row.
 
 Separately, all 703 collected assets (350 baseline, 353 candidate) were checked against their preserved raw bytes with the frozen production `collectBundleMeasurement` export and the same Node/zlib versions; `raw-verification.json` records this additional check. Every byte count, gzip size, and SHA-256 matched. The supplemental reconciliation itself did not recompute gzip. The raw files remain in the hosted artifact; this directory stores the original and supplemental JSON records unchanged. The existing release pipeline must still qualify the final combined source.
+
+The formatter preserves the original bytes of `manifest.json`, `receipt.json`,
+`DATA-VERIFY.json`, and `DATA-COMPARISON.json`. The exception lists only those
+four paths: JSON parsing and the regression checks for their hashes, origin,
+inventories and measurements remain enabled. Reformatting these records would
+break their byte identity with the retained evidence.
