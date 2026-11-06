@@ -470,7 +470,7 @@ function save(w) {
             undefined,
             "Legacy pickers are replaced by one color editor"
         );
-    const custom = JSON.stringify({ version: 1, colors: { text: "#AABBCC" } });
+    const custom = '{"version":1,"colors":{"text":"#AABBCC"}}';
     row("uiColorConfig").val = custom;
     assert.equal(row("uiColorConfig").cur, "Custom");
     assert.equal(
