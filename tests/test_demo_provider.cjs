@@ -396,7 +396,7 @@ test("explicit provider choices discard a one-off or promote the same Local sele
                 ts.ScriptTarget.Latest,
                 true
             );
-            let actual, release;
+            let actual, release, callHelper, fieldHelper;
             function visit(node) {
                 if (
                     ts.isFunctionDeclaration(node) &&
@@ -408,14 +408,28 @@ test("explicit provider choices discard a one-off or promote the same Local sele
                     node.name?.text === "releaseDrop"
                 )
                     release = node.getText(tree);
+                if (
+                    ts.isFunctionDeclaration(node) &&
+                    node.name?.text === "localCall"
+                )
+                    callHelper = node.getText(tree);
+                if (
+                    ts.isFunctionDeclaration(node) &&
+                    node.name?.text === "localField"
+                )
+                    fieldHelper = node.getText(tree);
                 ts.forEachChild(node, visit);
             }
             visit(tree);
             assert(actual, "real Local session finish function");
             assert(release, "real dropped-file cleanup function");
+            assert(callHelper, "real Local optional-call helper");
+            assert(fieldHelper, "real Local optional-field helper");
             const factory = ts.transpileModule(
                 "(function(w, retireRemotePlayback, playbackIntentContext) { " +
                     "var droppedPlayback = null; " +
+                    callHelper +
+                    fieldHelper +
                     release +
                     actual +
                     "; return finishSession; })",

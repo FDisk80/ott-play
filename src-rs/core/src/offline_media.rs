@@ -6247,7 +6247,7 @@ mod tests {
         assert!(catalog.items[0].url.is_empty());
         assert!(!catalog.sources[0].available);
         let response = dropped_response(&library, &record.id, None).await;
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(response.status(), StatusCode::GONE);
         wait_for_drain(&library.background).await;
         fs::remove_dir_all(base).await.unwrap();
     }
