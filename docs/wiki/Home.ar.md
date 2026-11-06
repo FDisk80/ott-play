@@ -53,7 +53,7 @@
 
 ## تهيئة المصادر وفحص المشكلات
 
-- [تسجيل دخول Plex وتشغيله](../plex-provider.md)، و[مكتبة الوسائط على الخادم](../synology-library.md)، و[بنية دليل البرامج](../guide-architecture.md)، و[تشخيصات EPG المستضافة](../hosted-epg-diagnostics.md).
+- [تسجيل دخول Plex وتشغيله](../plex-provider.md)، و[بنية دليل البرامج](../guide-architecture.md)، و[تشخيصات EPG المستضافة](../hosted-epg-diagnostics.md).
 - [إعدادات الواجهة](../interface-settings.md)، و[تاريخ التصميم والإسناد](../interface-history.md)، و[كتالوجات اللغات ولوحات المفاتيح](../localization.md).
 - [منضدة العمل البعيدة](../remote-workbench.md)، و[تشخيصات وقت التشغيل](../runtime-debug.md)، و[الموافقة على التشخيص وإخفاء البيانات والاحتفاظ بها](../diagnostic-security.md).
 - [قائمة فحص الأجهزة الأصلية](../mode-b-device-smoke.md)، و[قائمة أجهزة Tauri](../mode-b-tauri-smoke.md)، و[عناصر تحكم نافذة المتصفح](../browser-window-controls.md).

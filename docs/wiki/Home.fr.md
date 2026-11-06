@@ -51,7 +51,7 @@ Cette page est l’accueil de la documentation versionnée dans le dépôt sourc
 
 ## Configurer les sources et examiner les problèmes
 
-- [Connexion et lecture Plex](../plex-provider.md), [médiathèque côté serveur](../synology-library.md), [architecture du guide](../guide-architecture.md) et [diagnostic EPG hébergé](../hosted-epg-diagnostics.md).
+- [Connexion et lecture Plex](../plex-provider.md), [architecture du guide](../guide-architecture.md) et [diagnostic EPG hébergé](../hosted-epg-diagnostics.md).
 - [Réglages de l’interface](../interface-settings.md), [historique du design et crédits](../interface-history.md) et [catalogues de langues/claviers](../localization.md).
 - [Atelier distant](../remote-workbench.md), [diagnostic d’exécution](../runtime-debug.md) et [consentement, masquage et conservation des diagnostics](../diagnostic-security.md).
 - [Liste de contrôle des appareils natifs](../mode-b-device-smoke.md), [liste des appareils Tauri](../mode-b-tauri-smoke.md) et [commandes de fenêtre du navigateur](../browser-window-controls.md).

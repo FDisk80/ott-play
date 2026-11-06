@@ -66,8 +66,7 @@ See the [publishing instructions](../wiki-publishing.md).
 
 ## Configure sources and inspect problems
 
-- [Plex sign-in and playback](../plex-provider.md), [server-side media library](../synology-library.md),
-  [guide architecture](../guide-architecture.md) and [hosted EPG diagnostics](../hosted-epg-diagnostics.md).
+- [Plex sign-in and playback](../plex-provider.md), [guide architecture](../guide-architecture.md) and [hosted EPG diagnostics](../hosted-epg-diagnostics.md).
 - [Interface settings](../interface-settings.md), [design history and credits](../interface-history.md)
   and [language catalogs/keyboards](../localization.md).
 - [Remote workbench](../remote-workbench.md), [runtime diagnostics](../runtime-debug.md)

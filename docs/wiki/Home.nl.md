@@ -51,7 +51,7 @@ Dit is de startpagina van de versiebeheerde documentatie in de bronrepository. G
 
 ## Bronnen instellen en problemen onderzoeken
 
-- [Plex-aanmelding en afspelen](../plex-provider.md), [mediabibliotheek aan serverzijde](../synology-library.md), [gidsarchitectuur](../guide-architecture.md) en [gehoste EPG-diagnostiek](../hosted-epg-diagnostics.md).
+- [Plex-aanmelding en afspelen](../plex-provider.md), [gidsarchitectuur](../guide-architecture.md) en [gehoste EPG-diagnostiek](../hosted-epg-diagnostics.md).
 - [Interface-instellingen](../interface-settings.md), [ontwerpgeschiedenis en dankbetuigingen](../interface-history.md) en [taalcatalogi/toetsenborden](../localization.md).
 - [Werkbank op afstand](../remote-workbench.md), [runtimediagnostiek](../runtime-debug.md) en [diagnostische toestemming, afscherming en bewaartermijnen](../diagnostic-security.md).
 - [Checklist voor native apparaten](../mode-b-device-smoke.md), [Tauri-apparatenchecklist](../mode-b-tauri-smoke.md) en [browservensterbediening](../browser-window-controls.md).

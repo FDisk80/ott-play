@@ -51,7 +51,7 @@
 
 ## উৎস কনফিগার ও সমস্যা পরীক্ষা
 
-- [Plex সাইন-ইন ও প্লেব্যাক](../plex-provider.md), [সার্ভার-পক্ষের মিডিয়া লাইব্রেরি](../synology-library.md), [গাইডের স্থাপত্য](../guide-architecture.md) এবং [হোস্ট করা EPG সমস্যা নির্ণয়](../hosted-epg-diagnostics.md)।
+- [Plex সাইন-ইন ও প্লেব্যাক](../plex-provider.md), [গাইডের স্থাপত্য](../guide-architecture.md) এবং [হোস্ট করা EPG সমস্যা নির্ণয়](../hosted-epg-diagnostics.md)।
 - [ইন্টারফেসের সেটিং](../interface-settings.md), [নকশার ইতিহাস ও কৃতিত্ব](../interface-history.md) এবং [ভাষার ক্যাটালগ/কীবোর্ড](../localization.md)।
 - [দূরবর্তী ওয়ার্কবেঞ্চ](../remote-workbench.md), [রানটাইম সমস্যা নির্ণয়](../runtime-debug.md) এবং [সমস্যা নির্ণয়ের সম্মতি, গোপন তথ্য আড়াল ও সংরক্ষণ](../diagnostic-security.md)।
 - [নেটিভ যন্ত্রের চেকলিস্ট](../mode-b-device-smoke.md), [Tauri যন্ত্রের চেকলিস্ট](../mode-b-tauri-smoke.md) এবং [ব্রাউজার উইন্ডো নিয়ন্ত্রণ](../browser-window-controls.md)।

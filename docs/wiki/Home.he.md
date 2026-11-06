@@ -53,7 +53,7 @@
 
 ## הגדרת מקורות ובחינת בעיות
 
-- [כניסה וניגון Plex](../plex-provider.md), [ספריית מדיה בצד שרת](../synology-library.md), [ארכיטקטורת המדריך](../guide-architecture.md) ו־[אבחון EPG מתארח](../hosted-epg-diagnostics.md).
+- [כניסה וניגון Plex](../plex-provider.md), [ארכיטקטורת המדריך](../guide-architecture.md) ו־[אבחון EPG מתארח](../hosted-epg-diagnostics.md).
 - [הגדרות ממשק](../interface-settings.md), [תולדות העיצוב וקרדיטים](../interface-history.md) ו־[קטלוגי שפות/מקלדות](../localization.md).
 - [סביבת עבודה מרוחקת](../remote-workbench.md), [אבחון זמן ריצה](../runtime-debug.md) ו־[הסכמה, השחרה ושמירת אבחון](../diagnostic-security.md).
 - [רשימת בדיקה למכשירים מקוריים](../mode-b-device-smoke.md), [רשימת מכשירי Tauri](../mode-b-tauri-smoke.md) ו־[בקרי חלון הדפדפן](../browser-window-controls.md).

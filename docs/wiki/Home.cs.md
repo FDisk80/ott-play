@@ -51,7 +51,7 @@ Toto je úvodní stránka verzované dokumentace ve zdrojovém repozitáři. Git
 
 ## Nastavení zdrojů a zkoumání problémů
 
-- [Přihlášení a přehrávání Plex](../plex-provider.md), [serverová knihovna médií](../synology-library.md), [architektura průvodce](../guide-architecture.md) a [hostovaná diagnostika EPG](../hosted-epg-diagnostics.md).
+- [Přihlášení a přehrávání Plex](../plex-provider.md), [architektura průvodce](../guide-architecture.md) a [hostovaná diagnostika EPG](../hosted-epg-diagnostics.md).
 - [Nastavení rozhraní](../interface-settings.md), [historie návrhu a poděkování](../interface-history.md) a [jazykové katalogy/klávesnice](../localization.md).
 - [Vzdálené pracovní prostředí](../remote-workbench.md), [běhová diagnostika](../runtime-debug.md) a [souhlas, začernění a uchovávání diagnostiky](../diagnostic-security.md).
 - [Kontrolní seznam nativních zařízení](../mode-b-device-smoke.md), [seznam zařízení Tauri](../mode-b-tauri-smoke.md) a [ovládání okna prohlížeče](../browser-window-controls.md).

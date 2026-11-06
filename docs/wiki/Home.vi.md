@@ -51,7 +51,7 @@
 
 ## Cấu hình nguồn và điều tra sự cố
 
-- [Đăng nhập và phát Plex](../plex-provider.md), [thư viện media phía máy chủ](../synology-library.md), [kiến trúc lịch chương trình](../guide-architecture.md) và [chẩn đoán EPG được lưu trữ](../hosted-epg-diagnostics.md).
+- [Đăng nhập và phát Plex](../plex-provider.md), [kiến trúc lịch chương trình](../guide-architecture.md) và [chẩn đoán EPG được lưu trữ](../hosted-epg-diagnostics.md).
 - [Cài đặt giao diện](../interface-settings.md), [lịch sử thiết kế và ghi nhận đóng góp](../interface-history.md) và [danh mục ngôn ngữ/bàn phím](../localization.md).
 - [Bàn làm việc từ xa](../remote-workbench.md), [chẩn đoán runtime](../runtime-debug.md) và [đồng ý, che dữ liệu và lưu giữ chẩn đoán](../diagnostic-security.md).
 - [Danh sách kiểm tra thiết bị native](../mode-b-device-smoke.md), [danh sách thiết bị Tauri](../mode-b-tauri-smoke.md) và [điều khiển cửa sổ trình duyệt](../browser-window-controls.md).

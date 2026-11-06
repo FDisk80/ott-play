@@ -51,7 +51,7 @@ Dies ist die versionierte Dokumentationsstartseite im Quellrepository. GitHub ka
 
 ## Quellen einrichten und Probleme untersuchen
 
-- [Plex-Anmeldung und Wiedergabe](../plex-provider.md), [serverseitige Medienbibliothek](../synology-library.md), [Programmführer-Architektur](../guide-architecture.md) und [gehostete EPG-Diagnose](../hosted-epg-diagnostics.md).
+- [Plex-Anmeldung und Wiedergabe](../plex-provider.md), [Programmführer-Architektur](../guide-architecture.md) und [gehostete EPG-Diagnose](../hosted-epg-diagnostics.md).
 - [Oberflächeneinstellungen](../interface-settings.md), [Designgeschichte und Danksagungen](../interface-history.md) und [Sprachkataloge/Tastaturen](../localization.md).
 - [Remote-Werkbank](../remote-workbench.md), [Laufzeitdiagnose](../runtime-debug.md) und [Diagnoseeinwilligung, Schwärzung und Aufbewahrung](../diagnostic-security.md).
 - [Checkliste für native Geräte](../mode-b-device-smoke.md), [Tauri-Gerätecheckliste](../mode-b-tauri-smoke.md) und [Browser-Fenstersteuerung](../browser-window-controls.md).

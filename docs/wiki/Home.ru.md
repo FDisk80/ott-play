@@ -51,7 +51,7 @@
 
 ## Настройка источников и разбор проблем
 
-- [Вход в Plex и воспроизведение](../plex-provider.md), [серверная медиатека](../synology-library.md), [архитектура телегида](../guide-architecture.md) и [диагностика размещённого EPG](../hosted-epg-diagnostics.md).
+- [Вход в Plex и воспроизведение](../plex-provider.md), [архитектура телегида](../guide-architecture.md) и [диагностика размещённого EPG](../hosted-epg-diagnostics.md).
 - [Настройки интерфейса](../interface-settings.md), [история дизайна и благодарности](../interface-history.md) и [языковые каталоги и клавиатуры](../localization.md).
 - [Удалённое рабочее окружение](../remote-workbench.md), [диагностика выполнения](../runtime-debug.md) и [согласие на диагностику, удаление чувствительных данных и хранение](../diagnostic-security.md).
 - [Проверки нативных устройств](../mode-b-device-smoke.md), [проверки устройств Tauri](../mode-b-tauri-smoke.md) и [управление окном браузера](../browser-window-controls.md).

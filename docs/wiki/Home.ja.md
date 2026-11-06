@@ -51,7 +51,7 @@
 
 ## ソース設定と問題調査
 
-- [Plex サインインと再生](../plex-provider.md)、[サーバー側メディアライブラリ](../synology-library.md)、[番組ガイドの構成](../guide-architecture.md)、[ホスト型 EPG 診断](../hosted-epg-diagnostics.md)。
+- [Plex サインインと再生](../plex-provider.md)、[番組ガイドの構成](../guide-architecture.md)、[ホスト型 EPG 診断](../hosted-epg-diagnostics.md)。
 - [インターフェース設定](../interface-settings.md)、[デザインの歴史と謝辞](../interface-history.md)、[言語カタログ/キーボード](../localization.md)。
 - [リモート作業台](../remote-workbench.md)、[ランタイム診断](../runtime-debug.md)、[診断の同意・秘匿化・保存](../diagnostic-security.md)。
 - [ネイティブ機器チェックリスト](../mode-b-device-smoke.md)、[Tauri 機器チェックリスト](../mode-b-tauri-smoke.md)、[ブラウザーウィンドウ操作](../browser-window-controls.md)。

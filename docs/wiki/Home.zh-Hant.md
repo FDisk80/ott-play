@@ -51,7 +51,7 @@
 
 ## 設定來源與排查問題
 
-- [Plex 登入與播放](../plex-provider.md)、[伺服器端媒體庫](../synology-library.md)、[節目指南架構](../guide-architecture.md)及[託管 EPG 診斷](../hosted-epg-diagnostics.md)。
+- [Plex 登入與播放](../plex-provider.md)、[節目指南架構](../guide-architecture.md)及[託管 EPG 診斷](../hosted-epg-diagnostics.md)。
 - [介面設定](../interface-settings.md)、[設計歷史與致謝](../interface-history.md)及[語言目錄/鍵盤](../localization.md)。
 - [遠端工作台](../remote-workbench.md)、[執行階段診斷](../runtime-debug.md)及[診斷同意、遮蔽與保留](../diagnostic-security.md)。
 - [原生裝置檢查清單](../mode-b-device-smoke.md)、[Tauri 裝置檢查清單](../mode-b-tauri-smoke.md)及[瀏覽器視窗控制項](../browser-window-controls.md)。
