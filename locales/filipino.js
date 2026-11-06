@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Isang utos ang tinanggihan ng media player. Suriin ang provider at mga setting nito.",
     About: "Tungkol sa",
+    "Accent color": "Kulay ng diin",
     "Access code": "Code sa pag-access",
     "Access denied. Check the server access code.":
         "Tinanggihan ang pag-access. Suriin ang server access code.",
@@ -85,6 +86,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Nabigo ang API, sinusubukan ang M3U…",
     "API Server": "Server ng API",
     "API server URL": "URL ng server ng API",
+    Apply: "Ilapat",
+    "Apply changes to this draft, then use Save Settings.":
+        "Ilapat ang mga pagbabago sa draft na ito, pagkatapos piliin ang I-save ang mga setting.",
     "Applying HTTP remote settings...":
         "Inilapat ang HTTP malayuang mga setting...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -124,6 +128,7 @@ var keyStrings = {
     Blue: "Asul",
     "Bookmark age (days): %1": "Edad ng bookmark (mga araw): %1",
     "Bookmark age: %1 days": "Edad ng bookmark: %1 araw",
+    "Border color": "Kulay ng hangganan",
     Brightness: "Liwanag",
     "Browse folders": "Mag-browse ng mga folder",
     "Buffer Size, s": "Laki ng buffer, s",
@@ -199,6 +204,7 @@ var keyStrings = {
     "Cloud transfer failed": "Nabigo ang paglilipat sa cloud",
     Code: "Kodigo",
     Color: "Kulay",
+    "Color schemes": "Mga iskema ng kulay",
     "Color spectrum": "Spectrum ng kulay",
     "Command server": "Server ng mga utos",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -338,6 +344,7 @@ var keyStrings = {
         "Hindi ma-update ang HTTP remote control.",
     Country: "Bansa",
     "Create category": "Lumikha ng kategorya",
+    Custom: "Pasadya",
     current: "kasalukuyang",
     "Debug enabled. Restart to apply.":
         "Naka-enable ang pag-debug. I-restart upang mailapat.",
@@ -503,6 +510,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG ibinalik ang pinagmulan HTTP %1",
     "EPG source: %1": "EPG pinagmulan: %1",
     "EPG stopped during: %1": "Huminto ang EPG habang: %1",
+    "EPG time color": "Kulay ng oras sa EPG",
     "EPG unavailable on this browser":
         "Hindi available ang EPG sa browser na ito",
     "EPG unavailable: %1": "EPG hindi magagamit: %1",
@@ -578,6 +586,7 @@ var keyStrings = {
     "Hide / Return": "Itago / ipakita",
     "Hide provider settings?": "Itago ang mga setting ng provider?",
     "Hide providers?": "Itago ang mga provider?",
+    "High contrast": "Mataas na contrast",
     "History in Media Library": "Kasaysayan sa library ng media",
     "History of watched movies": "Kasaysayan ng panonood",
     Home: "Simula",
@@ -585,6 +594,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP remote control ay hindi magagamit sa device na ito.",
     "HTTPS support": "HTTPS suporta",
+    Hue: "Tono ng kulay",
     ID: "ID",
     "Import settings": "Mga setting ng pag-import",
     "In live mode: <br/>": "Sa direktang pagsasahimpapawid:<br/>",
@@ -592,6 +602,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Tagal ng pagpapakita ng info bar, s",
     "Infobar settings": "Mga setting ng info bar",
     Information: "Impormasyon",
+    Inherited: "Minana",
+    "Interface colors": "Mga kulay ng interface",
     "Interface credits": "Mga gumawa ng interface",
     "Interface mode": "Mode ng interface",
     "Interface settings": "Mga setting ng interface",
@@ -601,6 +613,7 @@ var keyStrings = {
         "Di-wastong link ng channel! Ilagay ang buong host tulad ng sa dashboard stream ng provider account URL (hal. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Di-wastong tugon mula sa cloud para sa mga setting",
+    "Invalid color value": "Di-wastong halaga ng kulay",
     "Invalid protected source configuration":
         "Di-wastong protektadong source configuration",
     "Invalid range: %1-%2": "Hindi wastong saklaw: %1-%2",
@@ -614,6 +627,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV na mga setting",
     "Label (optional)": "Label (opsyonal)",
+    Light: "Maliwanag",
     "List created": "Nagawa ang listahan",
     "List deleted": "Tinanggal ang listahan",
     "List location": "Posisyon ng listahan",
@@ -676,6 +690,7 @@ var keyStrings = {
     "Media Library URL": "URL ng library ng media",
     Menu: "Menu",
     "Menu items settings": "Mga setting ng item sa menu",
+    Midnight: "Hatinggabi",
     Modern: "Moderno",
     "Modern interface is unavailable. Classic remains active.":
         "Hindi available ang modernong interface. Nananatiling aktibo ang klasiko.",
@@ -722,6 +737,7 @@ var keyStrings = {
     no: "hindi",
     "no epg at current time": "Walang EPG sa kasalukuyang oras",
     "not set": "hindi nakatakda",
+    Ocean: "Karagatan",
     Off: "Naka-off",
     Ok: "OK",
     On: "Naka-on",
@@ -757,6 +773,7 @@ var keyStrings = {
         "Hindi available ang pagpapares ng server. Hanapin muli ang server upang muling subukan.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Ang pagpapares ay tinanggihan o nagbalik ng di-wastong pag-apruba. Hanapin muli ang server upang muling subukan.",
+    Palette: "Paleta",
     "Parental control": "Kontrol ng magulang",
     Password: "Password",
     "Paste settings JSON": "I-paste ang mga setting JSON",
@@ -803,6 +820,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Inihahanda ang secure na remote input...",
     Prev: "Nakaraang",
+    Preview: "Paunang tingin",
     "Preview in channel list": "Preview sa listahan ng channel",
     Previous: "Nakaraang",
     "Privacy policy": "Patakaran sa privacy",
@@ -942,6 +960,7 @@ var keyStrings = {
     Search: "Maghanap",
     "Search languages": "Maghanap ng mga wika",
     "Search programme": "Maghanap ng programa",
+    "Secondary text color": "Kulay ng pangalawang teksto",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Hindi makapagsimula ang secure na remote input. Pakisubukang muli o gamitin ang on-screen na keyboard.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -963,6 +982,8 @@ var keyStrings = {
         "Piliin ang pinagmulan ng screenshot sa browser",
     "Select the player tab or window in the browser sharing dialog.":
         "Piliin ang tab o window ng player sa dialog ng pagbabahagi ng browser.",
+    "Selected item": "Napiling item",
+    "Selected text color": "Kulay ng napiling teksto",
     "Send request": "Magpadala ng kahilingan",
     "Send settings": "Ipadala ang mga setting",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1083,6 +1104,7 @@ var keyStrings = {
     "Subscription information": "Impormasyon sa subscription",
     Subtitle: "Mga subtitle",
     "Subtitle appearance": "Hitsura ng mga subtitle",
+    "Surface color": "Kulay ng ibabaw",
     Switch: "Lumipat",
     "Switch sound track": "Palitan ang audio track",
     "Switch subtitle": "Palitan ang mga subtitle",
@@ -1191,6 +1213,7 @@ var keyStrings = {
         "Gumamit ng HTTPS command server para sa malayuang diagnostics.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Gamitin ang HTTP o HTTPS nang walang username o password sa address.",
+    "Use inherited color": "Gamitin ang minanang kulay",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Gamitin ang LEFT/RIGHT para pumili ng control, OK para i-activate ito, at UP/DOWN para mag-scroll.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1215,6 +1238,7 @@ var keyStrings = {
         "Hindi ma-load ang VPortal. Tingnan ang link, access key, at availability ng portal.",
     volume: "lakas ng tunog",
     "Waiting for sign-in…": "Naghihintay ng pag-sign in…",
+    "Warm graphite": "Mainit na grapayt",
     "Wrong parental code !!!": "Maling parental code!",
     "Xtream Codes Provider": "Provider ng Xtream Codes",
     "Xtream Codes settings": "Xtream Codes na mga setting",

@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "הנגן דחה פקודה. בדוק את הספק ואת ההגדרות שלו.",
     About: "אודות",
+    "Accent color": "צבע הדגשה",
     "Access code": "קוד גישה",
     "Access denied. Check the server access code.":
         "הגישה נדחתה. בדוק את קוד הגישה לשרת.",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "ה-API נכשל, מנסה M3U…",
     "API Server": "שרת API",
     "API server URL": "כתובת שרת API",
+    Apply: "החלה",
+    "Apply changes to this draft, then use Save Settings.":
+        "יש להחיל את השינויים על טיוטה זו ואז לבחור באפשרות «שמור הגדרות».",
     "Applying HTTP remote settings...": "החלת הגדרות השליטה דרך HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "יש לאשר את הקוד עבור %1 באמצעות ott approve NAME CODE:",
@@ -114,6 +118,7 @@ var keyStrings = {
     Blue: "כחול",
     "Bookmark age (days): %1": "גיל הסימניה (ימים): %1",
     "Bookmark age: %1 days": "גיל הסימנייה: %1 ימים",
+    "Border color": "צבע המסגרת",
     Brightness: "בהירות",
     "Browse folders": "עיון בתיקיות",
     "Buffer Size, s": "גודל חוצץ, שנ",
@@ -182,6 +187,7 @@ var keyStrings = {
     "Cloud transfer failed": "העברת ענן נכשלה",
     Code: "קוד גישה",
     Color: "צבע",
+    "Color schemes": "ערכות צבעים",
     "Color spectrum": "ספקטרום צבעים",
     "Command server": "שרת פקודות",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -316,6 +322,7 @@ var keyStrings = {
         "לא ניתן לעדכן את הגדרות השליטה דרך HTTP.",
     Country: "מדינה",
     "Create category": "צור קטגוריה",
+    Custom: "מותאם אישית",
     current: "נוכחי",
     "Debug enabled. Restart to apply.":
         "מצב ניפוי שגיאות הופעל. יש להפעיל מחדש את הנגן כדי להחיל את השינוי.",
@@ -474,6 +481,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "מקור EPG החזיר HTTP %1",
     "EPG source: %1": "מקור EPG: %1",
     "EPG stopped during: %1": "EPG נעצר במהלך: %1",
+    "EPG time color": "צבע השעה במדריך השידורים",
     "EPG unavailable on this browser": "EPG אינו זמין בדפדפן זה",
     "EPG unavailable: %1": "EPG לא זמין: %1",
     "EPG update failed; using saved programme guide":
@@ -542,6 +550,7 @@ var keyStrings = {
     "Hide / Return": "הסתר / הצג",
     "Hide provider settings?": "להסתיר את הגדרות הספק?",
     "Hide providers?": "להסתיר ספקים?",
+    "High contrast": "ניגודיות גבוהה",
     "History in Media Library": "היסטוריה בספריית המדיה",
     "History of watched movies": "היסטוריית צפייה",
     Home: "בית",
@@ -549,6 +558,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "שליטה דרך HTTP אינה זמינה במכשיר זה.",
     "HTTPS support": "תמיכה ב-HTTPS",
+    Hue: "גוון",
     ID: "מזהה",
     "Import settings": "ייבא הגדרות",
     "In live mode: <br/>": "במצב שידור חי:<br/>",
@@ -556,6 +566,8 @@ var keyStrings = {
     "Infobar display timeout, s": "משך הצגת סרגל המידע, שנ׳",
     "Infobar settings": "הגדרות סרגל מידע",
     Information: "מידע",
+    Inherited: "בירושה",
+    "Interface colors": "צבעי הממשק",
     "Interface credits": "יוצרי הממשק",
     "Interface mode": "מצב ממשק",
     "Interface settings": "הגדרות ממשק",
@@ -564,6 +576,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "קישור הערוץ אינו תקין! הזן את שם המארח המלא כמו בכתובת השידור באזור האישי (למשל subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "תגובת הגדרות ענן לא חוקית",
+    "Invalid color value": "ערך צבע לא תקין",
     "Invalid protected source configuration": "הגדרות המקור המוגן אינן תקינות",
     "Invalid range: %1-%2": "טווח לא תקין: %1-%2",
     "Invalid setting": "הגדרה לא חוקית",
@@ -575,6 +588,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "הגדרות KORONA TV",
     "Label (optional)": "תווית (רשות)",
+    Light: "בהיר",
     "List created": "הרשימה נוצרה",
     "List deleted": "הרשימה נמחקה",
     "List location": "מיקום הרשימה",
@@ -636,6 +650,7 @@ var keyStrings = {
     "Media Library URL": "כתובת ספריית מדיה",
     Menu: "תפריט",
     "Menu items settings": "הגדרות פריטי תפריט",
+    Midnight: "חצות",
     Modern: "מודרני",
     "Modern interface is unavailable. Classic remains active.":
         "הממשק המודרני אינו זמין. הממשק הקלאסי נשאר פעיל.",
@@ -681,6 +696,7 @@ var keyStrings = {
     no: "לא",
     "no epg at current time": "אין לוח שידורים לזמן הנוכחי",
     "not set": "לא הוגדר",
+    Ocean: "אוקיינוס",
     Off: "כבוי",
     Ok: "אישור",
     On: "פעיל",
@@ -716,6 +732,7 @@ var keyStrings = {
         "שרת הצימוד אינו זמין. יש לחפש שוב את השרת כדי לנסות שוב.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "הצימוד נדחה או שהתקבל אישור לא תקין. יש לחפש שוב את השרת כדי לנסות שוב.",
+    Palette: "לוח צבעים",
     "Parental control": "בקרת הורים",
     Password: "סיסמה",
     "Paste settings JSON": "הדביקו הגדרות בפורמט JSON",
@@ -760,6 +777,7 @@ var keyStrings = {
     Prepaid: "תשלום מראש",
     "Preparing secure remote input...": "הכנת קלט מרחוק מאובטח...",
     Prev: "הקודם",
+    Preview: "תצוגה מקדימה",
     "Preview in channel list": "תצוגה מקדימה ברשימת הערוצים",
     Previous: "הקודם",
     "Privacy policy": "מדיניות פרטיות",
@@ -890,6 +908,7 @@ var keyStrings = {
     Search: "חיפוש",
     "Search languages": "חיפוש שפות",
     "Search programme": "חפש תוכנית",
+    "Secondary text color": "צבע הטקסט המשני",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "לא ניתן היה להפעיל קלט מרחוק מאובטח. אנא נסה שוב או השתמש במקלדת שעל המסך.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -909,6 +928,8 @@ var keyStrings = {
     "Select screenshot source in browser": "בחר מקור צילום מסך בדפדפן",
     "Select the player tab or window in the browser sharing dialog.":
         "בחר את כרטיסיית הנגן או החלון בתיבת הדו-שיח לשיתוף הדפדפן.",
+    "Selected item": "הפריט הנבחר",
+    "Selected text color": "צבע הטקסט הנבחר",
     "Send request": "שלח בקשה",
     "Send settings": "שלח הגדרות",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1017,6 +1038,7 @@ var keyStrings = {
     "Subscription information": "פרטי מנוי",
     Subtitle: "כתוביות",
     "Subtitle appearance": "מראה הכתוביות",
+    "Surface color": "צבע המשטח",
     Switch: "החלף",
     "Switch sound track": "החלף רצועת שמע",
     "Switch subtitle": "החלף כתוביות",
@@ -1118,6 +1140,7 @@ var keyStrings = {
         "השתמש בשרת פקודות HTTPS לאבחון מרחוק.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "השתמש ב-HTTP או HTTPS ללא שם משתמש או סיסמה בכתובת.",
+    "Use inherited color": "שימוש בצבע שהתקבל בירושה",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "השתמש בשמאל/ימין לבחירת פקד, ב-OK להפעלתו ובמעלה/מטה לגלילה.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1141,6 +1164,7 @@ var keyStrings = {
         "לא ניתן לטעון את VPortal. בדוק את הקישור, מפתח הגישה וזמינות הפורטל.",
     volume: "עוצמת קול",
     "Waiting for sign-in…": "ממתין לכניסה...",
+    "Warm graphite": "גרפיט חם",
     "Wrong parental code !!!": "קוד הורים שגוי!!!",
     "Xtream Codes Provider": "ספק Xtream Codes",
     "Xtream Codes settings": "הגדרות Xtream Codes",

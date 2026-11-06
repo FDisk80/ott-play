@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Mediasoitin hylkäsi komennon. Tarkista sen toimittaja ja asetukset.",
     About: "Tietoja",
+    "Accent color": "Korostusväri",
     "Access code": "Pääsykoodi",
     "Access denied. Check the server access code.":
         "Pääsy kielletty. Tarkista palvelimen pääsykoodi.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API epäonnistui, yritetään M3U…",
     "API Server": "API palvelin",
     "API server URL": "API palvelin URL",
+    Apply: "Käytä",
+    "Apply changes to this draft, then use Save Settings.":
+        "Ota muutokset käyttöön tässä luonnoksessa ja valitse sitten Tallenna asetukset.",
     "Applying HTTP remote settings...": "Otetaan HTTP etäasetuksia...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Hyväksy kohteen %1 koodi komennolla ott approve NAME CODE:",
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Sininen",
     "Bookmark age (days): %1": "Kirjanmerkin ikä (päiviä): %1",
     "Bookmark age: %1 days": "Kirjanmerkin ikä: %1 päivää",
+    "Border color": "Reunan väri",
     Brightness: "Kirkkaus",
     "Browse folders": "Selaa kansioita",
     "Buffer Size, s": "Puskurin koko, s",
@@ -192,6 +197,7 @@ var keyStrings = {
     "Cloud transfer failed": "Pilvisiirto epäonnistui",
     Code: "Koodi",
     Color: "Väri",
+    "Color schemes": "Väriteemat",
     "Color spectrum": "Värispektri",
     "Command server": "Komentopalvelin",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -332,6 +338,7 @@ var keyStrings = {
         "Kaukosäätimen HTTP päivitys epäonnistui.",
     Country: "Maa",
     "Create category": "Luo luokka",
+    Custom: "Mukautettu",
     current: "nykyinen",
     "Debug enabled. Restart to apply.":
         "Virheenkorjaus käytössä. Ota muutos käyttöön käynnistämällä uudelleen.",
@@ -494,6 +501,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG lähde palautettiin HTTP %1",
     "EPG source: %1": "EPG lähde: %1",
     "EPG stopped during: %1": "EPG pysähtyi aikana: %1",
+    "EPG time color": "EPG-ajan väri",
     "EPG unavailable on this browser":
         "EPG ei ole käytettävissä tässä selaimessa",
     "EPG unavailable: %1": "EPG ei saatavilla: %1",
@@ -566,6 +574,7 @@ var keyStrings = {
     "Hide / Return": "Piilota / näytä",
     "Hide provider settings?": "Piilotetaanko palveluntarjoajan asetukset?",
     "Hide providers?": "Piilotetaanko palveluntarjoajat?",
+    "High contrast": "Suuri kontrasti",
     "History in Media Library": "Mediakirjaston historia",
     "History of watched movies": "Katseluhistoria",
     Home: "Aloitus",
@@ -573,6 +582,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP kaukosäädin ei ole käytettävissä tässä laitteessa.",
     "HTTPS support": "HTTPS tuki",
+    Hue: "Värisävy",
     ID: "ID",
     "Import settings": "Tuo asetukset",
     "In live mode: <br/>": "Suorassa lähetyksessä:<br/>",
@@ -580,6 +590,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Tietopalkin näyttöaika, s",
     "Infobar settings": "Tietopalkin asetukset",
     Information: "Tiedot",
+    Inherited: "Peritty",
+    "Interface colors": "Käyttöliittymän värit",
     "Interface credits": "Käyttöliittymän tekijät",
     "Interface mode": "Käyttöliittymän tila",
     "Interface settings": "Käyttöliittymäasetukset",
@@ -588,6 +600,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Virheellinen kanavalinkki! Kirjoita koko isäntä kuten palveluntarjoajan tilin hallintapaneelin streamissa URL (esim. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Virheellinen pilviasetusten vastaus",
+    "Invalid color value": "Virheellinen väriarvo",
     "Invalid protected source configuration":
         "Virheellinen suojatun lähteen määritys",
     "Invalid range: %1-%2": "Virheellinen alue: %1-%2",
@@ -600,6 +613,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV asetukset",
     "Label (optional)": "Nimi (valinnainen)",
+    Light: "Vaalea",
     "List created": "Luettelo luotu",
     "List deleted": "Lista poistettu",
     "List location": "Listaa sijainti",
@@ -661,6 +675,7 @@ var keyStrings = {
     "Media Library URL": "Mediakirjasto URL",
     Menu: "Valikko",
     "Menu items settings": "Valikkokohdan asetukset",
+    Midnight: "Keskiyö",
     Modern: "Moderni",
     "Modern interface is unavailable. Classic remains active.":
         "Moderni käyttöliittymä ei ole saatavilla. Perinteinen pysyy käytössä.",
@@ -707,6 +722,7 @@ var keyStrings = {
     no: "ei",
     "no epg at current time": "Ei EPG tällä hetkellä",
     "not set": "ei asetettu",
+    Ocean: "Valtameri",
     Off: "Pois",
     Ok: "OK",
     On: "Päällä",
@@ -742,6 +758,7 @@ var keyStrings = {
         "Pariliitospalvelin ei ole käytettävissä. Etsi palvelin uudelleen ja yritä uudelleen.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Pariliitos hylättiin tai palautettiin virheellinen hyväksyntä. Etsi palvelin uudelleen ja yritä uudelleen.",
+    Palette: "Väripaletti",
     "Parental control": "Lapsilukko",
     Password: "Salasana",
     "Paste settings JSON": "Liitä asetukset JSON",
@@ -787,6 +804,7 @@ var keyStrings = {
     Prepaid: "Etukäteismaksu",
     "Preparing secure remote input...": "Valmistellaan suojattua etäsyöttöä...",
     Prev: "Edellinen",
+    Preview: "Esikatselu",
     "Preview in channel list": "Esikatselu kanavaluettelossa",
     Previous: "Edellinen",
     "Privacy policy": "Tietosuojakäytäntö",
@@ -921,6 +939,7 @@ var keyStrings = {
     Search: "Etsi",
     "Search languages": "Hae kieliä",
     "Search programme": "Etsi ohjelma",
+    "Secondary text color": "Toissijaisen tekstin väri",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Suojattu etäsyöttö ei voinut käynnistyä. Yritä uudelleen tai käytä näyttönäppäimistöä.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -941,6 +960,8 @@ var keyStrings = {
         "Valitse kuvakaappauksen lähde selaimesta",
     "Select the player tab or window in the browser sharing dialog.":
         "Valitse soittimen välilehti tai ikkuna selaimen jakamisvalintaikkunassa.",
+    "Selected item": "Valittu kohde",
+    "Selected text color": "Valitun tekstin väri",
     "Send request": "Lähetä pyyntö",
     "Send settings": "Lähetä asetukset",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1054,6 +1075,7 @@ var keyStrings = {
     "Subscription information": "Tilaustiedot",
     Subtitle: "Tekstitys",
     "Subtitle appearance": "Tekstityksen ulkoasu",
+    "Surface color": "Pinnan väri",
     Switch: "Vaihda",
     "Switch sound track": "Vaihda ääniraita",
     "Switch subtitle": "Vaihda tekstitys",
@@ -1159,6 +1181,7 @@ var keyStrings = {
         "Käytä HTTPS-komentopalvelinta etädiagnostiikkaan.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Käytä HTTP tai HTTPS ilman käyttäjätunnusta tai salasanaa osoitteessa.",
+    "Use inherited color": "Käytä perittyä väriä",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Käytä VASEN/OIKEA valitaksesi säätimen, OK aktivoidaksesi sen ja YLÖS/ALAS vierittääksesi.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1182,6 +1205,7 @@ var keyStrings = {
         "Ei voitu ladata VPortal. Tarkista linkki, pääsyavain ja portaalin saatavuus.",
     volume: "äänenvoimakkuus",
     "Waiting for sign-in…": "Odotetaan kirjautumista…",
+    "Warm graphite": "Lämmin grafiitti",
     "Wrong parental code !!!": "Väärä vanhempien koodi!",
     "Xtream Codes Provider": "Xtream Codes Palveluntarjoaja",
     "Xtream Codes settings": "Xtream Codes asetukset",

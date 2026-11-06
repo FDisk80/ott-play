@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ბრძანება უარყო მედია ფლეერმა. შეამოწმეთ მისი პროვაიდერი და პარამეტრები.",
     About: "შესახებ",
+    "Accent color": "აქცენტის ფერი",
     "Access code": "წვდომის კოდი",
     "Access denied. Check the server access code.":
         "წვდომა აკრძალულია. შეამოწმეთ სერვერზე წვდომის კოდი.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ვერ მოხერხდა, ვცდილობთ M3U…",
     "API Server": "API სერვერი",
     "API server URL": "API სერვერი URL",
+    Apply: "გამოყენება",
+    "Apply changes to this draft, then use Save Settings.":
+        "გამოიყენეთ ცვლილებები ამ მონახაზში, შემდეგ აირჩიეთ პარამეტრების შენახვა.",
     "Applying HTTP remote settings...":
         "HTTP დისტანციური პარამეტრების გამოყენება...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "ლურჯი",
     "Bookmark age (days): %1": "სანიშნეების ასაკი (დღეები): %1",
     "Bookmark age: %1 days": "სანიშნეების ასაკი: %1 დღე",
+    "Border color": "ჩარჩოს ფერი",
     Brightness: "სიკაშკაშე",
     "Browse folders": "საქაღალდეების დათვალიერება",
     "Buffer Size, s": "ბუფერის ზომა, წმ",
@@ -190,6 +195,7 @@ var keyStrings = {
     "Cloud transfer failed": "ღრუბლოვანი გადაცემა ვერ მოხერხდა",
     Code: "კოდი",
     Color: "ფერი",
+    "Color schemes": "ფერების სქემები",
     "Color spectrum": "ფერის სპექტრი",
     "Command server": "ბრძანების სერვერი",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -330,6 +336,7 @@ var keyStrings = {
         "HTTP დისტანციური მართვის განახლება ვერ მოხერხდა.",
     Country: "ქვეყანა",
     "Create category": "შექმენით კატეგორია",
+    Custom: "მორგებული",
     current: "მიმდინარე",
     "Debug enabled. Restart to apply.":
         "გამართვა ჩართულია. ცვლილების გამოსაყენებლად თავიდან გაუშვით პლეერი.",
@@ -494,6 +501,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG წყარომ დააბრუნა HTTP %1",
     "EPG source: %1": "EPG წყარო: %1",
     "EPG stopped during: %1": "EPG შეჩერდა დროს: %1",
+    "EPG time color": "EPG-ის დროის ფერი",
     "EPG unavailable on this browser": "EPG მიუწვდომელია ამ ბრაუზერში",
     "EPG unavailable: %1": "EPG მიუწვდომელია: %1",
     "EPG update failed; using saved programme guide":
@@ -568,6 +576,7 @@ var keyStrings = {
     "Hide / Return": "დამალვა / ჩვენება",
     "Hide provider settings?": "დამალო პროვაიდერის პარამეტრები?",
     "Hide providers?": "დამალო პროვაიდერები?",
+    "High contrast": "მაღალი კონტრასტი",
     "History in Media Library": "ისტორია მედია ბიბლიოთეკაში",
     "History of watched movies": "ნახვის ისტორია",
     Home: "მთავარი",
@@ -575,6 +584,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP დისტანციური მართვა ამ მოწყობილობაზე მიუწვდომელია.",
     "HTTPS support": "HTTPS მხარდაჭერა",
+    Hue: "ფერის ტონი",
     ID: "ID",
     "Import settings": "პარამეტრების იმპორტი",
     "In live mode: <br/>": "ლაივ რეჟიმში:<br/>",
@@ -582,6 +592,8 @@ var keyStrings = {
     "Infobar display timeout, s": "ინფორმაციის ზოლის ჩვენების ხანგრძლივობა, წმ",
     "Infobar settings": "ინფორმაციის ზოლის პარამეტრები",
     Information: "ინფორმაცია",
+    Inherited: "მემკვიდრეობით მიღებული",
+    "Interface colors": "ინტერფეისის ფერები",
     "Interface credits": "ინტერფეისის ავტორები",
     "Interface mode": "ინტერფეისის რეჟიმი",
     "Interface settings": "ინტერფეისის პარამეტრები",
@@ -590,6 +602,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "არხის ბმული არასწორია! შეიყვანეთ პირად ანგარიშში ნაკადის URL-ში მითითებული სრული ჰოსტი (მაგ. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "ღრუბლის პარამეტრების არასწორი პასუხი",
+    "Invalid color value": "ფერის არასწორი მნიშვნელობა",
     "Invalid protected source configuration":
         "არასწორი დაცული წყაროს კონფიგურაცია",
     "Invalid range: %1-%2": "არასწორი დიაპაზონი: %1-%2",
@@ -602,6 +615,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV პარამეტრები",
     "Label (optional)": "სახელი (არასავალდებულო)",
+    Light: "ღია",
     "List created": "შეიქმნა სია",
     "List deleted": "სია წაშლილია",
     "List location": "სიის პოზიცია",
@@ -664,6 +678,7 @@ var keyStrings = {
     "Media Library URL": "მედია ბიბლიოთეკის URL",
     Menu: "მენიუ",
     "Menu items settings": "მენიუს ელემენტის პარამეტრები",
+    Midnight: "შუაღამე",
     Modern: "თანამედროვე",
     "Modern interface is unavailable. Classic remains active.":
         "თანამედროვე ინტერფეისი მიუწვდომელია. კლასიკური აქტიური რჩება.",
@@ -710,6 +725,7 @@ var keyStrings = {
     no: "არა",
     "no epg at current time": "ამჟამად EPG არ არის",
     "not set": "არ არის დაყენებული",
+    Ocean: "ოკეანე",
     Off: "გამორთული",
     Ok: "კარგი",
     On: "Ჩართული",
@@ -745,6 +761,7 @@ var keyStrings = {
         "დაწყვილების სერვერი მიუწვდომელია. ხელახლა იპოვნეთ სერვერი ხელახლა საცდელად.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "დაწყვილება უარყოფილია ან დაბრუნდა არასწორი დამტკიცება. ხელახლა იპოვნეთ სერვერი ხელახლა საცდელად.",
+    Palette: "პალიტრა",
     "Parental control": "მშობელთა კონტროლი",
     Password: "პაროლი",
     "Paste settings JSON": "ჩასვით პარამეტრები JSON",
@@ -791,6 +808,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "უსაფრთხო დისტანციური შეყვანის მომზადება...",
     Prev: "წინა",
+    Preview: "წინასწარი ნახვა",
     "Preview in channel list": "გადახედვა არხების სიაში",
     Previous: "წინა",
     "Privacy policy": "კონფიდენციალურობის პოლიტიკა",
@@ -925,6 +943,7 @@ var keyStrings = {
     Search: "ძებნა",
     "Search languages": "ენების ძიება",
     "Search programme": "გადაცემის ძებნა",
+    "Secondary text color": "მეორეხარისხოვანი ტექსტის ფერი",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "უსაფრთხო დისტანციური შეყვანის დაწყება ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა ან გამოიყენეთ ეკრანის კლავიატურა.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -944,6 +963,8 @@ var keyStrings = {
     "Select screenshot source in browser": "აირჩიეთ ეკრანის წყარო ბრაუზერში",
     "Select the player tab or window in the browser sharing dialog.":
         "აირჩიეთ პლეერის ჩანართი ან ფანჯარა ბრაუზერის გაზიარების დიალოგში.",
+    "Selected item": "მონიშნული ელემენტი",
+    "Selected text color": "მონიშნული ტექსტის ფერი",
     "Send request": "მოთხოვნის გაგზავნა",
     "Send settings": "პარამეტრების გაგზავნა",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1057,6 +1078,7 @@ var keyStrings = {
     "Subscription information": "გამოწერის ინფორმაცია",
     Subtitle: "სუბტიტრები",
     "Subtitle appearance": "სუბტიტრების გარეგნობა",
+    "Surface color": "ზედაპირის ფერი",
     Switch: "შეცვლა",
     "Switch sound track": "ხმოვანი ბილიკის შეცვლა",
     "Switch subtitle": "სუბტიტრების შეცვლა",
@@ -1163,6 +1185,7 @@ var keyStrings = {
         "გამოიყენეთ HTTPS ბრძანების სერვერი დისტანციური დიაგნოსტიკისთვის.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "გამოიყენეთ HTTP ან HTTPS მისამართის მომხმარებლის სახელის ან პაროლის გარეშე.",
+    "Use inherited color": "მემკვიდრეობით მიღებული ფერის გამოყენება",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "გამოიყენეთ მარცხენა/მარჯვენა ღილაკები სამართავი ელემენტის ასარჩევად, OK მის გასააქტიურებლად და ზემოთ/ქვემოთ გადასახვევად.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1187,6 +1210,7 @@ var keyStrings = {
         "VPortal ვერ ჩაიტვირთა. შეამოწმეთ ბმული, წვდომის გასაღები და პორტალის ხელმისაწვდომობა.",
     volume: "ხმის მოცულობა",
     "Waiting for sign-in…": "ელოდება შესვლას…",
+    "Warm graphite": "თბილი გრაფიტი",
     "Wrong parental code !!!": "არასწორი მშობლის კოდი!",
     "Xtream Codes Provider": "Xtream Codes პროვაიდერი",
     "Xtream Codes settings": "Xtream Codes პარამეტრები",

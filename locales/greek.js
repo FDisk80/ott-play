@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Η συσκευή αναπαραγωγής απέρριψε μια εντολή. Ελέγξτε τον πάροχο και τις ρυθμίσεις της.",
     About: "Σχετικά",
+    "Accent color": "Χρώμα έμφασης",
     "Access code": "Κωδικός πρόσβασης",
     "Access denied. Check the server access code.":
         "Δεν επιτρέπεται η πρόσβαση. Ελέγξτε τον κωδικό πρόσβασης του διακομιστή.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Αποτυχία API, δοκιμή M3U…",
     "API Server": "Διακομιστής API",
     "API server URL": "URL διακομιστή API",
+    Apply: "Εφαρμογή",
+    "Apply changes to this draft, then use Save Settings.":
+        "Εφαρμόστε τις αλλαγές σε αυτό το πρόχειρο και έπειτα επιλέξτε Αποθήκευση ρυθμίσεων.",
     "Applying HTTP remote settings...":
         "Εφαρμογή ρυθμίσεων τηλεχειρισμού HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -122,6 +126,7 @@ var keyStrings = {
     Blue: "Μπλε",
     "Bookmark age (days): %1": "Ηλικία σελιδοδείκτη (ημέρες): %1",
     "Bookmark age: %1 days": "Ηλικία σελιδοδείκτη: %1 ημέρες",
+    "Border color": "Χρώμα περιγράμματος",
     Brightness: "Φωτεινότητα",
     "Browse folders": "Περιήγηση σε φακέλους",
     "Buffer Size, s": "Μέγεθος buffer, s",
@@ -199,6 +204,7 @@ var keyStrings = {
     "Cloud transfer failed": "Η μεταφορά στο cloud απέτυχε",
     Code: "Κωδικός πρόσβασης",
     Color: "Χρώμα",
+    "Color schemes": "Συνδυασμοί χρωμάτων",
     "Color spectrum": "Φάσμα χρωμάτων",
     "Command server": "Διακομιστής εντολών",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -340,6 +346,7 @@ var keyStrings = {
         "Δεν ήταν δυνατή η ενημέρωση του τηλεχειρισμού HTTP.",
     Country: "Χώρα",
     "Create category": "Δημιουργία κατηγορίας",
+    Custom: "Προσαρμοσμένο",
     current: "τρέχον",
     "Debug enabled. Restart to apply.":
         "Ο εντοπισμός σφαλμάτων ενεργοποιήθηκε. Επανεκκινήστε τη συσκευή αναπαραγωγής για εφαρμογή.",
@@ -510,6 +517,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Η πηγή EPG επέστρεψε HTTP %1",
     "EPG source: %1": "EPG πηγή: %1",
     "EPG stopped during: %1": "Το EPG σταμάτησε κατά τη διάρκεια: %1",
+    "EPG time color": "Χρώμα ώρας EPG",
     "EPG unavailable on this browser":
         "Το EPG δεν είναι διαθέσιμο σε αυτό το πρόγραμμα περιήγησης",
     "EPG unavailable: %1": "EPG μη διαθέσιμο: %1",
@@ -584,6 +592,7 @@ var keyStrings = {
     "Hide / Return": "Απόκρυψη / εμφάνιση",
     "Hide provider settings?": "Απόκρυψη ρυθμίσεων παρόχου;",
     "Hide providers?": "Απόκρυψη παρόχων;",
+    "High contrast": "Υψηλή αντίθεση",
     "History in Media Library": "Ιστορικό στη βιβλιοθήκη πολυμέσων",
     "History of watched movies": "Ιστορικό προβολής",
     Home: "Αρχική",
@@ -591,6 +600,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Ο τηλεχειρισμός HTTP δεν είναι διαθέσιμος σε αυτήν τη συσκευή.",
     "HTTPS support": "Υποστήριξη HTTPS",
+    Hue: "Απόχρωση",
     ID: "ID",
     "Import settings": "Εισαγωγή ρυθμίσεων",
     "In live mode: <br/>": "Στη ζωντανή λειτουργία:<br/>",
@@ -598,6 +608,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Χρόνος εμφάνισης γραμμής πληροφοριών, δ",
     "Infobar settings": "Ρυθμίσεις γραμμής πληροφοριών",
     Information: "Πληροφορίες",
+    Inherited: "Κληρονομημένο",
+    "Interface colors": "Χρώματα διεπαφής",
     "Interface credits": "Συντελεστές περιβάλλοντος",
     "Interface mode": "Λειτουργία διεπαφής",
     "Interface settings": "Ρυθμίσεις περιβάλλοντος",
@@ -606,6 +618,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Μη έγκυρος σύνδεσμος καναλιού! Εισαγάγετε το πλήρες όνομα κεντρικού υπολογιστή όπως στο URL ροής του λογαριασμού (π.χ. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Μη έγκυρη απόκριση ρυθμίσεων cloud",
+    "Invalid color value": "Μη έγκυρη τιμή χρώματος",
     "Invalid protected source configuration":
         "Μη έγκυρη διαμόρφωση προστατευμένης πηγής",
     "Invalid range: %1-%2": "Μη έγκυρο εύρος: %1-%2",
@@ -618,6 +631,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Ρυθμίσεις KORONA TV",
     "Label (optional)": "Ετικέτα (προαιρετικό)",
+    Light: "Φωτεινό",
     "List created": "Η λίστα δημιουργήθηκε",
     "List deleted": "Η λίστα διαγράφηκε",
     "List location": "Θέση λίστας",
@@ -681,6 +695,7 @@ var keyStrings = {
     "Media Library URL": "URL βιβλιοθήκης πολυμέσων",
     Menu: "Μενού",
     "Menu items settings": "Ρυθμίσεις στοιχείων μενού",
+    Midnight: "Μεσάνυχτα",
     Modern: "Σύγχρονο",
     "Modern interface is unavailable. Classic remains active.":
         "Η σύγχρονη διεπαφή δεν είναι διαθέσιμη. Η κλασική παραμένει ενεργή.",
@@ -727,6 +742,7 @@ var keyStrings = {
     no: "όχι",
     "no epg at current time": "Δεν υπάρχει EPG αυτή τη στιγμή",
     "not set": "δεν έχει οριστεί",
+    Ocean: "Ωκεανός",
     Off: "Ανενεργό",
     Ok: "Εντάξει",
     On: "Ενεργός",
@@ -762,6 +778,7 @@ var keyStrings = {
         "Ο διακομιστής σύζευξης δεν είναι διαθέσιμος. Βρείτε ξανά τον διακομιστή για να επαναλάβετε την προσπάθεια.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Η σύζευξη απορρίφθηκε ή επιστράφηκε μη έγκυρη έγκριση. Βρείτε ξανά τον διακομιστή για να επαναλάβετε την προσπάθεια.",
+    Palette: "Παλέτα",
     "Parental control": "Γονικός έλεγχος",
     Password: "Κωδικός πρόσβασης",
     "Paste settings JSON": "Επικολλήστε τις ρυθμίσεις σε μορφή JSON",
@@ -810,6 +827,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Προετοιμασία ασφαλούς απομακρυσμένης εισόδου...",
     Prev: "Προηγούμενο",
+    Preview: "Προεπισκόπηση",
     "Preview in channel list": "Προεπισκόπηση στη λίστα καναλιών",
     Previous: "Προηγούμενο",
     "Privacy policy": "Πολιτική απορρήτου",
@@ -949,6 +967,7 @@ var keyStrings = {
     Search: "Αναζήτηση",
     "Search languages": "Αναζήτηση γλωσσών",
     "Search programme": "Αναζήτηση εκπομπής",
+    "Secondary text color": "Χρώμα δευτερεύοντος κειμένου",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Δεν ήταν δυνατή η εκκίνηση της ασφαλούς απομακρυσμένης εισόδου. Δοκιμάστε ξανά ή χρησιμοποιήστε το πληκτρολόγιο οθόνης.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -970,6 +989,8 @@ var keyStrings = {
         "Επιλέξτε πηγή στιγμιότυπου οθόνης στο πρόγραμμα περιήγησης",
     "Select the player tab or window in the browser sharing dialog.":
         "Επιλέξτε την καρτέλα ή το παράθυρο του προγράμματος αναπαραγωγής στο παράθυρο διαλόγου κοινής χρήσης του προγράμματος περιήγησης.",
+    "Selected item": "Επιλεγμένο στοιχείο",
+    "Selected text color": "Χρώμα επιλεγμένου κειμένου",
     "Send request": "Αποστολή αιτήματος",
     "Send settings": "Αποστολή ρυθμίσεων",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1086,6 +1107,7 @@ var keyStrings = {
     "Subscription information": "Πληροφορίες συνδρομής",
     Subtitle: "Υπότιτλοι",
     "Subtitle appearance": "Εμφάνιση υποτίτλων",
+    "Surface color": "Χρώμα επιφάνειας",
     Switch: "Εναλλαγή",
     "Switch sound track": "Αλλαγή κομματιού ήχου",
     "Switch subtitle": "Αλλαγή υποτίτλων",
@@ -1197,6 +1219,7 @@ var keyStrings = {
         "Χρησιμοποιήστε έναν διακομιστή εντολών HTTPS για απομακρυσμένα διαγνωστικά.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Χρησιμοποιήστε HTTP ή HTTPS χωρίς όνομα χρήστη ή κωδικό στη διεύθυνση.",
+    "Use inherited color": "Χρήση κληρονομημένου χρώματος",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Χρησιμοποιήστε ΑΡΙΣΤΕΡΑ/ΔΕΞΙΑ για επιλογή χειριστηρίου, OK για ενεργοποίηση και ΠΑΝΩ/ΚΑΤΩ για κύλιση.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1222,6 +1245,7 @@ var keyStrings = {
         "Αδυναμία φόρτωσης VPortal. Ελέγξτε τον σύνδεσμο, το κλειδί πρόσβασης και τη διαθεσιμότητα της πύλης.",
     volume: "ένταση",
     "Waiting for sign-in…": "Αναμονή για σύνδεση…",
+    "Warm graphite": "Θερμός γραφίτης",
     "Wrong parental code !!!": "Λάθος γονικός κωδικός!!!",
     "Xtream Codes Provider": "Πάροχος Xtream Codes",
     "Xtream Codes settings": "Ρυθμίσεις Xtream Codes",

@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Meediumipleier lükkas käsu tagasi. Kontrollige selle pakkujat ja seadeid.",
     About: "Umbes",
+    "Accent color": "Rõhuvärv",
     "Access code": "Juurdepääsukood",
     "Access denied. Check the server access code.":
         "Juurdepääs keelatud. Kontrollige serveri juurdepääsukoodi.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ebaõnnestus, proovimine M3U…",
     "API Server": "API server",
     "API server URL": "API server URL",
+    Apply: "Rakenda",
+    "Apply changes to this draft, then use Save Settings.":
+        "Rakenda muudatused sellele mustandile ja vali seejärel Salvestage seaded.",
     "Applying HTTP remote settings...": "HTTP kaugseadete rakendamine...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Kinnita %1 kood käsuga ott approve NAME CODE:",
@@ -118,6 +122,7 @@ var keyStrings = {
     Blue: "Sinine",
     "Bookmark age (days): %1": "Järjehoidja vanus (päevades): %1",
     "Bookmark age: %1 days": "Järjehoidja vanus: %1 päeva",
+    "Border color": "Äärise värv",
     Brightness: "Heledus",
     "Browse folders": "Sirvige kaustu",
     "Buffer Size, s": "Puhvri suurus, s",
@@ -190,6 +195,7 @@ var keyStrings = {
     "Cloud transfer failed": "Pilve edastamine nurjus",
     Code: "Kood",
     Color: "Värv",
+    "Color schemes": "Värviskeemid",
     "Color spectrum": "Värvispekter",
     "Command server": "Käsuserver",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -329,6 +335,7 @@ var keyStrings = {
         "HTTP kaugjuhtimispulti ei saanud värskendada.",
     Country: "Riik",
     "Create category": "Loo kategooria",
+    Custom: "Kohandatud",
     current: "praegune",
     "Debug enabled. Restart to apply.":
         "Silumine on lubatud. Muudatuse rakendamiseks taaskäivita.",
@@ -490,6 +497,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG allikas tagastati HTTP %1",
     "EPG source: %1": "EPG allikas: %1",
     "EPG stopped during: %1": "EPG peatus ajal: %1",
+    "EPG time color": "EPG kellaaja värv",
     "EPG unavailable on this browser": "EPG pole selles brauseris saadaval",
     "EPG unavailable: %1": "EPG pole saadaval: %1",
     "EPG update failed; using saved programme guide":
@@ -561,6 +569,7 @@ var keyStrings = {
     "Hide / Return": "Peida / näita",
     "Hide provider settings?": "Kas peita teenusepakkuja seaded?",
     "Hide providers?": "Kas peita pakkujad?",
+    "High contrast": "Suur kontrast",
     "History in Media Library": "Meediateegi ajalugu",
     "History of watched movies": "Vaatamisajalugu",
     Home: "Avaleht",
@@ -568,6 +577,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP kaugjuhtimispult pole selles seadmes saadaval.",
     "HTTPS support": "HTTPS tugi",
+    Hue: "Värvitoon",
     ID: "ID",
     "Import settings": "Impordi seaded",
     "In live mode: <br/>": "Otseülekande režiimis:<br/>",
@@ -575,6 +585,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Teaberiba kuvamise aeg, s",
     "Infobar settings": "Inforiba seaded",
     Information: "Teave",
+    Inherited: "Päritud",
+    "Interface colors": "Liidese värvid",
     "Interface credits": "Kasutajaliidese autorid",
     "Interface mode": "Liidese režiim",
     "Interface settings": "Liidese sätted",
@@ -583,6 +595,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Kehtetu kanali link! Sisestage täielik host nagu teenusepakkuja konto juhtpaneeli voos URL (nt subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Pilvesätete vastus on kehtetu",
+    "Invalid color value": "Vigane värviväärtus",
     "Invalid protected source configuration":
         "Vale kaitstud allika konfiguratsioon",
     "Invalid range: %1-%2": "Vigane vahemik: %1-%2",
@@ -595,6 +608,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV seaded",
     "Label (optional)": "Nimi (valikuline)",
+    Light: "Hele",
     "List created": "Loend loodud",
     "List deleted": "Nimekiri kustutatud",
     "List location": "Loendi positsioon",
@@ -656,6 +670,7 @@ var keyStrings = {
     "Media Library URL": "Meediumiteek URL",
     Menu: "Menüü",
     "Menu items settings": "Menüüüksuse seaded",
+    Midnight: "Kesköö",
     Modern: "Moodne",
     "Modern interface is unavailable. Classic remains active.":
         "Moodne liides pole saadaval. Klassikaline jääb aktiivseks.",
@@ -702,6 +717,7 @@ var keyStrings = {
     no: "ei",
     "no epg at current time": "Ei EPG praegusel ajal",
     "not set": "pole seatud",
+    Ocean: "Ookean",
     Off: "Väljas",
     Ok: "OK",
     On: "Sees",
@@ -737,6 +753,7 @@ var keyStrings = {
         "Sidumisserver pole saadaval. Uuesti proovimiseks leidke server uuesti.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Sidumine lükati tagasi või tagastati kehtetu kinnitus. Uuesti proovimiseks leidke server uuesti.",
+    Palette: "Värvipalett",
     "Parental control": "Vanemlik kontroll",
     Password: "Parool",
     "Paste settings JSON": "Kleebi seaded JSON",
@@ -783,6 +800,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Turvalise kaugsisendi ettevalmistamine...",
     Prev: "Eelmine",
+    Preview: "Eelvaade",
     "Preview in channel list": "Eelvaade kanalite loendis",
     Previous: "Eelmine",
     "Privacy policy": "Privaatsuspoliitika",
@@ -918,6 +936,7 @@ var keyStrings = {
     Search: "Otsi",
     "Search languages": "Keelte otsimine",
     "Search programme": "Otsi saadet",
+    "Secondary text color": "Teisese teksti värv",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Turvalist kaugsisendit ei saanud käivitada. Proovige uuesti või kasutage ekraanil kuvatavat klaviatuuri.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -938,6 +957,8 @@ var keyStrings = {
         "Valige brauseris ekraanipildi allikas",
     "Select the player tab or window in the browser sharing dialog.":
         "Valige brauseri jagamise dialoogis pleieri vahekaart või aken.",
+    "Selected item": "Valitud üksus",
+    "Selected text color": "Valitud teksti värv",
     "Send request": "Saada taotlus",
     "Send settings": "Saada seaded",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1051,6 +1072,7 @@ var keyStrings = {
     "Subscription information": "Tellimuse teave",
     Subtitle: "Subtiitrid",
     "Subtitle appearance": "Subtiitrite välimus",
+    "Surface color": "Pinna värv",
     Switch: "Lüliti",
     "Switch sound track": "Vaheta helirada",
     "Switch subtitle": "Vaheta subtiitreid",
@@ -1156,6 +1178,7 @@ var keyStrings = {
         "Kasutage kaugdiagnostika jaoks käsuserverit HTTPS.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Kasutage HTTP või HTTPS ilma kasutajanime või paroolita aadressis.",
+    "Use inherited color": "Kasuta päritud värvi",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Kasutage juhtnupu valimiseks nuppu VASAK/PAREM, selle aktiveerimiseks OK ja kerimiseks ÜLES/ALLA.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1179,6 +1202,7 @@ var keyStrings = {
         "VPortal ei saanud laadida. Kontrollige linki, juurdepääsuvõtit ja portaali saadavust.",
     volume: "helitugevus",
     "Waiting for sign-in…": "Sisselogimise ootel…",
+    "Warm graphite": "Soe grafiit",
     "Wrong parental code !!!": "Vale vanemakood!",
     "Xtream Codes Provider": "Xtream Codes Pakkuja",
     "Xtream Codes settings": "Xtream Codes seaded",
