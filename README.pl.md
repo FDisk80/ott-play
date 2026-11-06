@@ -1118,8 +1118,6 @@ Każdy odtwarzacz może połączyć się z kontem Plex lub Plex Media Server prz
 
 [Ilustrowana analiza niezawodności](docs/plex-provider.md#reliability-review-process-and-results) wyjaśnia reguły ładowania i anulowania, poprawki pełnych katalogów i przełączania plików oraz zmierzone wyniki walidacji Chromium/WebKit.
 
-Opcjonalna integracja serwera OTT udostępnia też katalog istniejącego serwera Plex i zgodne odtwarzanie przez osobny wpis biblioteki NAS oraz eksport M3U. Zobacz [konfigurację biblioteki serwera i dostęp klienta](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Powiązane repozytoria

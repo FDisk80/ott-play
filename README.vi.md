@@ -1118,8 +1118,6 @@ Mỗi trình phát có thể kết nối tài khoản Plex hoặc Plex Media Ser
 
 [Đánh giá độ tin cậy có minh họa](docs/plex-provider.md#reliability-review-process-and-results) giải thích quy tắc tải/hủy, sửa lỗi danh mục đầy đủ và chuyển tệp, cùng kết quả kiểm tra Chromium/WebKit đã đo.
 
-Tích hợp máy chủ OTT tùy chọn cũng cung cấp danh mục máy chủ Plex hiện có và phát tương thích qua mục thư viện NAS riêng cùng xuất M3U. Xem [cấu hình thư viện máy chủ và truy cập máy khách](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Kho liên quan
