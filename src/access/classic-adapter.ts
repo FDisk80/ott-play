@@ -111,12 +111,14 @@ function createClassicAccess(host: any) {
             var state = model.snapshot();
             var old = host.document.getElementById("k" + highlighted);
             if (old) {
+                old.classList.remove("ott-color-selected");
                 old.style.backgroundColor = "";
                 old.style.color = "";
             }
             highlighted = state.cursor;
             var next = host.document.getElementById("k" + highlighted);
             if (next) {
+                next.classList.add("ott-color-selected");
                 next.style.backgroundColor = host.curColorB || "#668";
                 next.style.color = host.curColor || "gold";
             }

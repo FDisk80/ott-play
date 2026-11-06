@@ -285,6 +285,11 @@
       "file": "src/settings/cloud.ts",
       "expression": "message",
       "reason": "Cloud fail forwards only app-owned first-argument keys from finite call sites scanned by localization-catalog.cjs; escaped server details are separate and are not translation keys."
+    },
+    {
+      "file": "src/ui/color-appearance.ts",
+      "expression": "value",
+      "reason": "Color editor label wrapper forwards only finite literal, role-name and preset-name labels; every label() call is scanned for catalog keys. User-entered color values are never translation keys."
     }
   ]
 }

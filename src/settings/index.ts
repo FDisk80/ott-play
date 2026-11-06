@@ -11,6 +11,7 @@ import { languageLocaleTag, languageNames } from "../localization/assets";
  * defines the player and installation parameters used by settings adapters.
  */
 import { storage } from "../storage/index";
+import { normalizeInterfaceColorConfig } from "./interface-colors";
 import {
     commitSettingsWrites,
     createSettingsStore,
@@ -64,6 +65,7 @@ export function applyTimezoneSetting(index: number): number {
  * @property fontShift         - Font size adjustment shift.
  * @property fontSize          - Base font size index.
  * @property uiFontScale       - Interface text scale in percent (20–200).
+ * @property uiColorConfig     - Client color overrides; empty inherits the theme.
  * @property arrowFun          - Remote arrow key function mapping.
  * @property rewFun            - Rewind button function mapping.
  * @property pnFun             - P+/P- button function mapping.
@@ -236,6 +238,7 @@ export interface PlayerSettings {
     torrentCatalogLanguage: string;
     torrentDiscoveryMode: string;
     torrentStreamAddons: string;
+    uiColorConfig: string;
     uiFontScale: number;
     useGraphicalIndicators: number;
     volumeStep: number;
@@ -356,6 +359,7 @@ export function defaultSettings(): PlayerSettings {
         torrentCatalogLanguage: "",
         torrentDiscoveryMode: "local",
         torrentStreamAddons: "[]",
+        uiColorConfig: "",
         uiFontScale: 100,
         useGraphicalIndicators: 0,
         volumeStep: 5,
@@ -787,7 +791,25 @@ export const settingsSchema: SettingDefinition[] = [
     ),
     defineSetting("interfaceMode", "sInterfaceMode", { range: [0, 1] }, [
         "setInterfaceMode",
+        "setColor",
     ]),
+    {
+        decode: function (value) {
+            return normalizeInterfaceColorConfig(value) ?? value;
+        },
+        defaultValue: "",
+        effects: ["setColor"],
+        id: "uiColorConfig",
+        key: "sUiColorConfig",
+        rules: { maxUtf8Bytes: 2048 },
+        scope: "application",
+        validate: function (value) {
+            return (
+                typeof value === "string" &&
+                normalizeInterfaceColorConfig(value) === value
+            );
+        },
+    },
     defineSetting(
         "interfaceTheme",
         "sInterfaceTheme",

@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 const { JSDOM } = require("jsdom");
@@ -251,6 +252,7 @@ async function fixturePage(
             "/dist/subtitle-appearance.js",
             read(stage + "dist/subtitle-appearance.js"),
         ],
+        ["/dist/color-appearance.js", read(stage + "dist/color-appearance.js")],
         ["/styles/player.css", read(stage + "styles/player.css")],
     ]);
     for (const file of scripts.filter((file) =>
@@ -360,6 +362,459 @@ async function fixturePage(
     expect(unexpectedRequests).toEqual([]);
     return { close: () => context.close(), errors, page, unexpectedRequests };
 }
+
+for (const colorProfile of ["server", "tauri", "capacitor"]) {
+    for (const colorMode of [0, 1]) {
+        test(`${colorProfile}: color draft survives Save, Q and a fresh document in mode ${colorMode}`, async ({
+            browser,
+        }) => {
+            // An empty settings override makes every fresh document load the
+            // real storage adapter, without reseeding the saved color bytes.
+            const fixture = await fixturePage(browser, colorProfile, {});
+            const context = fixture.page.context();
+            let page = fixture.page;
+            async function openColors() {
+                await page.evaluate(() => window.settingsInterface());
+                await page.waitForFunction(() =>
+                    window.listArray.some(
+                        (row) => row.settingId === "uiColorConfig"
+                    )
+                );
+                await page.evaluate(() => {
+                    const row = window.listArray.find(
+                        (item) => item.settingId === "uiColorConfig"
+                    );
+                    row.values();
+                });
+                await expect(
+                    page.locator("[data-ott-color-appearance]")
+                ).toBeVisible();
+            }
+            async function saveOuterSettings() {
+                // Invoke the real outer Save action, not a direct storage write.
+                await page.evaluate(() => {
+                    const row = window.listArray.find(
+                        (item) =>
+                            typeof item.name === "string" &&
+                            item.name.includes("Save Settings")
+                    );
+                    if (!row || typeof row.values !== "function")
+                        throw new Error("Missing outer Save");
+                    row.values();
+                });
+            }
+            async function renderSavedChannels() {
+                await page.evaluate(() => {
+                    window.setInterfaceMode();
+                    window._channelsList(0, 0);
+                });
+                await expect
+                    .poll(() =>
+                        page.evaluate(() =>
+                            document.body.classList.contains("interface-modern")
+                                ? 1
+                                : 0
+                        )
+                    )
+                    .toBe(colorMode);
+            }
+            async function renderedPalette() {
+                return page.evaluate(() => {
+                    let time = document.getElementById("color-late-epg");
+                    if (!time) {
+                        time = document.createElement("span");
+                        time.id = "color-late-epg";
+                        time.className = "ott-epg-time";
+                        document.getElementById("listDetail").appendChild(time);
+                    }
+                    // A late guide update must not retain a stale inline tint.
+                    // Inherited mode measures the actual theme cascade instead.
+                    time.style.color = window.settings.uiColorConfig
+                        ? "rgb(1, 2, 3)"
+                        : "";
+                    const css = (selector, key) =>
+                        getComputedStyle(document.querySelector(selector))[key];
+                    return {
+                        accent: css("#progress", "backgroundColor"),
+                        background: css("#_t", "backgroundColor"),
+                        border: css("#listCaption", "borderBottomColor"),
+                        epgTime: css("#color-late-epg", "color"),
+                        muted: css("#listTime", "color"),
+                        selection: css(
+                            "#listIn .item.ott-selected",
+                            "backgroundColor"
+                        ),
+                        selectionText: css(
+                            "#listIn .item.ott-selected",
+                            "color"
+                        ),
+                        surface: css("#listCaption", "backgroundColor"),
+                        text: css("body", "color"),
+                    };
+                });
+            }
+            async function inheritedSettings() {
+                return page.evaluate(() => ({
+                    backgroundHighlight: window.settings.highlightColorB,
+                    epgTime: window.settings.epgTimeColor,
+                    mode: window.settings.interfaceMode,
+                    selectionHighlight: window.settings.highlightColorSel,
+                    textHighlight: window.settings.highlightColor,
+                    theme: window.settings.interfaceTheme,
+                }));
+            }
+            const ocean = {
+                accent: "rgb(94, 234, 212)",
+                background: "rgb(6, 24, 38)",
+                border: "rgb(59, 108, 131)",
+                epgTime: "rgb(94, 234, 212)",
+                muted: "rgb(163, 196, 213)",
+                selection: "rgb(21, 94, 117)",
+                selectionText: "rgb(255, 255, 255)",
+                surface: "rgb(12, 41, 61)",
+                text: "rgb(239, 250, 255)",
+            };
+            try {
+                // An existing unrelated preference must survive color edits.
+                await page.evaluate((mode) => {
+                    window.stbSetItem("sOsdOpacity", "4");
+                    window.stbSetItem("sInterfaceMode", String(mode));
+                    window.loadSettings();
+                    window.setColor();
+                }, colorMode);
+                await renderSavedChannels();
+                const inheritedPalette = await renderedPalette();
+                const inheritedValues = await inheritedSettings();
+                await openColors();
+                await page.locator('[data-color-action="scheme-3"]').click();
+                await page.locator('[data-color-action="cancel"]').click();
+                expect(
+                    await page.evaluate(() =>
+                        window.__ottSettingsEditor.get("uiColorConfig")
+                    )
+                ).toBe("");
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBeNull();
+                // Reopen within the same parent draft, choose a scheme and
+                // prove Apply alone does not mutate live or persisted settings.
+                await page.evaluate(() =>
+                    window.listArray
+                        .find((row) => row.settingId === "uiColorConfig")
+                        .values()
+                );
+                await expect(
+                    page.locator("[data-ott-color-appearance]")
+                ).toBeVisible();
+                await page.locator('[data-color-action="scheme-1"]').click();
+                await page.locator('[data-color-action="apply"]').click();
+                const saved = await page.evaluate((mode) => {
+                    if (!window.__ottSettingsEditor.set("interfaceMode", mode))
+                        throw new Error("Mode draft rejected");
+                    return window.__ottSettingsEditor.get("uiColorConfig");
+                }, colorMode);
+                expect(JSON.parse(saved).colors.selection).toBe("#155E75");
+                expect(
+                    await page.evaluate(() => window.settings.uiColorConfig)
+                ).toBe("");
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBeNull();
+                await saveOuterSettings();
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBe(saved);
+                await renderSavedChannels();
+                expect(await renderedPalette()).toEqual(ocean);
+                expect(
+                    await page.evaluate(() => window.settings.osdOpacity)
+                ).toBe(4);
+                await page.evaluate(() => {
+                    window.stbExit = () => {
+                        window.__colorQuit = true;
+                    };
+                    if (document.activeElement && document.activeElement.blur)
+                        document.activeElement.blur();
+                });
+                await page.keyboard.press("q");
+                await page.waitForFunction(() => window.__colorQuit === true);
+                await page.close({ runBeforeUnload: true });
+                page = await context.newPage();
+                page.on("pageerror", (error) =>
+                    fixture.errors.push(error.message)
+                );
+                await page.goto(origin + "/");
+                await page.waitForFunction(() => window.__fixtureReady);
+                expect(
+                    await page.evaluate(() => window.settings.uiColorConfig)
+                ).toBe(saved);
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBe(saved);
+                await renderSavedChannels();
+                expect(await renderedPalette()).toEqual(ocean);
+                expect(
+                    await page.evaluate(() => window.settings.osdOpacity)
+                ).toBe(4);
+                expect(
+                    await page.evaluate(() => window.__fixtureViolations)
+                ).toEqual([]);
+                await openColors();
+                await page.locator('[data-color-action="scheme-3"]').click();
+                await page.locator('[data-color-action="cancel"]').click();
+                expect(
+                    await page.evaluate(() =>
+                        window.__ottSettingsEditor.get("uiColorConfig")
+                    )
+                ).toBe(saved);
+                expect(
+                    await page.evaluate(() => window.settings.uiColorConfig)
+                ).toBe(saved);
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBe(saved);
+                await renderSavedChannels();
+                expect(await renderedPalette()).toEqual(ocean);
+                await openColors();
+                await page.locator('[data-color-action="reset"]').click();
+                await page.locator('[data-color-action="apply"]').click();
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBe(saved);
+                await saveOuterSettings();
+                expect(
+                    await page.evaluate(() =>
+                        window.stbGetItem("sUiColorConfig")
+                    )
+                ).toBe("");
+                await page.reload();
+                await page.waitForFunction(() => window.__fixtureReady);
+                expect(
+                    await page.evaluate(() => window.settings.uiColorConfig)
+                ).toBe("");
+                expect(
+                    await page.evaluate(() => window.settings.osdOpacity)
+                ).toBe(4);
+                await renderSavedChannels();
+                expect(await inheritedSettings()).toEqual(inheritedValues);
+                expect(await renderedPalette()).toEqual(inheritedPalette);
+                expect(
+                    await page.evaluate(() => ({
+                        marker: document.body.classList.contains(
+                            "ott-custom-colors"
+                        ),
+                        style:
+                            document.getElementById(
+                                "ott-interface-colors-style"
+                            ) !== null,
+                    }))
+                ).toEqual({ marker: false, style: false });
+                expect(fixture.errors).toEqual([]);
+                expect(fixture.unexpectedRequests).toEqual([]);
+                expect(
+                    await page.evaluate(() => window.__fixtureViolations)
+                ).toEqual([]);
+            } finally {
+                await fixture.close();
+            }
+        });
+    }
+}
+
+// Runs once in each configured browser project. A persistent context owns its
+// browser process, so closing it exercises disk persistence rather than merely
+// creating another document in an existing in-memory BrowserContext.
+test("server: saved colors survive a browser-process restart and stay profile-local", async ({
+    playwright,
+    browserName,
+}) => {
+    test.setTimeout(120000);
+    const userDataRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), "ottplay-color-restart-")
+    );
+    const savedProfile = path.join(userDataRoot, "saved");
+    const freshProfile = path.join(userDataRoot, "fresh");
+    let context;
+    async function openProfile(userDataDir) {
+        // Reuse all fixture routing/CSP/error checks. {} calls loadSettings()
+        // without supplying any palette or exported storage state.
+        return fixturePage(
+            {
+                async newContext(options) {
+                    assert.equal(
+                        context,
+                        undefined,
+                        "Close the previous browser before reopening its profile"
+                    );
+                    context = await playwright[
+                        browserName
+                    ].launchPersistentContext(userDataDir, {
+                        ...options,
+                        headless: true,
+                        timeout: 15000,
+                    });
+                    context.setDefaultTimeout(10000);
+                    context.setDefaultNavigationTimeout(10000);
+                    return context;
+                },
+            },
+            "server",
+            {}
+        );
+    }
+    async function closeProfile(fixture) {
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+        expect(
+            await fixture.page.evaluate(() => window.__fixtureViolations)
+        ).toEqual([]);
+        const processBrowser = context.browser();
+        expect(processBrowser).not.toBeNull();
+        expect(processBrowser.isConnected()).toBe(true);
+        await context.close();
+        await expect.poll(() => processBrowser.isConnected()).toBe(false);
+        context = undefined;
+    }
+    async function activateSetting(page, settingId) {
+        const index = await page.evaluate((id) => {
+            const target = window.listArray.findIndex((row) =>
+                id === "save"
+                    ? typeof row.name === "string" &&
+                      row.name.includes("Save Settings")
+                    : row.settingId === id
+            );
+            if (target < 0) throw new Error("Missing settings row: " + id);
+            window.changeSelect(target - window.selIndex);
+            return target;
+        }, settingId);
+        const row = page.locator("#it" + index);
+        await expect(row).toHaveClass(/ott-selected/);
+        await row.focus();
+        // Exercise the current list owner and real Save callback via keyboard,
+        // never assign settings or write storage from the test.
+        await page.keyboard.press("Enter");
+    }
+    async function renderedPalette(page) {
+        return page.evaluate(() => {
+            let time = document.getElementById("color-restart-epg");
+            if (!time) {
+                time = document.createElement("span");
+                time.id = "color-restart-epg";
+                time.className = "ott-epg-time";
+                document.getElementById("listDetail").appendChild(time);
+            }
+            const css = (selector, key) =>
+                getComputedStyle(document.querySelector(selector))[key];
+            return {
+                accent: css("#progress", "backgroundColor"),
+                background: css("#_t", "backgroundColor"),
+                border: css("#listCaption", "borderBottomColor"),
+                epgTime: css("#color-restart-epg", "color"),
+                muted: css("#listTime", "color"),
+                selection: css("#listIn .item.ott-selected", "backgroundColor"),
+                selectionText: css("#listIn .item.ott-selected", "color"),
+                surface: css("#listCaption", "backgroundColor"),
+                text: css("body", "color"),
+            };
+        });
+    }
+    const ocean = {
+        accent: "rgb(94, 234, 212)",
+        background: "rgb(6, 24, 38)",
+        border: "rgb(59, 108, 131)",
+        epgTime: "rgb(94, 234, 212)",
+        muted: "rgb(163, 196, 213)",
+        selection: "rgb(21, 94, 117)",
+        selectionText: "rgb(255, 255, 255)",
+        surface: "rgb(12, 41, 61)",
+        text: "rgb(239, 250, 255)",
+    };
+    try {
+        const first = await openProfile(savedProfile);
+        expect(
+            await first.page.evaluate(() => window.settings.uiColorConfig)
+        ).toBe("");
+        expect(
+            await first.page.evaluate(() => window.stbGetItem("sUiColorConfig"))
+        ).toBeNull();
+        const inherited = await renderedPalette(first.page);
+        await first.page.evaluate(() => window.settingsInterface());
+        await first.page.waitForFunction(() =>
+            window.listArray.some((row) => row.settingId === "uiColorConfig")
+        );
+        await activateSetting(first.page, "uiColorConfig");
+        await expect(
+            first.page.locator("[data-ott-color-appearance]")
+        ).toBeVisible();
+        await first.page.locator('[data-color-action="scheme-1"]').click();
+        await first.page.locator('[data-color-action="apply"]').click();
+        const saved = await first.page.evaluate(() =>
+            window.__ottSettingsEditor.get("uiColorConfig")
+        );
+        expect(JSON.parse(saved).colors.selection).toBe("#155E75");
+        expect(
+            await first.page.evaluate(() => window.settings.uiColorConfig)
+        ).toBe("");
+        expect(
+            await first.page.evaluate(() => window.stbGetItem("sUiColorConfig"))
+        ).toBeNull();
+        await activateSetting(first.page, "save");
+        expect(
+            await first.page.evaluate(() => window.stbGetItem("sUiColorConfig"))
+        ).toBe(saved);
+        await first.page.evaluate(() => window._channelsList(0, 0));
+        expect(await renderedPalette(first.page)).toEqual(ocean);
+        await closeProfile(first);
+
+        const restarted = await openProfile(savedProfile);
+        expect(
+            await restarted.page.evaluate(() => window.settings.uiColorConfig)
+        ).toBe(saved);
+        expect(
+            await restarted.page.evaluate(() =>
+                window.stbGetItem("sUiColorConfig")
+            )
+        ).toBe(saved);
+        expect(await renderedPalette(restarted.page)).toEqual(ocean);
+        await closeProfile(restarted);
+
+        const fresh = await openProfile(freshProfile);
+        expect(
+            await fresh.page.evaluate(() => window.settings.uiColorConfig)
+        ).toBe("");
+        expect(
+            await fresh.page.evaluate(() => window.stbGetItem("sUiColorConfig"))
+        ).toBeNull();
+        expect(await renderedPalette(fresh.page)).toEqual(inherited);
+        expect(
+            await fresh.page.evaluate(() => ({
+                marker: document.body.classList.contains("ott-custom-colors"),
+                style:
+                    document.getElementById("ott-interface-colors-style") !==
+                    null,
+            }))
+        ).toEqual({ marker: false, style: false });
+        await closeProfile(fresh);
+    } finally {
+        try {
+            if (context) await context.close();
+        } finally {
+            fs.rmSync(userDataRoot, { force: true, recursive: true });
+        }
+    }
+});
 
 async function listTouchFixture(browser, native = true) {
     const fixture = await fixturePage(browser, "server");

@@ -3545,10 +3545,12 @@ export function showEdit(): void {
         "line-height": height + "px",
         width: t,
     });
-    $("#ik" + _keyCur).css({
-        "background-color": (window as any).curColorB,
-        color: (window as any).curColor,
-    });
+    $("#ik" + _keyCur)
+        .addClass("ott-selected")
+        .css({
+            "background-color": (window as any).curColorB,
+            color: (window as any).curColor,
+        });
     if (listFooterElement)
         listFooterElement.innerHTML =
             renderButtonHint(keys.RETURN, strRETURN, "Close") +
@@ -3632,12 +3634,16 @@ export function clickKey(e: number): void {
         (window as any).event.stopPropagation
     )
         (window as any).event.stopPropagation();
-    $("#ik" + _keyCur).css({ "background-color": "", color: "" });
+    $("#ik" + _keyCur)
+        .removeClass("ott-selected")
+        .css({ "background-color": "", color: "" });
     _keyCur = e;
-    $("#ik" + _keyCur).css({
-        "background-color": (window as any).curColorB,
-        color: (window as any).curColor,
-    });
+    $("#ik" + _keyCur)
+        .addClass("ott-selected")
+        .css({
+            "background-color": (window as any).curColorB,
+            color: (window as any).curColor,
+        });
     editKey1((window as any).keys.ENTER);
 }
 
@@ -3657,12 +3663,16 @@ export function clickKey(e: number): void {
  */
 export function editKey1(e: number): void {
     function focusKeyboardKey(index: number): void {
-        $("#ik" + _keyCur).css({ "background-color": "", color: "" });
+        $("#ik" + _keyCur)
+            .removeClass("ott-selected")
+            .css({ "background-color": "", color: "" });
         _keyCur = index;
-        $("#ik" + _keyCur).css({
-            "background-color": (window as any).curColorB,
-            color: (window as any).curColor,
-        });
+        $("#ik" + _keyCur)
+            .addClass("ott-selected")
+            .css({
+                "background-color": (window as any).curColorB,
+                color: (window as any).curColor,
+            });
     }
     switch (e) {
         case (window as any).keys.UP:
@@ -4268,10 +4278,12 @@ export function clickVal(e: number, focusOnly?: boolean): void {
         aboutKeyHandler((window as any).keys.ENTER);
         return;
     }
-    $("#ik" + _curVal).css({ "background-color": "", color: "" });
+    $("#ik" + _curVal)
+        .removeClass("ott-selected")
+        .css({ "background-color": "", color: "" });
     _curVal = e;
     var key = $("#ik" + _curVal);
-    key.css({
+    key.addClass("ott-selected").css({
         "background-color": (window as any).curColorB,
         color: (window as any).curColor,
     });

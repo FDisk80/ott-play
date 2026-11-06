@@ -11,12 +11,21 @@ import { installLocalMedia } from "./plugins/local-media";
 import { installMediaCompanion } from "./plugins/media-companion-loader";
 import { createSettingsEditor } from "./settings/editor";
 import {
+    parseInterfaceColorConfig,
+    serializeInterfaceColors,
+} from "./settings/interface-colors";
+import {
     editSettingsText,
     exportSettingsUI,
     importSettingsUI,
 } from "./settings/transfer-ui";
 import { validDeviceToken, validSwopClientId } from "./shared/wire-contracts";
 import { showSettingsRecovery } from "./storage/recovery-ui";
+import {
+    applyInterfaceColors,
+    interfaceColorPreview,
+    interfaceColorRgb,
+} from "./ui/interface-colors";
 import { createModernActions } from "./ui/modern-actions";
 import {
     hasTmdbService,
@@ -1302,6 +1311,8 @@ function classicColorRgb(value: string, brightness?: number): string {
  * osdOpacity, listPosition.
  */
 function setColor(): void {
+    var custom = parseInterfaceColorConfig(settings.uiColorConfig || "");
+    var colors = custom ? custom.colors : {};
     var pliHd = settings.interfaceTheme === 1;
     var studio = settings.interfaceTheme === 2;
     $("body").toggleClass("theme-pli-hd", pliHd);
@@ -1310,7 +1321,7 @@ function setColor(): void {
         "hide-list-separators",
         settings.showListSeparators === 0
     );
-    bodyColor = studio ? "#f0f3f1" : "#f0f0f0";
+    bodyColor = colors.text || (studio ? "#f0f3f1" : "#f0f0f0");
     $("body").css("color", bodyColor);
     // PLi-HD's selectedFG / selectedBG. Keep the saved Classic palette intact.
     curColorB = studio
@@ -1323,11 +1334,13 @@ function setColor(): void {
         : pliHd
           ? "#fcc000"
           : "rgb(" + classicColorRgb(settings.highlightColor, 100) + ")";
+    curColorB = colors.selection || curColorB;
+    curColor = colors.accent || curColor;
     // Keep window.* in sync — itemEPG / listDetail / getListItem read w.curColor.
     window.curColor = curColor;
     // EPG nodes may already be visible when the theme changes.
     $(".ott-epg-current-title, .ott-epg-detail-title").css("color", curColor);
-    var epgTextColor = epgTimeCssColor(settings.epgTimeColor);
+    var epgTextColor = colors.epgTime || epgTimeCssColor(settings.epgTimeColor);
     document.documentElement.style.setProperty(
         "--ott-epg-time-color",
         epgTextColor
@@ -1336,8 +1349,17 @@ function setColor(): void {
     $(".ott-epg-time").css("color", epgTextColor);
     window.curColorB = curColorB;
     window.bodyColor = bodyColor;
+    // A row may have been created while overrides were active. Restore its
+    // legacy inline fallback too, so removing the owned sheet is a full reset.
+    $(
+        "#listIn .item.ott-selected, #dialogbox .ott-color-selected, #listEdit .ott-selected, #listAbout .ott-selected, #numprog [aria-pressed='true']"
+    ).css({
+        "background-color": curColorB,
+        color: curColor,
+    });
 
     var borderColor = studio ? "#2b3430" : pliHd ? "#555555" : curColor;
+    borderColor = colors.border || borderColor;
     $("#listCaption").css("border-bottom", "2px solid " + borderColor);
     $("#listPodval").css("border-top", "1px solid " + borderColor);
     $("#listPopUp, #dialogbox").css("border", "1px solid " + borderColor);
@@ -1362,6 +1384,7 @@ function setColor(): void {
         : pliHd
           ? "#000000"
           : "rgb(" + classicColorRgb(settings.highlightColorB) + ")";
+    bgColor = colors.background || bgColor;
     $(".list_back").css("background-color", bgColor);
     $("#listPopUp").css("background-color", bgColor);
 }
@@ -1384,12 +1407,16 @@ function stbSetOsdOpacity(val: number): void {
             : settings.interfaceTheme === 1
               ? "8,8,8"
               : classicColorRgb(settings.highlightColorB);
+    var custom = parseInterfaceColorConfig(settings.uiColorConfig || "");
+    var surface = custom && (custom.colors.surface || custom.colors.background);
+    if (surface) rgb = interfaceColorRgb(surface);
     $(".osd").css("background-color", "rgba(" + rgb + "," + val / 100 + ")");
     // Reduce notification background opacity by 20%, without dimming the text.
     document.documentElement.style.setProperty(
         "--ott-notify-alpha",
         String(Math.min(1, val / 100 + 0.08) * 0.8)
     );
+    applyInterfaceColors(document, settings.uiColorConfig || "", val);
 }
 
 /**
@@ -4730,7 +4757,6 @@ window.settingsInterface = function settingsInterface(): void {
     openSubtitleAppearance("open");
 };
 (window as any).__ottAppearanceHost = {
-    color: classicColorRgb,
     languages: languageNames,
     list: setListArrays,
     page: createSettingsPage,
@@ -6490,6 +6516,11 @@ window.editValue = editValue;
 window.curColor = curColor;
 window.curColorB = curColorB;
 window.bodyColor = bodyColor;
+(window as any).__ottInterfaceColors = {
+    parse: parseInterfaceColorConfig,
+    resolve: interfaceColorPreview,
+    serialize: serializeInterfaceColors,
+};
 window.epgCache = epg;
 window.medHistory = medHistory;
 window.medFavorites = medFavorites;

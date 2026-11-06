@@ -1,3 +1,4 @@
+import { normalizeInterfaceColorConfig } from "../settings/interface-colors";
 import {
     createFavoritesPhysicalStorageGrant,
     createFavoritesPhysicalStorageRead,
@@ -1548,6 +1549,19 @@ export function portableSettingsSnapshot(
     Object.keys(result).forEach(function (key) {
         if (isInstallationSettingsKey(key)) delete result[key];
     });
+    var colorConfig: string | undefined;
+    ["sUiColorConfig", "uiColorConfig"].forEach(function (key) {
+        if (!Object.prototype.hasOwnProperty.call(result, key)) return;
+        var normalized = normalizeInterfaceColorConfig(result[key]);
+        if (
+            normalized === null ||
+            (colorConfig !== undefined && colorConfig !== normalized)
+        )
+            throw new Error("Invalid interface color settings");
+        colorConfig = normalized;
+    });
+    if (colorConfig !== undefined) result.sUiColorConfig = colorConfig;
+    delete result.uiColorConfig;
     if (Object.prototype.hasOwnProperty.call(result, "offlineProfiles")) {
         var offline = (window as any).__ottOfflineProfiles;
         if (

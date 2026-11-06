@@ -223,6 +223,71 @@
         ui.list(host, page.rows(rows));
         page.attach();
     }
+    var colorLoading = false;
+    var colorOpen: ((ready: boolean) => void) | null = null;
+    function openColors(): void {
+        var editor = host.__ottSettingsEditor;
+        var owner =
+            host.__ottClassicScreenPort &&
+            host.__ottClassicScreenPort.listOwner();
+        var source = host.p_pref,
+            driver = host.__ottActiveProviderDriver;
+        if (!editor || !editor.active() || !owner || !owner.foreground())
+            return;
+        function ready(success: boolean): void {
+            if (
+                editor !== host.__ottSettingsEditor ||
+                !editor.active() ||
+                !owner.foreground() ||
+                source !== host.p_pref ||
+                driver !== host.__ottActiveProviderDriver ||
+                (host.__ottStandby && host.__ottStandby.blocked())
+            )
+                return;
+            if (success && host.__ottColorAppearance.open(editor)) return;
+            if (host.showShift)
+                host.showShift(host._("Failed to load!") || "Failed to load!");
+        }
+        if (host.__ottColorAppearance) {
+            ready(true);
+            return;
+        }
+        colorOpen = ready;
+        if (colorLoading) return;
+        colorLoading = true;
+        var script = host.document.createElement("script");
+        var settled = false;
+        var timer = host.setTimeout(function () {
+            finish(false);
+        }, 15000);
+        function finish(success: boolean): void {
+            if (settled) return;
+            settled = true;
+            host.clearTimeout(timer);
+            script.onload = script.onerror = null;
+            if (script.parentNode) script.parentNode.removeChild(script);
+            colorLoading = false;
+            var callback = colorOpen;
+            colorOpen = null;
+            if (callback) callback(success && !!host.__ottColorAppearance);
+        }
+        script.src =
+            String(host.hostUrl || host.host || "").replace(/\/$/, "") +
+            "/dist/color-appearance.js?" +
+            encodeURIComponent(host.__cv || "");
+        if (!/^file:/.test(script.src)) script.crossOrigin = "anonymous";
+        script.onload = function () {
+            finish(true);
+        };
+        script.onerror = function () {
+            finish(false);
+        };
+        try {
+            (host.document.head || host.document.body).appendChild(script);
+        } catch (_) {
+            finish(false);
+        }
+    }
     function interfaceSettings(): void {
         var ui = host.__ottAppearanceHost;
         var windowSettings =
@@ -246,37 +311,16 @@
         );
         var choice = page.choice;
         var label = page.label;
-        function colorChoice(
-            name: string,
-            id: string,
-            action: any,
-            brightness?: number
-        ): any {
-            var row: any = { name: name, settingId: id, values: action };
-            Object.defineProperty(row, "cur", {
-                get: function () {
-                    var hex =
-                        "#" +
-                        ui
-                            .color(row.val, brightness)
-                            .split(",")
-                            .map(function (part: string) {
-                                return ("0" + Number(part).toString(16)).slice(
-                                    -2
-                                );
-                            })
-                            .join("")
-                            .toUpperCase();
-                    return (
-                        '<span aria-hidden="true" style="display:inline-block;width:1em;height:1em;vertical-align:middle;border:1px solid currentColor;background:' +
-                        hex +
-                        '"></span> ' +
-                        hex
-                    );
-                },
-            });
-            return row;
-        }
+        var colorRow: any = {
+            name: label("Interface colors"),
+            settingId: "uiColorConfig",
+            values: openColors,
+        };
+        Object.defineProperty(colorRow, "cur", {
+            get: function () {
+                return label(colorRow.val ? "Custom" : "Inherited");
+            },
+        });
 
         var mediaLanguageCodes = Object.keys(ui.languages);
         var mediaLanguageLabels = mediaLanguageCodes.map(function (code) {
@@ -399,26 +443,7 @@
                     settingOffset: 3,
                     values: [3, 4, 5, 6, 7, 8, 9, 10],
                 },
-                colorChoice(
-                    host._("Color spectrum") + " (" + host._("Classic") + ")",
-                    "highlightColor",
-                    host.colorDialog,
-                    100
-                ),
-                colorChoice(
-                    host._("Background color of selected item") +
-                        " (" +
-                        host._("Classic") +
-                        ")",
-                    "highlightColorSel",
-                    host.selColorDialog,
-                    50
-                ),
-                colorChoice(
-                    host._("Background color") + " (" + host._("Classic") + ")",
-                    "highlightColorB",
-                    host.backColorDialog
-                ),
+                colorRow,
                 choice(
                     label("Permanent clock on screen"),
                     "permanentTime",

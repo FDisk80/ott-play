@@ -39,7 +39,8 @@ function compile(source) {
                 target: ts.ScriptTarget.ES5,
             },
         })
-        .outputText.replace(/^export /gm, "");
+        .outputText.replace(/^import .*$/gm, "")
+        .replace(/^export /gm, "");
 }
 function fixture() {
     const dom = new JSDOM(
@@ -139,6 +140,7 @@ function fixture() {
     vm.runInContext(read("js/jquery-1.11.1.min.js"), context);
     require("./helpers/shared-core-runtime.cjs")(context);
     vm.runInContext(compatibilitySource + settingsSource(), context);
+    vm.runInContext(compile(read("src/ui/interface-colors.ts")), context);
     vm.runInContext(
         compile(
             selected(

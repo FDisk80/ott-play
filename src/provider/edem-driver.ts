@@ -1031,6 +1031,8 @@ function mountEdemProvider(
                     html +=
                         '<div id="edemQuality' +
                         index +
+                        '" class="' +
+                        (index === selected ? "ott-color-selected" : "") +
                         '" style="display:inline-block;padding:6px 16px;' +
                         (index === selected
                             ? "background-color:" +
