@@ -371,8 +371,22 @@
         for (var scale = 20; scale <= 200; scale++)
             if (scale % 10 === 0 || scale === host.sUiFontScale)
                 fontScales.push(scale);
-        var tz = (host.arrTimezone || ["system", "0"]).slice();
-        tz[0] = host._(tz[0]) || tz[0];
+        var offsets = ui.timezoneOffsets;
+        if (!offsets) {
+            // An older host supports the complete legacy range, not the new IDs.
+            offsets = [null];
+            for (var legacy = 1; legacy <= 25; legacy++)
+                offsets.push(60 * (legacy <= 13 ? legacy - 1 : 13 - legacy));
+        }
+        var timezoneIds = offsets.map(function (
+            _offset: number | null,
+            id: number
+        ) {
+            return id;
+        });
+        timezoneIds.sort(function (a: number, b: number) {
+            return a === 0 || b === 0 ? a - b : offsets[a] - offsets[b];
+        });
         ui.list(
             host,
             page.rows([
@@ -428,7 +442,23 @@
                     "fontSize",
                     interfaceFontOptions(label)
                 ),
-                choice(label("Timezone"), "timezone", tz),
+                {
+                    name: label("Timezone"),
+                    settingId: "timezone",
+                    settingValues: timezoneIds,
+                    values: timezoneIds.map(function (id: number) {
+                        if (id === 0) return label("system");
+                        var minutes = offsets[id],
+                            absolute = Math.abs(minutes);
+                        return (
+                            "UTC" +
+                            (minutes < 0 ? "−" : "+") +
+                            ("0" + Math.floor(absolute / 60)).slice(-2) +
+                            ":" +
+                            ("0" + (absolute % 60)).slice(-2)
+                        );
+                    }),
+                },
                 {
                     name: label("Font size") + ", %",
                     settingId: "uiFontScale",

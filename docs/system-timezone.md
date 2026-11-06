@@ -10,6 +10,18 @@ Explicit UTC and GMT offsets remain fixed. They do not follow later system
 timezone changes or daylight-saving transitions. Existing saved timezone
 choices keep their meaning; System and explicit UTC are separate choices.
 
+New settings default to **System**. The Interface selector also offers fixed
+UTC offsets from −12:00 through +14:00, including supported half-hour and
+quarter-hour offsets. System is localized; fixed offsets use `UTC±HH:MM`.
+Saved values are stable choice IDs, not hours: `0` means System and `1` means
+explicit UTC+00:00. All original IDs `0`–`25` retain their meanings.
+
+The additional offsets use IDs `26`–`40` and require an updated client. Older
+clients reject these IDs in typed settings imports and fall back to System
+when reading an unsupported raw saved value. No automatic migration rewrites
+an existing explicit offset. A newer settings panel running on an older host
+shows the host's complete original 26 choices.
+
 Timezone selection changes displayed clock and programme times. It does not
 change the device clock, Unix timestamps, programme identifiers, or the
 archive start timestamp sent to the provider. It does not synchronize an

@@ -75,7 +75,7 @@ function installTimezone(host) {
         host,
         "src/settings/index.ts",
         ["applyTimezoneSetting"],
-        ["systemTimezoneOffset"]
+        ["systemTimezoneOffset", "timezoneOffsets"]
     );
 }
 
@@ -372,9 +372,14 @@ function runCase(spec) {
         for (const epoch of epochs) assertSystem(f, epoch);
         assert.equal(epochs[1] - epochs[0], 3600000);
     } else if (spec.kind === "reset") {
-        for (const [index, expected] of [
-            [1, "23:30:42"],
-            [3, "01:30:42"],
+        for (const [index, expected, offset] of [
+            [1, "23:30:42", -0],
+            [3, "01:30:42", -120],
+            [26, "12:30:42", -780],
+            [27, "13:30:42", -840],
+            [28, "14:00:42", 570],
+            [34, "05:15:42", -345],
+            [40, "13:15:42", -825],
         ]) {
             assert.equal(h.applyTimezoneSetting(index), index);
             for (const zone of ["America/Los_Angeles", "Asia/Kolkata"]) {
@@ -382,10 +387,7 @@ function runCase(spec) {
                 h.applyPolyfills();
                 assert.equal(h.formatClockTime(NOW / 1000), expected);
                 // Explicit UTC preserves the legacy -60 * 0 result.
-                assert.equal(
-                    h.Date.getTimezoneOffset(),
-                    index === 1 ? -0 : -120
-                );
+                assert.equal(h.Date.getTimezoneOffset(), offset);
                 assertEpoch(h, NOW);
             }
         }

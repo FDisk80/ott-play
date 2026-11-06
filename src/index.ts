@@ -186,6 +186,7 @@ import {
     type PlayerSettings,
     saveSettings,
     settings,
+    timezoneOffsets,
 } from "./settings";
 import { cloudLoadSettings, cloudSendSettings } from "./settings/cloud";
 import { setSleepTimeout } from "./settings/sleep-timer";
@@ -4739,6 +4740,7 @@ window.settingsInterface = function settingsInterface(): void {
             if (index >= 0) subtitleAppearanceReady.splice(index, 1);
         };
     },
+    timezoneOffsets: timezoneOffsets,
 };
 (window as any).applySubtitleAppearance = function (): void {
     var w = window as any;
