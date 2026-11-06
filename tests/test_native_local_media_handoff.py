@@ -32,7 +32,8 @@ def android_source():
     methods = "\n".join(method(source, marker) for marker in (
         "private fun selected(", "private fun selectedFolder(",
         "private fun sourceDescriptors(", "private fun resolveRegistration(",
-        "fun sources(", "private fun progressList(", "private fun link(",
+        "fun sources(", "private fun progressList(", "private class PreparedLink(",
+        "private fun prepareLink(", "private fun adoptLink(", "private fun link(",
     ))
     return r'''
 import java.io.File
@@ -98,6 +99,13 @@ class Context { val contentResolver = Resolver() }
 class Harness(val directory: File) {
     val ticket = NativeWork.begin()!!
     val currentWork = ThreadLocal<NativeWork.Ticket>().apply { set(ticket) }
+    private class Discovery {
+        val jobs = mutableListOf<() -> (() -> Unit)>()
+        fun add(job: () -> (() -> Unit)) { jobs.add(job) }
+        fun run() { jobs.forEach { it()() } }
+    }
+    private fun discovery() = Discovery()
+
     val context = Context(); val token = "token"
     var picking = true; var scans = 0; var snapshots = 0; var opens = 0; var metadataReads = 0
     var failSave = false; var cancelAfterFirst = false; var firstPlayable = false; var revoked = false
@@ -138,12 +146,20 @@ class Harness(val directory: File) {
     }
     fun entry(source: String) = JSONObject().put("id", source + "-item").put("name", "Clip.mp4")
         .put("mime", "video/mp4").put("size", 123L).put("sourceId", source).put("uri", source)
-    fun scanTree(uri: Uri, onValidatedRecord: ((JSONObject) -> Unit)? = null, onRecord: ((JSONObject) -> Unit)? = null) {
+    fun scanTree(uri: Uri, onValidatedRecord: ((JSONObject) -> Unit)? = null, onRecord: ((JSONObject) -> Unit)? = null,
+                 onCheckedRecord: ((JSONObject, Boolean) -> Unit)? = null) {
         checkWork(); scans++
         if (uri.value == "unrelated") { check(firstPlayable); throw IOException("unavailable unrelated folder") }
         val existing = records.find { it.optString("uri") == uri.value }
         link(uri, uri, records.mapTo(mutableSetOf()) { it.optString("uri") }, "Clip.mp4", "video/mp4",
-             existing = existing, onValidatedRecord = onValidatedRecord, onRecord = onRecord)
+             existing = existing, onValidatedRecord = { item ->
+                 if (onCheckedRecord != null) onCheckedRecord(item, true) else (onValidatedRecord ?: onRecord)?.invoke(item)
+             }, onRecord = { item ->
+                 if (onCheckedRecord != null) {
+                     val available = try { openSource(item).use {}; true } catch (_: IOException) { false }
+                     onCheckedRecord(item, available)
+                 } else onRecord?.invoke(item)
+             })
         if (cancelAfterFirst) ticket.cancel()
     }
     fun resolveSnapshot(call: PluginCall) { checkWork(); snapshots++; call.resolve(JSObject()) }
@@ -251,6 +267,7 @@ fun main() {
 def ios_source():
     source = (IOS / "LocalMedia.swift").read_text()
     methods = "\n".join(method(source, marker) for marker in (
+        "private struct LocalMediaDiscoveryJob<Value>",
         "private struct LinkedItem:", "private struct Source:", "private struct Entry:",
         "private func sourceDescriptors(", "private func resolveRegistration(",
         "func sources(_ call:", "private func progressSnapshot(",
@@ -307,6 +324,10 @@ class Harness {
     deinit { currentWork?.finish() }
     func checkWork() throws { try currentWork?.check() }
     func tracked(_ call: CAPPluginCall, _ action: () -> Void) { action() }
+    private func discover<Value>(_ initial: [LocalMediaDiscoveryJob<Value>], consume: (Value) throws -> [LocalMediaDiscoveryJob<Value>]) throws {
+        var pending = initial
+        while !pending.isEmpty { try checkWork(); pending.append(contentsOf: try consume(pending.removeFirst().operation())) }
+    }
     private func sources() throws -> [Source] { try checkWork(); sourceReads += 1; return stored }
     func directory() throws -> FixtureURL { try checkWork(); return FixtureURL(path: "private") }
     func readMetadata(_ url: FixtureURL) throws -> Data? { nil }

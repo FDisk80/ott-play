@@ -50,6 +50,34 @@ class HelperInstallerTests(unittest.TestCase):
             with self.subTest(state=state), self.assertRaises(ValueError):
                 installer.plan(self.binary, [self.media], state, home=self.root)
 
+    def test_lan_requires_opt_in_and_an_explicit_private_interface(self):
+        for host in ("10.2.3.4", "172.16.1.2", "172.31.255.254", "192.168.1.2", "fd12::2", "fc00::1"):
+            with self.subTest(host=host):
+                with self.assertRaises(ValueError):
+                    installer.listen_address(host)
+                self.assertEqual(installer.listen_address(host, True), host)
+        for host in ("0.0.0.0", "::", "8.8.8.8", "172.15.1.2", "172.32.1.2", "169.254.1.2",
+                     "100.64.1.2", "2001:4860::1", "fe80::1", "::ffff:192.168.1.2", "::ffff:127.0.0.1",
+                     "::ffff:7f00:1", "fd12::1%en0", "localhost"):
+            with self.subTest(host=host), self.assertRaises(ValueError):
+                installer.listen_address(host, True)
+
+    def test_lan_prepare_keeps_same_readonly_roots_and_private_token(self):
+        loopback = installer.prepare(self.config)
+        for host in ("192.168.1.2", "fd12::2"):
+            config = installer.plan(self.binary, [self.media], self.config["state"],
+                                    home=self.root, host=host, allow_lan=True)
+            agent = installer.prepare(config)
+            self.assertEqual(agent["EnvironmentVariables"], loopback["EnvironmentVariables"])
+            self.assertEqual(agent["ProgramArguments"][1:],
+                             ["--host", host, "--port", "8448", "--allow-lan-local-media"])
+            token = agent["EnvironmentVariables"]["OTT_OFFLINE_MEDIA_TOKEN"]
+            self.assertEqual((config["state"] / "library-url.txt").read_text().strip(),
+                             f"http://{installer.authority(config)}/offline-media/{token}")
+            self.assertEqual(stat.S_IMODE(config["plist"].stat().st_mode), 0o600)
+        restored = installer.prepare(self.config)
+        self.assertEqual(restored, loopback)
+
     def test_nonabsolute_media_path_and_invalid_label_or_port_are_rejected(self):
         with self.assertRaises(ValueError):
             installer.plan(self.binary, ["relative"], self.root / "state")
@@ -128,6 +156,28 @@ class HelperInstallerTests(unittest.TestCase):
                 installer.start(self.config)
         self.assertEqual(run.call_count, 21)
         self.assertFalse(any(call.args[0][1] == "bootstrap" for call in run.call_args_list))
+
+    def test_start_checks_selected_lan_interface_for_health_and_catalog(self):
+        for host, target in (("192.168.1.2", "192.168.1.2:8448"), ("fd12::2", "[fd12::2]:8448")):
+            config = installer.plan(self.binary, [self.media], self.config["state"],
+                                    home=self.root, host=host, allow_lan=True)
+            installer.prepare(config)
+            health = Mock(status=200)
+            health.__enter__ = Mock(return_value=health)
+            health.__exit__ = Mock(return_value=False)
+            catalog = Mock(status=200)
+            catalog.__enter__ = Mock(return_value=catalog)
+            catalog.__exit__ = Mock(return_value=False)
+            catalog.read.return_value = b'{"readOnly":true,"directSources":false,"uploadUrl":""}'
+            opener = Mock()
+            opener.open.side_effect = [health, catalog]
+            with self.subTest(host=host), patch.object(installer, "check_port"), \
+                    patch.object(installer.subprocess, "run", return_value=Mock(returncode=1)), \
+                    patch.object(installer.urllib.request, "build_opener", return_value=opener):
+                installer.start(config)
+            self.assertEqual(opener.open.call_args_list[0].args[0], f"http://{target}/health")
+            self.assertEqual(opener.open.call_args_list[1].args[0],
+                             (config["state"] / "library-url.txt").read_text().strip())
 
     def test_health_alone_cannot_accept_an_unrelated_server(self):
         installer.prepare(self.config)

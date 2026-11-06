@@ -16,7 +16,6 @@ function createRemoteLifecycleFields(w: any, readRuntime: () => string): any {
         owner: any,
         identity = "";
     var timers: any = {},
-        cancels: any = {},
         owned: any = {};
     var tokenPattern = /^[A-Za-z0-9_.:-]{1,128}$/;
     function host(): any {
@@ -186,7 +185,6 @@ function createRemoteLifecycleFields(w: any, readRuntime: () => string): any {
         if (!owns(group, record)) return;
         if (timers[group]) w.clearTimeout(timers[group]);
         delete timers[group];
-        delete cancels[group];
         delete owned[group];
         var clean: any = { id: record.id, state: state, version: 1 };
         if (reason) clean.reason = reason;
@@ -312,7 +310,7 @@ function createRemoteLifecycleFields(w: any, readRuntime: () => string): any {
             return;
         }
         var settled = false;
-        var cancel = host().apply(
+        host().apply(
             group,
             record.desired,
             function (error?: string) {
@@ -342,7 +340,6 @@ function createRemoteLifecycleFields(w: any, readRuntime: () => string): any {
                 return desiredCurrent(group, record);
             }
         );
-        if (!settled && typeof cancel === "function") cancels[group] = cancel;
     }
     function saveValues(
         group: string,

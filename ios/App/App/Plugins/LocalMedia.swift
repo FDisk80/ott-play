@@ -4,6 +4,22 @@ import Foundation
 import UIKit
 import UniformTypeIdentifiers
 
+// Results cross the worker boundary; all source/index/progress mutation remains
+// on the existing serial queue. No cancelled generation releases its four slots
+// until all admitted synchronous operations have returned.
+private struct LocalMediaDiscoveryJob<Value> {
+    let metadata: Bool
+    let ready: Bool
+    let operation: () throws -> Value
+    init(metadata: Bool = false, ready: Bool = false, _ operation: @escaping () throws -> Value) {
+        self.metadata = metadata; self.ready = ready; self.operation = operation
+    }
+}
+private final class LocalMediaDiscoveryResults<Value> {
+    let ready = NSCondition()
+    var values: [(Bool, Result<Value, Error>)] = []
+}
+
 /// New selections retain document bookmarks, not media copies. Legacy imports stay readable.
 /// Security-scoped access remains active while WebKit can request the playback URL.
 @objc(LocalMedia)
@@ -47,6 +63,73 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
     }
     private func checkWork() throws { try currentWork?.check() }
     private let queue = DispatchQueue(label: "ott.offline-media", qos: .userInitiated)
+    private let discoveryQueue = DispatchQueue(label: "ott.offline-media.discovery", qos: .userInitiated, attributes: .concurrent)
+    private func discover<Value>(_ initial: [LocalMediaDiscoveryJob<Value>],
+                                 consume: (Value) throws -> [LocalMediaDiscoveryJob<Value>]) throws {
+        let results = LocalMediaDiscoveryResults<Value>()
+        var pending: [LocalMediaDiscoveryJob<Value>?] = []
+        var ready: [LocalMediaDiscoveryJob<Value>] = []
+        var head = 0
+        var running = 0
+        var metadataRunning = 0
+        var failure: Error?
+        var operationFailure: Error?
+        func enqueue(_ jobs: [LocalMediaDiscoveryJob<Value>]) {
+            // Preserve the producer's order within a ready group while giving
+            // its child/probe priority over unrelated queued parent iterators.
+            ready.append(contentsOf: jobs.filter { $0.ready }.reversed())
+            pending.append(contentsOf: jobs.filter { !$0.ready }.map { Optional($0) })
+        }
+        func take() -> LocalMediaDiscoveryJob<Value>? {
+            if let index = ready.indices.reversed().first(where: { !ready[$0].metadata || metadataRunning < 3 }) {
+                return ready.remove(at: index)
+            }
+            if let index = (head..<pending.count).first(where: { index in
+                guard let job = pending[index] else { return false }
+                return !job.metadata || metadataRunning < 3
+            }) {
+                let job = pending[index]; pending[index] = nil
+                while head < pending.count && pending[head] == nil { head += 1 }
+                return job
+            }
+            return nil
+        }
+        enqueue(initial)
+        while !ready.isEmpty || head < pending.count || running > 0 {
+            if failure == nil { do { try checkWork() } catch { failure = error } }
+            if failure != nil { pending.removeAll(); ready.removeAll(); head = 0 }
+            while failure == nil && running < 4 {
+                guard let job = take() else { break }
+                running += 1
+                if job.metadata { metadataRunning += 1 }
+                discoveryQueue.async {
+                    let value = Result { try self.checkWork(); return try job.operation() }
+                    results.ready.lock()
+                    results.values.append((job.metadata, value))
+                    results.ready.signal()
+                    results.ready.unlock()
+                }
+            }
+            if head > 256 { pending.removeFirst(head); head = 0 }
+            if running == 0 { break }
+            results.ready.lock()
+            while results.values.isEmpty { results.ready.wait() }
+            let (metadata, result) = results.values.removeFirst()
+            results.ready.unlock()
+            running -= 1
+            if metadata { metadataRunning -= 1 }
+            if failure == nil {
+                do {
+                    try checkWork()
+                    switch result {
+                    case .success(let value): enqueue(try consume(value))
+                    case .failure(let error): if operationFailure == nil { operationFailure = error }
+                    }
+                } catch { failure = error }
+            }
+        }
+        if let error = failure ?? operationFailure { throw error }
+    }
     private var pendingPicker: CAPPluginCall?
     private var pickingFolder = false
     private var replacingSource: String?
@@ -150,56 +233,127 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
             .uuidString.lowercased()
     }
+    private final class DirectoryCursor {
+        let iterator: FileManager.DirectoryEnumerator
+        init(_ iterator: FileManager.DirectoryEnumerator) { self.iterator = iterator }
+    }
+    private enum DiscoveryResult {
+        case directory(DirectoryCursor)
+        case directoryFailed(Error)
+        case entry(DirectoryCursor, URL?)
+        case inspected(URL, String, Bool, (String, Int64)?)
+    }
     private func refresh(_ source: inout Source, root: URL,
                          onItem: ((LinkedItem, URL) -> Void)? = nil,
                          onScan: (() -> Void)? = nil) throws {
+        // Only the serial consumer touches this copy, the index or callbacks.
+        // Workers never capture the caller's inout source/bookmark state.
+        var updated = source
+        defer { source = updated }
         var indices: [String: Int] = [:]
-        for (index, item) in source.items.enumerated() where indices[item.path] == nil { indices[item.path] = index }
-        func append(_ path: String, _ url: URL, info: (String, Int64)? = nil) throws {
+        for (index, item) in updated.items.enumerated() where indices[item.path] == nil { indices[item.path] = index }
+        func append(_ path: String, _ url: URL, info: (String, Int64)) throws {
             try checkWork()
-            guard !source.excluded.contains(path), let (mime, size) = info ?? mediaInfo(url) else { return }
+            guard !updated.excluded.contains(path) else { return }
+            let (mime, size) = info
             let item: LinkedItem
             if let index = indices[path] {
-                source.items[index].name = String(url.lastPathComponent.prefix(256))
-                source.items[index].mime = mime
-                source.items[index].size = size
-                item = source.items[index]
+                updated.items[index].name = String(url.lastPathComponent.prefix(256))
+                updated.items[index].mime = mime
+                updated.items[index].size = size
+                item = updated.items[index]
             } else {
-                item = LinkedItem(id: linkedItemID(source.id, path: path), name: String(url.lastPathComponent.prefix(256)),
+                item = LinkedItem(id: linkedItemID(updated.id, path: path), name: String(url.lastPathComponent.prefix(256)),
                                   path: path, mime: mime, size: size)
-                indices[path] = source.items.count
-                source.items.append(item)
+                indices[path] = updated.items.count
+                updated.items.append(item)
             }
             onItem?(item, url)
         }
-        if source.kind == "folder" {
-            let rootValues = try root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-            guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true else { throw CocoaError(.fileReadNoSuchFile) }
-            guard let enumerator = FileManager.default.enumerator(at: root,
-                includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
-                options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { throw CocoaError(.fileReadNoPermission) }
+        if updated.kind == "folder" {
+            let prefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
             var scanned = 0
-            for case let url as URL in enumerator {
-                try checkWork()
-                scanned += 1
-                onScan?()
-                guard scanned <= 20_000 else { throw CocoaError(.fileReadTooLarge) }
-                let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-                if values.isSymbolicLink == true { enumerator.skipDescendants(); continue }
-                if values.isDirectory == true { continue }
-                let prefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
-                guard url.path.hasPrefix(prefix) else { continue }
-                let relative = String(url.path.dropFirst(prefix.count))
-                guard child(relative, root: root) != nil else { continue }
-                try append(relative, url)
+            var directories = 1
+            var openDirectories = 1
+            var pendingDirectories: [URL] = []
+            var directoryFailure: Error?
+            var seen = Set<String>([root.standardizedFileURL.path])
+            typealias Job = LocalMediaDiscoveryJob<DiscoveryResult>
+            func directory(_ url: URL) -> Job {
+                return Job(metadata: true, ready: true) {
+                    do {
+                        try self.checkWork()
+                        let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                        guard values.isDirectory == true, values.isSymbolicLink != true else { throw CocoaError(.fileReadNoSuchFile) }
+                        guard let iterator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil,
+                            options: [.skipsSubdirectoryDescendants, .skipsHiddenFiles, .skipsPackageDescendants]) else { throw CocoaError(.fileReadNoPermission) }
+                        return .directory(DirectoryCursor(iterator))
+                    } catch { return .directoryFailed(error) }
+                }
             }
+            func next(_ cursor: DirectoryCursor, ready: Bool = false) -> Job {
+                return Job(metadata: true, ready: ready) { .entry(cursor, cursor.iterator.nextObject() as? URL) }
+            }
+            func inspect(_ url: URL) -> Job {
+                return Job(ready: true) {
+                    try self.checkWork()
+                    guard url.path.hasPrefix(prefix) else { return .inspected(url, "", false, nil) }
+                    let relative = String(url.path.dropFirst(prefix.count))
+                    let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .isPackageKey])
+                    guard values.isSymbolicLink != true, self.child(relative, root: root) != nil else {
+                        return .inspected(url, relative, false, nil)
+                    }
+                    if values.isDirectory == true {
+                        return .inspected(url, relative, values.isPackage != true, nil)
+                    }
+                    return .inspected(url, relative, false, self.mediaInfo(url))
+                }
+            }
+            func admitDirectories() -> [Job] {
+                var jobs: [Job] = []
+                while openDirectories < 64 && !pendingDirectories.isEmpty {
+                    openDirectories += 1
+                    jobs.append(directory(pendingDirectories.removeFirst()))
+                }
+                return jobs
+            }
+            try discover([directory(root)]) { result in
+                switch result {
+                case .directory(let cursor):
+                    return [next(cursor, ready: true)]
+                case .directoryFailed(let error):
+                    openDirectories -= 1
+                    if directoryFailure == nil { directoryFailure = error }
+                    return admitDirectories()
+                case .entry(let cursor, let url):
+                    guard let url else { openDirectories -= 1; return admitDirectories() }
+                    scanned += 1; onScan?()
+                    guard scanned <= 20_000 else { throw CocoaError(.fileReadTooLarge) }
+                    // Neither nextObject nor a sibling metadata read can hold
+                    // the ready child's independent continuation.
+                    return [inspect(url), next(cursor)]
+                case .inspected(let url, let relative, let isDirectory, let info):
+                    if isDirectory && seen.insert(url.standardizedFileURL.path).inserted {
+                        directories += 1
+                        guard directories <= 4_096 else { throw CocoaError(.fileReadTooLarge) }
+                        pendingDirectories.append(url)
+                        return admitDirectories()
+                    }
+                    if let info { try append(relative, url, info: info) }
+                    return []
+                }
+            }
+            if let directoryFailure { throw directoryFailure }
         } else {
-            guard let info = mediaInfo(root) else { throw CocoaError(.fileReadNoSuchFile) }
-            onScan?()
-            try append("", root, info: info)
+            try discover([LocalMediaDiscoveryJob(ready: true) { self.mediaInfo(root) }]) { info in
+                guard let info else { throw CocoaError(.fileReadNoSuchFile) }
+                onScan?()
+                try append("", root, info: info)
+                return []
+            }
         }
         // Keep absent records: the UI can explain a disconnected file instead of silently dropping it.
-        try save(source)
+        try save(updated)
     }
 
     private struct Entry: Codable {
@@ -427,8 +581,13 @@ public class LocalMedia: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
                     // source never publishes a late snapshot into the new list.
                     try? append(linked(item, identity, url, validated: true))
                 }, onScan: { scanned += 1; try? publish() })
-                for item in source.items where items[item.id] == nil && !source.excluded.contains(item.path) {
-                    try append(linked(item, source, child(item.path, root: root)))
+                let remaining = source.items.filter { items[$0.id] == nil && !source.excluded.contains($0.path) }
+                let stableSource = source
+                try discover(remaining.map { item in
+                    return LocalMediaDiscoveryJob(ready: true) { linked(item, stableSource, self.child(item.path, root: root)) }
+                }) { row in
+                    try append(row)
+                    return []
                 }
             } catch {
                 try checkWork()

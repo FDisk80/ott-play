@@ -24,6 +24,67 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.ConcurrentHashMap
 
+/** The serial owner adopts results; no worker waits for another worker.
+ * Four admitted jobs include cancelled jobs until their syscall returns.
+ */
+private class LocalMediaDiscovery(
+    private val check: () -> Unit,
+    private val dispatch: (() -> Unit, () -> Unit) -> Unit
+) {
+    private class Pending(val metadata: Boolean, val operation: () -> (() -> Unit))
+    private class Completion(val adopt: (() -> Unit)?, val error: Throwable?, val metadata: Boolean)
+    private val pending = java.util.ArrayDeque<Pending>()
+    private val completed = java.util.concurrent.LinkedBlockingQueue<Completion>()
+    private var operationFailure: Throwable? = null
+    fun failed(error: Throwable) { if (operationFailure == null) operationFailure = error }
+    fun add(metadata: Boolean = false, ready: Boolean = false, operation: () -> (() -> Unit)) {
+        val job = Pending(metadata, operation)
+        if (ready) pending.addFirst(job) else pending.addLast(job)
+    }
+    fun run() {
+        var running = 0
+        var metadataRunning = 0
+        var failure: Throwable? = null
+        var interrupted = false
+        while (pending.isNotEmpty() || running > 0) {
+            if (failure == null) try { check() } catch (error: Throwable) { failure = error }
+            if (failure != null) pending.clear()
+            while (failure == null && running < 4 && pending.isNotEmpty()) {
+                // A queued iterator must never consume the last slot needed
+                // by a file already found by another iterator.
+                val job = pending.firstOrNull { !it.metadata || metadataRunning < 3 } ?: break
+                pending.remove(job)
+                running++
+                if (job.metadata) metadataRunning++
+                try {
+                    dispatch({
+                        val result = try { check(); Completion(job.operation(), null, job.metadata) }
+                            catch (error: Throwable) { Completion(null, error, job.metadata) }
+                        completed.add(result)
+                    }, { completed.add(Completion(null, IOException("Media owner destroyed"), job.metadata)) })
+                } catch (error: Throwable) { completed.add(Completion(null, error, job.metadata)) }
+            }
+            if (running == 0) break
+            val result = try { completed.take() } catch (error: InterruptedException) {
+                // shutdown/cancel must not relinquish ownership of blocking calls.
+                interrupted = true
+                if (failure == null) failure = error
+                continue
+            }
+            running--
+            if (result.metadata) metadataRunning--
+            if (failure == null) try {
+                check()
+                if (result.error != null) {
+                    if (operationFailure == null) operationFailure = result.error
+                } else result.adopt?.invoke()
+            } catch (error: Throwable) { failure = error }
+        }
+        if (interrupted) Thread.currentThread().interrupt()
+        (failure ?: operationFailure)?.let { throw it }
+    }
+}
+
 /** SAF grants reference original documents. Existing private imports remain readable. */
 @CapacitorPlugin(name = "LocalMedia")
 class LocalMediaPlugin : Plugin() {
@@ -61,6 +122,28 @@ class LocalMediaPlugin : Plugin() {
         return context.contentResolver.query(uri, projection, null, null, null, signal)
     }
     private val worker = Executors.newSingleThreadExecutor()
+    // One pool for the plugin, never one pool per request/generation.
+    private val discoveryWorkers = Executors.newFixedThreadPool(4)
+    private fun discovery(): LocalMediaDiscovery {
+        val parent = currentWork.get() ?: throw IOException("Local media owner unavailable")
+        val children = ConcurrentHashMap.newKeySet<NativeWork.Ticket>()
+        parent.cancelWith { children.forEach { it.cancel() } }
+        return LocalMediaDiscovery({ parent.check() }, { action, discard ->
+            parent.check()
+            val ticket = beginWork() ?: throw IOException("Local media unavailable")
+            children.add(ticket)
+            val finish = { children.remove(ticket); finishWork(ticket) }
+            try {
+                discoveryWorkers.execute(QueuedWork({
+                    currentWork.set(ticket)
+                    try { action() }
+                    finally { currentWork.remove(); finish() }
+                }, { try { discard() } finally { finish() } }))
+                // Cover cancellation between the first check and registration.
+                try { parent.check() } catch (_: Exception) { ticket.cancel() }
+            } catch (error: Exception) { finish(); throw error }
+        })
+    }
     private val clients = Executors.newFixedThreadPool(4)
     private val connections = java.util.Collections.newSetFromMap(ConcurrentHashMap<Socket, Boolean>())
     private var listener: ServerSocket? = null
@@ -299,9 +382,9 @@ class LocalMediaPlugin : Plugin() {
         var scanned = 0
         var lastPublish = 0L
         val port = startServer()
-        fun row(item: JSONObject, validated: Boolean = false): JSObject {
+        fun row(item: JSONObject, validated: Boolean? = null): JSObject {
             var size = item.optLong("size", 0)
-            val available = if (validated) true else try { openSource(item).use { size = it.size }; true }
+            val available = validated ?: try { openSource(item).use { size = it.size }; true }
                 catch (_: Exception) { checkWork(); false }
             return JSObject().put("id", item.getString("id")).put("name", item.getString("name"))
                 .put("mime", item.getString("mime")).put("directory", item.optString("directory"))
@@ -341,15 +424,26 @@ class LocalMediaPlugin : Plugin() {
             val value = catalog(true)
             ticket.commit { notifyListeners("localMediaProgress", JSObject().put("requestId", requestId).put("catalog", value)) }
         }
-        fun accept(item: JSONObject, validated: Boolean = false) {
+        fun acceptRow(item: JSONObject, value: JSObject) {
             checkWork()
-            val value = row(item, validated)
             val first = !availability.anyAvailable()
             availability.update(item.getString("id"), sourceId(item), value.getBoolean("available") == true)
             items[item.getString("id")] = value
             scanned++
             if (item.optString("id") == preferredId && value.getBoolean("available") == true) preferredState = "found"
             publish(first && value.getBoolean("available") == true)
+        }
+        fun accept(item: JSONObject, validated: Boolean? = null) { acceptRow(item, row(item, validated)) }
+        fun acceptRecords(records: List<JSONObject>) {
+            val jobs = discovery()
+            records.filter { !items.containsKey(it.getString("id")) }.forEach { item ->
+                jobs.add {
+                    val value = row(item)
+                    val adopt: () -> Unit = { acceptRow(item, value) }
+                    adopt
+                }
+            }
+            jobs.run()
         }
         if (validId(preferredId)) {
             val file = File(directory, "$preferredId.json")
@@ -375,7 +469,7 @@ class LocalMediaPlugin : Plugin() {
             try {
                 val uri = Uri.parse(source.getString("grantUri"))
                 if (source.optString("kind") == "folder") {
-                    scanTree(uri, onValidatedRecord = { accept(it, true) }, onRecord = { accept(it) })
+                    scanTree(uri, onCheckedRecord = { item, available -> accept(item, available) })
                 } else {
                     // A separately selected file owns its own grant/binding,
                     // even when a folder already references the same URI.
@@ -387,10 +481,10 @@ class LocalMediaPlugin : Plugin() {
             } catch (_: Exception) { checkWork() }
         }
         // A newly selected folder must not wait behind unrelated slow sources.
-        records.filter { sourceId(it) in selectedIds }.forEach { accept(it) }
         sources.filter { it.getString("id") in selectedIds }.forEach { scan(it) }
-        records.filter { sourceId(it) !in selectedIds }.forEach { accept(it) }
+        acceptRecords(records.filter { sourceId(it) in selectedIds })
         sources.filter { it.getString("id") !in selectedIds }.forEach { scan(it) }
+        acceptRecords(records.filter { sourceId(it) !in selectedIds })
         val value = catalog(false)
         ticket.commit { call.resolve(value) }
     }
@@ -515,7 +609,13 @@ class LocalMediaPlugin : Plugin() {
 
     private class UnavailableDocument(cause: Exception) : IOException(cause)
 
-    private fun link(uri: Uri, grantUri: Uri, known: MutableSet<String>, knownName: String? = null, knownMime: String? = null, folderLabel: String = "", relativePath: String? = null, existing: JSONObject? = null, onValidatedRecord: ((JSONObject) -> Unit)? = null, onRecord: ((JSONObject) -> Unit)? = null): Boolean {
+    private class PreparedLink(val item: JSONObject, val isNew: Boolean, val save: Boolean) {}
+
+    // Performs original I/O only. Private metadata and known IDs are adopted by
+    // the serial owner after this returns, never mutated by concurrent workers.
+    private fun prepareLink(uri: Uri, grantUri: Uri, known: Set<String>, knownName: String? = null,
+                            knownMime: String? = null, folderLabel: String = "", relativePath: String? = null,
+                            existing: JSONObject? = null): PreparedLink? {
         checkWork()
         var name = knownName ?: "Local media"
         if (knownName == null) query(uri, arrayOf(OpenableColumns.DISPLAY_NAME))?.use {
@@ -523,47 +623,48 @@ class LocalMediaPlugin : Plugin() {
         }
         val declaredMime = knownMime ?: context.contentResolver.getType(uri).orEmpty()
         val mime = if (declaredMime.isEmpty() || declaredMime == "application/octet-stream") LocalMediaRange.mime(name) else declaredMime
-        if (!mime.startsWith("video/") && !mime.startsWith("audio/")) return false
+        if (!mime.startsWith("video/") && !mime.startsWith("audio/")) return null
         if (uri.toString() in known) {
-            // Normal tree refresh already visits this parent. Upgrade legacy metadata
-            // without copying media or starting a separate footer scan.
-            var current = existing
-            if (existing != null && existing.optString("grantUri") == grantUri.toString() &&
-                (existing.optString("directory") != folderLabel ||
-                    !existing.has("relativePath") || existing.opt("relativePath") != (relativePath ?: JSONObject.NULL))) {
-                val updated = JSONObject(existing.toString()).put("directory", folderLabel)
-                    .put("relativePath", relativePath ?: JSONObject.NULL)
-                val id = updated.getString("id")
-                val partial = File(this.directory, "$id.json.part")
-                try {
-                    partial.writeText(updated.toString())
-                    val publish = { check(partial.renameTo(File(this.directory, "$id.json"))) }
-                    currentWork.get()?.commit(publish) ?: publish()
-                } finally { partial.delete() }
-                current = updated
-            }
-            if (current != null) onRecord?.invoke(current)
-            return false
+            if (existing == null) return null
+            val changed = existing.optString("grantUri") == grantUri.toString() &&
+                (existing.optString("directory") != folderLabel || !existing.has("relativePath") ||
+                    existing.opt("relativePath") != (relativePath ?: JSONObject.NULL))
+            val item = JSONObject(existing.toString())
+            if (changed) item.put("directory", folderLabel).put("relativePath", relativePath ?: JSONObject.NULL)
+            return PreparedLink(item, false, changed)
         }
-        val id = UUID.randomUUID().toString()
-        val item = JSONObject().put("id", id).put("name", name).put("mime", mime).put("directory", folderLabel)
-            .put("relativePath", relativePath ?: JSONObject.NULL)
+        val item = JSONObject().put("id", UUID.randomUUID().toString()).put("name", name).put("mime", mime)
+            .put("directory", folderLabel).put("relativePath", relativePath ?: JSONObject.NULL)
             .put("uri", uri.toString()).put("grantUri", grantUri.toString()).put("sourceId", sourceId(grantUri))
         try { openSource(item).use { item.put("size", it.size) } }
         catch (error: IOException) { throw UnavailableDocument(error) }
         catch (error: SecurityException) { throw UnavailableDocument(error) }
         catch (error: IllegalArgumentException) { throw UnavailableDocument(error) }
-        val partial = File(directory, "$id.json.part")
-        try {
-            partial.writeText(item.toString())
-            val publish = { check(partial.renameTo(File(directory, "$id.json"))) }
-            currentWork.get()?.commit(publish) ?: publish()
-        } finally { partial.delete() }
-        known.add(uri.toString())
-        // This exact new record was opened above in this request. Saved records
-        // still use onRecord so they must pass their current access check.
-        (onValidatedRecord ?: onRecord)?.invoke(item)
-        return true
+        checkWork()
+        return PreparedLink(item, true, true)
+    }
+
+    private fun adoptLink(result: PreparedLink, known: MutableSet<String>) {
+        checkWork()
+        val item = result.item
+        if (result.save) {
+            val id = item.getString("id")
+            val partial = File(directory, "$id.json.part")
+            try {
+                partial.writeText(item.toString())
+                val publish = { check(partial.renameTo(File(directory, "$id.json"))) }
+                currentWork.get()?.commit(publish) ?: publish()
+            } finally { partial.delete() }
+        }
+        if (result.isNew) known.add(item.getString("uri"))
+    }
+
+    private fun link(uri: Uri, grantUri: Uri, known: MutableSet<String>, knownName: String? = null, knownMime: String? = null, folderLabel: String = "", relativePath: String? = null, existing: JSONObject? = null, onValidatedRecord: ((JSONObject) -> Unit)? = null, onRecord: ((JSONObject) -> Unit)? = null): Boolean {
+        val result = prepareLink(uri, grantUri, known, knownName, knownMime, folderLabel, relativePath, existing) ?: return false
+        adoptLink(result, known)
+        if (result.isNew) (onValidatedRecord ?: onRecord)?.invoke(result.item)
+        else onRecord?.invoke(result.item)
+        return result.isNew
     }
 
     @ActivityCallback private fun selected(call: PluginCall?, result: ActivityResult) {
@@ -628,55 +729,117 @@ class LocalMediaPlugin : Plugin() {
         return (parent + name).takeIf { it.length <= 8192 }
     }
 
-    private fun scanTree(tree: Uri, onValidatedRecord: ((JSONObject) -> Unit)? = null, onRecord: ((JSONObject) -> Unit)? = null) {
-        val root = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-        var folderName = "Local folder"
-        query(root, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME))?.use {
-            if (it.moveToFirst()) folderName = it.getString(0).orEmpty().take(256)
-        }
+    private fun scanTree(tree: Uri, onValidatedRecord: ((JSONObject) -> Unit)? = null,
+                         onRecord: ((JSONObject) -> Unit)? = null,
+                         onCheckedRecord: ((JSONObject, Boolean) -> Unit)? = null) {
+        val rootId = DocumentsContract.getTreeDocumentId(tree)
+        // Registration already retained the binding. Cosmetic root-name I/O
+        // must not hold the first child; the picker-derived name is sufficient.
+        val folderName = rootId.substringAfterLast('/').substringAfterLast(':').take(256).ifEmpty { "Local folder" }
         saveSource(tree, folderName, "folder")
-        // URI deduplication is local to this grant. A separate file selection
-        // must not steal this folder's identity or prevent it from having a row.
-        val existing = metadata().filter { it.optString("grantUri") == tree.toString() }
-            .associateBy { it.optString("uri") }
+        val existing = metadata().filter { it.optString("grantUri") == tree.toString() }.associateBy { it.optString("uri") }
         val known = existing.keys.toMutableSet()
-        val pending = java.util.ArrayDeque<String>()
         val seen = mutableSetOf<String>()
-        val directoryNames = mutableMapOf(DocumentsContract.getTreeDocumentId(tree) to folderName)
-        val directoryPaths = mutableMapOf<String, String?>(DocumentsContract.getTreeDocumentId(tree) to "")
-        pending.add(DocumentsContract.getTreeDocumentId(tree))
+        val documents = mutableSetOf<String>()
+        val cursors = mutableListOf<android.database.Cursor>()
+        val jobs = discovery()
         var count = 0
-        while (!pending.isEmpty()) {
-            check(!destroyed)
-            checkWork()
-            val parent = pending.removeFirst()
-            if (!seen.add(parent)) continue
-            require(seen.size <= 4096) { "Too many folders" }
-            val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parent)
-            query(children, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE))?.use { cursor ->
-                while (cursor.moveToNext()) {
-                    checkWork()
-                    require(++count <= 20000) { "Too many documents" }
-                    val document = cursor.getString(0)
-                    val fullName = cursor.getString(1).orEmpty()
-                    val name = fullName.take(256)
-                    val relativePath = relativeChildPath(directoryPaths[parent], fullName)
-                    val mime = cursor.getString(2).orEmpty()
-                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                        pending.add(document)
-                        directoryNames[document] = name
-                        directoryPaths[document] = relativePath?.plus("/")
-                    }
-                    else try {
-                        val uri = DocumentsContract.buildDocumentUriUsingTree(tree, document)
-                        link(uri, tree, known, name, mime, directoryNames[parent].orEmpty(), relativePath, existing[uri.toString()], onValidatedRecord, onRecord)
-                    } catch (_: UnavailableDocument) {
-                        // A revoked/non-seekable document must not hide readable siblings.
+        fun inspect(document: String, name: String, mime: String, label: String, path: String?) {
+            val uri = DocumentsContract.buildDocumentUriUsingTree(tree, document)
+            if (!documents.add(uri.toString())) return
+            // Workers see immutable snapshots, not the mutable serial index.
+            val saved = existing[uri.toString()]
+            val knownHere = if (saved == null) emptySet() else setOf(uri.toString())
+            jobs.add(ready = true) {
+                val result = try { prepareLink(uri, tree, knownHere, name, mime, label, path, saved) }
+                    catch (_: UnavailableDocument) { checkWork(); null }
+                var available = result != null
+                if (result != null && !result.isNew && onCheckedRecord != null) {
+                    available = try { openSource(result.item).use { result.item.put("size", it.size) }; true }
+                        catch (_: Exception) { checkWork(); false }
+                }
+                val adopt: () -> Unit = {
+                    if (result != null) {
+                        adoptLink(result, known)
+                        if (onCheckedRecord != null) onCheckedRecord(result.item, available)
+                        else if (result.isNew) (onValidatedRecord ?: onRecord)?.invoke(result.item)
+                        else onRecord?.invoke(result.item)
                     }
                 }
-            } ?: throw IOException("Folder unavailable")
+                adopt
+            }
         }
+        data class PendingDirectory(val id: String, val label: String, val path: String?)
+        val pendingDirectories = java.util.ArrayDeque<PendingDirectory>()
+        var openDirectories = 0
+        lateinit var admitDirectories: () -> Unit
+        lateinit var read: (android.database.Cursor, String, String?, Boolean) -> Unit
+        lateinit var directory: (String, String, String?) -> Unit
+        read = { cursor, label, parentPath, ready ->
+            jobs.add(metadata = true, ready = ready) {
+                val next = runCatching {
+                    if (cursor.moveToNext()) arrayOf(cursor.getString(0), cursor.getString(1).orEmpty(), cursor.getString(2).orEmpty()) else null
+                }
+                val row = next.getOrNull()
+                val closeError = if (row == null) try { cursor.close(); null } catch (error: Exception) { error } else null
+                if (row == null) synchronized(cursors) { cursors.remove(cursor) }
+                checkWork()
+                val adopt: () -> Unit = {
+                    if (row != null) {
+                        check(!destroyed)
+                        require(++count <= 20000) { "Too many documents" }
+                        val relative = relativeChildPath(parentPath, row[1])
+                        if (row[2] == DocumentsContract.Document.MIME_TYPE_DIR) directory(row[0], row[1].take(256), relative?.plus("/"))
+                        else inspect(row[0], row[1].take(256), row[2], label, relative)
+                        // The next parent entry is an independent operation. A
+                        // completed child may progress while this call stalls.
+                        read(cursor, label, parentPath, false)
+                    } else {
+                        openDirectories--
+                        next.exceptionOrNull()?.let { jobs.failed(it) }
+                        if (closeError != null) jobs.failed(closeError)
+                        admitDirectories()
+                    }
+                }
+                adopt
+            }
+        }
+        admitDirectories = {
+            // Cursor windows/handles are bounded separately from active calls.
+            while (openDirectories < 64 && pendingDirectories.isNotEmpty()) {
+                val pending = pendingDirectories.removeFirst()
+                openDirectories++
+                jobs.add(metadata = true, ready = true) {
+                    val opened = runCatching {
+                        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, pending.id)
+                        query(children, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                            DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE))
+                            ?: throw IOException("Folder unavailable")
+                    }
+                    opened.getOrNull()?.let { cursor -> synchronized(cursors) { cursors.add(cursor) } }
+                    val adopt: () -> Unit = {
+                        val cursor = opened.getOrNull()
+                        if (cursor != null) read(cursor, pending.label, pending.path, true)
+                        else {
+                            openDirectories--
+                            jobs.failed(opened.exceptionOrNull()!!)
+                            admitDirectories()
+                        }
+                    }
+                    adopt
+                }
+            }
+        }
+        directory = { id, label, path ->
+            if (seen.add(id)) {
+                require(seen.size <= 4096) { "Too many folders" }
+                pendingDirectories.addLast(PendingDirectory(id, label, path))
+                admitDirectories()
+            }
+        }
+        directory(rootId, folderName, "")
+        try { jobs.run() }
+        finally { synchronized(cursors) { cursors.forEach { runCatching { it.close() } }; cursors.clear() } }
     }
 
     @ActivityCallback private fun selectedFolder(call: PluginCall?, result: ActivityResult) {
@@ -776,7 +939,7 @@ class LocalMediaPlugin : Plugin() {
         }
         connections.forEach { try { it.close() } catch (_: Exception) { } }
         ownedWork.forEach { it.cancel() }
-        (clients.shutdownNow() + worker.shutdownNow()).forEach { (it as? QueuedWork)?.discardBeforeStart() }
+        (clients.shutdownNow() + discoveryWorkers.shutdownNow() + worker.shutdownNow()).forEach { (it as? QueuedWork)?.discardBeforeStart() }
         super.handleOnDestroy()
     }
 

@@ -77,8 +77,10 @@ upstream links and the earlier OTT-play lineage in English.
   graphical indicators as other switches, or localized text when graphical
   indicators are disabled. Changes apply immediately and leave Interface open.
   A new instance enables the 16:9 resizing constraint by default; an explicitly
-  saved off value remains off. It does not resize the window when enabled or
-  change the video's aspect ratio. Unsupported backends display **Unavailable**.
+  saved off value remains off. Enabling it preserves the current window size on
+  macOS and Windows; an X11 window manager may immediately adjust the size to
+  16:9. It does not change the video's aspect ratio. Unsupported backends display
+  **Unavailable**.
   See [native window constraints](native-window-aspect-lock.md).
 - **Sleep timer:** the disabled value is the localized word **Off**, including
   when graphical indicators are enabled.

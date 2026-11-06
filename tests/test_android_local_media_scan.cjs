@@ -5,7 +5,7 @@ const source = fs.readFileSync(
     "utf8"
 );
 const link = source.slice(
-    source.indexOf("private fun link("),
+    source.indexOf("private fun prepareLink("),
     source.indexOf("@ActivityCallback private fun selected(")
 );
 const scan = source.slice(
@@ -17,7 +17,7 @@ assert(
     "link must not enumerate metadata for every document"
 );
 assert.match(link, /uri\.toString\(\) in known/);
-assert.match(link, /known\.add\(uri\.toString\(\)\)/);
+assert.match(link, /known\.add\(item\.getString\("uri"\)\)/);
 assert.equal(
     (scan.match(/metadata\(\)/g) || []).length,
     1,
@@ -28,14 +28,12 @@ assert.match(
     /catch \(_: UnavailableDocument\)/,
     "only expected source failures may be skipped"
 );
-assert(
-    !scan.includes("catch (_: Exception)"),
-    "limits and lifecycle failures must propagate"
-);
+assert.match(scan, /catch \(_: Exception\) \{ checkWork\(\); false \}/,
+    "saved-source failures must recheck cancellation before publishing unavailable");
 assert.match(scan, /check\(!destroyed\)/);
 assert.match(scan, /require\(\+\+count <= 20000\)/);
 const accept = source.slice(
-    source.indexOf("fun accept(item: JSONObject"),
+    source.indexOf("fun acceptRow(item: JSONObject"),
     source.indexOf("if (validId(preferredId))")
 );
 assert.match(
@@ -56,10 +54,10 @@ assert.equal(
     2,
     "both complete and progressive rows expose proven metadata paths or explicit null"
 );
-assert.match(scan, /relativeChildPath\(directoryPaths\[parent\], fullName\)/);
+assert.match(scan, /relativeChildPath\(parentPath, row\[1\]\)/);
 assert.match(
     link,
     /existing\.optString\("grantUri"\) == grantUri\.toString\(\)/
 );
-assert.match(link, /if \(current != null\) onRecord\?\.invoke\(current\)/);
+assert.match(link, /else onRecord\?\.invoke\(result\.item\)/);
 console.log("Android local media scan source contract passed");

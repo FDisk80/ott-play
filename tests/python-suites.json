@@ -33,6 +33,7 @@
     ["tests/test_xmltv_warmup_smoke.py"],
     ["tests/test_native_epg_cache.py", "--check-sources-only"],
     ["tests/test_native_local_media_handoff.py", "--source-only"],
+    ["tests/test_native_local_media_siblings.py", "--source-only"],
     ["tests/test_container_workspace.py"]
   ],
   "android": [
@@ -48,6 +49,7 @@
     ["tests/test_native_xmltv_records.py", "--platform", "android"],
     ["tests/test_native_media_lifecycle.py", "--platform", "android"],
     ["tests/test_native_local_media_handoff.py", "--platform", "android"],
+    ["tests/test_native_local_media_siblings.py", "--platform", "android"],
     ["tests/test_mobile_metadata_standby.py", "--platform", "android"],
     ["tests/test_mobile_local_paths.py", "--platform", "android"],
     ["tests/test_runtime_diagnostics_native.py", "--platform", "android"]
@@ -65,6 +67,7 @@
     ["tests/test_native_xmltv_records.py", "--platform", "ios"],
     ["tests/test_native_media_lifecycle.py", "--platform", "ios"],
     ["tests/test_native_local_media_handoff.py", "--platform", "ios"],
+    ["tests/test_native_local_media_siblings.py", "--platform", "ios"],
     ["tests/test_mobile_metadata_standby.py", "--platform", "ios"],
     ["tests/test_mobile_local_paths.py", "--platform", "ios"],
     ["tests/test_runtime_diagnostics_native.py", "--platform", "ios"]

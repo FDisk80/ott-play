@@ -5,7 +5,8 @@ const vm = require("node:vm");
 const ts = require("typescript");
 
 async function browserImportRegression(
-    root = path.resolve(__dirname, "../..")
+    root = path.resolve(__dirname, "../.."),
+    regression = {}
 ) {
     function load(relative, requireModule = require, globals = {}) {
         const exports = {};
@@ -117,7 +118,12 @@ async function browserImportRegression(
         const folder = {
             kind: "directory",
             name: "Fixture videos",
-            queryPermission: () => Promise.resolve("granted"),
+            queryPermission: () =>
+                Promise.resolve(options.permission ? options.permission() : "granted"),
+            requestPermission: (request) => {
+                assert.equal(request.mode, "read");
+                return options.requestPermission();
+            },
             values() {
                 enumerations++;
                 let index = 0;
@@ -188,6 +194,17 @@ async function browserImportRegression(
                     : folder,
                 id: "source-existing",
                 name: folder.name,
+            });
+        if (options.readableSibling)
+            records.push({
+                created: 2,
+                handle: {
+                    ...folder,
+                    name: "Readable sibling",
+                    queryPermission: () => Promise.resolve("granted"),
+                },
+                id: "source-readable",
+                name: "Readable sibling",
             });
         const db = {
             transaction() {
@@ -362,6 +379,14 @@ async function browserImportRegression(
             picker,
             pickerCalls: () => pickerCalls,
             played: () => played,
+            replaceSource(id, name) {
+                records.splice(0, records.length, {
+                    created: 2,
+                    handle: { ...folder, name },
+                    id,
+                    name,
+                });
+            },
             progress: () => progressNode.textContent,
             reads: () => reads,
             releaseEnumeration: () =>
@@ -391,6 +416,132 @@ async function browserImportRegression(
             writes: () => writes,
         };
     }
+
+    if (regression.permissionRecovery) {
+        const mode = regression.permissionRecovery;
+        assert.ok([
+            "late-resolve", "late-reject", "current", "m3u-resolve", "m3u-reject",
+        ].includes(mode));
+        const permission = deferred();
+        let access = "prompt", requests = 0;
+        const f = fixture({
+            existing: true,
+            readableSibling: mode.startsWith("m3u-"),
+            secondPlayable: true,
+            permission: () => access,
+            requestPermission: () => {
+                requests++;
+                return permission.promise;
+            },
+        });
+        // Profiles are not installed by this pre-existing wrapper fixture.
+        // Retain opaque persistence sentinels; do not claim schema/codec coverage.
+        f.storage.set("ottplayprov", mode.startsWith("m3u-") ? "offline" : "m3u");
+        f.storage.set("offlineProfiles", "saved-profile-sentinel");
+        f.storage.set("offlineProfileBindings", "private-binding-sentinel");
+        f.storage.set("globalFavorites", "mixed-favorites-sentinel");
+        const initial = f.api.list();
+        await flush();
+        await initial;
+        f.api.open(true, true);
+        const grant = f.host.listArray.find((row) => row.id === "grant-access");
+        assert.ok(grant, "actual recovery UI offers Grant access");
+        grant.action();
+        assert.equal(requests, 1, "native request starts synchronously in the action");
+        await flush();
+        if (mode.startsWith("m3u-")) {
+            // Actual Local close and provider-exit lifecycle. The replacement
+            // M3U driver/list are fixture ports, not a real M3U decoder engine.
+            const initialView = f.api.favoriteSnapshot();
+            assert.ok(initialView && initialView.catalog.items.some((item) =>
+                item.sourceId === "source-readable" && item.url));
+            f.close();
+            f.api.suspend();
+            const m3uDriver = { id: "m3u" };
+            const m3uList = () => true;
+            f.host.__ottActiveProviderDriver = m3uDriver;
+            f.host.listKeyHandler = m3uList;
+            f.storage.set("ottplayprov", "m3u");
+            const beforeView = f.api.favoriteSnapshot();
+            assert.ok(beforeView && beforeView.current());
+            const beforeCatalog = JSON.stringify(beforeView.catalog);
+            const beforeSaved = Array.from(f.storage.entries());
+            const beforeEnumerations = f.enumerations();
+            const beforeWrites = f.writes();
+            assert.equal(f.played(), 0);
+            if (mode === "m3u-reject")
+                permission.reject(Object.assign(new Error("native prompt dismissed"), {
+                    name: "NotAllowedError",
+                }));
+            else permission.resolve("granted");
+            await flush();
+            assert.equal(f.host.__ottActiveProviderDriver, m3uDriver);
+            assert.equal(f.host.listKeyHandler, m3uList);
+            assert.equal(f.played(), 0, "late permission must not leave M3U for Local");
+            assert.equal(f.enumerations(), beforeEnumerations, "no late rescan");
+            assert.equal(f.writes(), beforeWrites, "no source write");
+            assert.deepEqual(Array.from(f.storage.entries()), beforeSaved,
+                "M3U and opaque profile/Favorites storage remain unchanged");
+            const afterView = f.api.favoriteSnapshot();
+            assert.equal(JSON.stringify(afterView && afterView.catalog), beforeCatalog,
+                "leaving Local retains its cached source/catalog");
+            return;
+        }
+        if (mode === "current") {
+            access = "granted";
+            permission.resolve("granted");
+            await flush();
+            assert.equal(f.played(), 1, "a current successful recovery still activates");
+            assert.equal(f.storage.get("ottplayprov"), "offline");
+            assert.equal(f.storage.get("globalFavorites"), "mixed-favorites-sentinel");
+            return;
+        }
+        // Close through the actual UI, then load a different saved source and
+        // open a fresh recovery owner without requesting its automatic playback.
+        f.close();
+        f.replaceSource("source-replacement", "Replacement folder");
+        f.setNamespace("offline:2");
+        access = "granted";
+        const replacement = f.api.list();
+        await flush();
+        await replacement;
+        f.api.open(true, true);
+        const beforeView = f.api.favoriteSnapshot();
+        assert.ok(beforeView && beforeView.current());
+        const beforeCatalog = JSON.stringify(beforeView.catalog);
+        assert.ok(beforeView.catalog.items.every((item) =>
+            item.sourceId === "source-replacement"));
+        const beforeSaved = Array.from(f.storage.entries());
+        const beforeEnumerations = f.enumerations();
+        const beforeWrites = f.writes();
+        assert.equal(f.played(), 0);
+        if (mode === "late-reject")
+            permission.reject(Object.assign(new Error("native prompt dismissed"), {
+                name: "NotAllowedError",
+            }));
+        else permission.resolve("granted");
+        await flush();
+        // The browser API converts both obsolete native outcomes to the same
+        // resolved cancelled result. The outer UI must respect that result.
+        assert.equal(f.enumerations(), beforeEnumerations, "no late rescan");
+        assert.equal(f.writes(), beforeWrites, "no source write");
+        const afterView = f.api.favoriteSnapshot();
+        assert.equal(JSON.stringify(afterView && afterView.catalog), beforeCatalog,
+            "new owner catalogue and exact source survive");
+        assert.deepEqual({
+            activations: f.played(),
+            saved: Array.from(f.storage.entries()),
+        }, {
+            activations: 0,
+            saved: beforeSaved,
+        }, "cancelled recovery must not activate or change Saved/Favorites");
+        return;
+    }
+
+    for (const mode of [
+        "late-resolve", "late-reject", "current", "m3u-resolve", "m3u-reject",
+    ])
+        await browserImportRegression(root, { permissionRecovery: mode });
 
     for (const action of ["add-folder", "add-files"]) {
         const f = fixture();
@@ -648,13 +799,18 @@ async function browserImportRegression(
     waiting.grant("add-folder");
     await flush();
     await waiting.tick(100);
-    assert.equal(
+    assert.match(
         waiting.progress(),
-        "Local videos: 0 · Entries found: 1 · Reading file information",
-        "a discovered file remains visible while its metadata read is pending"
+        /Local videos: 1 · Entries found: 2/,
+        "the readable sibling is visible while the first metadata read is pending"
+    );
+    assert.equal(
+        waiting.played(),
+        1,
+        "the second file starts before the first read's timeout"
     );
     await waiting.tick(9899);
-    assert.equal(waiting.played(), 0);
+    assert.equal(waiting.played(), 1);
     await waiting.tick(1);
     assert.equal(
         waiting.played(),
@@ -735,6 +891,7 @@ async function browserImportRegression(
 
     const shared = fixture({
         blockFirst: true,
+        count: 1,
         existing: true,
         secondPlayable: true,
         track: true,
@@ -769,6 +926,7 @@ async function browserImportRegression(
 
     const cancelledRead = fixture({
         blockFirst: true,
+        count: 1,
         secondPlayable: true,
         track: true,
     });
@@ -830,12 +988,12 @@ async function browserImportRegression(
     concurrent.click("add-folder");
     const newerScan = concurrent.api.list();
     await flush();
-    assert.equal(concurrent.reads(), 1);
+    assert.equal(concurrent.reads(), 2);
     concurrent.grant("add-folder");
     await flush();
     assert.equal(
         concurrent.reads(),
-        1,
+        2,
         "old picker cannot start a competing traversal"
     );
     concurrent.blocked.resolve({
@@ -873,8 +1031,8 @@ async function browserImportRegression(
     );
     assert.equal(
         interrupted.reads(),
-        1,
-        "cancelled scan never reads its successor"
+        2,
+        "cancelled scan starts no further reads beyond its admitted window"
     );
     assert.equal(interrupted.timers(), 0);
 

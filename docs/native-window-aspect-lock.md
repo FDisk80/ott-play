@@ -23,7 +23,9 @@ is no JavaScript resize loop or separate geometry owner.
 
 An externally supplied GTK window without Tao's geometry owner is unsupported,
 including a window adopted through `new_from_gtk_window` without that state.
-The aspect helper does not infer or replace its existing constraints. It returns
+The ordinary Tauri main-window builder creates the owner; this exclusion covers
+external embedding, not normal application startup. The aspect helper does not
+infer or replace an external window's existing constraints. It returns
 the same unsupported result as an unsupported backend; GET does not write the
 saved preference, and SET rejects before persistence.
 
@@ -46,9 +48,26 @@ window manager's restored geometry before applying layout.
 Wayland reports `{ok:true, supported:false, enabled:false, active:false}`. SET
 rejects with `Native aspect constraint is unavailable on this backend` and does
 not write preferences. The saved preference is retained for a supported backend;
-the false response fields do not describe or overwrite its stored value. GTK 3's
-Wayland fixed-state configure handling needs a separate implementation before
-this backend can expose the control.
+the false response fields do not describe or overwrite its stored value.
+
+This is a GTK integration limit, not a prohibition on aspect-constrained Wayland
+windows. The [xdg-shell protocol](https://raw.githubusercontent.com/wayland-mirror/wayland-protocols/1.49/stable/xdg-shell/xdg-shell.xml)
+permits smaller aspect-constrained sizes during resizing, while maximized
+windows must use the compositor's configured size. In the inspected GTK 3.24.41
+and [gtk-3-24 source, version 3.24.53](https://github.com/GNOME/gtk/blob/bac4a949b151eedada8bc60a97429d2176b0b28b/gdk/wayland/gdkwindow-wayland.c#L1815),
+fixed-state configure processing removes resize increments but retains the
+aspect hint, constrains the size, and only then publishes the new window state.
+An application window-state callback is too late to suspend the hint for that
+first configure. The public toplevel accessor returns GDK's existing protocol
+object; it does not transfer ownership of its event listener.
+
+Supporting this backend requires geometry policy at that configure boundary,
+with explicit suspension for maximized/fullscreen/tiled layouts and preservation
+of the requested preference on return to a normal window. Simply removing the
+X11 guard, adopting an external geometry owner, or correcting size in a later
+resize callback is not sufficient. A GTK backend change must be packaged and
+verified on native Wayland, including configure/commit geometry, restore,
+constraints and scaling. The X11 smoke gate below does not provide that evidence.
 
 ## Existing Windows smoke gate
 
