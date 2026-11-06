@@ -1792,21 +1792,13 @@ test("Saved episode entries remain filterable in history and favorites", () => {
     }
 });
 
-test("Independent NAS leases preserve foreground catalogs while automatic episodes resolve", () => {
+test("VPortal request lanes preserve foreground catalogs while automatic episodes resolve", () => {
     for (const catalogFirst of [false, true]) {
         const c = fixture(),
-            requests = [],
-            timers = new Map();
-        let timerId = 0,
-            catalogs = 0;
+            requests = [];
+        let catalogs = 0;
         const played = [];
-        c.location = { host: "player.test", protocol: "https:" };
-        c.__OTTPLAY_HOSTED__ = { version: 1, vportal: { routes: [] } };
-        c.setInterval = (run) => {
-            timers.set(++timerId, run);
-            return timerId;
-        };
-        c.clearInterval = (id) => timers.delete(id);
+        c.host = "https://player.test";
         vm.runInContext(
             sourceFunctions("src/plugins/vportal.ts", [
                 "parseVPortalLink",
@@ -1831,26 +1823,23 @@ test("Independent NAS leases preserve foreground catalogs while automatic episod
             requests.push(request);
             return request;
         };
-        const source = "nas:independent",
-            client = c.createVPortalClient("", {
-                directEndpoint: "/nas/api",
-                preferDefault: true,
-                sourceId: source,
-            });
+        const source = "vportal:independent",
+            client = c.createVPortalClient(
+                "portal::[key:fixture-key]https://portal.test/api",
+                {
+                    sourceId: source,
+                }
+            );
         const payload = (id) => ({
             request: { cmd: "play", id },
             title: "Episode",
             vportalSource: source,
         });
-        const lease = (id) => ({
-            heartbeat:
-                "https://player.test/nas/stream/ping" + id + ".sig/media.ts",
-            stop: "https://player.test/nas/stream/stop" + id + ".sig/media.ts",
-            url:
-                "https://player.test/nas/stream/video" + id + ".sig/media.m3u8",
+        const stream = (id) => ({
+            url: "https://player.test/video" + id + ".m3u8",
         });
         client.resolve(payload(1), (item) => played.push(item));
-        requests.at(-1).reply(lease(1));
+        requests.at(-1).reply(stream(1));
         client.load(
             { request: { cmd: "browse" }, vportalSource: source },
             () => catalogs++
@@ -1858,52 +1847,41 @@ test("Independent NAS leases preserve foreground catalogs while automatic episod
         const catalog = requests.at(-1);
         client.resolve(payload(2), (item) => played.push(item), true);
         assert.equal(catalog.aborted, false);
-        assert.equal(
-            requests.at(-1).options.url,
-            "/nas/stream/stop1.sig/media.ts"
-        );
-        assert.equal(timers.size, 0);
-        requests.at(-1).reply("");
         const episode = requests.at(-1);
+        assert.equal(episode.options.url, "https://player.test/vportal/api");
         assert.equal(
-            episode.options.url,
-            "/nas/api",
-            "An installation keeps its explicit endpoint on hosted pages"
+            JSON.parse(episode.options.data).params.key,
+            "fixture-key"
         );
-        assert.equal(JSON.parse(episode.options.data).key, undefined);
         const catalogReply = () =>
             catalog.reply({ items: [], type: "category" });
         if (catalogFirst) catalogReply();
-        episode.reply(lease(2));
+        episode.reply(stream(2));
         if (!catalogFirst) catalogReply();
         assert.equal(catalogs, 1);
         assert.equal(played.length, 2);
-        assert.equal(timers.size, 1);
-        client.cancelAutomatic();
-        assert.equal(
-            timers.size,
-            1,
-            "Automatic cancellation preserves admitted playback"
-        );
         client.resolve(payload(3), (item) => played.push(item));
-        requests.at(-1).reply("");
         const foreground = requests.at(-1);
-        foreground.options.success(lease(3));
-        const count = requests.length;
+        foreground.options.success(stream(3));
         client.cancelAutomatic();
         assert.equal(
-            requests.length,
-            count,
-            "A pending foreground lease does not belong to the automatic request lane"
+            foreground.aborted,
+            false,
+            "Automatic cancellation preserves the foreground lane"
         );
         foreground.options.complete();
         assert.equal(played.length, 3);
-        assert.equal(timers.size, 1);
+        client.resolve(payload(4), (item) => played.push(item));
+        const inFlight = requests.at(-1);
+        assert.equal(inFlight.aborted, false);
         client.dispose();
-        assert.equal(timers.size, 0);
+        assert.equal(inFlight.aborted, true);
+        const count = played.length;
+        inFlight.reply(stream(4));
         assert.equal(
-            requests.at(-1).options.url,
-            "/nas/stream/stop3.sig/media.ts"
+            played.length,
+            count,
+            "Disposed work cannot publish a late result"
         );
     }
 });

@@ -71,7 +71,8 @@ function fixture(
     profile = "server",
     limited = false,
     distribution = "full",
-    device
+    device,
+    persisted = []
 ) {
     // This suite exercises menu parity, not first-install PIN migration.
     const stored = new Map([
@@ -79,6 +80,7 @@ function fixture(
             "parentPIN",
             require("./helpers/protected-pin-fixture.cjs").record("1234"),
         ],
+        ...persisted,
     ]);
     const storage = {
         del: (key) => stored.delete(key),
@@ -440,6 +442,116 @@ function fixture(
 function save(w) {
     w.listKeyHandlerFn(w.keys.GREEN);
 }
+
+// A new VM restores only durable bytes, never the previous SettingsStore/facade.
+for (const platform of ["webOS", "PalmSystem"]) {
+    for (const hiddenPip of [
+        ["popTogglePip"],
+        ["popStopPip"],
+        ["popTogglePip", "popStopPip"],
+    ]) {
+        function boot(persisted) {
+            const f = fixture("server", false, "full", "lg-webos", persisted);
+            const { w, stored } = f;
+            vm.runInContext(
+                compile(
+                    selectedSource("src/ui/index.ts", [
+                        "popTogglePip",
+                        "popStopPip",
+                    ])
+                ),
+                w
+            );
+            w.popupActions.splice(2, 0, w.popTogglePip, w.popStopPip);
+            w.popupArray.splice(2, 0, "Call PiP / PiP exchange", "Close PiP");
+            Object.assign(w, {
+                [platform]: {},
+                console: { log() {} },
+                stbGetItem: (key) => stored.get(key) ?? null,
+                stbInit: () => false,
+                stbSetItem: (key, value) => stored.set(key, String(value)),
+                version: "fixture",
+            });
+            vm.runInContext(
+                fs.readFileSync(
+                    path.join(root, "devices/lg/webos/device.js"),
+                    "utf8"
+                ),
+                w
+            );
+            assert.equal(
+                w.stbInit(),
+                false,
+                "LG keeps the deferred initializer contract"
+            );
+            vm.runInContext("loadSettings();", w);
+            w.settingsMenu();
+            return f;
+        }
+        const first = boot([["sHideMenus", "provider-owned-action"]]);
+        const row = (f, id) =>
+            f.w.listArray.find((item) => item.optionId === id);
+        for (const id of ["popTogglePip", "popStopPip"])
+            assert.equal(
+                row(first, id).val,
+                0,
+                "PiP remains visible by default"
+            );
+        row(first, "channels").val = 1;
+        for (const id of hiddenPip) row(first, id).val = 1;
+        save(first.w);
+        const saved = first.stored.get("sHideMenus");
+        assert.deepEqual(saved.split(","), [
+            "provider-owned-action",
+            "channels",
+            ...hiddenPip,
+        ]);
+        first.w.settingsMenu();
+        for (const id of hiddenPip) row(first, id).val = 0;
+        first.w.listKeyHandlerFn(first.w.keys.RETURN);
+        assert.equal(
+            first.stored.get("sHideMenus"),
+            saved,
+            "Cancel keeps the saved hidden items"
+        );
+
+        const reopened = boot([...first.stored]);
+        assert.notEqual(reopened.w, first.w);
+        assert.notEqual(reopened.typed(), first.typed());
+        assert.equal(
+            reopened.stored.get("sHideMenus"),
+            saved,
+            "LG startup must preserve saved PiP visibility bytes"
+        );
+        assert.deepEqual(
+            Array.from(reopened.typed().hideMenus),
+            saved.split(",")
+        );
+        assert.equal(row(reopened, "channels").val, 1);
+        for (const id of ["popTogglePip", "popStopPip"])
+            assert.equal(
+                row(reopened, id).val,
+                hiddenPip.includes(id) ? 1 : 0,
+                "Menu items settings restores the saved PiP choice"
+            );
+        for (const id of hiddenPip) row(reopened, id).val = 0;
+        save(reopened.w);
+        const enabled = boot([...reopened.stored]);
+        assert.deepEqual(Array.from(enabled.typed().hideMenus), [
+            "provider-owned-action",
+            "channels",
+        ]);
+        for (const id of ["popTogglePip", "popStopPip"])
+            assert.equal(
+                row(enabled, id).val,
+                0,
+                "Explicitly re-enabling PiP also survives restart"
+            );
+    }
+}
+console.log(
+    "PASS LG PiP menu visibility Save/Cancel and fresh-context restart (6 cases)"
+);
 
 // Interface presentation regression; kept before the broad platform matrix.
 {

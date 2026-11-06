@@ -30,14 +30,20 @@ def sizing_evidence(enabled):
                         for edge in range(1, 9)]}
 
 
+def windows_geometry():
+    return {"rect": [40, 40, 696, 449], "client_size": [640, 400]}
+
+
 def evidence(missing=False):
     def state(top=False, full=False):
-        return {"topmost": top, "win32_topmost": top, "fullscreen": full, "rect": [0, 0, 640, 360]}
-    commands = (["set_always_on_top", "set_fullscreen", "toggle_fullscreen"] if missing else ["set_always_on_top"]) + ["get_window_aspect_lock", "set_window_aspect_lock"]
+        return {"topmost": top, "win32_topmost": top, "fullscreen": full, **windows_geometry()}
+    commands = ["set_always_on_top", "set_fullscreen", "toggle_fullscreen",
+                "get_window_aspect_lock", "set_window_aspect_lock"]
     return {"status": "pass", "owned_labels": ["main", "pip"], "cleanup_errors": [],
             "mode": "missing-permission" if missing else "production-permissions",
             "denials": [{"command": command, "window": "main" if missing else "pip", "error": "command not allowed"} for command in commands],
             "aux_unchanged": True, "initial": state(), "final": state(),
+            "pre_initialize": windows_geometry(), "post_initialize": windows_geometry(),
             "topmost_sequence": [state(top=top) for top in [True, True, False, False]],
             "fullscreen_sequence": [state(top, full) for top, full in [(False, True), (False, False), (True, True), (True, False)]],
             "aspect": {"initial": aspect_state(True), "final": aspect_state(),
@@ -51,6 +57,45 @@ class EvidenceTests(unittest.TestCase):
     def test_complete_native_results_are_required_in_both_modes(self):
         for missing in [False, True]:
             runner.validate_evidence(evidence(missing), missing)
+
+    def test_windows_initialization_must_preserve_the_original_frame_and_client(self):
+        mutations = [
+            lambda r: r.pop("pre_initialize"),
+            lambda r: r.pop("post_initialize"),
+            lambda r: r["post_initialize"].update(client_size=[640, 360]),
+            lambda r: r["post_initialize"].update(rect=[40, 40, 696, 409]),
+            lambda r: r["pre_initialize"].update(client_size=[640, 360]),
+            lambda r: r["pre_initialize"].update(client_size=[0, 400]),
+            lambda r: r["post_initialize"].update(client_size=[640, True]),
+            lambda r: r["post_initialize"].update(rect=[40, 40, 696, float("nan")]),
+        ]
+        for mode in ["production", "pin", "unpin", "verify-off"]:
+            for mutate in mutations:
+                report = evidence() if mode == "production" else restoration_evidence(
+                    mode, mode == "unpin", mode == "pin")
+                mutate(report)
+                with self.subTest(mode=mode, mutate=mutate), self.assertRaises(RuntimeError):
+                    if mode == "production":
+                        runner.validate_evidence(report, False)
+                    else:
+                        runner.validate_restoration_evidence(report, mode)
+
+    def test_windows_startup_uses_client_ratio_and_preserves_native_pixel_tolerance(self):
+        # Frame decorations do not turn 640x360 content into an off-ratio baseline.
+        report = evidence()
+        for key in ["pre_initialize", "post_initialize"]:
+            report[key] = {"rect": [40, 40, 696, 409], "client_size": [640, 360]}
+        with self.assertRaisesRegex(RuntimeError, "non-16:9 content"):
+            runner.validate_evidence(report, False)
+        for shift in [0, 2]:
+            report = evidence()
+            report["post_initialize"]["rect"][0] += shift
+            report["post_initialize"]["rect"][2] += shift
+            runner.validate_evidence(report, False)
+        report["post_initialize"]["rect"][0] += 1
+        report["post_initialize"]["rect"][2] += 1
+        with self.assertRaisesRegex(RuntimeError, "initialization changed"):
+            runner.validate_evidence(report, False)
 
     def test_aspect_state_and_fullscreen_suspension_cannot_be_omitted_or_faked(self):
         mutations = [lambda r: r.pop("aspect"),
@@ -102,10 +147,13 @@ class EvidenceTests(unittest.TestCase):
                 runner.validate_evidence(report, False)
 
     def test_denied_command_set_cannot_be_shortened(self):
-        report = evidence(True)
-        report["denials"].pop()
-        with self.assertRaises(RuntimeError):
-            runner.validate_evidence(report, True)
+        for missing in [False, True]:
+            for command in ["set_fullscreen", "toggle_fullscreen", "set_window_aspect_lock"]:
+                report = evidence(missing)
+                report["denials"] = [entry for entry in report["denials"]
+                                     if entry["command"] != command]
+                with self.subTest(missing=missing, command=command), self.assertRaises(RuntimeError):
+                    runner.validate_evidence(report, missing)
 
     def test_only_owned_process_tree_is_terminated_on_timeout(self):
         class Process:
@@ -279,11 +327,12 @@ class EvidenceTests(unittest.TestCase):
 
 def restoration_evidence(phase, initial, final):
     def state(value):
-        return {"topmost": value, "win32_topmost": value, "fullscreen": False}
+        return {"topmost": value, "win32_topmost": value, "fullscreen": False, **windows_geometry()}
     return {
         "status": "pass", "mode": "preference-restoration", "phase": phase,
         "owned_labels": ["main", "pip"], "cleanup_errors": [], "aux_unchanged": True,
         "initial": state(initial), "final": state(final),
+        "pre_initialize": windows_geometry(), "post_initialize": windows_geometry(),
         "aspect_initial": aspect_state(phase != "verify-off"), "aspect_final": aspect_state(final),
         "aspect_sizing": sizing_evidence(final),
     }
@@ -429,17 +478,21 @@ def appkit_native(active=False, *, full=False, maximized=False):
 
 
 def appkit_evidence(missing=False):
-    commands = (["set_always_on_top", "set_fullscreen", "toggle_fullscreen"] if missing
-                else ["set_always_on_top"]) + ["get_window_aspect_lock", "set_window_aspect_lock"]
+    commands = ["set_always_on_top", "set_fullscreen", "toggle_fullscreen",
+                "get_window_aspect_lock", "set_window_aspect_lock"]
     return {"status": "pass", "platform": "macos", "owned_labels": ["main", "pip"],
             "cleanup_errors": [], "mode": "missing-permission" if missing else "production-permissions",
             "denials": [{"command": command, "window": "main" if missing else "pip",
-                        "error": "command not allowed"} for command in commands],
+                        "error": "command not allowed",
+                        **({"main_before": appkit_native(True), "main_after": appkit_native(True),
+                            "main_after_get": appkit_native(True),
+                            "main_state_before": aspect_state(True), "main_state_after": aspect_state(True)}
+                           if not missing else {})} for command in commands],
             "aux_unchanged": True, "baseline": appkit_native(), "initial": appkit_native(True),
             "initial_state": aspect_state(True), "final": appkit_native(), "final_state": aspect_state(),
             "set_sequence": [{"state": aspect_state(v), "native": appkit_native(v)}
                              for v in [True, True, False, False]],
-            "native_menu_activations": 2,
+            "native_menu_activations": 4,
             "menu_transitions": [{"kind": "native_menu_zoom", "menu_id": "ott.window.zoom",
                                   "target": target, "event_count": index,
                                   "state": aspect_state(True, not target),
@@ -447,6 +500,16 @@ def appkit_evidence(missing=False):
                                   "native_after_get": appkit_native(not target, maximized=target),
                                   "target_visible_frame": [0.0, 60.0, 1024.0, 677.0]}
                                  for index, target in enumerate([True, False], 1)],
+            "mixed_transitions": [{"kind": kind, "target": target,
+                                   "menu_id": "ott.window.zoom" if kind == "native_menu_zoom" else None,
+                                   "event_count": 4 if index == 3 else 3,
+                                   "state": aspect_state(True, index == 3),
+                                   "native": appkit_native(index == 3, full=index == 1, maximized=index in [0, 2]),
+                                   "native_after_get": appkit_native(index == 3, full=index == 1, maximized=index in [0, 2]),
+                                   "target_visible_frame": [0.0, 60.0, 1024.0, 677.0]}
+                                  for index, (kind, target) in enumerate([
+                                      ("native_menu_zoom", True), ("set_fullscreen", True),
+                                      ("set_fullscreen", False), ("native_menu_zoom", False)])],
             "transitions": [{"kind": kind, "target": target, "state": aspect_state(True, not target),
                              "native": appkit_native(not target,
                                                      full=kind != "maximize" and target,
@@ -468,6 +531,57 @@ def appkit_restoration(phase, initial):
 
 
 class AppKitEvidenceTests(unittest.TestCase):
+    def test_pip_fullscreen_denials_preserve_native_main_before_getter(self):
+        runner.validate_appkit_evidence(appkit_evidence())
+        mutations = [
+            lambda r: r["denials"].pop(1),
+            lambda r: r["denials"][2].update(command="set_fullscreen"),
+            lambda r: r["denials"][1].update(window="main"),
+            lambda r: r["denials"][1].update(error="IPC deadline"),
+            lambda r: r["denials"][1].pop("main_before"),
+            lambda r: r["denials"][1].pop("main_after"),
+            lambda r: r["denials"][1].pop("main_after_get"),
+            lambda r: r["denials"][1]["main_after"].update(content_aspect=[0, 0]),
+            lambda r: r["denials"][1]["main_after"].update(frame=[0, 0, 1024, 768]),
+            lambda r: r["denials"][1]["main_after_get"].update(content_aspect=[0, 0]),
+            lambda r: r["denials"][2]["main_state_after"].update(active=False),
+            lambda r: r["denials"][2]["main_state_before"].update(enabled=False),
+        ]
+        for mutate in mutations:
+            report = appkit_evidence()
+            mutate(report)
+            with self.subTest(mutate=mutate), self.assertRaises(RuntimeError):
+                runner.validate_appkit_evidence(report)
+
+    def test_mixed_native_zoom_fullscreen_restores_original_geometry_and_constraint(self):
+        runner.validate_appkit_evidence(appkit_evidence())
+        mutations = [
+            lambda r: r.pop("mixed_transitions"),
+            lambda r: r["mixed_transitions"].pop(),
+            lambda r: r.update(native_menu_activations=2),
+            lambda r: r["mixed_transitions"][0].update(kind="maximize"),
+            lambda r: r["mixed_transitions"][0].update(menu_id="other"),
+            lambda r: r["mixed_transitions"][3].update(event_count=3),
+            lambda r: r["mixed_transitions"][1].update(event_count=4),
+            lambda r: r["mixed_transitions"][2].update(target=True),
+            lambda r: r["mixed_transitions"][2].update(target_visible_frame=[0, 60, 800, 600]),
+            lambda r: r["mixed_transitions"][1]["native"].update(presentation_options=0),
+            lambda r: r["mixed_transitions"][2]["native"].update(content_size=[640, 400]),
+            lambda r: r["mixed_transitions"][2]["state"].update(active=True),
+            lambda r: r["mixed_transitions"][3]["native"].update(frame=[0, 60, 1024, 677]),
+            lambda r: r["mixed_transitions"][3]["native"].update(content_size=[1024, 677]),
+            lambda r: r["mixed_transitions"][3]["native"].update(content_aspect=[0, 0]),
+            lambda r: r["mixed_transitions"][3]["state"].update(active=False),
+            lambda r: r["mixed_transitions"][3]["state"].update(enabled=False),
+            lambda r: r["mixed_transitions"][3].pop("native_after_get"),
+            lambda r: r["mixed_transitions"][3]["native_after_get"].update(content_aspect=[0, 0]),
+        ]
+        for mutate in mutations:
+            report = appkit_evidence()
+            mutate(report)
+            with self.subTest(mutate=mutate), self.assertRaises(RuntimeError):
+                runner.validate_appkit_evidence(report)
+
     def test_native_menu_requires_actual_ordered_events_and_geometry(self):
         runner.validate_appkit_evidence(appkit_evidence())
         mutations = [
