@@ -245,14 +245,27 @@ function fixture(code) {
         }
     }
     function element(id) {
-        if (!elements[id])
+        if (!elements[id]) {
+            const classes = new Set();
             elements[id] = {
+                classList: {
+                    add(...names) {
+                        names.forEach((name) => classes.add(name));
+                    },
+                    contains(name) {
+                        return classes.has(name);
+                    },
+                    remove(...names) {
+                        names.forEach((name) => classes.delete(name));
+                    },
+                },
                 firstChild: {},
                 innerHTML: "",
                 style: {},
                 textContent: "",
                 value: "",
             };
+        }
         return elements[id];
     }
     const host = {

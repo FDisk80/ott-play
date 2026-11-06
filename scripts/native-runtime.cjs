@@ -191,12 +191,8 @@ function stageNativeRuntime(directory, platform) {
         "window.__ottNativeFontOptions = " +
         JSON.stringify(
             SYSTEM_FONTS.map(
-                (font) =>
-                    '<span style="font-family:' +
-                    font.stack.replace(/"/g, "&quot;") +
-                    '">' +
-                    font.name +
-                    "</span>"
+                (font, i) =>
+                    '<span class="ott-font-' + i + '">' + font.name + "</span>"
             )
         ) +
         ";\n";

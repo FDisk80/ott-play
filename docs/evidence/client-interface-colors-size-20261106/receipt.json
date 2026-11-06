@@ -1,0 +1,1385 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Same-HEAD dirty-overlay color cost; not release qualification",
+  "baseCommit": "14ea5da80b20a8311bb55cee250f794ae278d310",
+  "workflowSha": "b1e5e80192fdd2767fe3666e3cf5f07de60de274",
+  "workflowRef": "open-ott-play/ottplay-foss/.github/workflows/webos-native.yml@refs/heads/diagnostic/client-color-cost-20261106",
+  "runId": "42219826374",
+  "runAttempt": "1",
+  "arms": {
+    "A": {
+      "inputValid": true,
+      "steps": [
+        {
+          "argv": [
+            "git",
+            "clone",
+            "--quiet",
+            "--no-hardlinks",
+            "/home/runner/work/ottplay-foss/ottplay-foss/source",
+            "/home/runner/work/_temp/ott-color-cost/A"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.965,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "clone",
+          "log": "clone.log"
+        },
+        {
+          "argv": [
+            "git",
+            "checkout",
+            "--detach",
+            "14ea5da80b20a8311bb55cee250f794ae278d310"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.214,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "checkout",
+          "log": "checkout.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "ci",
+            "--ignore-scripts"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 2.927,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "dependencies",
+          "log": "dependencies.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "run",
+            "check:media"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.365,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "media",
+          "log": "media.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "run",
+            "build"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 25.05,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "build",
+          "log": "build.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "run",
+            "check:size"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.315,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "size",
+          "log": "size.log"
+        },
+        {
+          "argv": [
+            "node",
+            "/home/runner/work/ottplay-foss/ottplay-foss/control/.github/experiments/color-cost/collect-assets.cjs",
+            "/home/runner/work/_temp/ott-color-cost/A",
+            "/home/runner/work/_temp/ott-color-cost/evidence/A/assets"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 1.015,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "collect",
+          "log": "collect.log"
+        }
+      ],
+      "reports": [
+        {
+          "path": "build/classic-bundle.json",
+          "bytes": 118611,
+          "sha256": "cfccc4e9a19e629bbf2a54aefa306964617c77579ee09a9747cc744c12fcf9fb"
+        }
+      ],
+      "measurementComplete": true,
+      "sourceHashes": {
+        "package-lock.json": "c9d58d5da02413b82fc6ab14c86ce94da5a5aa252bbb075c4af9782331fb37d0",
+        "scripts/classic-size.cjs": "c8f2296757ab6146323bf754118cd85e4b4df3ee265bebe6fceee58608821727",
+        "scripts/player-build-identity.cjs": "f0599831aea76abba1f1087a070e8b5e5607aba7e90a785e8b4ca429b689e9cf",
+        "scripts/media-runtime.cjs": "71631d5951f81fa60d4b90531800b8b1357201764882659dbed3067f60bffbd3",
+        "CHANGELOG.md": {
+          "sha256": "3de9b7c1740da8584e563848140ea320412f6ea27b2b062e8fad0fd0ea6c3c2a",
+          "mode": "100644"
+        },
+        "README.md": {
+          "sha256": "375e3245332dfdb27bce04f1a355a476eb3ce9d5c34c02382ff4b1d8f8f46f3d",
+          "mode": "100644"
+        },
+        "docs/interface-colors.md": null,
+        "docs/interface-settings.md": {
+          "sha256": "27bf03a39549e87ae7e406329eeb33a4d55a6d096f85c7393cd93bfab783762c",
+          "mode": "100644"
+        },
+        "locales/afrikaans.js": {
+          "sha256": "418c6bd494fccaaa214010b8e3ea630c482f0f04d918da69f95a412dd28cb799",
+          "mode": "100644"
+        },
+        "locales/albanian.js": {
+          "sha256": "b22ef831cf1f63e539f5d801cf60fab8c27d09caae6354d0e2b5b9c731223a32",
+          "mode": "100644"
+        },
+        "locales/amharic.js": {
+          "sha256": "b391b6df9d497e21288c9ba79e6ee1a428209cffc27a5de8ed747d06cb10f283",
+          "mode": "100644"
+        },
+        "locales/arabic.js": {
+          "sha256": "30ffd35f383429774dd8dded506279422f0213bf00e7c22c450e67fe0e1c36fb",
+          "mode": "100644"
+        },
+        "locales/armenian.js": {
+          "sha256": "2a695f424b64d5bed86424fc6b59fb904d6eb9476d8b50b2e2656ab9578739bf",
+          "mode": "100644"
+        },
+        "locales/assamese.js": {
+          "sha256": "c786d769c5359aa07121889bbe6c0009c7638da0fa0653c7a72c7fc02ac23000",
+          "mode": "100644"
+        },
+        "locales/azerbaijani.js": {
+          "sha256": "1b852cf4922a8328447a54898a4c44eedd62cb3a55a8de4c986140929ffefe56",
+          "mode": "100644"
+        },
+        "locales/basque.js": {
+          "sha256": "09e22c8620f09da8b35ed4bd60f5a8a7b91ccb1c910fd59ab6a303fff32f635e",
+          "mode": "100644"
+        },
+        "locales/belarusian.js": {
+          "sha256": "ecc91ab5f0cb16b4631e56da82d2216dc5633b73ec138d2345a6987cf874de5c",
+          "mode": "100644"
+        },
+        "locales/bengali.js": {
+          "sha256": "7e9d9cf54d67a145b1d6a89eb33ccff3318d09a542d2224c76b50560ed9834cc",
+          "mode": "100644"
+        },
+        "locales/bosnian.js": {
+          "sha256": "6c6ec06631ba2156e1945ac5f357bbefbc6520e45b5ac22c306787ec72782c03",
+          "mode": "100644"
+        },
+        "locales/bulgarian.js": {
+          "sha256": "44d34f75155b0661cd02da4e6c0d12525987b54dac9a7dca7c433bb0e16b52e1",
+          "mode": "100644"
+        },
+        "locales/burmese.js": {
+          "sha256": "7c78438c35b8e0788d619272e6756eb91f2f8fa46fc2450371227bea23d7c333",
+          "mode": "100644"
+        },
+        "locales/catalan.js": {
+          "sha256": "be6cab77eee3a06f23b8b461e4441e9b88171598f5f57118469698025905149f",
+          "mode": "100644"
+        },
+        "locales/chinese.js": {
+          "sha256": "770ba58d8876c3cd96097b7718885a8a9b96104acb1b12a8f08c67bceec16eab",
+          "mode": "100644"
+        },
+        "locales/croatian.js": {
+          "sha256": "9053a12baf9f7c6fea1fc1963bb53b6ab410dec56ba49a11ab0445e9dc7e93ca",
+          "mode": "100644"
+        },
+        "locales/czech.js": {
+          "sha256": "08ceafd87749b18ca081cd2833578cc335d0454bce943232ffba5dfe4225fb13",
+          "mode": "100644"
+        },
+        "locales/danish.js": {
+          "sha256": "9c7aea76b232f6b862244f61bb4cdd74a2ea222acc6c5d0db5e799380f2a1527",
+          "mode": "100644"
+        },
+        "locales/dutch.js": {
+          "sha256": "f3c7550d8591e255da1ea75163bebc9f8aebb160780bb02d65d2bda408679fb7",
+          "mode": "100644"
+        },
+        "locales/english.js": {
+          "sha256": "1749071316a1a31ff6534cc3d438037f9dce026377311328dd3c026539b874d5",
+          "mode": "100644"
+        },
+        "locales/estonian.js": {
+          "sha256": "5012e719d0e39a4a475f6cc5985a7bc581b8dde3e8259f4d61b9bc76be857bd3",
+          "mode": "100644"
+        },
+        "locales/filipino.js": {
+          "sha256": "2043afc4f888cc94b17fde592839a5bc525749ea160fdb2ca30217392d8df2b9",
+          "mode": "100644"
+        },
+        "locales/finnish.js": {
+          "sha256": "8acf95e7e4c7763eb0bb283be576ed4ded8d3f62cf226c4b88c80e5120969f38",
+          "mode": "100644"
+        },
+        "locales/french.js": {
+          "sha256": "df64e98887a110a5fc0140356611d12cd73821f2c698fb4ee2e29bbc8cf52527",
+          "mode": "100644"
+        },
+        "locales/galician.js": {
+          "sha256": "ec19590a47d87995e9930dda8fc5a213642d59fb2b0f37394bcd6e67b80e354b",
+          "mode": "100644"
+        },
+        "locales/georgian.js": {
+          "sha256": "4c0650f8c33b5483ee5d2ea52abfbe324a4799d16e041228c86136368d449a2f",
+          "mode": "100644"
+        },
+        "locales/german.js": {
+          "sha256": "2b9c38bebbdc90f596309853ad1bc2c39bc847032289d636344a2231b3b014b8",
+          "mode": "100644"
+        },
+        "locales/greek.js": {
+          "sha256": "7a2e4e9419c684698818687ca3b248de3b6f75e0a693018fa6cb0984d486f3b3",
+          "mode": "100644"
+        },
+        "locales/gujarati.js": {
+          "sha256": "6ee0488de829896b541527458aed59bd0a685e857aeb5e689d8f0b77887012ca",
+          "mode": "100644"
+        },
+        "locales/hausa.js": {
+          "sha256": "f9f82211026c0f3a8d1b624d45dccbbbba79c884413c15f4cf50617450a26c2f",
+          "mode": "100644"
+        },
+        "locales/hebrew.js": {
+          "sha256": "1520f7da18c532da6d4f7c4f7c2ec605f7238795b6667c7e06801490f1942fcc",
+          "mode": "100644"
+        },
+        "locales/hindi.js": {
+          "sha256": "6b4fccf419d914950a9bee8b99f193fb310218914732473c641406b545568f9c",
+          "mode": "100644"
+        },
+        "locales/hungarian.js": {
+          "sha256": "ad7e3f377e360f37bcad3b7f0ffb87fb59b8baf0724cc5286f09c4af7913a0ce",
+          "mode": "100644"
+        },
+        "locales/icelandic.js": {
+          "sha256": "3cff43af91d696c746734635d1c7ae3b3836ef9bf8e801884fd0309d25a65c72",
+          "mode": "100644"
+        },
+        "locales/igbo.js": {
+          "sha256": "fb2587f8eec60487ff6c3de787e8adae56e2bc2c4b6cb6f97758f77ffab32dbc",
+          "mode": "100644"
+        },
+        "locales/indonesian.js": {
+          "sha256": "08111cc0fbc52b3608016b8bf2f828c850ad34e010501af67493c6a037393df0",
+          "mode": "100644"
+        },
+        "locales/irish.js": {
+          "sha256": "84ea6c7d6f7320159900a20fe1e9788c70e9bb01aa02715f8ee5cce6fe46b38f",
+          "mode": "100644"
+        },
+        "locales/italian.js": {
+          "sha256": "30e06c0dda3e7753fd28b66b37eb8d0b918f5a4fcc610c719531332939cab8be",
+          "mode": "100644"
+        },
+        "locales/japanese.js": {
+          "sha256": "9e9a68a0d5accb66da204b6f6d3bb9bb6885efda4ce02ef1d2adfd2d4a8f4df5",
+          "mode": "100644"
+        },
+        "locales/kannada.js": {
+          "sha256": "7c052aa95535f064dca7e0b37eb2f427a169670708b0ba4249aec867631be013",
+          "mode": "100644"
+        },
+        "locales/kazakh.js": {
+          "sha256": "dd84248f7c275e028e6cf3b0dea649709d3c26651a1e366af4f3a32194737cb5",
+          "mode": "100644"
+        },
+        "locales/khmer.js": {
+          "sha256": "2ea67ec7a850717830fcc8633260b5716ae358b881ed3378ff8c8b0ac04430f8",
+          "mode": "100644"
+        },
+        "locales/kinyarwanda.js": {
+          "sha256": "e185c7b24582dc8cc7fac9854abb42fb5fbbe45c490944fadde9a70b456d7124",
+          "mode": "100644"
+        },
+        "locales/korean.js": {
+          "sha256": "92a4f1145c660b389268b14141e987e8e33e2b6b7a0d48d6324a559e89246880",
+          "mode": "100644"
+        },
+        "locales/kurdish.js": {
+          "sha256": "8b0b4dcc623e6f798bc1fe85f1a078f67164ef14457fa4af8b006628a9a37436",
+          "mode": "100644"
+        },
+        "locales/kyrgyz.js": {
+          "sha256": "c60fab696686877cc6e4f05043f8a02613e4c12e6c4cfcac3e5c0fcfabf4800f",
+          "mode": "100644"
+        },
+        "locales/lao.js": {
+          "sha256": "08d6a3ad0af9e4432a79f3e1661ae4e069d33849e0bb9a5d3cad35436c6eee44",
+          "mode": "100644"
+        },
+        "locales/latvian.js": {
+          "sha256": "954f12ecc9120feb278b3146c4bad40650ad59d7b9d331660c5d12cbfb1bcc3c",
+          "mode": "100644"
+        },
+        "locales/lithuanian.js": {
+          "sha256": "a9d5d95f5521ab3e7501989e5c3f439aeb0d80ff2095ae2a6c66d52b42160ac0",
+          "mode": "100644"
+        },
+        "locales/macedonian.js": {
+          "sha256": "6a977ae0a6153ca81f95af5fc3b088203d88f058f4277803fc3a4658a819ec95",
+          "mode": "100644"
+        },
+        "locales/malagasy.js": {
+          "sha256": "dffb982fa8984c6eb664480bd8d3df7a40822de28c6cbfd7a73fb5a7e723d899",
+          "mode": "100644"
+        },
+        "locales/malay.js": {
+          "sha256": "63eb537283b4368d370460dabc2bc56e408a6330cde23efdcc623413082b0fe4",
+          "mode": "100644"
+        },
+        "locales/malayalam.js": {
+          "sha256": "0dba2c76858190746e9285918e422e1d4c33e9b1bb3aebeee0e43f43a3623ecf",
+          "mode": "100644"
+        },
+        "locales/maltese.js": {
+          "sha256": "ccae20134d2c7be5ef98d8823100171e2db56ac929513c4793c05a913b35a0b9",
+          "mode": "100644"
+        },
+        "locales/marathi.js": {
+          "sha256": "bcb338ed2af148cecb80dfab0a0e06e29aad374a945317bae9ffe08751c6a0dc",
+          "mode": "100644"
+        },
+        "locales/mongolian.js": {
+          "sha256": "be1a3f2c62077a40ca2e44eeaed69d55f71fee5cb49a7da0189d026435517e71",
+          "mode": "100644"
+        },
+        "locales/nepali.js": {
+          "sha256": "0a3c40b5e899e5ba89d35ccf71eef532722593f4d211d43b52eb9f985e26fa11",
+          "mode": "100644"
+        },
+        "locales/norwegian.js": {
+          "sha256": "29cac4cd62480e3c70be2f5d3094e3daa13f0d0954ae5594ed7328ae0757d240",
+          "mode": "100644"
+        },
+        "locales/odia.js": {
+          "sha256": "b591068d1da2ff1f84e6a9901b4399aaf4d3f40e7f784dfc1bfeea1d7f3e58e7",
+          "mode": "100644"
+        },
+        "locales/pashto.js": {
+          "sha256": "c64083820dc2be23ee6130c454c2c09b7238524e995cd2c07e7f406a55731c8c",
+          "mode": "100644"
+        },
+        "locales/persian.js": {
+          "sha256": "492771794cf5e86d63059196f4cdcf01f5537843dbca375b8412d2599e540fce",
+          "mode": "100644"
+        },
+        "locales/polish.js": {
+          "sha256": "2249d9ae72f8a1071704f94b8bf1f62ab205f918851caad9965a727bb6968214",
+          "mode": "100644"
+        },
+        "locales/portuguese.js": {
+          "sha256": "d400dde611819c8d5cd0bc834b3c364d9bdf946131774a76c3e29bb3e4676cf5",
+          "mode": "100644"
+        },
+        "locales/punjabi.js": {
+          "sha256": "858cb4e6f9134f4eef3d8e403f0df7c0ae2fa7aaf3d2384666113bab604c9876",
+          "mode": "100644"
+        },
+        "locales/romanian.js": {
+          "sha256": "69fdb4988e82045a0dd4828c286624517c0b416f93ea391ecb3f9a000257c176",
+          "mode": "100644"
+        },
+        "locales/russian.js": {
+          "sha256": "f528591b14c80da5b1eb9ba5fc89ae062b4d8cac04ac0ff7a9ad68b8f3e13c40",
+          "mode": "100644"
+        },
+        "locales/serbian.js": {
+          "sha256": "f5e3a39aa75cde3ab55be8f093b43e1649557cc489262b4671b1ff19e40d5d67",
+          "mode": "100644"
+        },
+        "locales/sindhi.js": {
+          "sha256": "444c0095a7091969ec1776684d65512df3f722793ecbd125383353598cc1a1c2",
+          "mode": "100644"
+        },
+        "locales/sinhala.js": {
+          "sha256": "c01ad5e3b32738ae346820253d9d179a093fbe5ea91055e95124ec6e7d0e19d7",
+          "mode": "100644"
+        },
+        "locales/slovak.js": {
+          "sha256": "ef3cda7dbb6749fba3e3db6eef848cfced6075b8b3ac38511fabb1dc3d162e51",
+          "mode": "100644"
+        },
+        "locales/slovenian.js": {
+          "sha256": "a44bb878ba24ed761cf753dbfd134fa8f28236cc33c1331875426b4045d74386",
+          "mode": "100644"
+        },
+        "locales/somali.js": {
+          "sha256": "d6dcce2dda8764dfca6ad6883ae8843abd5bab55c6e5b9e5a37c3dcf1a97e468",
+          "mode": "100644"
+        },
+        "locales/spanish.js": {
+          "sha256": "509afff3a0cf6da043af47c675c611ce30a7888f1ab544335c42a651ce4656e2",
+          "mode": "100644"
+        },
+        "locales/swahili.js": {
+          "sha256": "4868f457041ba720e2240cb880c202799e8b1624d4f86f08369c69e0ddf3ced4",
+          "mode": "100644"
+        },
+        "locales/swedish.js": {
+          "sha256": "998029870649cf7ae4e7b2bb3f9ae4dd6db738a30cfc6c4c331afe8688b571e0",
+          "mode": "100644"
+        },
+        "locales/tajik.js": {
+          "sha256": "d402d6ab97ac27793ceaa3818381a7ecaccc8629c48a5dd56a94c21ab7f9af1e",
+          "mode": "100644"
+        },
+        "locales/tamil.js": {
+          "sha256": "d5a588619c2d2d9fbd127bb0d8f7ae5b3b2795ebdeb77711e0e27124e4ffc2f8",
+          "mode": "100644"
+        },
+        "locales/telugu.js": {
+          "sha256": "fe7601729c25baf27153d9280c1376a49cf8fb905c623d71028b0780e5dfa402",
+          "mode": "100644"
+        },
+        "locales/thai.js": {
+          "sha256": "2a79e953bbd27bb85f8b9da58f7368a83996ad9fa2b650394c610b09983df9ae",
+          "mode": "100644"
+        },
+        "locales/turkish.js": {
+          "sha256": "bad89d2c5c76c706f1ad0956536b5b21e34bf81049f4e599c2ebf4224a7ada2a",
+          "mode": "100644"
+        },
+        "locales/turkmen.js": {
+          "sha256": "e167a230233590c25aad59a94904fb1f4a5e03162b26f3b1ae9a2c16bdd3956d",
+          "mode": "100644"
+        },
+        "locales/ukrainian.js": {
+          "sha256": "c448cfcacfeccf031003699533b7381db338e297aeef3b0c4707e5dcf2871cf3",
+          "mode": "100644"
+        },
+        "locales/urdu.js": {
+          "sha256": "6c7d6c6f1d18cdb182310c8c815e64471ecb1df2332837d58184e29989caad34",
+          "mode": "100644"
+        },
+        "locales/uzbek.js": {
+          "sha256": "50ceba0fcb3e1b21f052e5fd00fa0f97ef6f3e8050dc5ae6f388e5afa2d70fd2",
+          "mode": "100644"
+        },
+        "locales/vietnamese.js": {
+          "sha256": "de31d03c7992b34e8e749fb98e3beb2310addfcd50deb5576f245925ca777417",
+          "mode": "100644"
+        },
+        "locales/xhosa.js": {
+          "sha256": "29aac028ddacf2d3378f0037e642770f0e6b91195ac788af1af956122599d1dd",
+          "mode": "100644"
+        },
+        "locales/yoruba.js": {
+          "sha256": "c4ef4e16c8b55c877b7da791db2e65b456a88a106e08c53ccf8e28ad5593f6ed",
+          "mode": "100644"
+        },
+        "locales/zulu.js": {
+          "sha256": "a85a3e83dc16943dd6319e04b467501cb9326f978bb4357551d66761270c230a",
+          "mode": "100644"
+        },
+        "package.json": {
+          "sha256": "2a5738968d53f6bd5677b161a2a80fc6a3f04d7c08ee4812273868e71b85d734",
+          "mode": "100644"
+        },
+        "scripts/classic-bundle.cjs": {
+          "sha256": "788ebef28eba969b135b4a1d361ba75af0b3c4224c3e2c0742a3fee7d9e4d6e2",
+          "mode": "100644"
+        },
+        "scripts/localization-dynamic.json": {
+          "sha256": "ae156f92c461710f6e3e55ea30c7e6f64cb48f39f5e162453f54cda5c2c78869",
+          "mode": "100644"
+        },
+        "scripts/localization-identical.json": {
+          "sha256": "9755b3d32d84ccdcfcf38d833270b839f4a4bb6d6f813246f671dc5114c892ad",
+          "mode": "100644"
+        },
+        "src/access/classic-adapter.ts": {
+          "sha256": "a5bcf67dadf1b542c7092fe423bb8c7886b187b48c688d9350cd8ad55163d0b5",
+          "mode": "100644"
+        },
+        "src/index.ts": {
+          "sha256": "37e4ab6287849ef80cfab103f726d31a911132b06a33ecb4d79b693d75e5ef54",
+          "mode": "100644"
+        },
+        "src/plugins/remote-settings.ts": {
+          "sha256": "1b76d93ad4184547066e33c0ef5d75f0b41c361d30410c3e8424126eacc8d974",
+          "mode": "100644"
+        },
+        "src/provider/edem-driver.ts": {
+          "sha256": "a41b03507d8cd70eb015eccee3219188626f7869a4ce720494341d69d8c35381",
+          "mode": "100644"
+        },
+        "src/settings/cloud.ts": {
+          "sha256": "ee987c1038e0b2873c8d490865d05b0c5aa97a10d68ba13b7ab1c0ddeb9f0ec8",
+          "mode": "100644"
+        },
+        "src/settings/index.ts": {
+          "sha256": "6d4b535528e63da5715ee88f1da0bedadfa9e3621e4ca36db58d55d7c446004e",
+          "mode": "100644"
+        },
+        "src/settings/interface-colors.ts": null,
+        "src/storage/index.ts": {
+          "sha256": "186ed46537aa764bea332c306449a546ecd425feb3d99d35c4f0bb17abfd613d",
+          "mode": "100644"
+        },
+        "src/ui/color-appearance.ts": null,
+        "src/ui/color-values.ts": null,
+        "src/ui/index.ts": {
+          "sha256": "0c30b56e8c06eec5ac0d5a82e9d6f5ae83e3655f68be31d2baa5d17867e9052e",
+          "mode": "100644"
+        },
+        "src/ui/interface-colors.ts": null,
+        "src/ui/subtitle-appearance.ts": {
+          "sha256": "b78f2fef33b35338d02973cb8cfd46932a83ddba91cf1a00e3948917cc2e61b4",
+          "mode": "100644"
+        },
+        "tests/browser/channel-list-csp.spec.cjs": {
+          "sha256": "100481be3a326be348cd54fb68170387e12e32edc9983a054eb647c8f422eecd",
+          "mode": "100644"
+        },
+        "tests/helpers/cloud-source-fixture.cjs": {
+          "sha256": "7a3649df9bfa159ec33edb6993a3500d98e22659c804ab40f7c07cf5e908e8c6",
+          "mode": "100644"
+        },
+        "tests/helpers/settings-source-fixture.cjs": {
+          "sha256": "c510a20769fc273a5545dc7ccc0032cd793270b55e9b07ea2426345a6fef22ae",
+          "mode": "100644"
+        },
+        "tests/test_classic_list_separators.cjs": {
+          "sha256": "b7e20fae4ce8e1c493bad674c6193f59360fa190d3fa30f7fed9d73f8c66d01c",
+          "mode": "100644"
+        },
+        "tests/test_cloud_settings_session.cjs": {
+          "sha256": "becf1be9ceb0d386cf8fa75e43cbee22c1ee708d7848b89a0c46b388dfbcd83e",
+          "mode": "100644"
+        },
+        "tests/test_color_appearance.cjs": null,
+        "tests/test_color_values.cjs": null,
+        "tests/test_frontend_safety.cjs": {
+          "sha256": "59346fbd8fe91e03afebd3137bbe239cdb7620a1709235521773ede7d8d3b9fe",
+          "mode": "100644"
+        },
+        "tests/test_interface_color_rendering.cjs": null,
+        "tests/test_interface_colors.cjs": null,
+        "tests/test_local_settings_backup.cjs": {
+          "sha256": "2603752c3d38a02765e00e61cf692bfef9a5958a18fa9534f0558befe33e3688",
+          "mode": "100644"
+        },
+        "tests/test_localization_catalog.cjs": {
+          "sha256": "d0e105e7d0352ef57ae50d678c14f70cc265689cd2cfea7ccb2a413a1214417a",
+          "mode": "100644"
+        },
+        "tests/test_settings_library_backup.cjs": {
+          "sha256": "98f5dd0bd4a164bd590d9cb62a4242916e99c1be4def7d0b80e32f5074d3028a",
+          "mode": "100644"
+        },
+        "tests/test_settings_parity.cjs": {
+          "sha256": "b17a2564ff2e27726c777bc2c1480e6d89b86994472c9c4dd1824cffaa0b2a9d",
+          "mode": "100644"
+        },
+        "tests/test_subtitle_appearance.cjs": {
+          "sha256": "2304c40bc52a54510897f438f531d326e96a6f81acd9b5ed1943de49551cc9e6",
+          "mode": "100644"
+        }
+      },
+      "identityProbe": {
+        "buildId": "bundle-412076e8626de1af0822f482f86549036d97cb3773e5759a09fc3e3b9b07afa3",
+        "sourceHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+        "sourceRevision": ""
+      },
+      "gitHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+      "markerSha256": "d1a425a2cd2330bb0e189ef4f3e0d8df3145e7a5489ff4ffb0bb533b8822e4c2",
+      "gitStatus": "?? color-cost-comparison-marker.txt",
+      "inventorySha256": "096db1b42ddcd59fe92c70d2b52e27dc3c849d725efc0492e915c8de834e4758",
+      "sourceValidatedAfter": true,
+      "allCommandsPassed": true
+    },
+    "B": {
+      "inputValid": true,
+      "steps": [
+        {
+          "argv": [
+            "git",
+            "clone",
+            "--quiet",
+            "--no-hardlinks",
+            "/home/runner/work/ottplay-foss/ottplay-foss/source",
+            "/home/runner/work/_temp/ott-color-cost/B"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.966,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "clone",
+          "log": "clone.log"
+        },
+        {
+          "argv": [
+            "git",
+            "checkout",
+            "--detach",
+            "14ea5da80b20a8311bb55cee250f794ae278d310"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.164,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "checkout",
+          "log": "checkout.log"
+        },
+        {
+          "argv": [
+            "git",
+            "apply",
+            "--index",
+            "/home/runner/work/ottplay-foss/ottplay-foss/control/.github/experiments/color-cost/feature.patch"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.314,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "apply",
+          "log": "apply.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "ci",
+            "--ignore-scripts"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 2.827,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "dependencies",
+          "log": "dependencies.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "run",
+            "check:media"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 0.369,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "media",
+          "log": "media.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "run",
+            "build"
+          ],
+          "started": true,
+          "exit_code": 1,
+          "raw_returncode": 1,
+          "timed_out": false,
+          "seconds": 23.481,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "build",
+          "log": "build.log"
+        },
+        {
+          "argv": [
+            "npm",
+            "run",
+            "check:size"
+          ],
+          "started": true,
+          "exit_code": 1,
+          "raw_returncode": 1,
+          "timed_out": false,
+          "seconds": 0.114,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "size",
+          "log": "size.log"
+        },
+        {
+          "argv": [
+            "node",
+            "/home/runner/work/ottplay-foss/ottplay-foss/control/.github/experiments/color-cost/collect-assets.cjs",
+            "/home/runner/work/_temp/ott-color-cost/B",
+            "/home/runner/work/_temp/ott-color-cost/evidence/B/assets"
+          ],
+          "started": true,
+          "exit_code": 0,
+          "raw_returncode": 0,
+          "timed_out": false,
+          "seconds": 1.015,
+          "cleanup": {
+            "groupGone": true,
+            "adoptedChildrenGone": true,
+            "signals": [],
+            "reaped": 0
+          },
+          "name": "collect",
+          "log": "collect.log"
+        }
+      ],
+      "reports": [
+        {
+          "path": "build/classic-size-diagnostics.json",
+          "bytes": 31663,
+          "sha256": "3fa47d6a2278e41be7ebc2f39f8569cd1325e0923059c6e973e41f21a3153975"
+        }
+      ],
+      "measurementComplete": true,
+      "sourceHashes": {
+        "package-lock.json": "c9d58d5da02413b82fc6ab14c86ce94da5a5aa252bbb075c4af9782331fb37d0",
+        "scripts/classic-size.cjs": "c8f2296757ab6146323bf754118cd85e4b4df3ee265bebe6fceee58608821727",
+        "scripts/player-build-identity.cjs": "f0599831aea76abba1f1087a070e8b5e5607aba7e90a785e8b4ca429b689e9cf",
+        "scripts/media-runtime.cjs": "71631d5951f81fa60d4b90531800b8b1357201764882659dbed3067f60bffbd3",
+        "CHANGELOG.md": {
+          "sha256": "8ec593d2cafb059fa9693d3c02407b5223901aab93f7bbbf3bf10de6dbd56972",
+          "mode": "100644"
+        },
+        "README.md": {
+          "sha256": "31ecc059710f98b8a0a167de35de8d034d13132676fc07aa7ca6d5bb945661dd",
+          "mode": "100644"
+        },
+        "docs/interface-colors.md": {
+          "sha256": "06322066c2771f30dda1e1e265976184c8dcdf73e387018db28f2f1cd49676ec",
+          "mode": "100644"
+        },
+        "docs/interface-settings.md": {
+          "sha256": "de23940ead7df8665c167e9294d8a149b660182c6075d0a5f69b2959b309f4ad",
+          "mode": "100644"
+        },
+        "locales/afrikaans.js": {
+          "sha256": "d0d74347e82d2e5e0e9ec5790002ce61f4b73cc2c51599e6c3cde7e7690383c0",
+          "mode": "100644"
+        },
+        "locales/albanian.js": {
+          "sha256": "ffeb749ea53f107993390fdb4b75ef535fc7f4dc5ca3b6c230c43fffc11f2323",
+          "mode": "100644"
+        },
+        "locales/amharic.js": {
+          "sha256": "1d86e9497e72bc9417a9eea5c510b04ed814c2f42e875bb25b79210a6c17497b",
+          "mode": "100644"
+        },
+        "locales/arabic.js": {
+          "sha256": "6eaf7fa2d57fad60831ee36b697cd187969f9922801aab13499af7a67660ff3a",
+          "mode": "100644"
+        },
+        "locales/armenian.js": {
+          "sha256": "6577554346901544d5ead71e519a6a34f740f20fe05a701bc9f396b0de5663b4",
+          "mode": "100644"
+        },
+        "locales/assamese.js": {
+          "sha256": "b278d941a63ef508335f03cb4e6e0301b5a6e8be4220dc9fc42a5dde82ed7d69",
+          "mode": "100644"
+        },
+        "locales/azerbaijani.js": {
+          "sha256": "c7b9ba7afd3f291779a21e9daa7861b80bda53b25a20245267a34a7b08255426",
+          "mode": "100644"
+        },
+        "locales/basque.js": {
+          "sha256": "f73a603ce65ea4fde8c7eb825f2a19f1979209e3ff4285b468503119b833f0e5",
+          "mode": "100644"
+        },
+        "locales/belarusian.js": {
+          "sha256": "0545a07ff866a4e1398d58f75f93d43a0f6bc5f074ec983c9383bae3218286e1",
+          "mode": "100644"
+        },
+        "locales/bengali.js": {
+          "sha256": "838b01c5a198f94d4964e46cd8666eaa39e756cd17262e8a2a39829d2e05d3c5",
+          "mode": "100644"
+        },
+        "locales/bosnian.js": {
+          "sha256": "c070657e26c86a0898c65e9736c734b837a39c416019c299660079e8fa60f22d",
+          "mode": "100644"
+        },
+        "locales/bulgarian.js": {
+          "sha256": "13f59bee49b56f9c57596d9823bf02053f2c9112c24cfd0aa7e2b85a04b1eff0",
+          "mode": "100644"
+        },
+        "locales/burmese.js": {
+          "sha256": "4ff557e5f09e535b8cd97b88c17fdb95b2e3c150d081596e7e2ee22d25f69b75",
+          "mode": "100644"
+        },
+        "locales/catalan.js": {
+          "sha256": "ea6bfe125bfe115e37b1c4a5cd91665b64d2649fd3b667321f1a52a91601dbd6",
+          "mode": "100644"
+        },
+        "locales/chinese.js": {
+          "sha256": "cdda5b07082c657f25a66957a460f73277d15f74159b1f92728d9f0a13662489",
+          "mode": "100644"
+        },
+        "locales/croatian.js": {
+          "sha256": "e792921aaf52205a788ab8f80e787614c992be1f0e70ae655c0592d7ad321d17",
+          "mode": "100644"
+        },
+        "locales/czech.js": {
+          "sha256": "45c1b5bc3ea87248cb0ffb2f6730637313ce8b37ac43b8887c038bac2bf91817",
+          "mode": "100644"
+        },
+        "locales/danish.js": {
+          "sha256": "9b27ba1ac7493750cc19868204796d63bd9db514fc47dae06bb3f19833312956",
+          "mode": "100644"
+        },
+        "locales/dutch.js": {
+          "sha256": "0e8fdb25fbbcef90cd9665e5fe75376d5f03b0a8d24336dbb8c4068d9c06f09a",
+          "mode": "100644"
+        },
+        "locales/english.js": {
+          "sha256": "b2e15e97970fe2731efcd4f2435d8bef762588b7bfd50075dc9eee417aec0b9f",
+          "mode": "100644"
+        },
+        "locales/estonian.js": {
+          "sha256": "9d5a93565e2db172207b912171661c731d264b1febe6473658c011331ddca1d6",
+          "mode": "100644"
+        },
+        "locales/filipino.js": {
+          "sha256": "2c4edb59c154deff5fc7afa8af31b52ccdda52d199f790e4361323cd876da20b",
+          "mode": "100644"
+        },
+        "locales/finnish.js": {
+          "sha256": "71e93f460fba8b64baa09ce5f01755affb2b38e2c9c837120ffe660706d4e7c0",
+          "mode": "100644"
+        },
+        "locales/french.js": {
+          "sha256": "4d799c0b99c081c1d6671e89ac44857deb8675ad3a0c162f1cdfec6f8a8113d0",
+          "mode": "100644"
+        },
+        "locales/galician.js": {
+          "sha256": "153cb032f44e76121529ec1aa07c8277c3c503c2cc807cbc2947605a710215c1",
+          "mode": "100644"
+        },
+        "locales/georgian.js": {
+          "sha256": "64250d56a2e2df9d454186c7163b76998f024578027392e9e3b6d077b038f220",
+          "mode": "100644"
+        },
+        "locales/german.js": {
+          "sha256": "72c115024a1d9d939d062d1bd48321f228aeca6f8b351eed7d62a068071ef10c",
+          "mode": "100644"
+        },
+        "locales/greek.js": {
+          "sha256": "d30f8f765b2d73cb000086133e79132d02a7d25d0a701d679681f94427eaae3e",
+          "mode": "100644"
+        },
+        "locales/gujarati.js": {
+          "sha256": "f86f3839664ecd746729975f7fafdd369e92a33e4a494168738079b0c6ad047d",
+          "mode": "100644"
+        },
+        "locales/hausa.js": {
+          "sha256": "58210b08f09c4c8b7b699841eafd6585b4a20544bc2f0e21570f44152273bc47",
+          "mode": "100644"
+        },
+        "locales/hebrew.js": {
+          "sha256": "a416d0fa29758bc3708fd7f7a00cc1b27eb07bf7cbe863b47b6d280583414da8",
+          "mode": "100644"
+        },
+        "locales/hindi.js": {
+          "sha256": "df0f167ca410f5af9c1385ddfc76e63556c96db0cb1d4892ec35f7a40a67bdf3",
+          "mode": "100644"
+        },
+        "locales/hungarian.js": {
+          "sha256": "2aeac5ac128a3ec17a84feb1b9322dd596db5e1c804dac430fe996981425a2ee",
+          "mode": "100644"
+        },
+        "locales/icelandic.js": {
+          "sha256": "27fd87addb3c607afcad587ac86e8a6e467bf86fd2888347aa88f723b1125914",
+          "mode": "100644"
+        },
+        "locales/igbo.js": {
+          "sha256": "78d9540eb77550c963672e03c3d995c77af7d9b7f85ac2ee104209dfa6a300aa",
+          "mode": "100644"
+        },
+        "locales/indonesian.js": {
+          "sha256": "5453276c94f62c08b33e8f10bcbfc5f1180fcc4e8b3f49dfd27fb125ca7d38a3",
+          "mode": "100644"
+        },
+        "locales/irish.js": {
+          "sha256": "8462e791ed10d09bac1087e667108884f65fb642b0b6fa7597653a6b527f612c",
+          "mode": "100644"
+        },
+        "locales/italian.js": {
+          "sha256": "8b71faa1876fa778779ae53ebb17023b570dc428fbf90a32cd9dabd67a310070",
+          "mode": "100644"
+        },
+        "locales/japanese.js": {
+          "sha256": "26cc79b709b472a471653e53c43d86feb68974c7f3d8379d53e5eb44322f2540",
+          "mode": "100644"
+        },
+        "locales/kannada.js": {
+          "sha256": "91410202d263edf6279c0e0987a20e010d4ab70ef84a8892a0699a4c9e46ac8b",
+          "mode": "100644"
+        },
+        "locales/kazakh.js": {
+          "sha256": "9af2da52fd77f3ba868659a658e9e1b23c3cb8b73de0cebc4da50e421ac2fb66",
+          "mode": "100644"
+        },
+        "locales/khmer.js": {
+          "sha256": "c409bd05cbbd6547c0909fef2dbbd34da70da34c337a91e30e278df9aa20aaad",
+          "mode": "100644"
+        },
+        "locales/kinyarwanda.js": {
+          "sha256": "6051112abd2aade692b17e874387b4a2b6aa576a57c5e508a75510c3704858ec",
+          "mode": "100644"
+        },
+        "locales/korean.js": {
+          "sha256": "6103d94d342ffda1d0b0c9a60d2cef88ae41fb0fa6ece806321d42e6235785d4",
+          "mode": "100644"
+        },
+        "locales/kurdish.js": {
+          "sha256": "94b456092cbf5b292fdf6568c13d1065775de38d1cf2beac0ae6cb231bf77359",
+          "mode": "100644"
+        },
+        "locales/kyrgyz.js": {
+          "sha256": "d94c0790fde4d2b3367b845c6a257c9d669e94bc28789b64328003003c0ea9b3",
+          "mode": "100644"
+        },
+        "locales/lao.js": {
+          "sha256": "c4c6e1a0a6b1c0cfa6453b355f0480e3fd11246f0c731e4ac9f5d54fd52f6719",
+          "mode": "100644"
+        },
+        "locales/latvian.js": {
+          "sha256": "13e94af7c320c319400ac5191aacf3bfaaaea2f867cf563712921fc64b0d1d24",
+          "mode": "100644"
+        },
+        "locales/lithuanian.js": {
+          "sha256": "ffb6ed2ad60b5e1a83d799c96a2f7d89356d2135b3742dd366a6fb7a0c95966e",
+          "mode": "100644"
+        },
+        "locales/macedonian.js": {
+          "sha256": "30bdd7cb3141d7d2dcd17fdb33ae0e5ef4214bae92801f94bd24050d4420bb0d",
+          "mode": "100644"
+        },
+        "locales/malagasy.js": {
+          "sha256": "89b4c258c2dd53078634149c32af8af7b0577ed215a6af344ff79b050da8eea4",
+          "mode": "100644"
+        },
+        "locales/malay.js": {
+          "sha256": "f2ae5f432ac62ebfe2536b5bf17d838c71b62d4caf191bd30a93c1e6e7f8e268",
+          "mode": "100644"
+        },
+        "locales/malayalam.js": {
+          "sha256": "00402a4758a5bb3c707b80358aca109633c751c5c724a17d197135968ec8ab92",
+          "mode": "100644"
+        },
+        "locales/maltese.js": {
+          "sha256": "0e183a0177c7dd30b9c6e96dff5f02171f7b9f23a2bf29428bf53d7f993b7c25",
+          "mode": "100644"
+        },
+        "locales/marathi.js": {
+          "sha256": "c64dc6f481bc2d11658b8ee370b666362afb92a61632399e6c98ecb344520241",
+          "mode": "100644"
+        },
+        "locales/mongolian.js": {
+          "sha256": "e62ab1dc451cf5cd2a1fe1f045db315165e5053903081bc67d623c9c538c5fb6",
+          "mode": "100644"
+        },
+        "locales/nepali.js": {
+          "sha256": "7ebd219ae7564dd417a1581a27f1f19af40258757682a68c428a64bcd500bef8",
+          "mode": "100644"
+        },
+        "locales/norwegian.js": {
+          "sha256": "cef2424e0f10fce5be38336652b81d6af25e52a33c803298927e2af6642c2932",
+          "mode": "100644"
+        },
+        "locales/odia.js": {
+          "sha256": "abc3b794a97716ee82fad057a56a8444a820221a31b8ce4be5969d0cf63606ca",
+          "mode": "100644"
+        },
+        "locales/pashto.js": {
+          "sha256": "d0f79478fb1eefb5f0b10b04f9bf7bd07bb80742cedfb9cfe8a954017ddbaa6e",
+          "mode": "100644"
+        },
+        "locales/persian.js": {
+          "sha256": "c4290165d5415032bc0f497384dd0c4525c46856f51455ee5feeb21841ca0607",
+          "mode": "100644"
+        },
+        "locales/polish.js": {
+          "sha256": "9440e39567cf4fbbfe88a40151524e23ed79657c8dfe2a215f5f24cbf9ee700b",
+          "mode": "100644"
+        },
+        "locales/portuguese.js": {
+          "sha256": "b325a8001baf8db506e18e309df1c0d61d314d0a9bc73314c468c738d9c64818",
+          "mode": "100644"
+        },
+        "locales/punjabi.js": {
+          "sha256": "81f3f545746e6c7ca130e217c8f2a533ea2679c194b700a7eeeaaa187894b75d",
+          "mode": "100644"
+        },
+        "locales/romanian.js": {
+          "sha256": "893ad2bb7957f3f236abd9fcec8b18fc788279e36fdf6db6ad0bf4a529101da0",
+          "mode": "100644"
+        },
+        "locales/russian.js": {
+          "sha256": "8180e3a1fcaff0557611a15d8a9f227fef928c0b87c2fd5e329dd95f607c9a11",
+          "mode": "100644"
+        },
+        "locales/serbian.js": {
+          "sha256": "178466e156b3f4755af86fb704a420688aa0395b57f425e6c72f3c52a1baf7c6",
+          "mode": "100644"
+        },
+        "locales/sindhi.js": {
+          "sha256": "85d3e1f75e0f308a18869c80b7297a7c2d77c8e5d33ad9cea48c7f2f8076013b",
+          "mode": "100644"
+        },
+        "locales/sinhala.js": {
+          "sha256": "a8abcb7910c72733dc9452bb0fd9ace050e3e3587c32215ed636b98044ad3c8c",
+          "mode": "100644"
+        },
+        "locales/slovak.js": {
+          "sha256": "868c6613f595e33529d1b0403b54a8f4e3f356e5ae484da77400e406b611218b",
+          "mode": "100644"
+        },
+        "locales/slovenian.js": {
+          "sha256": "e87a786068e5da91d0675a629a59f1f0dc3f6463f02a548d86e4768cd018e826",
+          "mode": "100644"
+        },
+        "locales/somali.js": {
+          "sha256": "a11f18b53346a27622f00c57de0eed35281188554b3d353859c0595dad7c0831",
+          "mode": "100644"
+        },
+        "locales/spanish.js": {
+          "sha256": "a0b242265019d2233984bd9d3684e6cc2421534222a1de1ae88f380354211f51",
+          "mode": "100644"
+        },
+        "locales/swahili.js": {
+          "sha256": "4234db4cdce2dd404059826bda78f5ec8b895b09d38ace99144a5aba40d85782",
+          "mode": "100644"
+        },
+        "locales/swedish.js": {
+          "sha256": "3620c7d79387ef74cda0b762ceb4c3b357ac7e36de2e41870e7cbc37e3a5b017",
+          "mode": "100644"
+        },
+        "locales/tajik.js": {
+          "sha256": "9d975c202ed27d908cc3ac734f1801af210d0fb79a79985c3c2a7f9b82950276",
+          "mode": "100644"
+        },
+        "locales/tamil.js": {
+          "sha256": "b9ddb673d21d8dbfa49b9194401bdbdf2842117101338fbe40a5ad1d53c953e9",
+          "mode": "100644"
+        },
+        "locales/telugu.js": {
+          "sha256": "a392122ec621cf8616ebc0894b6b44ce02e52cf1c5519407a7a32ec123c857a9",
+          "mode": "100644"
+        },
+        "locales/thai.js": {
+          "sha256": "3e09c6e8c279681881e62b3f219d6b3b3587156ececd79c6631a3d7fb4918982",
+          "mode": "100644"
+        },
+        "locales/turkish.js": {
+          "sha256": "9f6cb4a89f423a3b24e09943bbd0a500701a382c1132ca95dbf27420e846eaf0",
+          "mode": "100644"
+        },
+        "locales/turkmen.js": {
+          "sha256": "d563f16d1fb952bff1e82b50d2c15811c26e785045190223f7c1a6c7d14cee7e",
+          "mode": "100644"
+        },
+        "locales/ukrainian.js": {
+          "sha256": "c9d2f9b10b8f499e751ad3adf1ac45f943328a597fb8f02a8df6c1aa4ea9ae37",
+          "mode": "100644"
+        },
+        "locales/urdu.js": {
+          "sha256": "ad0b09865cd8aca11ec649384994d02ba657708793c5a0697741bd57b5a455c9",
+          "mode": "100644"
+        },
+        "locales/uzbek.js": {
+          "sha256": "714d41a7a052ee7fa6cde8a55b22678d302ca1f49f2ae75a790e3ca3f8fcee1d",
+          "mode": "100644"
+        },
+        "locales/vietnamese.js": {
+          "sha256": "58ad93b974ac1fc1b22a1aed083edda4343159627b8eadd675bd6eb2a6ccd38b",
+          "mode": "100644"
+        },
+        "locales/xhosa.js": {
+          "sha256": "fa6e64888e7c18cb992d704593270f97c6849bd53820aab8fa61178336f69304",
+          "mode": "100644"
+        },
+        "locales/yoruba.js": {
+          "sha256": "6e339413371dc4280697214cf4994a3af0ae41b1c6bbb879bb3f964fbe127f38",
+          "mode": "100644"
+        },
+        "locales/zulu.js": {
+          "sha256": "f5bcbb5f695714e3e289ce9e1659c16a9a8556b8475d843335137931ea8d614a",
+          "mode": "100644"
+        },
+        "package.json": {
+          "sha256": "123ab34a3c0398075f17269e1bbb5ab615b7ad6c4e4f9dc1e25598963a5c9a7d",
+          "mode": "100644"
+        },
+        "scripts/classic-bundle.cjs": {
+          "sha256": "950915e9aeadcf06fad0145eb4908651dac60cb0976f3f4f25dc43b1fbb40181",
+          "mode": "100644"
+        },
+        "scripts/localization-dynamic.json": {
+          "sha256": "15038ae564d2ea78e3e674acbe32a6e4d7e064d67c264a31fbcc3e2b05bdc583",
+          "mode": "100644"
+        },
+        "scripts/localization-identical.json": {
+          "sha256": "a35b3588d8a4459d5f68dcdf45615deed64f2719cfe6c32c9e5caee84ac72964",
+          "mode": "100644"
+        },
+        "src/access/classic-adapter.ts": {
+          "sha256": "c9dfab99a39ee935ee28b0e306ed47c6153fcd3fec89132f8c46d60eb4f17896",
+          "mode": "100644"
+        },
+        "src/index.ts": {
+          "sha256": "1d228d2e5211ac3224c5deebf2f5d508b6497920b9feb7e38ec0c1a9135beef6",
+          "mode": "100644"
+        },
+        "src/plugins/remote-settings.ts": {
+          "sha256": "3f0980e11b903ad6691c61aa9b19292d1ba9df983985d3db8d9f39844f74b073",
+          "mode": "100644"
+        },
+        "src/provider/edem-driver.ts": {
+          "sha256": "d064533b7cbcd433be72f2c461885b2a0d480201c8ccaa6274142d82da4ef9c2",
+          "mode": "100644"
+        },
+        "src/settings/cloud.ts": {
+          "sha256": "99ba73052ae1a1ad0386d572787ef848c52b6406e11127940e4c79372937a756",
+          "mode": "100644"
+        },
+        "src/settings/index.ts": {
+          "sha256": "4fcae6d645380c4a752e27b31df082bdb481b09c480435b4fe4efab634e3696e",
+          "mode": "100644"
+        },
+        "src/settings/interface-colors.ts": {
+          "sha256": "437eefc1b1126564077e7e853bb31e5400137d383f58dbbd418310047aed3322",
+          "mode": "100644"
+        },
+        "src/storage/index.ts": {
+          "sha256": "e13c9a72f741bbae69a5fc4e00ec4b9c20a9484832a861ee911b8ba109b80735",
+          "mode": "100644"
+        },
+        "src/ui/color-appearance.ts": {
+          "sha256": "77a27821399703d0cc7bd62e8ba37479e6c6e5a0a0ade78cf42ce78692fa5c56",
+          "mode": "100644"
+        },
+        "src/ui/color-values.ts": {
+          "sha256": "ba961ec9203ad53dfd0dfdc624fd04f5986bd7468c1efa0a7d5b1fb60004ef8b",
+          "mode": "100644"
+        },
+        "src/ui/index.ts": {
+          "sha256": "e62e3800b4552fcc49a25ebd4034526fa8980a4c3ef430224345f2b9a7f1e290",
+          "mode": "100644"
+        },
+        "src/ui/interface-colors.ts": {
+          "sha256": "c7bd74f2ce4a9c346ea50f3dd39c53783066a2d3e8f7bca8df8f5c1d30249d22",
+          "mode": "100644"
+        },
+        "src/ui/subtitle-appearance.ts": {
+          "sha256": "a2664fa794bfc333d78f181e355e6af5eece35105444b132e45a63781d1cc9cb",
+          "mode": "100644"
+        },
+        "tests/browser/channel-list-csp.spec.cjs": {
+          "sha256": "4ea4ca366447224ddf508f0303c5e06cc748a9c415b0114eb8173817d62383b0",
+          "mode": "100644"
+        },
+        "tests/helpers/cloud-source-fixture.cjs": {
+          "sha256": "8cc4b5d168140676f90a9d170e42acad8a7d5f5ac749c870b14d88a4a6d26a3b",
+          "mode": "100644"
+        },
+        "tests/helpers/settings-source-fixture.cjs": {
+          "sha256": "927f68f09ccea05b30e51567879c66788d1c74af95194de1833418533bc8b193",
+          "mode": "100644"
+        },
+        "tests/test_classic_list_separators.cjs": {
+          "sha256": "c7c49fe22928ef9c06dcc503d4ba9193c60cce2736b38d7fe4327207ccf29f4a",
+          "mode": "100644"
+        },
+        "tests/test_cloud_settings_session.cjs": {
+          "sha256": "5578b4686144a27d746454af0ddfc4f6ec6d8a7f414eda7d13f1fb14e1e953a7",
+          "mode": "100644"
+        },
+        "tests/test_color_appearance.cjs": {
+          "sha256": "a48bae4a22b45c347418bcfef2c6fd53c958ee6d657b1eecfb4952970515b0f6",
+          "mode": "100644"
+        },
+        "tests/test_color_values.cjs": {
+          "sha256": "4482055d16d825f2a287bb6c8e6870dcd600b22c5f8bc0ee3f86d4f66f88675e",
+          "mode": "100644"
+        },
+        "tests/test_frontend_safety.cjs": {
+          "sha256": "f293c0ddf2bc41895e43ae23d1baedf728ee93bd10e9382f5ea09d54f8e342dc",
+          "mode": "100644"
+        },
+        "tests/test_interface_color_rendering.cjs": {
+          "sha256": "272df5d44e3a47366a813aa479772807c6a1031767ad1ef30f93ba10b7d0cffc",
+          "mode": "100644"
+        },
+        "tests/test_interface_colors.cjs": {
+          "sha256": "e6e5c67424c0daff4f0800b8d5666fbdb02a9e74c064d20b12f2cb0ed041c7b9",
+          "mode": "100644"
+        },
+        "tests/test_local_settings_backup.cjs": {
+          "sha256": "44f12a62c4ec9110d9ab593999300b9e8172708252e1c7880505cb369f02423b",
+          "mode": "100644"
+        },
+        "tests/test_localization_catalog.cjs": {
+          "sha256": "578887839d91613c50e4e870e1a3ce4022d32dc1e0b6a6057ace89416c460582",
+          "mode": "100644"
+        },
+        "tests/test_settings_library_backup.cjs": {
+          "sha256": "4a392ad789edb5247de77df36d19289ff51e9cfdccbaf16d105034dba9e86bd4",
+          "mode": "100644"
+        },
+        "tests/test_settings_parity.cjs": {
+          "sha256": "0c55b9733d90b5e8a5425ce360b0999e85db71c00981eae5f7c725f0752c0f90",
+          "mode": "100644"
+        },
+        "tests/test_subtitle_appearance.cjs": {
+          "sha256": "8515809342a5087a02c6ab4a30eea524283db1c0184eca7e029d75c8bfe7eeb8",
+          "mode": "100644"
+        }
+      },
+      "identityProbe": {
+        "buildId": "bundle-412076e8626de1af0822f482f86549036d97cb3773e5759a09fc3e3b9b07afa3",
+        "sourceHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+        "sourceRevision": ""
+      },
+      "gitHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+      "markerSha256": "d1a425a2cd2330bb0e189ef4f3e0d8df3145e7a5489ff4ffb0bb533b8822e4c2",
+      "gitStatus": "M  CHANGELOG.md\nM  README.md\nA  docs/interface-colors.md\nM  docs/interface-settings.md\nM  locales/afrikaans.js\nM  locales/albanian.js\nM  locales/amharic.js\nM  locales/arabic.js\nM  locales/armenian.js\nM  locales/assamese.js\nM  locales/azerbaijani.js\nM  locales/basque.js\nM  locales/belarusian.js\nM  locales/bengali.js\nM  locales/bosnian.js\nM  locales/bulgarian.js\nM  locales/burmese.js\nM  locales/catalan.js\nM  locales/chinese.js\nM  locales/croatian.js\nM  locales/czech.js\nM  locales/danish.js\nM  locales/dutch.js\nM  locales/english.js\nM  locales/estonian.js\nM  locales/filipino.js\nM  locales/finnish.js\nM  locales/french.js\nM  locales/galician.js\nM  locales/georgian.js\nM  locales/german.js\nM  locales/greek.js\nM  locales/gujarati.js\nM  locales/hausa.js\nM  locales/hebrew.js\nM  locales/hindi.js\nM  locales/hungarian.js\nM  locales/icelandic.js\nM  locales/igbo.js\nM  locales/indonesian.js\nM  locales/irish.js\nM  locales/italian.js\nM  locales/japanese.js\nM  locales/kannada.js\nM  locales/kazakh.js\nM  locales/khmer.js\nM  locales/kinyarwanda.js\nM  locales/korean.js\nM  locales/kurdish.js\nM  locales/kyrgyz.js\nM  locales/lao.js\nM  locales/latvian.js\nM  locales/lithuanian.js\nM  locales/macedonian.js\nM  locales/malagasy.js\nM  locales/malay.js\nM  locales/malayalam.js\nM  locales/maltese.js\nM  locales/marathi.js\nM  locales/mongolian.js\nM  locales/nepali.js\nM  locales/norwegian.js\nM  locales/odia.js\nM  locales/pashto.js\nM  locales/persian.js\nM  locales/polish.js\nM  locales/portuguese.js\nM  locales/punjabi.js\nM  locales/romanian.js\nM  locales/russian.js\nM  locales/serbian.js\nM  locales/sindhi.js\nM  locales/sinhala.js\nM  locales/slovak.js\nM  locales/slovenian.js\nM  locales/somali.js\nM  locales/spanish.js\nM  locales/swahili.js\nM  locales/swedish.js\nM  locales/tajik.js\nM  locales/tamil.js\nM  locales/telugu.js\nM  locales/thai.js\nM  locales/turkish.js\nM  locales/turkmen.js\nM  locales/ukrainian.js\nM  locales/urdu.js\nM  locales/uzbek.js\nM  locales/vietnamese.js\nM  locales/xhosa.js\nM  locales/yoruba.js\nM  locales/zulu.js\nM  package.json\nM  scripts/classic-bundle.cjs\nM  scripts/localization-dynamic.json\nM  scripts/localization-identical.json\nM  src/access/classic-adapter.ts\nM  src/index.ts\nM  src/plugins/remote-settings.ts\nM  src/provider/edem-driver.ts\nM  src/settings/cloud.ts\nM  src/settings/index.ts\nA  src/settings/interface-colors.ts\nM  src/storage/index.ts\nA  src/ui/color-appearance.ts\nA  src/ui/color-values.ts\nM  src/ui/index.ts\nA  src/ui/interface-colors.ts\nM  src/ui/subtitle-appearance.ts\nM  tests/browser/channel-list-csp.spec.cjs\nM  tests/helpers/cloud-source-fixture.cjs\nM  tests/helpers/settings-source-fixture.cjs\nM  tests/test_classic_list_separators.cjs\nM  tests/test_cloud_settings_session.cjs\nA  tests/test_color_appearance.cjs\nA  tests/test_color_values.cjs\nM  tests/test_frontend_safety.cjs\nA  tests/test_interface_color_rendering.cjs\nA  tests/test_interface_colors.cjs\nM  tests/test_local_settings_backup.cjs\nM  tests/test_localization_catalog.cjs\nM  tests/test_settings_library_backup.cjs\nM  tests/test_settings_parity.cjs\nM  tests/test_subtitle_appearance.cjs\n?? color-cost-comparison-marker.txt",
+      "inventorySha256": "23bfbc0e6b9f4f50ea47196d12b81b9d7ffaaf9a0099b92f6fd9c22a4b0716a7",
+      "sourceValidatedAfter": true,
+      "allCommandsPassed": false
+    }
+  },
+  "complete": false,
+  "manifestSha256": "8914d5e931d65748b5e6e1596e1d11cb591c6495f97b9e180d84b667f275ce40",
+  "featurePatchSha256": "693be0fe7ef5c8abd95703ae152c2c5a9927e02691e30e8c20fc134c2a4fb1ed",
+  "tools": {
+    "compare.py": "d93fa38c8e185f0ad70749c9083299b4986c7c7717620746f80e5afd80b0f86e",
+    "collect-assets.cjs": "36c10355eecb1112d27ea9f97f522d21ba98a2201b063bf1cfb6be5965fd21d9"
+  },
+  "nodeVersions": {
+    "node": "22.23.4",
+    "acorn": "8.16.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.8",
+    "ares": "1.34.9",
+    "brotli": "1.1.0",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "48.0",
+    "icu": "78.3",
+    "llhttp": "9.4.3",
+    "modules": "127",
+    "napi": "10",
+    "nbytes": "0.1.3",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.69.0",
+    "openssl": "3.5.9",
+    "simdjson": "4.5.0",
+    "simdutf": "6.4.2",
+    "sqlite": "3.53.4",
+    "tz": "2026e",
+    "undici": "6.29.1",
+    "unicode": "17.0",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "12.4.254.21-node.57",
+    "zlib": "1.3.1-e00f703",
+    "zstd": "1.5.7"
+  },
+  "allCommandsPassed": false,
+  "error": "Complete JavaScript inventory differs from the bound source expectation"
+}

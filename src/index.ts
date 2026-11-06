@@ -11,12 +11,21 @@ import { installLocalMedia } from "./plugins/local-media";
 import { installMediaCompanion } from "./plugins/media-companion-loader";
 import { createSettingsEditor } from "./settings/editor";
 import {
+    parseInterfaceColorConfig,
+    serializeInterfaceColors,
+} from "./settings/interface-colors";
+import {
     editSettingsText,
     exportSettingsUI,
     importSettingsUI,
 } from "./settings/transfer-ui";
 import { validDeviceToken, validSwopClientId } from "./shared/wire-contracts";
 import { showSettingsRecovery } from "./storage/recovery-ui";
+import {
+    applyInterfaceColors,
+    interfaceColorPreview,
+    interfaceColorRgb,
+} from "./ui/interface-colors";
 import { createModernActions } from "./ui/modern-actions";
 import {
     hasTmdbService,
@@ -1302,6 +1311,8 @@ function classicColorRgb(value: string, brightness?: number): string {
  * osdOpacity, listPosition.
  */
 function setColor(): void {
+    var custom = parseInterfaceColorConfig(settings.uiColorConfig || "");
+    var colors = custom ? custom.colors : {};
     var pliHd = settings.interfaceTheme === 1;
     var studio = settings.interfaceTheme === 2;
     $("body").toggleClass("theme-pli-hd", pliHd);
@@ -1310,7 +1321,7 @@ function setColor(): void {
         "hide-list-separators",
         settings.showListSeparators === 0
     );
-    bodyColor = studio ? "#f0f3f1" : "#f0f0f0";
+    bodyColor = colors.text || (studio ? "#f0f3f1" : "#f0f0f0");
     $("body").css("color", bodyColor);
     // PLi-HD's selectedFG / selectedBG. Keep the saved Classic palette intact.
     curColorB = studio
@@ -1323,11 +1334,13 @@ function setColor(): void {
         : pliHd
           ? "#fcc000"
           : "rgb(" + classicColorRgb(settings.highlightColor, 100) + ")";
+    curColorB = colors.selection || curColorB;
+    curColor = colors.accent || curColor;
     // Keep window.* in sync — itemEPG / listDetail / getListItem read w.curColor.
     window.curColor = curColor;
     // EPG nodes may already be visible when the theme changes.
     $(".ott-epg-current-title, .ott-epg-detail-title").css("color", curColor);
-    var epgTextColor = epgTimeCssColor(settings.epgTimeColor);
+    var epgTextColor = colors.epgTime || epgTimeCssColor(settings.epgTimeColor);
     document.documentElement.style.setProperty(
         "--ott-epg-time-color",
         epgTextColor
@@ -1336,8 +1349,17 @@ function setColor(): void {
     $(".ott-epg-time").css("color", epgTextColor);
     window.curColorB = curColorB;
     window.bodyColor = bodyColor;
+    // A row may have been created while overrides were active. Restore its
+    // legacy inline fallback too, so removing the owned sheet is a full reset.
+    $(
+        "#listIn .item.ott-selected, #dialogbox .ott-color-selected, #listEdit .ott-selected, #listAbout .ott-selected, #numprog [aria-pressed='true']"
+    ).css({
+        "background-color": curColorB,
+        color: curColor,
+    });
 
     var borderColor = studio ? "#2b3430" : pliHd ? "#555555" : curColor;
+    borderColor = colors.border || borderColor;
     $("#listCaption").css("border-bottom", "2px solid " + borderColor);
     $("#listPodval").css("border-top", "1px solid " + borderColor);
     $("#listPopUp, #dialogbox").css("border", "1px solid " + borderColor);
@@ -1362,6 +1384,7 @@ function setColor(): void {
         : pliHd
           ? "#000000"
           : "rgb(" + classicColorRgb(settings.highlightColorB) + ")";
+    bgColor = colors.background || bgColor;
     $(".list_back").css("background-color", bgColor);
     $("#listPopUp").css("background-color", bgColor);
 }
@@ -1384,12 +1407,16 @@ function stbSetOsdOpacity(val: number): void {
             : settings.interfaceTheme === 1
               ? "8,8,8"
               : classicColorRgb(settings.highlightColorB);
+    var custom = parseInterfaceColorConfig(settings.uiColorConfig || "");
+    var surface = custom && (custom.colors.surface || custom.colors.background);
+    if (surface) rgb = interfaceColorRgb(surface);
     $(".osd").css("background-color", "rgba(" + rgb + "," + val / 100 + ")");
     // Reduce notification background opacity by 20%, without dimming the text.
     document.documentElement.style.setProperty(
         "--ott-notify-alpha",
         String(Math.min(1, val / 100 + 0.08) * 0.8)
     );
+    applyInterfaceColors(document, settings.uiColorConfig || "", val);
 }
 
 /**
@@ -3508,6 +3535,17 @@ if (typeof window.__TAURI__ !== "undefined") {
     );
 }
 
+// Dynamic app styles inherit only the existing author style's CSP authority.
+function createInterfaceStyle(): HTMLStyleElement {
+    const style = document.createElement("style");
+    const source = document.getElementById(
+        "ott-interface-style"
+    ) as HTMLStyleElement | null;
+    const nonce = source && (source.nonce || source.getAttribute("nonce"));
+    if (nonce) style.setAttribute("nonce", nonce);
+    return style;
+}
+
 // Tauri Mode B: frameless window — JS whole-surface drag when overlays closed.
 // decorations:false removes the system title bar; without a drag region the
 // window cannot be moved. Gate on __TAURI__ so Chrome companion is unchanged.
@@ -3577,28 +3615,17 @@ if (typeof window.__TAURI__ !== "undefined") {
         // WKWebView delivers mousedown; our startDragging moves the window.
         // Subtle visible top chrome so the handle is discoverable.
         if (!document.getElementById(STYLE_ID)) {
-            const style = document.createElement("style");
+            const style = createInterfaceStyle();
             style.id = STYLE_ID;
-            const noDragCss = NO_DRAG_SEL.split(",")
-                .map((s) => "html." + CLASS + " " + s.trim())
-                .join(",\n");
+            const noDragPrefix = "html." + CLASS + " ";
+            const noDragCss =
+                noDragPrefix + NO_DRAG_SEL.replace(/,/g, ",\n" + noDragPrefix);
             style.textContent =
                 "html." +
                 CLASS +
                 ", html." +
                 CLASS +
                 " body {\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n" +
-                "html." +
-                CLASS +
-                " #list,\nhtml." +
-                CLASS +
-                " #listIn,\nhtml." +
-                CLASS +
-                " #listCaption,\nhtml." +
-                CLASS +
-                " .item,\nhtml." +
-                CLASS +
-                ' [id^="it"] {\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n' +
                 "#" +
                 STRIP_ID +
                 " {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: " +
@@ -3613,7 +3640,7 @@ if (typeof window.__TAURI__ !== "undefined") {
                 OVERLAY_CLASS +
                 " #" +
                 STRIP_ID +
-                " {\n  display: none !important;\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n  pointer-events: none !important;\n}\n" +
+                " {\n  display: none !important;\n  pointer-events: none !important;\n}\n" +
                 noDragCss +
                 " {\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n";
             document.head.appendChild(style);
@@ -3636,8 +3663,11 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         const forceNoDragEl = (el: HTMLElement | null | undefined): void => {
             if (!el) return;
-            el.style.setProperty("-webkit-app-region", "no-drag", "important");
-            el.style.setProperty("app-region", "no-drag", "important");
+            // The nonced author rule owns no-drag. Do not serialize redundant
+            // inline styles into saved footer/detail HTML when overlays close.
+            el.style.removeProperty("-webkit-app-region");
+            el.style.removeProperty("app-region");
+            if (!el.style.length) el.removeAttribute("style");
             el.removeAttribute("data-tauri-drag-region");
         };
 
@@ -3728,17 +3758,7 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         const markNoDrag = (root: ParentNode) => {
             root.querySelectorAll(NO_DRAG_SEL).forEach((el) => {
-                (el as HTMLElement).style.setProperty(
-                    "-webkit-app-region",
-                    "no-drag",
-                    "important"
-                );
-                (el as HTMLElement).style.setProperty(
-                    "app-region",
-                    "no-drag",
-                    "important"
-                );
-                (el as HTMLElement).removeAttribute("data-tauri-drag-region");
+                forceNoDragEl(el as HTMLElement);
             });
         };
         markNoDrag(document);
@@ -3750,17 +3770,7 @@ if (typeof window.__TAURI__ !== "undefined") {
                         const el = n as HTMLElement;
                         if (el.id === STRIP_ID) return;
                         if (el.matches?.(NO_DRAG_SEL)) {
-                            el.style.setProperty(
-                                "-webkit-app-region",
-                                "no-drag",
-                                "important"
-                            );
-                            el.style.setProperty(
-                                "app-region",
-                                "no-drag",
-                                "important"
-                            );
-                            el.removeAttribute("data-tauri-drag-region");
+                            forceNoDragEl(el);
                         }
                         markNoDrag(el);
                     });
@@ -4183,7 +4193,7 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         function ensureStyles(): void {
             if (document.getElementById(STYLE_ID)) return;
-            const style = document.createElement("style");
+            const style = createInterfaceStyle();
             style.id = STYLE_ID;
             style.textContent =
                 "#" +
@@ -4386,31 +4396,18 @@ window._setSetup = function (
     var w = window as any;
     w.selIndex = 0;
     w.getListItem = function (item: any, _idx: number): string {
-        // Name|value must be flex children with INLINE styles. Class-only
-        // .item-label/.item-value fails in Tauri/WKWebView when player.css is
-        // late/missing/stale; :8443 looked "formatted" because the old markup
-        // used inline width:23%/75% (floats are ignored under .item{display:flex}).
-        // Same pattern as showPage()'s inline display:flex on .item.
-        var labelStyle =
-            "flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;" +
-            "white-space:nowrap;line-height:normal;";
-        var valueStyle =
-            "flex:0 0 auto;max-width:42%;margin-left:auto;overflow:hidden;" +
-            "text-overflow:ellipsis;white-space:nowrap;line-height:normal;" +
-            "text-align:right;";
+        // showPage applies the owned flex geometry through DOM properties.
+        // Parsed style attributes are blocked by Tauri's nonce-based CSP.
         return (
-            '<div class="item-label" style="' +
-            labelStyle +
-            '">&nbsp;&nbsp;' +
+            '<div class="item-label">&nbsp;&nbsp;' +
             item.name +
             "</div>" +
-            '<div class="item-value" style="' +
-            valueStyle +
-            '">' +
+            '<div class="item-value">' +
             (item.values[item.val] || item.cur) +
             "&nbsp;&nbsp;</div>"
         );
     };
+    w.getListItem.__ottSettingsRows = true;
     var detailEl = document.getElementById("listDetail");
     if (detailEl) detailEl.innerHTML = "";
     w.detailListAction = function (): void {
@@ -4730,7 +4727,6 @@ window.settingsInterface = function settingsInterface(): void {
     openSubtitleAppearance("open");
 };
 (window as any).__ottAppearanceHost = {
-    color: classicColorRgb,
     languages: languageNames,
     list: setListArrays,
     page: createSettingsPage,
@@ -6490,6 +6486,11 @@ window.editValue = editValue;
 window.curColor = curColor;
 window.curColorB = curColorB;
 window.bodyColor = bodyColor;
+(window as any).__ottInterfaceColors = {
+    parse: parseInterfaceColorConfig,
+    resolve: interfaceColorPreview,
+    serialize: serializeInterfaceColors,
+};
 window.epgCache = epg;
 window.medHistory = medHistory;
 window.medFavorites = medFavorites;
@@ -7168,12 +7169,7 @@ window.settingsCommands = function (): void {
     uid = uid || "not generated";
 
     function text(value: any): string {
-        return String(value)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+        return metadataText(String(value));
     }
 
     function selectControl(index: number, focus: boolean): void {

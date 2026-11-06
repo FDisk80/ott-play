@@ -1,0 +1,1035 @@
+{
+  "archiveRelativeSeekAllowance": {
+    "bytes": 2374,
+    "gzipBytes": 710
+  },
+  "artifacts": [
+    {
+      "bytes": 1212241,
+      "gzipBytes": 370874,
+      "path": "dist/player.js",
+      "sha256": "30815ae04f6514ff48464783dc0f56db28b1c9bfb01545fc8f6ef1362b1ca74b"
+    },
+    {
+      "bytes": 1212203,
+      "gzipBytes": 370929,
+      "path": "src-tauri/frontend/dist/player.js",
+      "sha256": "f5c582062f1ce2b8ac14e047524bc1090b7966c2d967e1ba1cfa820133bd1c0a"
+    },
+    {
+      "bytes": 1212203,
+      "gzipBytes": 370929,
+      "path": "dist-mobile/dist/player.js",
+      "sha256": "f5c582062f1ce2b8ac14e047524bc1090b7966c2d967e1ba1cfa820133bd1c0a"
+    }
+  ],
+  "attempt": "37aef28e-36dc-42cf-a4b7-49d1f120c061",
+  "autoRelayStallRecoveryEntryAllowance": {
+    "bytes": 0,
+    "gzipBytes": 259
+  },
+  "budget": {
+    "bytes": 1212456,
+    "gzipBytes": 371017
+  },
+  "categoryNavigationEntryAllowance": {
+    "bytes": 10,
+    "gzipBytes": 25
+  },
+  "categoryNavigationFavoritesAllowance": {
+    "bytes": 603,
+    "gzipBytes": 214
+  },
+  "categoryPickerEntryAllowance": {
+    "bytes": 45,
+    "gzipBytes": 8
+  },
+  "categorySelectionEntryAllowance": {
+    "bytes": 2781,
+    "gzipBytes": 800
+  },
+  "categorySelectionFavoritesAllowance": {
+    "bytes": 209,
+    "gzipBytes": 65
+  },
+  "categoryVisibilityEntryAllowance": {
+    "bytes": 1505,
+    "gzipBytes": 415
+  },
+  "classicPresentationSettingsAllowance": {
+    "appearance": {
+      "bytes": 195,
+      "gzipBytes": 74
+    },
+    "entry": {
+      "bytes": 2281,
+      "gzipBytes": 1049
+    }
+  },
+  "clientInterfaceColorsAllowance": {
+    "appearance": {
+      "bytes": 529,
+      "gzipBytes": 215
+    },
+    "entry": {
+      "bytes": 8796,
+      "gzipBytes": 2501
+    },
+    "optional": {
+      "bytes": 10444,
+      "gzipBytes": 4378
+    },
+    "providerEdem": {
+      "bytes": 44,
+      "gzipBytes": 18
+    },
+    "remoteSettingsLifecycle": {
+      "bytes": 334,
+      "gzipBytes": 145
+    }
+  },
+  "collectedAt": "2026-11-06T14:19:10.983Z",
+  "companionDiagnosticsAllowance": {
+    "catalog": {
+      "bytes": 114,
+      "gzipBytes": 53
+    },
+    "companion": {
+      "bytes": 663,
+      "gzipBytes": 192
+    },
+    "entry": {
+      "bytes": 2158,
+      "gzipBytes": 737
+    }
+  },
+  "complete": true,
+  "desktopFavoritesKeyAllowance": {
+    "bytes": 4650,
+    "gzipBytes": 1100
+  },
+  "desktopVideoQueueAllowance": {
+    "bytes": 407,
+    "gzipBytes": 169
+  },
+  "diagnostic": true,
+  "epgPresentationEntryAllowance": {
+    "bytes": 992,
+    "gzipBytes": 355
+  },
+  "favoritesCategoryPersistenceAllowance": {
+    "entry": {
+      "bytes": 2848,
+      "gzipBytes": 832
+    },
+    "favorites": {
+      "bytes": 288,
+      "gzipBytes": 64
+    }
+  },
+  "favoritesRecoveryEntryAllowance": {
+    "bytes": 4800,
+    "gzipBytes": 1400
+  },
+  "favoritesRecoveryOptionalAllowance": {
+    "bytes": 23300,
+    "gzipBytes": 4900
+  },
+  "favoritesTransferEntryAllowance": {
+    "bytes": 9300,
+    "gzipBytes": 2400
+  },
+  "favoritesTransferOptionalAllowance": {
+    "bytes": 86000,
+    "gzipBytes": 24400
+  },
+  "favoritesTransferPlexAllowance": {
+    "bytes": 500,
+    "gzipBytes": 150
+  },
+  "inputErrors": [],
+  "interfaceNotificationSettingsAllowance": {
+    "appearance": {
+      "bytes": 301,
+      "gzipBytes": 197
+    },
+    "entry": {
+      "bytes": 3389,
+      "gzipBytes": 1144
+    }
+  },
+  "legacyTotalBudget": {
+    "bytes": 1457556,
+    "gzipBytes": 455290
+  },
+  "localFavoritesPathAllowance": {
+    "entry": {
+      "bytes": 1024,
+      "gzipBytes": 512
+    },
+    "favorites": {
+      "bytes": 7424,
+      "gzipBytes": 2048
+    }
+  },
+  "localFavoriteWriteRecoveryAllowance": {
+    "entry": {
+      "bytes": 32,
+      "gzipBytes": 16
+    },
+    "favorites": {
+      "bytes": 864,
+      "gzipBytes": 288
+    }
+  },
+  "mediaCompanionEntryAllowance": {
+    "bytes": 2261,
+    "gzipBytes": 795
+  },
+  "mediaCompanionOptionalAllowance": {
+    "bytes": 12260,
+    "gzipBytes": 4609
+  },
+  "mediaCompanionPreparationAllowance": {
+    "bytes": 445,
+    "gzipBytes": 124
+  },
+  "mediaCompanionSettingsAllowance": {
+    "bytes": 36,
+    "gzipBytes": 9
+  },
+  "mediaCompanionTransportAllowance": {
+    "bytes": 412,
+    "gzipBytes": 125
+  },
+  "mixedGlobalFavoritesEntryAllowance": {
+    "bytes": 34739,
+    "gzipBytes": 8485
+  },
+  "mixedGlobalFavoritesOptionalAllowance": {
+    "bytes": 132130,
+    "gzipBytes": 32892
+  },
+  "mixedGlobalFavoritesProviderAllowance": {
+    "bytes": 1536,
+    "gzipBytes": 640
+  },
+  "mode": "standard",
+  "modernExperienceAllowance": {
+    "catalog": {
+      "bytes": 4991,
+      "gzipBytes": 1336
+    },
+    "entry": {
+      "bytes": 2152,
+      "gzipBytes": 636
+    },
+    "renderer": {
+      "bytes": 7161,
+      "gzipBytes": 2221
+    }
+  },
+  "modernInfoInteractionAllowance": {
+    "edem": {
+      "bytes": 78,
+      "gzipBytes": 39
+    },
+    "entry": {
+      "bytes": 1424,
+      "gzipBytes": 356
+    },
+    "favorites": {
+      "bytes": 424,
+      "gzipBytes": 165
+    },
+    "plex": {
+      "bytes": 291,
+      "gzipBytes": 111
+    },
+    "renderer": {
+      "bytes": 769,
+      "gzipBytes": 206
+    }
+  },
+  "modernNativeShellOptionalAllowance": {
+    "bytes": 6607,
+    "gzipBytes": 1897
+  },
+  "nativeWindowControlsEntryAllowance": {
+    "bytes": 3141,
+    "gzipBytes": 929
+  },
+  "optimizerBinding": {
+    "outputSha256": "30815ae04f6514ff48464783dc0f56db28b1c9bfb01545fc8f6ef1362b1ca74b",
+    "stagedExpectedSha256": "30815ae04f6514ff48464783dc0f56db28b1c9bfb01545fc8f6ef1362b1ca74b"
+  },
+  "optionalBudgets": {
+    "color-appearance": {
+      "bytes": 10444,
+      "gzipBytes": 4378
+    },
+    "control-transport": {
+      "bytes": 6027,
+      "gzipBytes": 2010
+    },
+    "favorites-transfer": {
+      "bytes": 258069,
+      "gzipBytes": 66730
+    },
+    "local-compatibility": {
+      "bytes": 9450,
+      "gzipBytes": 3550
+    },
+    "local-drop": {
+      "bytes": 5807,
+      "gzipBytes": 2369
+    },
+    "local-media-ui": {
+      "bytes": 8500,
+      "gzipBytes": 3400
+    },
+    "media-companion": {
+      "bytes": 11681,
+      "gzipBytes": 4110
+    },
+    "modern-interface": {
+      "bytes": 38337,
+      "gzipBytes": 12267
+    },
+    "perf-capture": {
+      "bytes": 22200,
+      "gzipBytes": 8528
+    },
+    "remote-local-runner": {
+      "bytes": 2700,
+      "gzipBytes": 1300
+    },
+    "remote-provider-fields": {
+      "bytes": 18000,
+      "gzipBytes": 6200
+    },
+    "remote-settings": {
+      "bytes": 17500,
+      "gzipBytes": 5800
+    },
+    "remote-settings-extras": {
+      "bytes": 7000,
+      "gzipBytes": 2800
+    },
+    "remote-settings-lifecycle": {
+      "bytes": 33218,
+      "gzipBytes": 10785
+    },
+    "runtime-debug-details": {
+      "bytes": 3800,
+      "gzipBytes": 1900
+    },
+    "shaka-tracks": {
+      "bytes": 1200,
+      "gzipBytes": 640
+    },
+    "subtitle-appearance": {
+      "bytes": 9221,
+      "gzipBytes": 3918
+    }
+  },
+  "playerPresenceEntryAllowance": {
+    "bytes": 7747,
+    "gzipBytes": 2609
+  },
+  "playerPresenceTransportAllowance": {
+    "bytes": 27,
+    "gzipBytes": 10
+  },
+  "plexArtworkAllowance": {
+    "bytes": 185,
+    "gzipBytes": 77
+  },
+  "plexQueueStepTotalAllowance": {
+    "bytes": 308,
+    "gzipBytes": 70
+  },
+  "providerBudget": {
+    "bytes": 863400,
+    "gzipBytes": 268490
+  },
+  "providerBundles": [
+    {
+      "entry": "dist/player.js",
+      "legacyTotal": {
+        "bytes": 1457158,
+        "gzipBytes": 455219
+      },
+      "optionalAssets": [
+        {
+          "bytes": 10444,
+          "gzipBytes": 4378,
+          "path": "dist/color-appearance.js",
+          "sha256": "c32efdd01585f50b5564004fc74aa7105d77c8b50af17bbee675f38c62bdc05d"
+        },
+        {
+          "bytes": 3011,
+          "gzipBytes": 1354,
+          "path": "dist/control-transport.js",
+          "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+        },
+        {
+          "bytes": 257665,
+          "gzipBytes": 66255,
+          "path": "dist/favorites-transfer.js",
+          "sha256": "489f339a72e71b8d6edf28f2e9bc531fc621908b71851233f92abbc4ab6539e8"
+        },
+        {
+          "bytes": 9238,
+          "gzipBytes": 3446,
+          "path": "dist/local-compatibility.js",
+          "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+        },
+        {
+          "bytes": 5763,
+          "gzipBytes": 2273,
+          "path": "dist/local-drop.js",
+          "sha256": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e"
+        },
+        {
+          "bytes": 8455,
+          "gzipBytes": 3336,
+          "path": "dist/local-media-ui.js",
+          "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+        },
+        {
+          "bytes": 11635,
+          "gzipBytes": 4019,
+          "path": "dist/media-companion.js",
+          "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+        },
+        {
+          "bytes": 38314,
+          "gzipBytes": 12236,
+          "path": "dist/modern-interface.js",
+          "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9"
+        },
+        {
+          "bytes": 21591,
+          "gzipBytes": 8051,
+          "path": "dist/perf-capture.js",
+          "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+        },
+        {
+          "bytes": 2560,
+          "gzipBytes": 1203,
+          "path": "dist/remote-local-runner.js",
+          "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+        },
+        {
+          "bytes": 15788,
+          "gzipBytes": 5518,
+          "path": "dist/remote-provider-fields.js",
+          "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+        },
+        {
+          "bytes": 15851,
+          "gzipBytes": 5205,
+          "path": "dist/remote-settings.js",
+          "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+        },
+        {
+          "bytes": 6603,
+          "gzipBytes": 2503,
+          "path": "dist/remote-settings-extras.js",
+          "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+        },
+        {
+          "bytes": 32885,
+          "gzipBytes": 10418,
+          "path": "dist/remote-settings-lifecycle.js",
+          "sha256": "f9b19360e71b7cc5563ea06e1693c4aac5b74b7f066a6c7659913dcad732ddbd"
+        },
+        {
+          "bytes": 3342,
+          "gzipBytes": 1558,
+          "path": "dist/runtime-debug-details.js",
+          "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+        },
+        {
+          "bytes": 1144,
+          "gzipBytes": 599,
+          "path": "dist/shaka-tracks.js",
+          "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+        },
+        {
+          "bytes": 9256,
+          "gzipBytes": 4004,
+          "path": "dist/subtitle-appearance.js",
+          "sha256": "6f335018098f57d0f7a9449d2d9e18c805f86df6d9474b004bf04d313dff2b0a"
+        }
+      ],
+      "providers": [
+        {
+          "bytes": 9463,
+          "gzipBytes": 3591,
+          "path": "dist/provider-catalog.js",
+          "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+        },
+        {
+          "bytes": 15753,
+          "gzipBytes": 6157,
+          "path": "dist/provider-edem.js",
+          "sha256": "5f424ea9fd9c917175c4c9ee80a24f721446bd1b37856c18a0d749a69b219175"
+        },
+        {
+          "bytes": 19349,
+          "gzipBytes": 7077,
+          "path": "dist/provider-m3u.js",
+          "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+        },
+        {
+          "bytes": 11808,
+          "gzipBytes": 4395,
+          "path": "dist/provider-playlist.js",
+          "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+        },
+        {
+          "bytes": 62592,
+          "gzipBytes": 21439,
+          "path": "dist/provider-plex.js",
+          "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+        },
+        {
+          "bytes": 18737,
+          "gzipBytes": 6878,
+          "path": "dist/provider-stalker.js",
+          "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+        },
+        {
+          "bytes": 91666,
+          "gzipBytes": 28700,
+          "path": "dist/provider-torrent.js",
+          "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+        },
+        {
+          "bytes": 11391,
+          "gzipBytes": 4360,
+          "path": "dist/provider-vportal.js",
+          "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+        },
+        {
+          "bytes": 4158,
+          "gzipBytes": 1748,
+          "path": "dist/provider-xtream.js",
+          "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+        }
+      ],
+      "total": {
+        "bytes": 1910703,
+        "gzipBytes": 591575
+      }
+    },
+    {
+      "entry": "src-tauri/frontend/dist/player.js",
+      "legacyTotal": {
+        "bytes": 1457120,
+        "gzipBytes": 455274
+      },
+      "optionalAssets": [
+        {
+          "bytes": 10444,
+          "gzipBytes": 4378,
+          "path": "src-tauri/frontend/dist/color-appearance.js",
+          "sha256": "c32efdd01585f50b5564004fc74aa7105d77c8b50af17bbee675f38c62bdc05d"
+        },
+        {
+          "bytes": 3011,
+          "gzipBytes": 1354,
+          "path": "src-tauri/frontend/dist/control-transport.js",
+          "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+        },
+        {
+          "bytes": 257665,
+          "gzipBytes": 66255,
+          "path": "src-tauri/frontend/dist/favorites-transfer.js",
+          "sha256": "489f339a72e71b8d6edf28f2e9bc531fc621908b71851233f92abbc4ab6539e8"
+        },
+        {
+          "bytes": 9238,
+          "gzipBytes": 3446,
+          "path": "src-tauri/frontend/dist/local-compatibility.js",
+          "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+        },
+        {
+          "bytes": 5763,
+          "gzipBytes": 2273,
+          "path": "src-tauri/frontend/dist/local-drop.js",
+          "sha256": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e"
+        },
+        {
+          "bytes": 8455,
+          "gzipBytes": 3336,
+          "path": "src-tauri/frontend/dist/local-media-ui.js",
+          "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+        },
+        {
+          "bytes": 11635,
+          "gzipBytes": 4019,
+          "path": "src-tauri/frontend/dist/media-companion.js",
+          "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+        },
+        {
+          "bytes": 38314,
+          "gzipBytes": 12236,
+          "path": "src-tauri/frontend/dist/modern-interface.js",
+          "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9"
+        },
+        {
+          "bytes": 21591,
+          "gzipBytes": 8051,
+          "path": "src-tauri/frontend/dist/perf-capture.js",
+          "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+        },
+        {
+          "bytes": 2560,
+          "gzipBytes": 1203,
+          "path": "src-tauri/frontend/dist/remote-local-runner.js",
+          "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+        },
+        {
+          "bytes": 15788,
+          "gzipBytes": 5518,
+          "path": "src-tauri/frontend/dist/remote-provider-fields.js",
+          "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+        },
+        {
+          "bytes": 15851,
+          "gzipBytes": 5205,
+          "path": "src-tauri/frontend/dist/remote-settings.js",
+          "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+        },
+        {
+          "bytes": 6603,
+          "gzipBytes": 2503,
+          "path": "src-tauri/frontend/dist/remote-settings-extras.js",
+          "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+        },
+        {
+          "bytes": 32885,
+          "gzipBytes": 10418,
+          "path": "src-tauri/frontend/dist/remote-settings-lifecycle.js",
+          "sha256": "f9b19360e71b7cc5563ea06e1693c4aac5b74b7f066a6c7659913dcad732ddbd"
+        },
+        {
+          "bytes": 3342,
+          "gzipBytes": 1558,
+          "path": "src-tauri/frontend/dist/runtime-debug-details.js",
+          "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+        },
+        {
+          "bytes": 1144,
+          "gzipBytes": 599,
+          "path": "src-tauri/frontend/dist/shaka-tracks.js",
+          "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+        },
+        {
+          "bytes": 9256,
+          "gzipBytes": 4004,
+          "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+          "sha256": "6f335018098f57d0f7a9449d2d9e18c805f86df6d9474b004bf04d313dff2b0a"
+        }
+      ],
+      "providers": [
+        {
+          "bytes": 9463,
+          "gzipBytes": 3591,
+          "path": "src-tauri/frontend/dist/provider-catalog.js",
+          "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+        },
+        {
+          "bytes": 15753,
+          "gzipBytes": 6157,
+          "path": "src-tauri/frontend/dist/provider-edem.js",
+          "sha256": "5f424ea9fd9c917175c4c9ee80a24f721446bd1b37856c18a0d749a69b219175"
+        },
+        {
+          "bytes": 19349,
+          "gzipBytes": 7077,
+          "path": "src-tauri/frontend/dist/provider-m3u.js",
+          "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+        },
+        {
+          "bytes": 11808,
+          "gzipBytes": 4395,
+          "path": "src-tauri/frontend/dist/provider-playlist.js",
+          "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+        },
+        {
+          "bytes": 62592,
+          "gzipBytes": 21439,
+          "path": "src-tauri/frontend/dist/provider-plex.js",
+          "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+        },
+        {
+          "bytes": 18737,
+          "gzipBytes": 6878,
+          "path": "src-tauri/frontend/dist/provider-stalker.js",
+          "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+        },
+        {
+          "bytes": 91666,
+          "gzipBytes": 28700,
+          "path": "src-tauri/frontend/dist/provider-torrent.js",
+          "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+        },
+        {
+          "bytes": 11391,
+          "gzipBytes": 4360,
+          "path": "src-tauri/frontend/dist/provider-vportal.js",
+          "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+        },
+        {
+          "bytes": 4158,
+          "gzipBytes": 1748,
+          "path": "src-tauri/frontend/dist/provider-xtream.js",
+          "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+        }
+      ],
+      "total": {
+        "bytes": 1910665,
+        "gzipBytes": 591630
+      }
+    },
+    {
+      "entry": "dist-mobile/dist/player.js",
+      "legacyTotal": {
+        "bytes": 1457120,
+        "gzipBytes": 455274
+      },
+      "optionalAssets": [
+        {
+          "bytes": 10444,
+          "gzipBytes": 4378,
+          "path": "dist-mobile/dist/color-appearance.js",
+          "sha256": "c32efdd01585f50b5564004fc74aa7105d77c8b50af17bbee675f38c62bdc05d"
+        },
+        {
+          "bytes": 3011,
+          "gzipBytes": 1354,
+          "path": "dist-mobile/dist/control-transport.js",
+          "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+        },
+        {
+          "bytes": 257665,
+          "gzipBytes": 66255,
+          "path": "dist-mobile/dist/favorites-transfer.js",
+          "sha256": "489f339a72e71b8d6edf28f2e9bc531fc621908b71851233f92abbc4ab6539e8"
+        },
+        {
+          "bytes": 9238,
+          "gzipBytes": 3446,
+          "path": "dist-mobile/dist/local-compatibility.js",
+          "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+        },
+        {
+          "bytes": 5763,
+          "gzipBytes": 2273,
+          "path": "dist-mobile/dist/local-drop.js",
+          "sha256": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e"
+        },
+        {
+          "bytes": 8455,
+          "gzipBytes": 3336,
+          "path": "dist-mobile/dist/local-media-ui.js",
+          "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+        },
+        {
+          "bytes": 11635,
+          "gzipBytes": 4019,
+          "path": "dist-mobile/dist/media-companion.js",
+          "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+        },
+        {
+          "bytes": 38314,
+          "gzipBytes": 12236,
+          "path": "dist-mobile/dist/modern-interface.js",
+          "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9"
+        },
+        {
+          "bytes": 21591,
+          "gzipBytes": 8051,
+          "path": "dist-mobile/dist/perf-capture.js",
+          "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+        },
+        {
+          "bytes": 2560,
+          "gzipBytes": 1203,
+          "path": "dist-mobile/dist/remote-local-runner.js",
+          "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+        },
+        {
+          "bytes": 15788,
+          "gzipBytes": 5518,
+          "path": "dist-mobile/dist/remote-provider-fields.js",
+          "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+        },
+        {
+          "bytes": 15851,
+          "gzipBytes": 5205,
+          "path": "dist-mobile/dist/remote-settings.js",
+          "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+        },
+        {
+          "bytes": 6603,
+          "gzipBytes": 2503,
+          "path": "dist-mobile/dist/remote-settings-extras.js",
+          "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+        },
+        {
+          "bytes": 32885,
+          "gzipBytes": 10418,
+          "path": "dist-mobile/dist/remote-settings-lifecycle.js",
+          "sha256": "f9b19360e71b7cc5563ea06e1693c4aac5b74b7f066a6c7659913dcad732ddbd"
+        },
+        {
+          "bytes": 3342,
+          "gzipBytes": 1558,
+          "path": "dist-mobile/dist/runtime-debug-details.js",
+          "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+        },
+        {
+          "bytes": 1144,
+          "gzipBytes": 599,
+          "path": "dist-mobile/dist/shaka-tracks.js",
+          "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+        },
+        {
+          "bytes": 9256,
+          "gzipBytes": 4004,
+          "path": "dist-mobile/dist/subtitle-appearance.js",
+          "sha256": "6f335018098f57d0f7a9449d2d9e18c805f86df6d9474b004bf04d313dff2b0a"
+        }
+      ],
+      "providers": [
+        {
+          "bytes": 9463,
+          "gzipBytes": 3591,
+          "path": "dist-mobile/dist/provider-catalog.js",
+          "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+        },
+        {
+          "bytes": 15753,
+          "gzipBytes": 6157,
+          "path": "dist-mobile/dist/provider-edem.js",
+          "sha256": "5f424ea9fd9c917175c4c9ee80a24f721446bd1b37856c18a0d749a69b219175"
+        },
+        {
+          "bytes": 19349,
+          "gzipBytes": 7077,
+          "path": "dist-mobile/dist/provider-m3u.js",
+          "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+        },
+        {
+          "bytes": 11808,
+          "gzipBytes": 4395,
+          "path": "dist-mobile/dist/provider-playlist.js",
+          "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+        },
+        {
+          "bytes": 62592,
+          "gzipBytes": 21439,
+          "path": "dist-mobile/dist/provider-plex.js",
+          "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+        },
+        {
+          "bytes": 18737,
+          "gzipBytes": 6878,
+          "path": "dist-mobile/dist/provider-stalker.js",
+          "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+        },
+        {
+          "bytes": 91666,
+          "gzipBytes": 28700,
+          "path": "dist-mobile/dist/provider-torrent.js",
+          "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+        },
+        {
+          "bytes": 11391,
+          "gzipBytes": 4360,
+          "path": "dist-mobile/dist/provider-vportal.js",
+          "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+        },
+        {
+          "bytes": 4158,
+          "gzipBytes": 1748,
+          "path": "dist-mobile/dist/provider-xtream.js",
+          "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+        }
+      ],
+      "total": {
+        "bytes": 1910665,
+        "gzipBytes": 591630
+      }
+    }
+  ],
+  "relativeSeekEntryAllowance": {
+    "bytes": 2737,
+    "gzipBytes": 803
+  },
+  "run": "42230364638",
+  "runAttempt": "1",
+  "schema": 1,
+  "shakaRetirementEntryAllowance": {
+    "bytes": 1152,
+    "gzipBytes": 0
+  },
+  "shakaTracksEntryAllowance": {
+    "bytes": 576,
+    "gzipBytes": 128
+  },
+  "source": "d001fd7c2b46c3887f40f0abaf49933cacb45eb9",
+  "stbPlayerEntryAllowance": {
+    "bytes": 5356,
+    "gzipBytes": 1666
+  },
+  "stbPlayerFavoritesAllowance": {
+    "bytes": 2433,
+    "gzipBytes": 511
+  },
+  "stbPlayerStalkerAllowance": {
+    "bytes": 7803,
+    "gzipBytes": 2601
+  },
+  "stbPlayerXtreamAllowance": {
+    "bytes": 48,
+    "gzipBytes": 8
+  },
+  "tizenPackageBootAllowance": {
+    "bytes": 116,
+    "gzipBytes": 95
+  },
+  "toolchain": {
+    "node": "22.23.4",
+    "zlib": "1.3.1-e00f703"
+  },
+  "torrentDiscoveryAllowance": {
+    "catalog": {
+      "bytes": 14256,
+      "gzipBytes": 4740
+    },
+    "entry": {
+      "bytes": 1794,
+      "gzipBytes": 456
+    },
+    "settings": {
+      "bytes": 493,
+      "gzipBytes": 160
+    }
+  },
+  "torrentProviderAllowance": {
+    "catalog": {
+      "bytes": 33485,
+      "gzipBytes": 11308
+    },
+    "companion": {
+      "bytes": -3377,
+      "gzipBytes": -1358
+    },
+    "entry": {
+      "bytes": 4572,
+      "gzipBytes": 1086
+    },
+    "favorites": {
+      "bytes": 4249,
+      "gzipBytes": 1121
+    },
+    "settings": {
+      "bytes": 263,
+      "gzipBytes": 102
+    }
+  },
+  "torrentStreamsAllowance": {
+    "catalog": {
+      "bytes": 31466,
+      "gzipBytes": 9168
+    },
+    "companion": {
+      "bytes": 207,
+      "gzipBytes": 79
+    },
+    "entry": {
+      "bytes": 6550,
+      "gzipBytes": 1741
+    },
+    "settings": {
+      "bytes": 490,
+      "gzipBytes": 155
+    }
+  },
+  "torznabDiscoveryAllowance": {
+    "catalog": {
+      "bytes": 7503,
+      "gzipBytes": 2124
+    },
+    "companion": {
+      "bytes": 1516,
+      "gzipBytes": 463
+    },
+    "entry": {
+      "bytes": 4257,
+      "gzipBytes": 1089
+    },
+    "favorites": {
+      "bytes": 81,
+      "gzipBytes": 30
+    },
+    "settings": {
+      "bytes": 165,
+      "gzipBytes": 60
+    }
+  },
+  "totalBudget": {
+    "bytes": 1910911,
+    "gzipBytes": 591732
+  },
+  "violations": [
+    {
+      "actual": 9256,
+      "budget": 9221,
+      "metric": "bytes",
+      "path": "dist/subtitle-appearance.js",
+      "scope": "asset"
+    },
+    {
+      "actual": 4004,
+      "budget": 3918,
+      "metric": "gzipBytes",
+      "path": "dist/subtitle-appearance.js",
+      "scope": "asset"
+    },
+    {
+      "actual": 9256,
+      "budget": 9221,
+      "metric": "bytes",
+      "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+      "scope": "asset"
+    },
+    {
+      "actual": 4004,
+      "budget": 3918,
+      "metric": "gzipBytes",
+      "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+      "scope": "asset"
+    },
+    {
+      "actual": 9256,
+      "budget": 9221,
+      "metric": "bytes",
+      "path": "dist-mobile/dist/subtitle-appearance.js",
+      "scope": "asset"
+    },
+    {
+      "actual": 4004,
+      "budget": 3918,
+      "metric": "gzipBytes",
+      "path": "dist-mobile/dist/subtitle-appearance.js",
+      "scope": "asset"
+    }
+  ]
+}

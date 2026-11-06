@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ಒಂದು ಆಜ್ಞೆಯನ್ನು ಪ್ಲೇಯರ್ನಿಂದ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ. ಅದರ ಪೂರೈಕೆದಾರ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
     About: "ಸುಮಾರು",
+    "Accent color": "ಒತ್ತು ನೀಡುವ ಬಣ್ಣ",
     "Access code": "ಪ್ರವೇಶ ಕೋಡ್",
     "Access denied. Check the server access code.":
         "ಪ್ರವೇಶವನ್ನು ನಿರಾಕರಿಸಲಾಗಿದೆ. ಸರ್ವರ್ ಪ್ರವೇಶ ಕೋಡ್ ಪರಿಶೀಲಿಸಿ.",
@@ -79,6 +80,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ವಿಫಲವಾಗಿದೆ, M3U ಪ್ರಯತ್ನಿಸಲಾಗುತ್ತಿದೆ...",
     "API Server": "API ಸರ್ವರ್",
     "API server URL": "API ಸರ್ವರ್ URL",
+    Apply: "ಅನ್ವಯಿಸಿ",
+    "Apply changes to this draft, then use Save Settings.":
+        "ಈ ಕರಡಿಗೆ ಬದಲಾವಣೆಗಳನ್ನು ಅನ್ವಯಿಸಿ, ನಂತರ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಉಳಿಸಿ ಆಯ್ಕೆಮಾಡಿ.",
     "Applying HTTP remote settings...": "HTTP ರಿಮೋಟ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಅನ್ವಯಿಸಲಾಗುತ್ತಿದೆ...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODE ನೊಂದಿಗೆ %1 ಗಾಗಿ ಕೋಡ್ ಅನ್ನು ಅನುಮೋದಿಸಿ:",
@@ -114,6 +118,7 @@ var keyStrings = {
     Blue: "ನೀಲಿ",
     "Bookmark age (days): %1": "ಬುಕ್‌ಮಾರ್ಕ್‌ನ ವಯಸ್ಸು (ದಿನಗಳು): %1",
     "Bookmark age: %1 days": "ಬುಕ್‌ಮಾರ್ಕ್ ವಯಸ್ಸು: %1 ದಿನಗಳು",
+    "Border color": "ಅಂಚಿನ ಬಣ್ಣ",
     Brightness: "ಹೊಳಪು",
     "Browse folders": "ಫೋಲ್ಡರ್‌ಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
     "Buffer Size, s": "ಬಫರ್ ಗಾತ್ರ, ರು",
@@ -185,6 +190,7 @@ var keyStrings = {
     "Cloud transfer failed": "ಮೇಘ ವರ್ಗಾವಣೆ ವಿಫಲವಾಗಿದೆ",
     Code: "ಕೋಡ್",
     Color: "ಬಣ್ಣ",
+    "Color schemes": "ಬಣ್ಣ ವಿನ್ಯಾಸಗಳು",
     "Color spectrum": "ಬಣ್ಣ ವರ್ಣಪಟಲ",
     "Command server": "ಕಮಾಂಡ್ ಸರ್ವರ್",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -320,6 +326,7 @@ var keyStrings = {
         "HTTP ರಿಮೋಟ್ ಕಂಟ್ರೋಲ್ ಅನ್ನು ನವೀಕರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
     Country: "ದೇಶ",
     "Create category": "ವರ್ಗವನ್ನು ರಚಿಸಿ",
+    Custom: "ಕಸ್ಟಮ್",
     current: "ಪ್ರಸ್ತುತ",
     "Debug enabled. Restart to apply.":
         "ಡೀಬಗ್ ಸಕ್ರಿಯವಾಗಿದೆ. ಬದಲಾವಣೆಯನ್ನು ಅನ್ವಯಿಸಲು ಪ್ಲೇಯರ್ ಅನ್ನು ಮರುಪ್ರಾರಂಭಿಸಿ.",
@@ -477,6 +484,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG ಮೂಲವನ್ನು ಹಿಂದಿರುಗಿಸಲಾಗಿದೆ HTTP %1",
     "EPG source: %1": "EPG ಮೂಲ: %1",
     "EPG stopped during: %1": "EPG ಈ ಸಮಯದಲ್ಲಿ ನಿಲ್ಲಿಸಲಾಗಿದೆ: %1",
+    "EPG time color": "EPG ಸಮಯದ ಬಣ್ಣ",
     "EPG unavailable on this browser": "EPG ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ",
     "EPG unavailable: %1": "EPG ಲಭ್ಯವಿಲ್ಲ: %1",
     "EPG update failed; using saved programme guide":
@@ -547,6 +555,7 @@ var keyStrings = {
     "Hide / Return": "ಮರೆಮಾಡಿ / ತೋರಿಸು",
     "Hide provider settings?": "ಒದಗಿಸುವವರ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಮರೆಮಾಡುವುದೇ?",
     "Hide providers?": "ಪೂರೈಕೆದಾರರನ್ನು ಮರೆಮಾಡುವುದೇ?",
+    "High contrast": "ಹೆಚ್ಚಿನ ವ್ಯತ್ಯಾಸ",
     "History in Media Library": "ಮಾಧ್ಯಮ ಲೈಬ್ರರಿಯಲ್ಲಿ ಇತಿಹಾಸ",
     "History of watched movies": "ಇತಿಹಾಸವನ್ನು ವೀಕ್ಷಿಸಿ",
     Home: "ಮುಖಪುಟ",
@@ -554,6 +563,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP ರಿಮೋಟ್ ಕಂಟ್ರೋಲ್ ಈ ಸಾಧನದಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ.",
     "HTTPS support": "HTTPS ಬೆಂಬಲ",
+    Hue: "ವರ್ಣಛಾಯೆ",
     ID: "ID",
     "Import settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಆಮದು ಮಾಡಿ",
     "In live mode: <br/>": "ನೇರ ಪ್ರಸಾರದ ಸಮಯದಲ್ಲಿ:<br/>",
@@ -561,6 +571,8 @@ var keyStrings = {
     "Infobar display timeout, s": "ಮಾಹಿತಿ ಪಟ್ಟಿಯ ಪ್ರದರ್ಶನದ ಸಮಯ ಮೀರಿದೆ, ಸೆ",
     "Infobar settings": "ಮಾಹಿತಿ ಪಟ್ಟಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
     Information: "ಮಾಹಿತಿ",
+    Inherited: "ಆನುವಂಶಿಕ",
+    "Interface colors": "ಇಂಟರ್‌ಫೇಸ್ ಬಣ್ಣಗಳು",
     "Interface credits": "ಇಂಟರ್ಫೇಸ್‌ಗೆ ಕೊಡುಗೆ ನೀಡಿದವರು",
     "Interface mode": "ಇಂಟರ್ಫೇಸ್ ಮೋಡ್",
     "Interface settings": "ಇಂಟರ್ಫೇಸ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
@@ -569,6 +581,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "ಅಮಾನ್ಯ ಚಾನಲ್ ಲಿಂಕ್! ನಿಮ್ಮ ಪೂರೈಕೆದಾರರ ಖಾತೆ ಪುಟದಲ್ಲಿ URL ಸ್ಟ್ರೀಮ್‌ನಿಂದ ಸಂಪೂರ್ಣ ಹೋಸ್ಟ್ ಹೆಸರನ್ನು ನಮೂದಿಸಿ (ಉದಾಹರಣೆಗೆ subdomain.cdn-domain.tld ).",
     "Invalid cloud settings response": "ಅಮಾನ್ಯ ಕ್ಲೌಡ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳ ಪ್ರತಿಕ್ರಿಯೆ",
+    "Invalid color value": "ಅಮಾನ್ಯ ಬಣ್ಣದ ಮೌಲ್ಯ",
     "Invalid protected source configuration": "ಅಮಾನ್ಯ ಸಂರಕ್ಷಿತ ಮೂಲ ಕಾನ್ಫಿಗರೇಶನ್",
     "Invalid range: %1-%2": "ಅಮಾನ್ಯ ವ್ಯಾಪ್ತಿ: %1-%2",
     "Invalid setting": "ಅಮಾನ್ಯ ಸೆಟ್ಟಿಂಗ್",
@@ -580,6 +593,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
     "Label (optional)": "ಹೆಸರು (ಐಚ್ಛಿಕ)",
+    Light: "ತಿಳಿ",
     "List created": "ಪಟ್ಟಿಯನ್ನು ರಚಿಸಲಾಗಿದೆ",
     "List deleted": "ಪಟ್ಟಿಯನ್ನು ಅಳಿಸಲಾಗಿದೆ",
     "List location": "ಪಟ್ಟಿಯ ಸ್ಥಾನ",
@@ -642,6 +656,7 @@ var keyStrings = {
     "Media Library URL": "ಮಾಧ್ಯಮ ಲೈಬ್ರರಿ URL",
     Menu: "ಮೆನು",
     "Menu items settings": "ಮೆನು ಐಟಂ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    Midnight: "ಮಧ್ಯರಾತ್ರಿ",
     Modern: "ಆಧುನಿಕ",
     "Modern interface is unavailable. Classic remains active.":
         "ಆಧುನಿಕ ಇಂಟರ್ಫೇಸ್ ಲಭ್ಯವಿಲ್ಲ. ಕ್ಲಾಸಿಕ್ ಸಕ್ರಿಯವಾಗಿರುತ್ತದೆ.",
@@ -688,6 +703,7 @@ var keyStrings = {
     no: "ಇಲ್ಲ",
     "no epg at current time": "ಪ್ರಸ್ತುತ ಸಮಯದಲ್ಲಿ EPG ಇಲ್ಲ",
     "not set": "ಹೊಂದಿಸಲಾಗಿಲ್ಲ",
+    Ocean: "ಸಾಗರ",
     Off: "ಆಫ್",
     Ok: "ಸರಿ",
     On: "ಆನ್",
@@ -723,6 +739,7 @@ var keyStrings = {
         "ಪೇರಿಂಗ್ ಸರ್ವರ್ ಲಭ್ಯವಿಲ್ಲ. ಮರುಪ್ರಯತ್ನಿಸಲು ಸರ್ವರ್ ಅನ್ನು ಮತ್ತೆ ಹುಡುಕಿ.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "ಜೋಡಿಸುವಿಕೆಯನ್ನು ತಿರಸ್ಕರಿಸಲಾಗಿದೆ ಅಥವಾ ಅಮಾನ್ಯ ಅನುಮೋದನೆಯನ್ನು ಹಿಂತಿರುಗಿಸಲಾಗಿದೆ. ಮರುಪ್ರಯತ್ನಿಸಲು ಸರ್ವರ್ ಅನ್ನು ಮತ್ತೆ ಹುಡುಕಿ.",
+    Palette: "ಬಣ್ಣದ ಪ್ಯಾಲೆಟ್",
     "Parental control": "ಪೋಷಕರ ನಿಯಂತ್ರಣ",
     Password: "ಪಾಸ್‌ವರ್ಡ್",
     "Paste settings JSON": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಅಂಟಿಸಿ JSON",
@@ -769,6 +786,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "ಸುರಕ್ಷಿತ ರಿಮೋಟ್ ಇನ್‌ಪುಟ್ ಅನ್ನು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
     Prev: "ಹಿಂದಿನ",
+    Preview: "ಮುನ್ನೋಟ",
     "Preview in channel list": "ಚಾನಲ್ ಪಟ್ಟಿಯಲ್ಲಿ ಪೂರ್ವವೀಕ್ಷಣೆ",
     Previous: "ಹಿಂದಿನ",
     "Privacy policy": "ಗೌಪ್ಯತೆ ನೀತಿ",
@@ -899,6 +917,7 @@ var keyStrings = {
     Search: "ಹುಡುಕಾಟ",
     "Search languages": "ಭಾಷೆಗಳನ್ನು ಹುಡುಕಿ",
     "Search programme": "ಕಾರ್ಯಕ್ರಮ ಹುಡುಕಿ",
+    "Secondary text color": "ದ್ವಿತೀಯ ಪಠ್ಯದ ಬಣ್ಣ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ಸುರಕ್ಷಿತ ರಿಮೋಟ್ ಇನ್‌ಪುಟ್ ಪ್ರಾರಂಭಿಸಲಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಆನ್-ಸ್ಕ್ರೀನ್ ಕೀಬೋರ್ಡ್ ಬಳಸಿ.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -918,6 +937,8 @@ var keyStrings = {
     "Select screenshot source in browser": "ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಮೂಲವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
     "Select the player tab or window in the browser sharing dialog.":
         "ಬ್ರೌಸರ್ ಹಂಚಿಕೆ ಸಂವಾದದಲ್ಲಿ ಪ್ಲೇಯರ್ ಟ್ಯಾಬ್ ಅಥವಾ ವಿಂಡೋವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    "Selected item": "ಆಯ್ಕೆ ಮಾಡಿದ ಅಂಶ",
+    "Selected text color": "ಆಯ್ಕೆ ಮಾಡಿದ ಪಠ್ಯದ ಬಣ್ಣ",
     "Send request": "ವಿನಂತಿಯನ್ನು ಕಳುಹಿಸಿ",
     "Send settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಕಳುಹಿಸಿ",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1029,6 +1050,7 @@ var keyStrings = {
     "Subscription information": "ಚಂದಾದಾರಿಕೆ ಮಾಹಿತಿ",
     Subtitle: "ಉಪಶೀರ್ಷಿಕೆಗಳು",
     "Subtitle appearance": "ಉಪಶೀರ್ಷಿಕೆಗಳ ನೋಟ",
+    "Surface color": "ಮೇಲ್ಮೈ ಬಣ್ಣ",
     Switch: "ಬದಲಿಸಿ",
     "Switch sound track": "ಆಡಿಯೋ ಟ್ರ್ಯಾಕ್ ಬದಲಿಸಿ",
     "Switch subtitle": "ಉಪಶೀರ್ಷಿಕೆಗಳನ್ನು ಬದಲಿಸಿ",
@@ -1130,6 +1152,7 @@ var keyStrings = {
         "ರಿಮೋಟ್ ಡಯಾಗ್ನೋಸ್ಟಿಕ್ಸ್‌ಗಾಗಿ HTTPS ಕಮಾಂಡ್ ಸರ್ವರ್ ಬಳಸಿ.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ವಿಳಾಸದಲ್ಲಿ ಬಳಕೆದಾರಹೆಸರು ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ಇಲ್ಲದೆ HTTP ಅಥವಾ HTTPS ಬಳಸಿ.",
+    "Use inherited color": "ಆನುವಂಶಿಕ ಬಣ್ಣ ಬಳಸಿ",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ನಿಯಂತ್ರಣವನ್ನು ಆಯ್ಕೆ ಮಾಡಲು ಎಡ/ಬಲ, ಅದನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲು ಸರಿ ಮತ್ತು ಸ್ಕ್ರಾಲ್ ಮಾಡಲು ಮೇಲೆ/ಕೆಳಗೆ ಬಳಸಿ.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1153,6 +1176,7 @@ var keyStrings = {
         "VPortal ಅನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ. ಲಿಂಕ್, ಪ್ರವೇಶ ಕೀ ಮತ್ತು ಪೋರ್ಟಲ್ ಲಭ್ಯತೆಯನ್ನು ಪರಿಶೀಲಿಸಿ.",
     volume: "ಧ್ವನಿಯ ಮಟ್ಟ",
     "Waiting for sign-in…": "ಸೈನ್ ಇನ್‌ಗಾಗಿ ನಿರೀಕ್ಷಿಸಲಾಗುತ್ತಿದೆ...",
+    "Warm graphite": "ಬೆಚ್ಚಗಿನ ಗ್ರಾಫೈಟ್",
     "Wrong parental code !!!": "ತಪ್ಪಾದ ಪೋಷಕರ ಕೋಡ್!",
     "Xtream Codes Provider": "Xtream ಕೋಡ್‌ಗಳನ್ನು ಒದಗಿಸುವವರು",
     "Xtream Codes settings": "Xtream ಕೋಡ್‌ಗಳ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",

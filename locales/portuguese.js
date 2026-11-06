@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "O leitor rejeitou um comando. Verifique o fornecedor e as configurações.",
     About: "Acerca de",
+    "Accent color": "Cor de destaque",
     "Access code": "Código de acesso",
     "Access denied. Check the server access code.":
         "Acesso negado. Verifique o código de acesso do servidor.",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "A API falhou, a tentar M3U…",
     "API Server": "Servidor API",
     "API server URL": "URL do servidor API",
+    Apply: "Aplicar",
+    "Apply changes to this draft, then use Save Settings.":
+        "Aplique as alterações a este rascunho e depois selecione Guardar configurações.",
     "Applying HTTP remote settings...":
         "A aplicar as definições do controlo remoto HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Azul",
     "Bookmark age (days): %1": "Idade do marcador (dias): %1",
     "Bookmark age: %1 days": "Idade do marcador: %1 dias",
+    "Border color": "Cor da borda",
     Brightness: "Brilho",
     "Browse folders": "Navegar por pastas",
     "Buffer Size, s": "Tamanho do buffer, s",
@@ -196,6 +201,7 @@ var keyStrings = {
     "Cloud transfer failed": "Falha na transferência para nuvem",
     Code: "Código de acesso",
     Color: "Cor",
+    "Color schemes": "Esquemas de cores",
     "Color spectrum": "Espetro de cores",
     "Command server": "Servidor de comandos",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -336,6 +342,7 @@ var keyStrings = {
         "Não foi possível atualizar o controlo remoto HTTP.",
     Country: "País",
     "Create category": "Criar categoria",
+    Custom: "Personalizado",
     current: "atual",
     "Debug enabled. Restart to apply.":
         "Depuração ativada. Reinicie o leitor para aplicar a alteração.",
@@ -500,6 +507,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "A fonte EPG retornou HTTP %1",
     "EPG source: %1": "Fonte EPG: %1",
     "EPG stopped during: %1": "EPG parado durante: %1",
+    "EPG time color": "Cor da hora do EPG",
     "EPG unavailable on this browser": "EPG indisponível neste navegador",
     "EPG unavailable: %1": "EPG indisponível: %1",
     "EPG update failed; using saved programme guide":
@@ -575,6 +583,7 @@ var keyStrings = {
     "Hide / Return": "Ocultar / mostrar",
     "Hide provider settings?": "Ocultar as configurações do fornecedor?",
     "Hide providers?": "Ocultar fornecedores?",
+    "High contrast": "Alto contraste",
     "History in Media Library": "Histórico na mediateca",
     "History of watched movies": "Histórico de visualização",
     Home: "Início",
@@ -582,6 +591,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "O controlo remoto HTTP não está disponível neste dispositivo.",
     "HTTPS support": "Suporte a HTTPS",
+    Hue: "Matiz",
     ID: "ID",
     "Import settings": "Importar configurações",
     "In live mode: <br/>": "No modo em direto:<br/>",
@@ -589,6 +599,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Duração da barra de informações, s",
     "Infobar settings": "Configurações da barra de informações",
     Information: "Informações",
+    Inherited: "Herdado",
+    "Interface colors": "Cores da interface",
     "Interface credits": "Créditos da interface",
     "Interface mode": "Modo da interface",
     "Interface settings": "Configurações da interface",
@@ -598,6 +610,7 @@ var keyStrings = {
         "Ligação do canal inválida! Introduza o nome completo do servidor como no URL do fluxo da área de cliente (ex.: subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Resposta de configurações de nuvem inválida",
+    "Invalid color value": "Valor de cor inválido",
     "Invalid protected source configuration":
         "Configuração inválida da fonte protegida",
     "Invalid range: %1-%2": "Intervalo inválido: %1-%2",
@@ -610,6 +623,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Configurações de KORONA TV",
     "Label (optional)": "Etiqueta (opcional)",
+    Light: "Claro",
     "List created": "Lista criada",
     "List deleted": "Lista eliminada",
     "List location": "Posição da lista",
@@ -672,6 +686,7 @@ var keyStrings = {
     "Media Library URL": "URL da mediateca",
     Menu: "Menu",
     "Menu items settings": "Configurações dos itens do menu",
+    Midnight: "Meia-noite",
     Modern: "Moderno",
     "Modern interface is unavailable. Classic remains active.":
         "A interface moderna está indisponível. A clássica permanece ativa.",
@@ -718,6 +733,7 @@ var keyStrings = {
     no: "não",
     "no epg at current time": "Sem EPG neste momento",
     "not set": "não definido",
+    Ocean: "Oceano",
     Off: "Desativado",
     Ok: "OK",
     On: "Ativado",
@@ -753,6 +769,7 @@ var keyStrings = {
         "O servidor de emparelhamento está indisponível. Procure novamente o servidor para voltar a tentar.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "O emparelhamento foi rejeitado ou devolveu uma aprovação inválida. Procure novamente o servidor para voltar a tentar.",
+    Palette: "Paleta",
     "Parental control": "Controlo parental",
     Password: "Palavra-passe",
     "Paste settings JSON": "Cole as configurações em formato JSON",
@@ -798,6 +815,7 @@ var keyStrings = {
     Prepaid: "Pré-pago",
     "Preparing secure remote input...": "Preparando entrada remota segura...",
     Prev: "Anterior",
+    Preview: "Pré-visualização",
     "Preview in channel list": "Pré-visualização na lista de canais",
     Previous: "Anterior",
     "Privacy policy": "Política de privacidade",
@@ -934,6 +952,7 @@ var keyStrings = {
     Search: "Pesquisar",
     "Search languages": "Pesquisar idiomas",
     "Search programme": "Pesquisar programa",
+    "Secondary text color": "Cor do texto secundário",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "A entrada remota segura não pôde ser iniciada. Tente novamente ou use o teclado na tela.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -955,6 +974,8 @@ var keyStrings = {
         "Selecione a fonte da captura de tela no navegador",
     "Select the player tab or window in the browser sharing dialog.":
         "Selecione a guia ou janela do player na caixa de diálogo de compartilhamento do navegador.",
+    "Selected item": "Item selecionado",
+    "Selected text color": "Cor do texto selecionado",
     "Send request": "Enviar pedido",
     "Send settings": "Enviar configurações",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1071,6 +1092,7 @@ var keyStrings = {
     "Subscription information": "Informações da subscrição",
     Subtitle: "Legendas",
     "Subtitle appearance": "Aparência das legendas",
+    "Surface color": "Cor da superfície",
     Switch: "Mudar",
     "Switch sound track": "Mudar faixa de áudio",
     "Switch subtitle": "Mudar legendas",
@@ -1179,6 +1201,7 @@ var keyStrings = {
         "Use um servidor de comando HTTPS para diagnóstico remoto.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Use HTTP ou HTTPS sem nome de utilizador nem palavra-passe no endereço.",
+    "Use inherited color": "Usar cor herdada",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Use ESQUERDA/DIREITA para selecionar um controlo, OK para o ativar e CIMA/BAIXO para deslocar.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1203,6 +1226,7 @@ var keyStrings = {
         "Não foi possível carregar o VPortal. Verifique a ligação, a chave de acesso e a disponibilidade do portal.",
     volume: "volume do som",
     "Waiting for sign-in…": "Aguardando login…",
+    "Warm graphite": "Grafite quente",
     "Wrong parental code !!!": "Código parental errado!!!",
     "Xtream Codes Provider": "Fornecedor Xtream Codes",
     "Xtream Codes settings": "Configurações Xtream Codes",

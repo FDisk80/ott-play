@@ -15,6 +15,7 @@ const source = ts.createSourceFile(
     true
 );
 const names = new Set([
+    "keyboardElementIsEditable",
     "tryKeyboardSeek",
     "tryKeyboardRandom",
     "tryKeyboardFavorites",

@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Програвач відхилив команду. Перевірте провайдера й налаштування.",
     About: "Про програму",
+    "Accent color": "Акцентний колір",
     "Access code": "Код доступу",
     "Access denied. Check the server access code.":
         "Доступ заборонено. Перевірте код доступу до сервера.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Помилка API, спроба M3U…",
     "API Server": "Сервер API",
     "API server URL": "Адреса сервера API",
+    Apply: "Застосувати",
+    "Apply changes to this draft, then use Save Settings.":
+        "Застосуйте зміни до цієї чернетки, а потім виберіть Зберегти налаштування.",
     "Applying HTTP remote settings...":
         "Застосування налаштувань HTTP-пульта...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Синій",
     "Bookmark age (days): %1": "Вік закладки (дні): %1",
     "Bookmark age: %1 days": "Вік закладки: %1 дн.",
+    "Border color": "Колір рамки",
     Brightness: "Яскравість",
     "Browse folders": "Перегляд за папками",
     "Buffer Size, s": "Розмір буфера, с",
@@ -191,6 +196,7 @@ var keyStrings = {
     "Cloud transfer failed": "Помилка хмарного перенесення",
     Code: "Код доступу",
     Color: "Колір",
+    "Color schemes": "Колірні схеми",
     "Color spectrum": "Колірна палітра",
     "Command server": "Сервер команд",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -328,6 +334,7 @@ var keyStrings = {
         "Не вдалося змінити налаштування HTTP-пульта.",
     Country: "Країна",
     "Create category": "Створити категорію",
+    Custom: "Власний варіант",
     current: "поточний",
     "Debug enabled. Restart to apply.":
         "Налагодження ввімкнено. Перезапустіть плеєр, щоб застосувати зміни.",
@@ -489,6 +496,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Джерело EPG повернуло HTTP %1",
     "EPG source: %1": "Джерело EPG: %1",
     "EPG stopped during: %1": "EPG зупинено під час: %1",
+    "EPG time color": "Колір часу в EPG",
     "EPG unavailable on this browser": "EPG недоступний у цьому браузері",
     "EPG unavailable: %1": "EPG недоступний: %1",
     "EPG update failed; using saved programme guide":
@@ -561,6 +569,7 @@ var keyStrings = {
     "Hide / Return": "Приховати / показати",
     "Hide provider settings?": "Приховати налаштування провайдера?",
     "Hide providers?": "Приховати провайдерів?",
+    "High contrast": "Високий контраст",
     "History in Media Library": "Історія в медіатеці",
     "History of watched movies": "Історія перегляду",
     Home: "Головна",
@@ -568,6 +577,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP-пульт недоступний на цьому пристрої.",
     "HTTPS support": "Підтримка HTTPS",
+    Hue: "Колірний тон",
     ID: "ID",
     "Import settings": "Імпорт налаштувань",
     "In live mode: <br/>": "У прямому ефірі:<br/>",
@@ -575,6 +585,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Час показу інформаційної панелі, с",
     "Infobar settings": "Налаштування інформаційної панелі",
     Information: "Інформація",
+    Inherited: "Успадковано",
+    "Interface colors": "Кольори інтерфейсу",
     "Interface credits": "Автори інтерфейсу",
     "Interface mode": "Режим інтерфейсу",
     "Interface settings": "Налаштування інтерфейсу",
@@ -584,6 +596,7 @@ var keyStrings = {
         "Неправильне посилання на канал! Введіть повне ім’я вузла з посилання на потік у кабінеті (наприклад, subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Недійсна відповідь на налаштування хмари",
+    "Invalid color value": "Неприпустиме значення кольору",
     "Invalid protected source configuration":
         "Неправильна конфігурація захищеного джерела",
     "Invalid range: %1-%2": "Неправильний діапазон: %1-%2",
@@ -596,6 +609,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Налаштування KORONA TV",
     "Label (optional)": "Назва (необов’язково)",
+    Light: "Світла",
     "List created": "Список створено",
     "List deleted": "Список видалено",
     "List location": "Розташування списку",
@@ -657,6 +671,7 @@ var keyStrings = {
     "Media Library URL": "Адреса медіатеки",
     Menu: "Меню",
     "Menu items settings": "Налаштування пунктів меню",
+    Midnight: "Північ",
     Modern: "Сучасний",
     "Modern interface is unavailable. Classic remains active.":
         "Сучасний інтерфейс недоступний. Класичний залишається активним.",
@@ -703,6 +718,7 @@ var keyStrings = {
     no: "ні",
     "no epg at current time": "Немає програми на поточний час",
     "not set": "не задано",
+    Ocean: "Океан",
     Off: "Вимкнено",
     Ok: "ОК",
     On: "Увімкнено",
@@ -738,6 +754,7 @@ var keyStrings = {
         "Сервер сполучення недоступний. Повторіть пошук сервера, щоб спробувати знову.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Сполучення відхилено або отримано недійсне підтвердження. Повторіть пошук сервера, щоб спробувати знову.",
+    Palette: "Палітра",
     "Parental control": "Батьківський контроль",
     Password: "Пароль",
     "Paste settings JSON": "Вставте налаштування у форматі JSON",
@@ -784,6 +801,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Підготовка безпечного дистанційного введення...",
     Prev: "Попередня",
+    Preview: "Попередній перегляд",
     "Preview in channel list": "Попередній перегляд у списку каналів",
     Previous: "Попередній канал",
     "Privacy policy": "Політика конфіденційності",
@@ -918,6 +936,7 @@ var keyStrings = {
     Search: "Пошук",
     "Search languages": "Пошук мов",
     "Search programme": "Пошук передачі",
+    "Secondary text color": "Колір другорядного тексту",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Не вдалося запустити захищене дистанційне введення. Спробуйте ще раз або скористайтеся екранною клавіатурою.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -938,6 +957,8 @@ var keyStrings = {
         "Виберіть джерело знімка екрана в браузері",
     "Select the player tab or window in the browser sharing dialog.":
         "Виберіть вкладку або вікно програвача в діалоговому вікні спільного доступу браузера.",
+    "Selected item": "Вибраний елемент",
+    "Selected text color": "Колір вибраного тексту",
     "Send request": "Надіслати запит",
     "Send settings": "Надіслати налаштування",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1051,6 +1072,7 @@ var keyStrings = {
     "Subscription information": "Інформація про передплату",
     Subtitle: "Субтитри",
     "Subtitle appearance": "Оформлення субтитрів",
+    "Surface color": "Колір поверхні",
     Switch: "Перемкнути",
     "Switch sound track": "Змінити звукову доріжку",
     "Switch subtitle": "Змінити субтитри",
@@ -1158,6 +1180,7 @@ var keyStrings = {
         "Використовуйте командний сервер HTTPS для віддаленої діагностики.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Використовуйте HTTP або HTTPS без імені користувача й пароля в адресі.",
+    "Use inherited color": "Використовувати успадкований колір",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ЛІВОРУЧ/ПРАВОРУЧ — вибрати елемент, OK — виконати дію, ВГОРУ/ВНИЗ — прокрутити.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1182,6 +1205,7 @@ var keyStrings = {
         "Не вдалося завантажити VPortal. Перевірте посилання, ключ доступу й доступність порталу.",
     volume: "гучність",
     "Waiting for sign-in…": "Очікування входу…",
+    "Warm graphite": "Теплий графіт",
     "Wrong parental code !!!": "Невірний батьківський код!!!",
     "Xtream Codes Provider": "Провайдер Xtream Codes",
     "Xtream Codes settings": "Налаштування Xtream Codes",

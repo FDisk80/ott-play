@@ -349,10 +349,10 @@ function loaderFixture() {
 }
 {
     const { f, calls } = loaderFixture();
-    assert.equal(f.__ottAppearanceHost.color("50,85", 100), "255,219,38");
-    assert.equal(f.__ottAppearanceHost.color("240,25", 50), "96,96,128");
-    assert.equal(f.__ottAppearanceHost.color("255,0"), "0,0,0");
-    assert.equal(f.__ottAppearanceHost.color("120,50"), "0,128,0");
+    assert.equal(f.classicColorRgb("50,85", 100), "255,219,38");
+    assert.equal(f.classicColorRgb("240,25", 50), "96,96,128");
+    assert.equal(f.classicColorRgb("255,0"), "0,0,0");
+    assert.equal(f.classicColorRgb("120,50"), "0,128,0");
     f.applySubtitleAppearance();
     assert.equal(
         calls.length,

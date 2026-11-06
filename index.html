@@ -18,6 +18,10 @@
         <link rel="icon" type="image/x-icon" href="favicon.ico">
         <style id="ott-interface-style" type="text/css">
         #interfaceCreditsSource { display: none; }
+        html body { background: #111; color: #ccc; }
+        #programm_descr_clip { overflow: hidden; }
+        #programm_clear { clear: both; }
+        #audio_badge { display: none; }
         body {
             touch-action: none;
         }
@@ -327,7 +331,7 @@
         </script>
         <!-- Browser window controls: end -->
     </head>
-    <body class="booting" style="background: #111; color: #ccc;">
+    <body class="booting">
         <div id="interfaceCreditsSource" hidden>
           <div class="interface-credits">
             <p><b class="credits-title">Interface credits &amp; history</b></p>
@@ -365,7 +369,7 @@
             <div id="descr">
                 <div id="programm_name2"></div>
                 <span id="programm_duration"></span>
-                <div style="overflow: hidden;">
+                <div id="programm_descr_clip">
                     <div id="programm_descr"></div>
                 </div>
             </div>
@@ -381,13 +385,13 @@
                 <div id="begin_time"></div>
                 <div id="programm_name"></div>
                 <div id="end_time"></div>
-                <div style="clear: both;"></div>
+                <div id="programm_clear"></div>
                 <div id="nbegin_time"></div>
                 <div id="nprogramm_name"></div>
                 <div id="nend_time"></div>
             </div>
             <div id="data">
-                <span id="audio_badge" class="btn" style="display:none" aria-hidden="true">A</span>
+                <span id="audio_badge" class="btn" aria-hidden="true">A</span>
                 <span id="current_t"></span><span id="current_s"></span>
                 <div id="video_res" role="status" aria-live="polite"></div>
             </div>

@@ -769,6 +769,18 @@
       "value": "Popular",
       "locales": ["malay"],
       "reason": "Popular is the established Malay adjective for widely liked or sought-after content, not an English prose fallback."
+    },
+    {
+      "key": "Ocean",
+      "value": "Ocean",
+      "locales": ["croatian", "polish", "romanian", "slovenian"],
+      "reason": "Established native word for ocean in each listed language; used as a color scheme name."
+    },
+    {
+      "key": "Palette",
+      "value": "Palette",
+      "locales": ["french"],
+      "reason": "French word for a color palette, with the same spelling as English."
     }
   ]
 }

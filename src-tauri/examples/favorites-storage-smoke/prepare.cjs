@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "../../.."),
 for (const file of [
     "src/storage/favorites-physical-storage.ts",
     "src/storage/index.ts",
+    "src/settings/interface-colors.ts",
     "src/utils/lzstring.ts",
     "src/settings/favorites-operation-receipts.ts",
     "src/settings/favorites-recovery-codec.ts",

@@ -1110,6 +1110,30 @@ export function showPage(presentationOnly = false): void {
             row.style.minHeight = itemHeight + "px";
             row.style.lineHeight = itemHeight + "px";
             row.style.width = itemWidth + "px";
+            if (rowFormatter && rowFormatter.__ottSettingsRows) {
+                // Keep the fallback even when player.css is stale or absent.
+                // Only this formatter owns these label/value flex children.
+                for (var part = 0; part < 2; part++) {
+                    var settingPart = row.querySelector(
+                        part ? ".item-value" : ".item-label"
+                    ) as HTMLElement | null;
+                    if (!settingPart) continue;
+                    var settingStyle = settingPart.style;
+                    settingStyle.overflow = "hidden";
+                    settingStyle.textOverflow = "ellipsis";
+                    settingStyle.whiteSpace = "nowrap";
+                    settingStyle.lineHeight = "normal";
+                    if (part) {
+                        settingStyle.flex = "0 0 auto";
+                        settingStyle.maxWidth = "42%";
+                        settingStyle.marginLeft = "auto";
+                        settingStyle.textAlign = "right";
+                    } else {
+                        settingStyle.flex = "1 1 0";
+                        settingStyle.minWidth = "0";
+                    }
+                }
+            }
             if (ri === selIndex) {
                 $(row).addClass("ott-selected");
                 row.style.color = curColor || "gold";
@@ -3545,10 +3569,12 @@ export function showEdit(): void {
         "line-height": height + "px",
         width: t,
     });
-    $("#ik" + _keyCur).css({
-        "background-color": (window as any).curColorB,
-        color: (window as any).curColor,
-    });
+    $("#ik" + _keyCur)
+        .addClass("ott-selected")
+        .css({
+            "background-color": (window as any).curColorB,
+            color: (window as any).curColor,
+        });
     if (listFooterElement)
         listFooterElement.innerHTML =
             renderButtonHint(keys.RETURN, strRETURN, "Close") +
@@ -3632,12 +3658,16 @@ export function clickKey(e: number): void {
         (window as any).event.stopPropagation
     )
         (window as any).event.stopPropagation();
-    $("#ik" + _keyCur).css({ "background-color": "", color: "" });
+    $("#ik" + _keyCur)
+        .removeClass("ott-selected")
+        .css({ "background-color": "", color: "" });
     _keyCur = e;
-    $("#ik" + _keyCur).css({
-        "background-color": (window as any).curColorB,
-        color: (window as any).curColor,
-    });
+    $("#ik" + _keyCur)
+        .addClass("ott-selected")
+        .css({
+            "background-color": (window as any).curColorB,
+            color: (window as any).curColor,
+        });
     editKey1((window as any).keys.ENTER);
 }
 
@@ -3657,12 +3687,16 @@ export function clickKey(e: number): void {
  */
 export function editKey1(e: number): void {
     function focusKeyboardKey(index: number): void {
-        $("#ik" + _keyCur).css({ "background-color": "", color: "" });
+        $("#ik" + _keyCur)
+            .removeClass("ott-selected")
+            .css({ "background-color": "", color: "" });
         _keyCur = index;
-        $("#ik" + _keyCur).css({
-            "background-color": (window as any).curColorB,
-            color: (window as any).curColor,
-        });
+        $("#ik" + _keyCur)
+            .addClass("ott-selected")
+            .css({
+                "background-color": (window as any).curColorB,
+                color: (window as any).curColor,
+            });
     }
     switch (e) {
         case (window as any).keys.UP:
@@ -4268,10 +4302,12 @@ export function clickVal(e: number, focusOnly?: boolean): void {
         aboutKeyHandler((window as any).keys.ENTER);
         return;
     }
-    $("#ik" + _curVal).css({ "background-color": "", color: "" });
+    $("#ik" + _curVal)
+        .removeClass("ott-selected")
+        .css({ "background-color": "", color: "" });
     _curVal = e;
     var key = $("#ik" + _curVal);
-    key.css({
+    key.addClass("ott-selected").css({
         "background-color": (window as any).curColorB,
         color: (window as any).curColor,
     });

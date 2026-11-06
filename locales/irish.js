@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Dhiúltaigh an seinnteoir d’ordú. Seiceáil an soláthraí agus a shocruithe.",
     About: "Maidir leis",
+    "Accent color": "Dath béime",
     "Access code": "Cód rochtana",
     "Access denied. Check the server access code.":
         "Rochtain diúltaithe. Seiceáil cód rochtana an fhreastalaí.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Theip ar an API; ag triail M3U…",
     "API Server": "Freastalaí API",
     "API server URL": "URL an fhreastalaí API",
+    Apply: "Cuir i bhfeidhm",
+    "Apply changes to this draft, then use Save Settings.":
+        "Cuir na hathruithe i bhfeidhm ar an dréacht seo, ansin roghnaigh Sábháil socruithe.",
     "Applying HTTP remote settings...":
         "Socruithe cianrialaithe HTTP á gcur i bhfeidhm…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Gorm",
     "Bookmark age (days): %1": "Aois leabharmharc (laethanta): %1",
     "Bookmark age: %1 days": "Aois an leabharmhairc: %1 lá",
+    "Border color": "Dath na himlíne",
     Brightness: "Gile",
     "Browse folders": "Brabhsáil fillteáin",
     "Buffer Size, s": "Méid an mhaoláin, soic",
@@ -197,6 +202,7 @@ var keyStrings = {
     "Cloud transfer failed": "Theip ar aistriú scamall",
     Code: "Cód",
     Color: "Dath",
+    "Color schemes": "Scéimeanna datha",
     "Color spectrum": "Speictream dathanna",
     "Command server": "Freastalaí orduithe",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -338,6 +344,7 @@ var keyStrings = {
         "Níorbh fhéidir cianrialú HTTP a nuashonrú.",
     Country: "Tír",
     "Create category": "Cruthaigh catagóir",
+    Custom: "Saincheaptha",
     current: "reatha",
     "Debug enabled. Restart to apply.":
         "Dífhabhtú cumasaithe. Atosaigh chun an t-athrú a chur i bhfeidhm.",
@@ -502,6 +509,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Thug foinse EPG HTTP %1 ar ais",
     "EPG source: %1": "Foinse EPG: %1",
     "EPG stopped during: %1": "Stad EPG le linn: %1",
+    "EPG time color": "Dath ama EPG",
     "EPG unavailable on this browser": "Níl EPG ar fáil sa bhrabhsálaí seo",
     "EPG unavailable: %1": "EPG gan fáil: %1",
     "EPG update failed; using saved programme guide":
@@ -575,6 +583,7 @@ var keyStrings = {
     "Hide / Return": "Folaigh / taispeáin",
     "Hide provider settings?": "Folaigh socruithe an tsoláthraí?",
     "Hide providers?": "Folaigh soláthraithe?",
+    "High contrast": "Ardchodarsnacht",
     "History in Media Library": "Stair sa leabharlann meán",
     "History of watched movies": "Stair féachana",
     Home: "Baile",
@@ -582,6 +591,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Níl cianrialú HTTP ar fáil ar an ngléas seo.",
     "HTTPS support": "Tacaíocht HTTPS",
+    Hue: "Lí",
     ID: "ID",
     "Import settings": "Iompórtáil socruithe",
     "In live mode: <br/>": "Sa mhód beo:<br/>",
@@ -589,6 +599,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Am taispeána an bharra faisnéise, soic",
     "Infobar settings": "Socruithe an bharra faisnéise",
     Information: "Eolas",
+    Inherited: "Faighte le hoidhreacht",
+    "Interface colors": "Dathanna an chomhéadain",
     "Interface credits": "Creidiúintí an chomhéadain",
     "Interface mode": "Mód an chomhéadain",
     "Interface settings": "Socruithe an chomhéadain",
@@ -598,6 +610,7 @@ var keyStrings = {
         "Nasc cainéil neamhbhailí! Cuir isteach ainm iomlán an óstaigh ón URL srutha sa chuntas (m.sh. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Freagairt neamhbhailí ar shocruithe néil",
+    "Invalid color value": "Luach datha neamhbhailí",
     "Invalid protected source configuration":
         "Cumraíocht neamhbhailí na foinse cosanta",
     "Invalid range: %1-%2": "Raon neamhbhailí: %1-%2",
@@ -610,6 +623,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Socruithe KORONA TV",
     "Label (optional)": "Lipéad (roghnach)",
+    Light: "Geal",
     "List created": "Liosta cruthaithe",
     "List deleted": "Liosta scriosta",
     "List location": "Suíomh sa liosta",
@@ -672,6 +686,7 @@ var keyStrings = {
     "Media Library URL": "URL na leabharlainne meán",
     Menu: "Roghchlár",
     "Menu items settings": "Socruithe míreanna roghchláir",
+    Midnight: "Meán oíche",
     Modern: "Nua-aimseartha",
     "Modern interface is unavailable. Classic remains active.":
         "Níl an comhéadan nua-aimseartha ar fáil. Fanann an comhéadan clasaiceach gníomhach.",
@@ -718,6 +733,7 @@ var keyStrings = {
     no: "Níl",
     "no epg at current time": "Níl EPG ann don am reatha",
     "not set": "gan socrú",
+    Ocean: "Aigéan",
     Off: "múchta",
     Ok: "Ceart go leor",
     On: "Ar siúl",
@@ -753,6 +769,7 @@ var keyStrings = {
         "Níl an freastalaí péireála ar fáil. Aimsigh an freastalaí arís chun triail eile a bhaint as.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Diúltaíodh don phéireáil nó fuarthas cead neamhbhailí. Aimsigh an freastalaí arís chun triail eile a bhaint as.",
+    Palette: "Pailéad",
     "Parental control": "Rialú tuismitheoirí",
     Password: "Pasfhocal",
     "Paste settings JSON": "Greamaigh JSON na socruithe",
@@ -798,6 +815,7 @@ var keyStrings = {
     Prepaid: "Réamhíoctha",
     "Preparing secure remote input...": "Cianionchur slán á ullmhú...",
     Prev: "Roimhe seo",
+    Preview: "Réamhamharc",
     "Preview in channel list": "Réamhamharc i liosta na gcainéal",
     Previous: "Roimhe seo",
     "Privacy policy": "Polasaí príobháideachais",
@@ -932,6 +950,7 @@ var keyStrings = {
     Search: "Cuardaigh",
     "Search languages": "Cuardaigh teangacha",
     "Search programme": "Cuardaigh clár",
+    "Secondary text color": "Dath an téacs thánaistigh",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Níorbh fhéidir cianionchur slán a thosú. Bain triail eile as nó úsáid an méarchlár ar an scáileán.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -953,6 +972,8 @@ var keyStrings = {
         "Roghnaigh foinse gabhála scáileáin sa bhrabhsálaí",
     "Select the player tab or window in the browser sharing dialog.":
         "Roghnaigh cluaisín nó fuinneog an tseinnteora i ndialóg comhroinnte an bhrabhsálaí.",
+    "Selected item": "Mír roghnaithe",
+    "Selected text color": "Dath an téacs roghnaithe",
     "Send request": "Seol iarratas",
     "Send settings": "Seol socruithe",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1070,6 +1091,7 @@ var keyStrings = {
     "Subscription information": "Faisnéis síntiúis",
     Subtitle: "Fotheidil",
     "Subtitle appearance": "Cuma na bhfotheideal",
+    "Surface color": "Dath an dromchla",
     Switch: "Athraigh",
     "Switch sound track": "Athraigh an rian fuaime",
     "Switch subtitle": "Athraigh na fotheidil",
@@ -1179,6 +1201,7 @@ var keyStrings = {
         "Úsáid freastalaí orduithe HTTPS le haghaidh ciandiagnóisice.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Úsáid HTTP nó HTTPS gan ainm úsáideora ná pasfhocal sa seoladh.",
+    "Use inherited color": "Úsáid an dath faighte le hoidhreacht",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Úsáid CLÉ/DEAS chun rialtán a roghnú, OK chun é a ghníomhachtú, agus SUAS/SÍOS chun scrollú.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1203,6 +1226,7 @@ var keyStrings = {
         "Níorbh fhéidir VPortal a luchtú. Seiceáil an nasc, an eochair rochtana agus infhaighteacht na tairsí.",
     volume: "airde fuaime",
     "Waiting for sign-in…": "Ag fanacht le síniú isteach…",
+    "Warm graphite": "Graifít the",
     "Wrong parental code !!!": "Cód tuismitheora mícheart!",
     "Xtream Codes Provider": "Soláthraí Xtream Codes",
     "Xtream Codes settings": "Socruithe Xtream Codes",

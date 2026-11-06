@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Přehrávač odmítl příkaz. Zkontrolujte poskytovatele a nastavení.",
     About: "O aplikaci",
+    "Accent color": "Barva zvýraznění",
     "Access code": "Přístupový kód",
     "Access denied. Check the server access code.":
         "Přístup odepřen. Zkontrolujte přístupový kód serveru.",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Chyba API, zkoušíme M3U…",
     "API Server": "Server API",
     "API server URL": "URL serveru API",
+    Apply: "Použít",
+    "Apply changes to this draft, then use Save Settings.":
+        "Použijte změny v tomto návrhu a poté zvolte Uložit nastavení.",
     "Applying HTTP remote settings...":
         "Používání nastavení ovládání přes HTTP…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -116,6 +120,7 @@ var keyStrings = {
     Blue: "Modrá",
     "Bookmark age (days): %1": "Stáří záložky (dny): %1",
     "Bookmark age: %1 days": "Stáří záložky: %1 dní",
+    "Border color": "Barva okraje",
     Brightness: "Jas",
     "Browse folders": "Procházet složky",
     "Buffer Size, s": "Velikost vyrovnávací paměti, s",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "Přenos do cloudu se nezdařil",
     Code: "Přístupový kód",
     Color: "Barva",
+    "Color schemes": "Barevná schémata",
     "Color spectrum": "Barevná paleta",
     "Command server": "Příkazový server",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -326,6 +332,7 @@ var keyStrings = {
         "Nastavení ovládání HTTP se nepodařilo aktualizovat.",
     Country: "Země",
     "Create category": "Vytvořit kategorii",
+    Custom: "Vlastní",
     current: "aktuální",
     "Debug enabled. Restart to apply.":
         "Ladění je zapnuto. Změny použijete restartováním přehrávače.",
@@ -485,6 +492,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Zdroj EPG vrátil HTTP %1",
     "EPG source: %1": "Zdroj EPG: %1",
     "EPG stopped during: %1": "EPG zastaveno během: %1",
+    "EPG time color": "Barva času EPG",
     "EPG unavailable on this browser":
         "EPG není v tomto prohlížeči k dispozici",
     "EPG unavailable: %1": "EPG nedostupné: %1",
@@ -558,6 +566,7 @@ var keyStrings = {
     "Hide / Return": "Skrýt / zobrazit",
     "Hide provider settings?": "Skrýt nastavení poskytovatele?",
     "Hide providers?": "Skrýt poskytovatele?",
+    "High contrast": "Vysoký kontrast",
     "History in Media Library": "Historie v knihovně médií",
     "History of watched movies": "Historie sledování",
     Home: "Domů",
@@ -565,6 +574,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Ovládání HTTP není na tomto zařízení dostupné.",
     "HTTPS support": "Podpora HTTPS",
+    Hue: "Odstín",
     ID: "ID",
     "Import settings": "Importovat nastavení",
     "In live mode: <br/>": "V živém vysílání:<br/>",
@@ -572,6 +582,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Doba zobrazení informačního panelu, s",
     "Infobar settings": "Nastavení informačního panelu",
     Information: "Informace",
+    Inherited: "Zděděná",
+    "Interface colors": "Barvy rozhraní",
     "Interface credits": "Autoři rozhraní",
     "Interface mode": "Režim rozhraní",
     "Interface settings": "Nastavení rozhraní",
@@ -580,6 +592,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Neplatný odkaz na kanál! Zadejte úplný název hostitele z URL streamu v klientské sekci (např. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Neplatná odpověď nastavení cloudu",
+    "Invalid color value": "Neplatná hodnota barvy",
     "Invalid protected source configuration":
         "Neplatná konfigurace chráněného zdroje",
     "Invalid range: %1-%2": "Neplatný rozsah: %1-%2",
@@ -592,6 +605,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Nastavení KORONA TV",
     "Label (optional)": "Název (nepovinné)",
+    Light: "Světlé",
     "List created": "Seznam vytvořen",
     "List deleted": "Seznam smazán",
     "List location": "Umístění seznamu",
@@ -653,6 +667,7 @@ var keyStrings = {
     "Media Library URL": "URL knihovny médií",
     Menu: "Nabídka",
     "Menu items settings": "Nastavení položek nabídky",
+    Midnight: "Půlnoc",
     Modern: "Moderní",
     "Modern interface is unavailable. Classic remains active.":
         "Moderní rozhraní není dostupné. Klasické zůstává aktivní.",
@@ -699,6 +714,7 @@ var keyStrings = {
     no: "ne",
     "no epg at current time": "Pro aktuální čas není dostupný program",
     "not set": "nenastaveno",
+    Ocean: "Oceán",
     Off: "Vypnuto",
     Ok: "OK",
     On: "Zapnuto",
@@ -734,6 +750,7 @@ var keyStrings = {
         "Párovací server není dostupný. Pro další pokus znovu vyhledejte server.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Párování bylo odmítnuto nebo přišlo neplatné schválení. Pro další pokus znovu vyhledejte server.",
+    Palette: "Paleta",
     "Parental control": "Rodičovská kontrola",
     Password: "Heslo",
     "Paste settings JSON": "Vložte nastavení ve formátu JSON",
@@ -779,6 +796,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Příprava zabezpečeného vzdáleného vstupu...",
     Prev: "Předchozí",
+    Preview: "Náhled",
     "Preview in channel list": "Náhled v seznamu kanálů",
     Previous: "Předchozí kanál",
     "Privacy policy": "Zásady ochrany osobních údajů",
@@ -912,6 +930,7 @@ var keyStrings = {
     Search: "Hledat",
     "Search languages": "Vyhledávání jazyků",
     "Search programme": "Hledat pořad",
+    "Secondary text color": "Barva vedlejšího textu",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Zabezpečený vzdálený vstup nelze spustit. Zkuste to znovu nebo použijte klávesnici na obrazovce.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -932,6 +951,8 @@ var keyStrings = {
         "Vyberte zdroj snímku obrazovky v prohlížeči",
     "Select the player tab or window in the browser sharing dialog.":
         "Vyberte kartu přehrávače nebo okno v dialogovém okně sdílení prohlížeče.",
+    "Selected item": "Vybraná položka",
+    "Selected text color": "Barva vybraného textu",
     "Send request": "Odeslat požadavek",
     "Send settings": "Odeslat nastavení",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1045,6 +1066,7 @@ var keyStrings = {
     "Subscription information": "Informace o předplatném",
     Subtitle: "Titulky",
     "Subtitle appearance": "Vzhled titulků",
+    "Surface color": "Barva plochy",
     Switch: "Přepnout",
     "Switch sound track": "Změnit zvukovou stopu",
     "Switch subtitle": "Změnit titulky",
@@ -1152,6 +1174,7 @@ var keyStrings = {
         "Pro vzdálenou diagnostiku použijte příkazový server HTTPS.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Použijte HTTP nebo HTTPS bez uživatelského jména a hesla v adrese.",
+    "Use inherited color": "Použít zděděnou barvu",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "VLEVO/VPRAVO — výběr prvku, OK — aktivace, NAHORU/DOLŮ — posouvání.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1176,6 +1199,7 @@ var keyStrings = {
         "Nepodařilo se načíst VPortal. Zkontrolujte odkaz, přístupový klíč a dostupnost portálu.",
     volume: "hlasitost",
     "Waiting for sign-in…": "Čekání na přihlášení…",
+    "Warm graphite": "Teplý grafit",
     "Wrong parental code !!!": "Nesprávný rodičovský kód!",
     "Xtream Codes Provider": "Poskytovatel Xtream Codes",
     "Xtream Codes settings": "Nastavení Xtream Codes",

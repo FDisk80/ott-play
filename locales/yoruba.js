@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Ẹ̀rọ ìṣeré kọ àṣẹ kan. Ṣàyẹ̀wò olùpèsè àti ètò rẹ̀.",
     About: "Nípa",
+    "Accent color": "Àwọ̀ ìtẹnumọ́",
     "Access code": "Kóòdù ìwọlé",
     "Access denied. Check the server access code.":
         "A kọ ìwọlé. Ṣàyẹ̀wò kóòdù ìwọlé sáfà.",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API kùnà, ń gbìyànjú M3U…",
     "API Server": "Sáfà API",
     "API server URL": "URL sáfà API",
+    Apply: "Lò",
+    "Apply changes to this draft, then use Save Settings.":
+        "Lo àwọn àyípadà sí àkọ́pamọ́ yìí, lẹ́yìn náà yan Fi ètò pamọ́.",
     "Applying HTTP remote settings...":
         "Ń mú ètò ìṣàkóso HTTP láti ọ̀nà jíjìn ṣiṣẹ́...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -118,6 +122,7 @@ var keyStrings = {
     Blue: "Búlúù",
     "Bookmark age (days): %1": "Ọjọ ori bukumaaki (ọjọ): %1",
     "Bookmark age: %1 days": "Ọjọ́ orí àmì ìrántí: ọjọ́ %1",
+    "Border color": "Àwọ̀ ààlà",
     Brightness: "Ìmọ́lẹ̀",
     "Browse folders": "Ṣàwárí àwọn fódà",
     "Buffer Size, s": "Ìwọ̀n ibi ìpamọ́ ṣáájú ìṣeré, ìṣẹ́jú-àáyá",
@@ -190,6 +195,7 @@ var keyStrings = {
         "Gbigbe dátà sí ibi ìpamọ́ orí ayélujára kò ṣàṣeyọrí",
     Code: "Kóòdù",
     Color: "Àwọ̀",
+    "Color schemes": "Àwọn ètò àwọ̀",
     "Color spectrum": "Oríṣiríṣi àwọ̀",
     "Command server": "Sáfà àṣẹ",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -325,6 +331,7 @@ var keyStrings = {
         "A kò lè mú ìṣàkóso HTTP láti ọ̀nà jíjìn dójú ìwọ̀n.",
     Country: "Orílẹ̀-èdè",
     "Create category": "Dá ẹ̀ka sílẹ̀",
+    Custom: "Àdáni",
     current: "lọ́wọ́lọ́wọ́",
     "Debug enabled. Restart to apply.":
         "A ti mú àtúnṣe ìṣòro ṣiṣẹ́. Tún bẹ̀rẹ̀ láti lò ó.",
@@ -485,6 +492,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Orísun EPG dá HTTP %1 padà",
     "EPG source: %1": "Orísun EPG: %1",
     "EPG stopped during: %1": "EPG dá dúró nígbà: %1",
+    "EPG time color": "Àwọ̀ àkókò EPG",
     "EPG unavailable on this browser": "EPG kò sí lárọ̀ọ́wọ́tó lórí aṣàwákiri yìí",
     "EPG unavailable: %1": "EPG kò sí lárọ̀ọ́wọ́tó: %1",
     "EPG update failed; using saved programme guide":
@@ -553,6 +561,7 @@ var keyStrings = {
     "Hide / Return": "Fi pamọ́ / fi hàn",
     "Hide provider settings?": "Fi ètò olùpèsè pamọ́?",
     "Hide providers?": "Fi àwọn olùpèsè pamọ́?",
+    "High contrast": "Ìyàtọ̀ gíga",
     "History in Media Library": "Ìtàn nínú ilé-ìkàwé mídíà",
     "History of watched movies": "Ìtàn wíwo",
     Home: "Ilé",
@@ -560,6 +569,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Ìṣàkóso HTTP láti ọ̀nà jíjìn kò sí lárọ̀ọ́wọ́tó lórí ẹ̀rọ yìí.",
     "HTTPS support": "Àtìlẹ́yìn HTTPS",
+    Hue: "Irú àwọ̀",
     ID: "ID",
     "Import settings": "Gbé ètò wọlé",
     "In live mode: <br/>": "Ní ipò ìgbóhùnsáfẹ́fẹ́ tààrà:<br/>",
@@ -567,6 +577,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Àkókò ìfihàn ọ̀pá ìwífún, ìṣẹ́jú-àáyá",
     "Infobar settings": "Ètò ọ̀pá ìwífún",
     Information: "Ìwífún",
+    Inherited: "Tí a jogún",
+    "Interface colors": "Àwọn àwọ̀ ojú ìṣàkóso",
     "Interface credits": "Àwọn tó ṣe ojú ìṣàkóso",
     "Interface mode": "Ìpo ojú ìṣàkóso",
     "Interface settings": "Ètò ojú ìṣàkóso",
@@ -575,6 +587,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Ọ̀nà asopọ̀ ìkànnì kò péye! Tẹ orúkọ olùgbàlejò kíkún bí ó ṣe wà nínú URL ìṣàn nínú àkọọ́lẹ̀ (fún àpẹẹrẹ subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Idahun awọn eto awọsanma ti ko tọ",
+    "Invalid color value": "Iye àwọ̀ kò tọ́",
     "Invalid protected source configuration":
         "Ètò orísun tí a dáàbò bò kò péye",
     "Invalid range: %1-%2": "Ààlà tí kò tọ́: %1-%2",
@@ -587,6 +600,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Ètò KORONA TV",
     "Label (optional)": "Orúkọ (àṣàyàn)",
+    Light: "Ìmọ́lẹ̀",
     "List created": "A ti dá àkójọ sílẹ̀",
     "List deleted": "A ti pa àkójọ rẹ́",
     "List location": "Ipò àkójọ",
@@ -649,6 +663,7 @@ var keyStrings = {
     "Media Library URL": "URL ilé-ìkàwé mídíà",
     Menu: "Àkójọ aṣàyàn",
     "Menu items settings": "Ètò àwọn ohun inú àkójọ aṣàyàn",
+    Midnight: "Ọ̀gànjọ́ òru",
     Modern: "Ìgbàlódé",
     "Modern interface is unavailable. Classic remains active.":
         "Ojú ìṣàkóso ìgbàlódé kò sí. Ti àtijọ́ ṣì ń ṣiṣẹ́.",
@@ -694,6 +709,7 @@ var keyStrings = {
     no: "rárá",
     "no epg at current time": "Kò sí EPG ní àkókò yìí",
     "not set": "a kò tíì ṣètò",
+    Ocean: "Òkun",
     Off: "Pípa",
     Ok: "Ó dáa",
     On: "Ṣíṣí",
@@ -729,6 +745,7 @@ var keyStrings = {
         "Sáfà ìsopọ̀ ẹ̀rọ kò sí lárọ̀ọ́wọ́tó. Tún wá sáfà láti gbìyànjú lẹ́ẹ̀kan sí i.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "A kọ ìsopọ̀ ẹ̀rọ tàbí ó dá ìfọwọ́sí tí kò péye padà. Tún wá sáfà láti gbìyànjú lẹ́ẹ̀kan sí i.",
+    Palette: "Pálẹ́ẹ̀tì àwọ̀",
     "Parental control": "Ìṣàkóso òbí",
     Password: "Ọ̀rọ̀ aṣínà",
     "Paste settings JSON": "Lẹ JSON ètò sí i",
@@ -775,6 +792,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Ń mú títẹ ọ̀rọ̀ láti ọ̀nà jíjìn tí ó ní ààbò ṣetán...",
     Prev: "Tó ṣáájú",
+    Preview: "Àwòtẹ́lẹ̀",
     "Preview in channel list": "Àyẹ̀wò ṣáájú nínú àkójọ ìkànnì",
     Previous: "Tó ṣáájú",
     "Privacy policy": "Ìlànà àṣírí",
@@ -908,6 +926,7 @@ var keyStrings = {
     Search: "Wá",
     "Search languages": "Wá èdè",
     "Search programme": "Wá ètò",
+    "Secondary text color": "Àwọ̀ ọ̀rọ̀ kejì",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Títẹ ọ̀rọ̀ láti ọ̀nà jíjìn tí ó ní ààbò kò lè bẹ̀rẹ̀. Jọ̀wọ́ tún gbìyànjú tàbí lo àtẹ bọ́tìnì lórí ibojú.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -928,6 +947,8 @@ var keyStrings = {
         "Yan orisun àwòrán iboju ni ẹrọ aṣawakiri",
     "Select the player tab or window in the browser sharing dialog.":
         "Yan taabu ẹrọ orin tabi ferese ninu ibaraẹnisọrọ pinpin ẹrọ aṣawakiri.",
+    "Selected item": "Ohun tí a yàn",
+    "Selected text color": "Àwọ̀ ọ̀rọ̀ tí a yàn",
     "Send request": "Fi ìbéèrè ránṣẹ́",
     "Send settings": "Fi ètò ránṣẹ́",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1039,6 +1060,7 @@ var keyStrings = {
     "Subscription information": "Ìwífún ìforúkọsílẹ̀",
     Subtitle: "Àkọlé ìsàlẹ̀",
     "Subtitle appearance": "Ìrísí àkọlé ìsàlẹ̀",
+    "Surface color": "Àwọ̀ ojú ilẹ̀",
     Switch: "Yí padà",
     "Switch sound track": "Yí ọ̀nà ohùn padà",
     "Switch subtitle": "Yí àkọlé ìsàlẹ̀ padà",
@@ -1145,6 +1167,7 @@ var keyStrings = {
         "Lo sáfà àṣẹ HTTPS fún àyẹ̀wò ìṣòro láti ọ̀nà jíjìn.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Lo HTTP tàbí HTTPS láìsí orúkọ olùlò tàbí ọ̀rọ̀ aṣínà nínú àdírẹ́sì.",
+    "Use inherited color": "Lo àwọ̀ tí a jogún",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Lo ÒSÌ/Ọ̀TÚN láti yan ìṣàkóso, Ó DÁA láti mú un ṣiṣẹ́, àti ÒKÈ/ÌSÀLẸ̀ láti yí ojú ìwé.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1168,6 +1191,7 @@ var keyStrings = {
         "A kò lè gbé VPortal wọlé. Ṣàyẹ̀wò ọ̀nà asopọ̀, kọ́kọ́rọ́ ìwọlé àti wíwà ojú-ọ̀nà.",
     volume: "ìró ohùn",
     "Waiting for sign-in…": "Ń dúró de ìwọlé…",
+    "Warm graphite": "Gíràfáìtì gbígbóná",
     "Wrong parental code !!!": "Kóòdù òbí kò tọ́!",
     "Xtream Codes Provider": "Olùpèsè Xtream Codes",
     "Xtream Codes settings": "Ètò Xtream Codes",

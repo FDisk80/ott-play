@@ -2772,6 +2772,16 @@ test("Actual PIN cancellation, denial and replacement clear shuffle while only a
         c.__ottMedia.toggleShuffle();
         c.completeCollection();
         const old = c.dialogBoxKeyHandler;
+        const firstDigit = c.document.getElementById("k1");
+        const secondDigit = c.document.getElementById("k2");
+        assert(firstDigit.classList.contains("ott-color-selected"), outcome);
+        assert(!secondDigit.classList.contains("ott-color-selected"), outcome);
+        old(c.keys.RIGHT);
+        assert(!firstDigit.classList.contains("ott-color-selected"), outcome);
+        assert(secondDigit.classList.contains("ott-color-selected"), outcome);
+        old(c.keys.LEFT);
+        assert(firstDigit.classList.contains("ott-color-selected"), outcome);
+        assert(!secondDigit.classList.contains("ott-color-selected"), outcome);
         assert.equal(c.__ottMedia.snapshot().shuffle, "loading", outcome);
         let replacement;
         if (outcome === "cancelled") old(c.keys.RETURN);

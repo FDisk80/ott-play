@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "En kommando ble avvist av mediespilleren. Sjekk leverandøren og innstillingene.",
     About: "Om",
+    "Accent color": "Aksentfarge",
     "Access code": "Tilgangskode",
     "Access denied. Check the server access code.":
         "Tilgang nektet. Sjekk servertilgangskoden.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API mislyktes, prøver M3U...",
     "API Server": "API server",
     "API server URL": "API server URL",
+    Apply: "Bruk",
+    "Apply changes to this draft, then use Save Settings.":
+        "Bruk endringene på dette utkastet, og velg deretter Lagre innstillinger.",
     "Applying HTTP remote settings...":
         "Bruker HTTP fjernkontrollinnstillinger...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Blått",
     "Bookmark age (days): %1": "Bokmerkets alder (dager): %1",
     "Bookmark age: %1 days": "Bokmerkealder: %1 dager",
+    "Border color": "Kantfarge",
     Brightness: "Lysstyrke",
     "Browse folders": "Bla gjennom mapper",
     "Buffer Size, s": "Bufferstørrelse, s",
@@ -193,6 +198,7 @@ var keyStrings = {
     "Cloud transfer failed": "Skyoverføring mislyktes",
     Code: "Kode",
     Color: "Farge",
+    "Color schemes": "Fargeskjemaer",
     "Color spectrum": "Fargespekter",
     "Command server": "Kommandoserver",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -331,6 +337,7 @@ var keyStrings = {
         "Kunne ikke oppdatere HTTP fjernkontrollen.",
     Country: "Land",
     "Create category": "Opprett kategori",
+    Custom: "Egendefinert",
     current: "gjeldende",
     "Debug enabled. Restart to apply.":
         "Feilsøking er aktivert. Start på nytt for å ta endringen i bruk.",
@@ -492,6 +499,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG kilde returnerte HTTP %1",
     "EPG source: %1": "EPG kilde: %1",
     "EPG stopped during: %1": "EPG stoppet under: %1",
+    "EPG time color": "Farge på EPG-tid",
     "EPG unavailable on this browser": "EPG utilgjengelig i denne nettleseren",
     "EPG unavailable: %1": "EPG utilgjengelig: %1",
     "EPG update failed; using saved programme guide":
@@ -563,6 +571,7 @@ var keyStrings = {
     "Hide / Return": "Skjul / vis",
     "Hide provider settings?": "Vil du skjule leverandørinnstillingene?",
     "Hide providers?": "Skjule tilbydere?",
+    "High contrast": "Høy kontrast",
     "History in Media Library": "Historikk i mediebiblioteket",
     "History of watched movies": "Avspillingshistorikk",
     Home: "Hjem",
@@ -570,6 +579,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP fjernkontroll er utilgjengelig på denne enheten.",
     "HTTPS support": "HTTPS støtte",
+    Hue: "Fargetone",
     ID: "ID",
     "Import settings": "Importer innstillinger",
     "In live mode: <br/>": "Under direktesending:<br/>",
@@ -577,6 +587,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Infolinjens visningstid, s",
     "Infobar settings": "Innstillinger for informasjonslinjen",
     Information: "Informasjon",
+    Inherited: "Arvet",
+    "Interface colors": "Grensesnittfarger",
     "Interface credits": "Bidragsytere til grensesnittet",
     "Interface mode": "Grensesnittmodus",
     "Interface settings": "Grensesnittinnstillinger",
@@ -585,6 +597,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Ugyldig kanallink! Skriv inn hele verten som i leverandørkontoens dashbordstrøm URL (f.eks. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Ugyldig svar på skyinnstillinger",
+    "Invalid color value": "Ugyldig fargeverdi",
     "Invalid protected source configuration":
         "Ugyldig beskyttet kildekonfigurasjon",
     "Invalid range: %1-%2": "Ugyldig område: %1-%2",
@@ -597,6 +610,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV innstillinger",
     "Label (optional)": "Etikett (valgfritt)",
+    Light: "Lys",
     "List created": "Liste opprettet",
     "List deleted": "Liste slettet",
     "List location": "Listeposisjon",
@@ -659,6 +673,7 @@ var keyStrings = {
     "Media Library URL": "Mediebibliotek URL",
     Menu: "Meny",
     "Menu items settings": "Menyelementinnstillinger",
+    Midnight: "Midnatt",
     Modern: "Moderne",
     "Modern interface is unavailable. Classic remains active.":
         "Det moderne grensesnittet er ikke tilgjengelig. Klassisk forblir aktivt.",
@@ -705,6 +720,7 @@ var keyStrings = {
     no: "nei",
     "no epg at current time": "Ingen EPG for øyeblikket",
     "not set": "ikke satt",
+    Ocean: "Hav",
     Off: "Av",
     Ok: "OK",
     On: "På",
@@ -740,6 +756,7 @@ var keyStrings = {
         "Paringsserver er utilgjengelig. Finn serveren igjen for å prøve på nytt.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Sammenkoblingen ble avvist eller returnerte en ugyldig godkjenning. Finn serveren igjen for å prøve på nytt.",
+    Palette: "Fargepalett",
     "Parental control": "Foreldrekontroll",
     Password: "Passord",
     "Paste settings JSON": "Lim inn innstillinger JSON",
@@ -785,6 +802,7 @@ var keyStrings = {
     Prepaid: "Forhåndsbetalt",
     "Preparing secure remote input...": "Forbereder sikker ekstern inngang ...",
     Prev: "Forrige",
+    Preview: "Forhåndsvisning",
     "Preview in channel list": "Forhåndsvisning i kanallisten",
     Previous: "Forrige",
     "Privacy policy": "Personvernerklæring",
@@ -919,6 +937,7 @@ var keyStrings = {
     Search: "Søk",
     "Search languages": "Søk etter språk",
     "Search programme": "Søk etter program",
+    "Secondary text color": "Sekundær tekstfarge",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Sikker ekstern inngang kunne ikke starte. Prøv igjen eller bruk skjermtastaturet.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -940,6 +959,8 @@ var keyStrings = {
         "Velg skjermbildekilde i nettleseren",
     "Select the player tab or window in the browser sharing dialog.":
         "Velg spillerfanen eller vinduet i dialogboksen for nettleserdeling.",
+    "Selected item": "Valgt element",
+    "Selected text color": "Farge på valgt tekst",
     "Send request": "Send forespørsel",
     "Send settings": "Send innstillinger",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1051,6 +1072,7 @@ var keyStrings = {
     "Subscription information": "Abonnementsinformasjon",
     Subtitle: "Undertekster",
     "Subtitle appearance": "Undertekstenes utseende",
+    "Surface color": "Overflatefarge",
     Switch: "Bytt",
     "Switch sound track": "Bytt lydspor",
     "Switch subtitle": "Bytt undertekster",
@@ -1159,6 +1181,7 @@ var keyStrings = {
         "Bruk en HTTPS kommandoserver for ekstern diagnostikk.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Bruk HTTP eller HTTPS uten brukernavn eller passord i adressen.",
+    "Use inherited color": "Bruk arvet farge",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Bruk VENSTRE/HØYRE for å velge en kontroll, OK for å aktivere den, og OPP/NED for å bla.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1182,6 +1205,7 @@ var keyStrings = {
         "Kunne ikke laste VPortal. Sjekk koblingen, tilgangsnøkkelen og portalens tilgjengelighet.",
     volume: "lydstyrke",
     "Waiting for sign-in…": "Venter på pålogging …",
+    "Warm graphite": "Varm grafitt",
     "Wrong parental code !!!": "Feil foreldrekode!",
     "Xtream Codes Provider": "Xtream Codes Leverandør",
     "Xtream Codes settings": "Xtream Codes innstillinger",

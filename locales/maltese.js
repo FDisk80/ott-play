@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Il-plejer irrifjuta kmand. Iċċekkja l-fornitur u l-issettjar tiegħu.",
     About: "Dwar",
+    "Accent color": "Kulur tal-aċċent",
     "Access code": "Kodiċi tal-aċċess",
     "Access denied. Check the server access code.":
         "Aċċess miċħud. Iċċekkja l-kodiċi tal-aċċess tas-server.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "L-API falla, qed jiġi ppruvat M3U…",
     "API Server": "Server tal-API",
     "API server URL": "URL tas-server tal-API",
+    Apply: "Applika",
+    "Apply changes to this draft, then use Save Settings.":
+        "Applika l-bidliet għal dan l-abbozz, imbagħad agħżel Issejvja l-issettjar.",
     "Applying HTTP remote settings...":
         "Qed jiġi applikat l-issettjar tal-kontroll mill-bogħod HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -122,6 +126,7 @@ var keyStrings = {
     Blue: "Blu",
     "Bookmark age (days): %1": "Età tal-bookmark (jiem): %1",
     "Bookmark age: %1 days": "Età tal-bookmark: %1 jiem",
+    "Border color": "Kulur tal-bordura",
     Brightness: "Luminożità",
     "Browse folders": "Fittex fil-fowlders",
     "Buffer Size, s": "Daqs tal-buffer, s",
@@ -195,6 +200,7 @@ var keyStrings = {
         "It-trasferiment tad-dejta permezz tal-cloud falla",
     Code: "Kodiċi",
     Color: "Kulur",
+    "Color schemes": "Skemi tal-kuluri",
     "Color spectrum": "Spettru tal-kuluri",
     "Command server": "Server tal-kmandi",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -337,6 +343,7 @@ var keyStrings = {
         "Il-kontroll mill-bogħod HTTP ma setax jiġi aġġornat.",
     Country: "Pajjiż",
     "Create category": "Oħloq kategorija",
+    Custom: "Personalizzat",
     current: "attwali",
     "Debug enabled. Restart to apply.":
         "Id-debugging ġie attivat. Erġa’ ibda biex tapplika l-bidla.",
@@ -500,6 +507,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Is-sors EPG rritorna HTTP %1",
     "EPG source: %1": "Sors EPG: %1",
     "EPG stopped during: %1": "EPG waqaf waqt: %1",
+    "EPG time color": "Kulur tal-ħin tal-EPG",
     "EPG unavailable on this browser": "EPG mhux disponibbli f’dan il-brawżer",
     "EPG unavailable: %1": "EPG mhux disponibbli: %1",
     "EPG update failed; using saved programme guide":
@@ -575,6 +583,7 @@ var keyStrings = {
     "Hide / Return": "Aħbi / uri",
     "Hide provider settings?": "Taħbi l-issettjar tal-fornitur?",
     "Hide providers?": "Taħbi l-fornituri?",
+    "High contrast": "Kuntrast għoli",
     "History in Media Library": "Kronoloġija fil-librerija tal-midja",
     "History of watched movies": "Kronoloġija tal-wiri",
     Home: "Paġna ewlenija",
@@ -582,6 +591,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Il-kontroll mill-bogħod HTTP mhux disponibbli fuq dan l-apparat.",
     "HTTPS support": "Appoġġ HTTPS",
+    Hue: "Lewn",
     ID: "ID",
     "Import settings": "Importa l-issettjar",
     "In live mode: <br/>": "Fil-modalità diretta:<br/>",
@@ -589,6 +599,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Ħin tal-wiri tal-barra tal-informazzjoni, s",
     "Infobar settings": "Issettjar tal-barra tal-informazzjoni",
     Information: "Informazzjoni",
+    Inherited: "Miret",
+    "Interface colors": "Kuluri tal-interfaċċja",
     "Interface credits": "Rikonoxximenti tal-interfaċċa",
     "Interface mode": "Modalità tal-interfaċċa",
     "Interface settings": "Issettjar tal-interfaċċa",
@@ -598,6 +610,7 @@ var keyStrings = {
         "Link tal-kanal mhux validu! Daħħal l-isem sħiħ tal-host kif jidher fil-URL tal-istrim fil-kont (eż. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Rispons mhux validu għall-issettjar fil-cloud",
+    "Invalid color value": "Valur tal-kulur mhux validu",
     "Invalid protected source configuration":
         "Konfigurazzjoni tas-sors protett mhux valida",
     "Invalid range: %1-%2": "Medda mhux valida: %1-%2",
@@ -610,6 +623,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Issettjar ta’ KORONA TV",
     "Label (optional)": "Tikketta (mhux obbligatorja)",
+    Light: "Ċar",
     "List created": "Il-lista nħolqot",
     "List deleted": "Il-lista tħassret",
     "List location": "Pożizzjoni fil-lista",
@@ -673,6 +687,7 @@ var keyStrings = {
     "Media Library URL": "URL tal-librerija tal-midja",
     Menu: "Menù",
     "Menu items settings": "Issettjar tal-oġġetti tal-menù",
+    Midnight: "Nofsillejl",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "L-interfaċċa moderna mhix disponibbli. Il-klassika tibqa’ attiva.",
@@ -719,6 +734,7 @@ var keyStrings = {
     no: "Le",
     "no epg at current time": "M’hemmx EPG għall-ħin attwali",
     "not set": "mhux issettjat",
+    Ocean: "Oċean",
     Off: "mitfi",
     Ok: "Tajjeb",
     On: "Mixgħul",
@@ -754,6 +770,7 @@ var keyStrings = {
         "Is-server tal-abbinament mhux disponibbli. Erġa’ sib is-server biex terġa’ tipprova.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "L-abbinament ġie miċħud jew irritorna approvazzjoni mhux valida. Erġa’ sib is-server biex terġa’ tipprova.",
+    Palette: "Paletta",
     "Parental control": "Kontroll tal-ġenituri",
     Password: "Kelma sigrieta",
     "Paste settings JSON": "Waħħal JSON tal-issettjar",
@@ -798,6 +815,7 @@ var keyStrings = {
     Prepaid: "Imħallas minn qabel",
     "Preparing secure remote input...": "Qed jitħejja dħul remot sigur...",
     Prev: "Preċedenti",
+    Preview: "Previżjoni",
     "Preview in channel list": "Previżjoni fil-lista tal-kanali",
     Previous: "Preċedenti",
     "Privacy policy": "Politika tal-privatezza",
@@ -938,6 +956,7 @@ var keyStrings = {
     Search: "Fittex",
     "Search languages": "Fittex lingwi",
     "Search programme": "Fittex programm",
+    "Secondary text color": "Kulur tat-test sekondarju",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Id-dħul remot sigur ma setax jibda. Erġa’ pprova jew uża t-tastiera fuq l-iskrin.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -958,6 +977,8 @@ var keyStrings = {
         "Agħżel is-sors ta' ritratt tal-iskrin fil-brawżer",
     "Select the player tab or window in the browser sharing dialog.":
         "Agħżel it-tab jew it-tieqa tal-plejer fid-djalogu tal-qsim tal-brawżer.",
+    "Selected item": "Oġġett magħżul",
+    "Selected text color": "Kulur tat-test magħżul",
     "Send request": "Ibgħat talba",
     "Send settings": "Ibgħat l-issettjar",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1072,6 +1093,7 @@ var keyStrings = {
     "Subscription information": "Informazzjoni tal-abbonament",
     Subtitle: "Sottotitli",
     "Subtitle appearance": "Dehra tas-sottotitli",
+    "Surface color": "Kulur tal-wiċċ",
     Switch: "Aqleb",
     "Switch sound track": "Ibdel il-binarju tal-awdjo",
     "Switch subtitle": "Ibdel is-sottotitli",
@@ -1181,6 +1203,7 @@ var keyStrings = {
         "Uża server tal-kmandi HTTPS għad-dijanjostika remota.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Uża HTTP jew HTTPS mingħajr isem tal-utent jew password fl-indirizz.",
+    "Use inherited color": "Uża l-kulur li ntiret",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Uża XELLUG/LEMIN biex tagħżel kontroll, OK biex tattivah, u FUQ/ISFEL biex tiskrollja.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1204,6 +1227,7 @@ var keyStrings = {
         "VPortal ma setax jitgħabba. Iċċekkja l-link, iċ-ċavetta tal-aċċess u d-disponibbiltà tal-portal.",
     volume: "volum",
     "Waiting for sign-in…": "Qed tistenna d-dħul…",
+    "Warm graphite": "Grafit sħun",
     "Wrong parental code !!!": "Kodiċi tal-ġenituri ħażin!",
     "Xtream Codes Provider": "Fornitur Xtream Codes",
     "Xtream Codes settings": "Issettjar ta’ Xtream Codes",

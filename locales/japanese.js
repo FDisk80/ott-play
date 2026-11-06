@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "プレイヤーによりコマンドが拒否されました。プロバイダーと設定を確認してください。",
     About: "について",
+    "Accent color": "アクセントカラー",
     "Access code": "アクセスコード",
     "Access denied. Check the server access code.":
         "アクセスが拒否されました。サーバーのアクセスコードを確認してください。",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API が失敗しました。M3U を試行しました…",
     "API Server": "APIサーバー",
     "API server URL": "APIサーバー URL",
+    Apply: "適用",
+    "Apply changes to this draft, then use Save Settings.":
+        "この下書きに変更を適用してから、「設定を保存する」を選択してください。",
     "Applying HTTP remote settings...": "HTTP リモート設定を適用しています...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "%1のコードをott approve NAME CODEで承認します。",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "ブルー",
     "Bookmark age (days): %1": "ブックマークの経過日数：%1",
     "Bookmark age: %1 days": "ブックマーク年齢：%1日",
+    "Border color": "枠線の色",
     Brightness: "明るさ",
     "Browse folders": "フォルダを参照する",
     "Buffer Size, s": "バッファサイズ、s",
@@ -192,6 +197,7 @@ var keyStrings = {
     "Cloud transfer failed": "クラウド転送に失敗しました",
     Code: "コード",
     Color: "カラー",
+    "Color schemes": "配色",
     "Color spectrum": "カラースペクトル",
     "Command server": "コマンドサーバー",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -331,6 +337,7 @@ var keyStrings = {
         "HTTPリモコンを更新できませんでした。",
     Country: "国",
     "Create category": "カテゴリの作成",
+    Custom: "カスタム",
     current: "現在",
     "Debug enabled. Restart to apply.":
         "デバッグが有効になりました。適用するには再起動してください。",
@@ -493,6 +500,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG ソースが HTTP %1 を返しました",
     "EPG source: %1": "EPG 出典：%1",
     "EPG stopped during: %1": "EPG が途中で停止しました: %1",
+    "EPG time color": "EPG 時刻の色",
     "EPG unavailable on this browser": "このブラウザではEPGは利用できません",
     "EPG unavailable: %1": "EPG利用不可：%1",
     "EPG update failed; using saved programme guide":
@@ -564,6 +572,7 @@ var keyStrings = {
     "Hide / Return": "隠す/見せる",
     "Hide provider settings?": "プロバイダ設定を非表示にしますか？",
     "Hide providers?": "プロバイダーを非表示にしますか？",
+    "High contrast": "ハイコントラスト",
     "History in Media Library": "メディアライブラリの履歴",
     "History of watched movies": "視聴履歴",
     Home: "ホーム",
@@ -571,6 +580,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "本機ではHTTPリモコンは使用できません。",
     "HTTPS support": "HTTPSサポート",
+    Hue: "色相",
     ID: "ID",
     "Import settings": "設定をインポート",
     "In live mode: <br/>": "ライブモード時：<br/>",
@@ -578,6 +588,8 @@ var keyStrings = {
     "Infobar display timeout, s": "情報バー表示タイムアウト、s",
     "Infobar settings": "情報バーの設定",
     Information: "お知らせ",
+    Inherited: "継承",
+    "Interface colors": "インターフェースの色",
     "Interface credits": "インターフェースクレジット",
     "Interface mode": "インターフェースモード",
     "Interface settings": "インターフェースの設定",
@@ -586,6 +598,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "チャンネルリンクが無効です！キャビネット ストリーム URL のように完全なホストを入力します (例: subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "無効なクラウド設定応答",
+    "Invalid color value": "無効な色の値",
     "Invalid protected source configuration": "保護されたソース構成が無効です",
     "Invalid range: %1-%2": "無効な範囲：%1-%2",
     "Invalid setting": "設定が無効です",
@@ -597,6 +610,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TVの設定",
     "Label (optional)": "名前（任意）",
+    Light: "ライト",
     "List created": "リスト作成",
     "List deleted": "リスト削除",
     "List location": "リスト位置",
@@ -660,6 +674,7 @@ var keyStrings = {
     "Media Library URL": "メディアライブラリー URL",
     Menu: "メニュー",
     "Menu items settings": "メニュー項目の設定",
+    Midnight: "真夜中",
     Modern: "モダン",
     "Modern interface is unavailable. Classic remains active.":
         "モダンインターフェースは利用できません。クラシックを引き続き使用します。",
@@ -706,6 +721,7 @@ var keyStrings = {
     no: "いいえ",
     "no epg at current time": "現時点ではEPGはありません",
     "not set": "未設定",
+    Ocean: "海",
     Off: "オフ",
     Ok: "確認",
     On: "オン",
@@ -741,6 +757,7 @@ var keyStrings = {
         "ペアリングサーバーが利用できません。サーバーを再度見つけて再試行してください。",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "ペアリングが拒否されたか、無効な承認が返されました。サーバーを再度見つけて再試行してください。",
+    Palette: "パレット",
     "Parental control": "ペアレンタルコントロール",
     Password: "パスワード",
     "Paste settings JSON": "設定貼り付け JSON",
@@ -785,6 +802,7 @@ var keyStrings = {
     Prepaid: "プリペイド",
     "Preparing secure remote input...": "安全なリモート入力を準備しています...",
     Prev: "前へ",
+    Preview: "プレビュー",
     "Preview in channel list": "チャンネルリストでプレビュー",
     Previous: "前へ",
     "Privacy policy": "プライバシーポリシー",
@@ -922,6 +940,7 @@ var keyStrings = {
     Search: "検索",
     "Search languages": "言語を検索する",
     "Search programme": "番組を検索",
+    "Secondary text color": "補助テキストの色",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "セキュアリモート入力を開始できませんでした。もう一度試すか、スクリーンキーボードを使用してください。",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -943,6 +962,8 @@ var keyStrings = {
         "ブラウザでスクリーンショットのソースを選択",
     "Select the player tab or window in the browser sharing dialog.":
         "ブラウザ共有ダイアログでプレーヤーのタブまたはウィンドウを選択します。",
+    "Selected item": "選択項目",
+    "Selected text color": "選択されたテキストの色",
     "Send request": "送信リクエスト",
     "Send settings": "送信設定",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1057,6 +1078,7 @@ var keyStrings = {
     "Subscription information": "定期購読のご案内",
     Subtitle: "字幕",
     "Subtitle appearance": "字幕の表示設定",
+    "Surface color": "サーフェスの色",
     Switch: "スイッチ",
     "Switch sound track": "音声トラックを切り替え",
     "Switch subtitle": "字幕を切り替え",
@@ -1162,6 +1184,7 @@ var keyStrings = {
         "リモート診断には HTTPS コマンド サーバーを使用します。",
     "Use HTTP or HTTPS without a username or password in the address.":
         "アドレスにユーザー名やパスワードを含めずに、HTTP または HTTPS を使用します。",
+    "Use inherited color": "継承した色を使用",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "LEFT/RIGHT を使用してコントロールを選択し、OK を使用してアクティブにし、UP/DOWN を使用してスクロールします。",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1187,6 +1210,7 @@ var keyStrings = {
         "VPortalをロードできませんでした。リンク、アクセス キー、ポータルの可用性を確認します。",
     volume: "音量",
     "Waiting for sign-in…": "サインインを待っています…",
+    "Warm graphite": "暖色グラファイト",
     "Wrong parental code !!!": "ペアレントコードが間違っています！",
     "Xtream Codes Provider": "Xtream コードプロバイダー",
     "Xtream Codes settings": "Xtream コードの設定",

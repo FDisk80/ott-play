@@ -25,7 +25,10 @@ function load(file, requires = {}, extra = {}) {
         Date,
         exports,
         require(name) {
-            if (name === "./favorites-physical-storage")
+            if (
+                name === "./favorites-physical-storage" ||
+                name === "../settings/interface-colors"
+            )
                 return storageImports().require(name);
             assert.ok(name in requires, name);
             return requires[name];

@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "پليئر هڪ حڪم رد ڪيو. فراهم ڪندڙ ۽ ان جون سيٽنگون جاچيو.",
     About: "بابت",
+    "Accent color": "نمايان رنگ",
     "Access code": "رسائي ڪوڊ",
     "Access denied. Check the server access code.":
         "رسائي رد ٿي وئي. سرور جو رسائي ڪوڊ جاچيو.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ناڪام، M3U آزمايو پيو وڃي…",
     "API Server": "API سرور",
     "API server URL": "API سرور URL",
+    Apply: "لاڳو ڪريو",
+    "Apply changes to this draft, then use Save Settings.":
+        "هن مسودي تي تبديليون لاڳو ڪريو، پوءِ سيٽنگون محفوظ ڪريو چونڊيو.",
     "Applying HTTP remote settings...":
         "HTTP ريموٽ سيٽنگون لاڳو ٿي رهيون آهن...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -118,6 +122,7 @@ var keyStrings = {
     Blue: "نيرو",
     "Bookmark age (days): %1": "بک مارڪ جي عمر (ڏينهن): %1",
     "Bookmark age: %1 days": "بڪ مارڪ جي عمر: %1 ڏينهن",
+    "Border color": "ڪناري جو رنگ",
     Brightness: "چمڪ",
     "Browse folders": "فولڊر ڏسو",
     "Buffer Size, s": "بفر جي ماپ، سي",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "ڪلائوڊ منتقلي ناڪام ٿي وئي",
     Code: "ڪوڊ",
     Color: "رنگ",
+    "Color schemes": "رنگن جون رٿائون",
     "Color spectrum": "رنگن جو دائرو",
     "Command server": "حڪم سرور",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -323,6 +329,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "HTTP ريموٽ ڪنٽرول اپڊيٽ نه ٿيو.",
     Country: "ملڪ",
     "Create category": "زمرو ٺاهيو",
+    Custom: "پنهنجي مرضي موجب",
     current: "هاڻوڪو",
     "Debug enabled. Restart to apply.":
         "ڊيبگ فعال ٿيو. لاڳو ڪرڻ لاءِ ٻيهر شروع ڪريو.",
@@ -484,6 +491,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG ذريعي HTTP %1 موٽايو",
     "EPG source: %1": "EPG ذريعو: %1",
     "EPG stopped during: %1": "EPG هن مرحلي تي رڪيو: %1",
+    "EPG time color": "پروگرام گائيڊ جي وقت جو رنگ",
     "EPG unavailable on this browser": "هن برائوزر ۾ EPG موجود ناهي",
     "EPG unavailable: %1": "EPG موجود ناهي: %1",
     "EPG update failed; using saved programme guide":
@@ -553,6 +561,7 @@ var keyStrings = {
     "Hide / Return": "لڪايو / ڏيکاريو",
     "Hide provider settings?": "فراهم ڪندڙ جون سيٽنگون لڪائجن؟",
     "Hide providers?": "فراهم ڪندڙ لڪائجن؟",
+    "High contrast": "وڌيڪ تضاد",
     "History in Media Library": "ميڊيا لائبريري جي تاريخ",
     "History of watched movies": "ڏسڻ جي تاريخ",
     Home: "مکيه صفحو",
@@ -560,6 +569,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "هن ڊوائيس تي HTTP ريموٽ ڪنٽرول موجود ناهي.",
     "HTTPS support": "HTTPS سهائتا",
+    Hue: "رنگت",
     ID: "ID",
     "Import settings": "سيٽنگون درآمد ڪريو",
     "In live mode: <br/>": "سڌي نشريات جي موڊ ۾:<br/>",
@@ -567,6 +577,8 @@ var keyStrings = {
     "Infobar display timeout, s": "ڄاڻ پٽي ڏيکارڻ جو وقت، سي",
     "Infobar settings": "ڄاڻ پٽي سيٽنگون",
     Information: "ڄاڻ",
+    Inherited: "ورثي ۾ مليل",
+    "Interface colors": "انٽرفيس جا رنگ",
     "Interface credits": "انٽرفيس جا تخليقڪار",
     "Interface mode": "انٽرفيس موڊ",
     "Interface settings": "انٽرفيس سيٽنگون",
@@ -575,6 +587,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "چينل لنڪ صحيح ناهي! ذاتي اڪائونٽ جي اسٽريم URL وانگر مڪمل هوسٽ داخل ڪريو (مثال طور subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "ڪلائوڊ سيٽنگن جو جواب غلط آهي",
+    "Invalid color value": "رنگ جو قدر غلط آهي",
     "Invalid protected source configuration": "محفوظ ذريعي جي ترتيب صحيح ناهي",
     "Invalid range: %1-%2": "غلط حد: %1-%2",
     "Invalid setting": "غلط سيٽنگ",
@@ -586,6 +599,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV جون سيٽنگون",
     "Label (optional)": "نالو (اختياري)",
+    Light: "هلڪو",
     "List created": "فهرست ٺهي وئي",
     "List deleted": "فهرست ڊهي وئي",
     "List location": "فهرست جي جاءِ",
@@ -648,6 +662,7 @@ var keyStrings = {
     "Media Library URL": "ميڊيا لائبريري URL",
     Menu: "مينيو",
     "Menu items settings": "مينيو شين جون سيٽنگون",
+    Midnight: "اڌ رات",
     Modern: "جديد",
     "Modern interface is unavailable. Classic remains active.":
         "جديد انٽرفيس دستياب ناهي. ڪلاسيڪي فعال رهندو.",
@@ -694,6 +709,7 @@ var keyStrings = {
     no: "نه",
     "no epg at current time": "هاڻوڪي وقت لاءِ EPG ناهي",
     "not set": "مقرر نه ٿيل",
+    Ocean: "سمنڊ",
     Off: "بند",
     Ok: "ٺيڪ",
     On: "چالو",
@@ -729,6 +745,7 @@ var keyStrings = {
         "جوڙڻ وارو سرور موجود ناهي. ٻيهر ڪوشش لاءِ سرور ٻيهر ڳوليو.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "جوڙڻ رد ٿيو يا غلط منظوري ملي. ٻيهر ڪوشش لاءِ سرور ٻيهر ڳوليو.",
+    Palette: "رنگن جي تختي",
     "Parental control": "والدين جو ڪنٽرول",
     Password: "پاسورڊ",
     "Paste settings JSON": "سيٽنگن جو JSON پيسٽ ڪريو",
@@ -775,6 +792,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "محفوظ پري کان ان پٽ تيار ٿي رهيو آهي...",
     Prev: "اڳوڻو",
+    Preview: "اڳواٽ ڏيک",
     "Preview in channel list": "چينل فهرست ۾ ڏيک",
     Previous: "اڳوڻو",
     "Privacy policy": "رازداري پاليسي",
@@ -909,6 +927,7 @@ var keyStrings = {
     Search: "ڳوليو",
     "Search languages": "ٻوليون ڳولھيو",
     "Search programme": "پروگرام ڳوليو",
+    "Secondary text color": "ثانوي متن جو رنگ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "محفوظ پري کان ان پٽ شروع نه ٿيو. ٻيهر ڪوشش ڪريو يا اسڪرين وارو ڪي بورڊ استعمال ڪريو.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -929,6 +948,8 @@ var keyStrings = {
         "برائوزر ۾ اسڪرين شاٽ جو ذريعو چونڊيو",
     "Select the player tab or window in the browser sharing dialog.":
         "برائوزر شيئرنگ ڊائلاگ ۾ پليئر ٽيب يا ونڊو چونڊيو.",
+    "Selected item": "چونڊيل شيءِ",
+    "Selected text color": "چونڊيل متن جو رنگ",
     "Send request": "درخواست موڪليو",
     "Send settings": "سيٽنگون موڪليو",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1040,6 +1061,7 @@ var keyStrings = {
     "Subscription information": "رڪنيت جي ڄاڻ",
     Subtitle: "ذيلي عنوان",
     "Subtitle appearance": "ذيلي عنوانن جو ڏيک",
+    "Surface color": "مٿاڇري جو رنگ",
     Switch: "بدلايو",
     "Switch sound track": "آڊيو ٽريڪ بدلايو",
     "Switch subtitle": "ذيلي عنوان بدلايو",
@@ -1147,6 +1169,7 @@ var keyStrings = {
         "پري کان تشخيص لاءِ HTTPS حڪم سرور استعمال ڪريو.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "پتي ۾ يوزر نالي يا پاسورڊ کان سواءِ HTTP يا HTTPS استعمال ڪريو.",
+    "Use inherited color": "ورثي ۾ مليل رنگ استعمال ڪريو",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ڪنٽرول چونڊڻ لاءِ کاٻي/ساڄي، فعال ڪرڻ لاءِ OK ۽ اسڪرول ڪرڻ لاءِ مٿي/هيٺ استعمال ڪريو.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1170,6 +1193,7 @@ var keyStrings = {
         "VPortal لوڊ نه ٿيو. لنڪ، رسائي چاٻي ۽ پورٽل جي موجودگي جاچيو.",
     volume: "آواز جي سطح",
     "Waiting for sign-in…": "سائن ان جو انتظار…",
+    "Warm graphite": "گرم گريفائٽ",
     "Wrong parental code !!!": "والدين جو ڪوڊ غلط آهي!",
     "Xtream Codes Provider": "Xtream Codes فراهم ڪندڙ",
     "Xtream Codes settings": "Xtream Codes سيٽنگون",

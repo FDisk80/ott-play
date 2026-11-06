@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Playerul a respins o comandă. Verificați furnizorul și setările acestuia.",
     About: "Despre",
+    "Accent color": "Culoare de accent",
     "Access code": "Cod de acces",
     "Access denied. Check the server access code.":
         "Acces refuzat. Verificați codul de acces al serverului.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API a eșuat, se încearcă M3U…",
     "API Server": "Server API",
     "API server URL": "URL server API",
+    Apply: "Aplică",
+    "Apply changes to this draft, then use Save Settings.":
+        "Aplică modificările acestei schițe, apoi alege Salvează setările.",
     "Applying HTTP remote settings...":
         "Se aplică setările controlului HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -122,6 +126,7 @@ var keyStrings = {
     Blue: "Albastru",
     "Bookmark age (days): %1": "Vârsta marcajului (zile): %1",
     "Bookmark age: %1 days": "Vechimea marcajului: %1 zile",
+    "Border color": "Culoarea chenarului",
     Brightness: "Luminozitate",
     "Browse folders": "Răsfoiește folderele",
     "Buffer Size, s": "Dimensiune buffer, s",
@@ -198,6 +203,7 @@ var keyStrings = {
     "Cloud transfer failed": "Transferul în cloud a eșuat",
     Code: "Cod de acces",
     Color: "Culoare",
+    "Color schemes": "Scheme de culori",
     "Color spectrum": "Spectru de culori",
     "Command server": "Server de comenzi",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -339,6 +345,7 @@ var keyStrings = {
         "Nu s-au putut actualiza setările controlului HTTP.",
     Country: "Țară",
     "Create category": "Creează o categorie",
+    Custom: "Personalizat",
     current: "curent",
     "Debug enabled. Restart to apply.":
         "Depanarea este activată. Reporniți playerul pentru a aplica modificarea.",
@@ -504,6 +511,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Sursa EPG a returnat HTTP %1",
     "EPG source: %1": "EPG sursa: %1",
     "EPG stopped during: %1": "EPG oprit în timpul: %1",
+    "EPG time color": "Culoarea orei EPG",
     "EPG unavailable on this browser": "EPG indisponibil în acest browser",
     "EPG unavailable: %1": "EPG indisponibil: %1",
     "EPG update failed; using saved programme guide":
@@ -579,6 +587,7 @@ var keyStrings = {
     "Hide / Return": "Ascunde / afișează",
     "Hide provider settings?": "Ascundeți setările furnizorului?",
     "Hide providers?": "Ascundeți furnizorii?",
+    "High contrast": "Contrast ridicat",
     "History in Media Library": "Istoric în biblioteca media",
     "History of watched movies": "Istoricul vizionărilor",
     Home: "Acasă",
@@ -586,6 +595,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Controlul HTTP nu este disponibil pe acest dispozitiv.",
     "HTTPS support": "Suport HTTPS",
+    Hue: "Nuanță",
     ID: "ID",
     "Import settings": "Importă setările",
     "In live mode: <br/>": "În modul în direct:<br/>",
@@ -593,6 +603,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Durata afișării barei de informații, s",
     "Infobar settings": "Setările barei de informații",
     Information: "Informații",
+    Inherited: "Moștenit",
+    "Interface colors": "Culorile interfeței",
     "Interface credits": "Autorii interfeței",
     "Interface mode": "Mod interfață",
     "Interface settings": "Setările interfeței",
@@ -601,6 +613,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Link de canal nevalid! Introduceți numele complet al gazdei, ca în URL-ul fluxului din cont (de ex. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Răspuns nevalid pentru setările cloud",
+    "Invalid color value": "Valoare de culoare nevalidă",
     "Invalid protected source configuration":
         "Configurație nevalidă a sursei protejate",
     "Invalid range: %1-%2": "Interval nevalid: %1-%2",
@@ -613,6 +626,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Setări KORONA TV",
     "Label (optional)": "Etichetă (opțional)",
+    Light: "Luminos",
     "List created": "Lista a fost creată",
     "List deleted": "Lista a fost ștearsă",
     "List location": "Poziția listei",
@@ -676,6 +690,7 @@ var keyStrings = {
     "Media Library URL": "URL mediatecă",
     Menu: "Meniu",
     "Menu items settings": "Setările elementelor de meniu",
+    Midnight: "Miezul nopții",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "Interfața modernă nu este disponibilă. Cea clasică rămâne activă.",
@@ -722,6 +737,7 @@ var keyStrings = {
     no: "nu",
     "no epg at current time": "Nu există EPG la ora curentă",
     "not set": "nesetat",
+    Ocean: "Ocean",
     Off: "Oprit",
     Ok: "OK",
     On: "Activat",
@@ -757,6 +773,7 @@ var keyStrings = {
         "Serverul de asociere nu este disponibil. Căutați din nou serverul pentru a reîncerca.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Asocierea a fost respinsă sau a returnat o aprobare nevalidă. Căutați din nou serverul pentru a reîncerca.",
+    Palette: "Paletă",
     "Parental control": "Control parental",
     Password: "Parolă",
     "Paste settings JSON": "Lipiți setările în format JSON",
@@ -802,6 +819,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Se pregătește intrarea de la distanță sigură...",
     Prev: "Anterior",
+    Preview: "Previzualizare",
     "Preview in channel list": "Previzualizare în lista de canale",
     Previous: "Anterior",
     "Privacy policy": "Politica de confidențialitate",
@@ -941,6 +959,7 @@ var keyStrings = {
     Search: "Căutare",
     "Search languages": "Căutare limbi",
     "Search programme": "Caută emisiunea",
+    "Secondary text color": "Culoarea textului secundar",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Intrarea securizată de la distanță nu a putut porni. Vă rugăm să încercați din nou sau să utilizați tastatura de pe ecran.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -962,6 +981,8 @@ var keyStrings = {
         "Selectați sursa capturii de ecran în browser",
     "Select the player tab or window in the browser sharing dialog.":
         "Selectați fila sau fereastra playerului în dialogul de partajare a browserului.",
+    "Selected item": "Element selectat",
+    "Selected text color": "Culoarea textului selectat",
     "Send request": "Trimite cererea",
     "Send settings": "Trimite setările",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1077,6 +1098,7 @@ var keyStrings = {
     "Subscription information": "Informații despre abonament",
     Subtitle: "Subtitrări",
     "Subtitle appearance": "Aspectul subtitrărilor",
+    "Surface color": "Culoarea suprafeței",
     Switch: "Schimbă",
     "Switch sound track": "Schimbă pista audio",
     "Switch subtitle": "Schimbă subtitrările",
@@ -1186,6 +1208,7 @@ var keyStrings = {
         "Utilizaţi un server de comandă HTTPS pentru diagnosticare la distanţă.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Folosiți HTTP sau HTTPS fără nume de utilizator ori parolă în adresă.",
+    "Use inherited color": "Folosește culoarea moștenită",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Folosiți STÂNGA/DREAPTA pentru a selecta un control, OK pentru a-l activa și SUS/JOS pentru derulare.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1210,6 +1233,7 @@ var keyStrings = {
         "VPortal nu a putut fi încărcat. Verificați linkul, cheia de acces și disponibilitatea portalului.",
     volume: "volum",
     "Waiting for sign-in…": "Se așteaptă conectarea...",
+    "Warm graphite": "Grafit cald",
     "Wrong parental code !!!": "Cod parental greșit!!!",
     "Xtream Codes Provider": "Furnizor Xtream Codes",
     "Xtream Codes settings": "Setări Xtream Codes",

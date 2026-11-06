@@ -42,6 +42,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Amri ilikataliwa na kicheza media. Angalia mtoaji wake na mipangilio.",
     About: "Kuhusu",
+    "Accent color": "Rangi ya msisitizo",
     "Access code": "Msimbo wa ufikiaji",
     "Access denied. Check the server access code.":
         "Ufikiaji umekataliwa. Angalia msimbo wa ufikiaji wa seva.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API imeshindwa, ikijaribu M3U…",
     "API Server": "API seva",
     "API server URL": "API seva URL",
+    Apply: "Tumia",
+    "Apply changes to this draft, then use Save Settings.":
+        "Tumia mabadiliko kwenye rasimu hii, kisha uchague Hifadhi mipangilio.",
     "Applying HTTP remote settings...": "Inatumia HTTP mipangilio ya mbali...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Idhinisha msimbo wa %1 kwa amri ott approve NAME CODE:",
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Bluu",
     "Bookmark age (days): %1": "Umri wa alamisho (siku): %1",
     "Bookmark age: %1 days": "Alamisha umri: siku %1",
+    "Border color": "Rangi ya mpaka",
     Brightness: "Mwangaza",
     "Browse folders": "Vinjari folda",
     "Buffer Size, s": "Ukubwa wa bafa, s",
@@ -195,6 +200,7 @@ var keyStrings = {
     "Cloud transfer failed": "Uhamishaji wa wingu haukufaulu",
     Code: "Kanuni",
     Color: "Rangi",
+    "Color schemes": "Mipangilio ya rangi",
     "Color spectrum": "Wigo wa rangi",
     "Command server": "Seva ya amri",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -337,6 +343,7 @@ var keyStrings = {
         "Haikuweza kusasisha HTTP kidhibiti cha mbali.",
     Country: "Nchi",
     "Create category": "Unda kategoria",
+    Custom: "Maalumu",
     current: "ya sasa",
     "Debug enabled. Restart to apply.":
         "Utatuzi umewashwa. Anzisha upya ili mabadiliko yatumike.",
@@ -502,6 +509,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG chanzo kimerudishwa HTTP %1",
     "EPG source: %1": "EPG chanzo: %1",
     "EPG stopped during: %1": "EPG ilisimamishwa wakati wa: %1",
+    "EPG time color": "Rangi ya saa ya EPG",
     "EPG unavailable on this browser": "EPG haipatikani kwenye kivinjari hiki",
     "EPG unavailable: %1": "EPG haipatikani: %1",
     "EPG update failed; using saved programme guide":
@@ -575,6 +583,7 @@ var keyStrings = {
     "Hide / Return": "Ficha / onyesha",
     "Hide provider settings?": "Ungependa kuficha mipangilio ya mtoa huduma?",
     "Hide providers?": "Ungependa kuficha watoa huduma?",
+    "High contrast": "Utofautishaji wa juu",
     "History in Media Library": "Historia katika maktaba ya media",
     "History of watched movies": "Historia ya kutazama",
     Home: "Mwanzo",
@@ -582,6 +591,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP kidhibiti cha mbali hakipatikani kwenye kifaa hiki.",
     "HTTPS support": "HTTPS usaidizi",
+    Hue: "Kivuli cha rangi",
     ID: "ID",
     "Import settings": "Ingiza mipangilio",
     "In live mode: <br/>": "Katika hali ya matangazo ya moja kwa moja:<br/>",
@@ -589,6 +599,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Muda wa kuonyesha upau wa taarifa, sek",
     "Infobar settings": "Mipangilio ya upau wa habari",
     Information: "Maelezo",
+    Inherited: "Iliyorithiwa",
+    "Interface colors": "Rangi za kiolesura",
     "Interface credits": "Shukrani kwa wachangiaji wa kiolesura",
     "Interface mode": "Hali ya kiolesura",
     "Interface settings": "Mipangilio ya kiolesura",
@@ -597,6 +609,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Kiungo batili cha kituo! Ingiza seva pangishi kamili kama ilivyo katika mtiririko wa dashibodi ya mtoa huduma URL (k.m. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Jibu batili la mipangilio ya wingu",
+    "Invalid color value": "Thamani ya rangi si halali",
     "Invalid protected source configuration":
         "Usanidi batili wa chanzo kilicholindwa",
     "Invalid range: %1-%2": "Masafa batili: %1-%2",
@@ -609,6 +622,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV mipangilio",
     "Label (optional)": "Jina (hiari)",
+    Light: "Angavu",
     "List created": "Orodha imeundwa",
     "List deleted": "Orodha imefutwa",
     "List location": "Nafasi ya orodha",
@@ -672,6 +686,7 @@ var keyStrings = {
     "Media Library URL": "Maktaba ya midia URL",
     Menu: "Menyu",
     "Menu items settings": "Mipangilio ya kipengee cha menyu",
+    Midnight: "Usiku wa manane",
     Modern: "Kisasa",
     "Modern interface is unavailable. Classic remains active.":
         "Kiolesura cha kisasa hakipatikani. Cha kawaida kinaendelea kutumika.",
@@ -718,6 +733,7 @@ var keyStrings = {
     no: "hapana",
     "no epg at current time": "Hapana EPG kwa sasa",
     "not set": "haijawekwa",
+    Ocean: "Bahari",
     Off: "Imezimwa",
     Ok: "Sawa",
     On: "Imewashwa",
@@ -753,6 +769,7 @@ var keyStrings = {
         "Seva ya kuoanisha haipatikani. Tafuta seva tena ili ujaribu tena.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Kuoanisha kulikataliwa au kurejeshewa idhini isiyo sahihi. Tafuta seva tena ili ujaribu tena.",
+    Palette: "Ubao wa rangi",
     "Parental control": "Udhibiti wa wazazi",
     Password: "Nenosiri",
     "Paste settings JSON": "Bandika mipangilio JSON",
@@ -799,6 +816,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Inatayarisha ingizo salama la mbali...",
     Prev: "Iliyotangulia",
+    Preview: "Onyesho la kukagua",
     "Preview in channel list": "Hakiki katika orodha ya vituo",
     Previous: "Iliyotangulia",
     "Privacy policy": "Sera ya faragha",
@@ -933,6 +951,7 @@ var keyStrings = {
     Search: "Tafuta",
     "Search languages": "Tafuta lugha",
     "Search programme": "Tafuta programu",
+    "Secondary text color": "Rangi ya maandishi ya pili",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Ingizo salama la mbali haikuweza kuanza. Tafadhali jaribu tena au tumia kibodi iliyo kwenye skrini.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -953,6 +972,8 @@ var keyStrings = {
         "Chagua chanzo cha picha ya skrini kwenye kivinjari",
     "Select the player tab or window in the browser sharing dialog.":
         "Chagua kichupo cha kichezaji au dirisha kwenye kidirisha cha kushiriki kivinjari.",
+    "Selected item": "Kipengee kilichochaguliwa",
+    "Selected text color": "Rangi ya maandishi yaliyochaguliwa",
     "Send request": "Tuma ombi",
     "Send settings": "Tuma mipangilio",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1068,6 +1089,7 @@ var keyStrings = {
     "Subscription information": "Maelezo ya usajili",
     Subtitle: "Manukuu",
     "Subtitle appearance": "Mwonekano wa manukuu",
+    "Surface color": "Rangi ya uso",
     Switch: "Badili",
     "Switch sound track": "Badilisha wimbo wa sauti",
     "Switch subtitle": "Badilisha manukuu",
@@ -1177,6 +1199,7 @@ var keyStrings = {
         "Tumia HTTPS seva ya amri kwa uchunguzi wa mbali.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Tumia HTTP au HTTPS bila jina la mtumiaji au nenosiri katika anwani.",
+    "Use inherited color": "Tumia rangi iliyorithiwa",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Tumia KUSHOTO/KULIA ili kuchagua kidhibiti, SAWA ili kuiwasha, na JUU/ CHINI kusogeza.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1200,6 +1223,7 @@ var keyStrings = {
         "Haikuweza kupakia VPortal. Angalia kiungo, ufunguo wa kufikia, na upatikanaji wa tovuti.",
     volume: "sauti",
     "Waiting for sign-in…": "Inasubiri kuingia...",
+    "Warm graphite": "Grafiti yenye joto",
     "Wrong parental code !!!": "Msimbo wa mzazi si sahihi!",
     "Xtream Codes Provider": "Xtream Codes Mtoa huduma",
     "Xtream Codes settings": "Xtream Codes mipangilio",

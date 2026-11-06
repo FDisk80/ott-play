@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "'n Opdrag is deur die mediaspeler verwerp. Gaan sy verskaffer en instellings na.",
     About: "Oor",
+    "Accent color": "Aksentkleur",
     "Access code": "Toegangskode",
     "Access denied. Check the server access code.":
         "Toegang geweier. Gaan die bedienertoegangskode na.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API het misluk, probeer M3U …",
     "API Server": "API bediener",
     "API server URL": "API-bediener se URL",
+    Apply: "Pas toe",
+    "Apply changes to this draft, then use Save Settings.":
+        "Pas veranderinge op hierdie konsep toe en gebruik dan Stoor instellings.",
     "Applying HTTP remote settings...":
         "Pas HTTP-afstandbeheerinstellings toe…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Blou",
     "Bookmark age (days): %1": "Boekmerkouderdom (dae): %1",
     "Bookmark age: %1 days": "Boekmerkouderdom: %1 dae",
+    "Border color": "Randkleur",
     Brightness: "Helderheid",
     "Browse folders": "Blaai deur vouers",
     "Buffer Size, s": "Buffergrootte, s",
@@ -193,6 +198,7 @@ var keyStrings = {
     "Cloud transfer failed": "Wolkoordrag het misluk",
     Code: "Kode",
     Color: "Kleur",
+    "Color schemes": "Kleurskemas",
     "Color spectrum": "Kleurspektrum",
     "Command server": "Opdragbediener",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -332,6 +338,7 @@ var keyStrings = {
         "Kon nie HTTP-afstandbeheer bywerk nie.",
     Country: "Land",
     "Create category": "Skep kategorie",
+    Custom: "Pasgemaak",
     current: "huidige",
     "Debug enabled. Restart to apply.":
         "Ontfouting is aan. Herbegin om die verandering toe te pas.",
@@ -494,6 +501,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG-bron het HTTP %1 teruggestuur",
     "EPG source: %1": "EPG-bron: %1",
     "EPG stopped during: %1": "EPG het gestop tydens: %1",
+    "EPG time color": "EPG-tydkleur",
     "EPG unavailable on this browser":
         "EPG is nie in hierdie blaaier beskikbaar nie",
     "EPG unavailable: %1": "EPG onbeskikbaar: %1",
@@ -567,6 +575,7 @@ var keyStrings = {
     "Hide / Return": "Versteek / wys",
     "Hide provider settings?": "Versteek verskafferinstellings?",
     "Hide providers?": "Versteek verskaffers?",
+    "High contrast": "Hoë kontras",
     "History in Media Library": "Geskiedenis in mediabiblioteek",
     "History of watched movies": "Kykgeskiedenis",
     Home: "Tuis",
@@ -574,6 +583,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP-afstandbeheer is nie op hierdie toestel beskikbaar nie.",
     "HTTPS support": "HTTPS-ondersteuning",
+    Hue: "Kleurtoon",
     ID: "ID",
     "Import settings": "Voer instellings in",
     "In live mode: <br/>": "Tydens regstreekse kyk:<br/>",
@@ -581,6 +591,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Vertoonduur van inligtingbalk, s",
     "Infobar settings": "Inligtingbalkinstellings",
     Information: "Inligting",
+    Inherited: "Geërf",
+    "Interface colors": "Koppelvlakkleure",
     "Interface credits": "Koppelvlakbydraers",
     "Interface mode": "Koppelvlakmodus",
     "Interface settings": "Koppelvlakinstellings",
@@ -589,6 +601,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Ongeldige kanaalskakel! Voer die volledige gasheernaam soos in jou rekening se stroom-URL in (bv. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Ongeldige wolkinstellingsreaksie",
+    "Invalid color value": "Ongeldige kleurwaarde",
     "Invalid protected source configuration":
         "Ongeldige opstelling van beskermde bron",
     "Invalid range: %1-%2": "Ongeldige reeks: %1-%2",
@@ -601,6 +614,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV-instellings",
     "Label (optional)": "Etiket (opsioneel)",
+    Light: "Lig",
     "List created": "Lys geskep",
     "List deleted": "Lys verwyder",
     "List location": "Lysposisie",
@@ -663,6 +677,7 @@ var keyStrings = {
     "Media Library URL": "Mediabiblioteek-URL",
     Menu: "Kieslys",
     "Menu items settings": "Kieslysiteminstellings",
+    Midnight: "Middernag",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "Die moderne koppelvlak is nie beskikbaar nie. Klassiek bly aktief.",
@@ -709,6 +724,7 @@ var keyStrings = {
     no: "nee",
     "no epg at current time": "Geen EPG vir die huidige tyd nie",
     "not set": "nie gestel nie",
+    Ocean: "Oseaan",
     Off: "Af",
     Ok: "OK",
     On: "Aan",
@@ -744,6 +760,7 @@ var keyStrings = {
         "Koppelbediener is nie beskikbaar nie. Soek die bediener weer om te probeer.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Koppeling is geweier of het 'n ongeldige goedkeuring teruggestuur. Soek die bediener weer om te probeer.",
+    Palette: "Kleurpalet",
     "Parental control": "Ouerbeheer",
     Password: "Wagwoord",
     "Paste settings JSON": "Plak instellings-JSON",
@@ -789,6 +806,7 @@ var keyStrings = {
     Prepaid: "Vooraf betaal",
     "Preparing secure remote input...": "Berei veilige afstandinvoer voor…",
     Prev: "Vorige",
+    Preview: "Voorskou",
     "Preview in channel list": "Voorskou in kanaallys",
     Previous: "Vorige",
     "Privacy policy": "Privaatheidsbeleid",
@@ -924,6 +942,7 @@ var keyStrings = {
     Search: "Soek",
     "Search languages": "Soek tale",
     "Search programme": "Soek program",
+    "Secondary text color": "Sekondêre tekskleur",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Veilige afstandinvoer kon nie begin nie. Probeer weer of gebruik die skermsleutelbord.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -944,6 +963,8 @@ var keyStrings = {
     "Select screenshot source in browser": "Kies skermkiekiebron in blaaier",
     "Select the player tab or window in the browser sharing dialog.":
         "Kies die speleroortjie of -venster in die blaaierdeeldialoog.",
+    "Selected item": "Geselekteerde item",
+    "Selected text color": "Geselekteerde tekskleur",
     "Send request": "Stuur versoek",
     "Send settings": "Stuur instellings",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1057,6 +1078,7 @@ var keyStrings = {
     "Subscription information": "Intekeninginligting",
     Subtitle: "Ondertitels",
     "Subtitle appearance": "Voorkoms van onderskrifte",
+    "Surface color": "Oppervlakkleur",
     Switch: "Wissel",
     "Switch sound track": "Wissel oudiospoor",
     "Switch subtitle": "Wissel ondertitels",
@@ -1163,6 +1185,7 @@ var keyStrings = {
         "Gebruik 'n HTTPS-opdragbediener vir afstanddiagnostiek.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Gebruik HTTP of HTTPS sonder 'n gebruikersnaam of wagwoord in die adres.",
+    "Use inherited color": "Gebruik geërfde kleur",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Gebruik LINKS/REGS om 'n beheer te kies, OK om dit te aktiveer en OP/AF om te blaai.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1187,6 +1210,7 @@ var keyStrings = {
         "Kon nie VPortal laai nie. Kontroleer die skakel, toegangsleutel en portaalbeskikbaarheid.",
     volume: "klankvolume",
     "Waiting for sign-in…": "Wag vir aanmelding…",
+    "Warm graphite": "Warm grafiet",
     "Wrong parental code !!!": "Verkeerde ouerbeheerkode!",
     "Xtream Codes Provider": "Xtream Codes-verskaffer",
     "Xtream Codes settings": "Xtream Codes-instellings",

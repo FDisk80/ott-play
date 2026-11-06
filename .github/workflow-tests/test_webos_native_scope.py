@@ -326,12 +326,14 @@ class NativeScopeTests(unittest.TestCase):
             self.assertIn("${{ runner.temp }}/native-host-verification/" + suffix,
                           evidence["with"]["path"].splitlines())
 
-    def test_schema_export_requires_actual_one_test_and_two_complete_pages(self):
+    def test_schema_export_requires_actual_one_test_and_three_complete_pages(self):
         step = self.schema_export_step()
         code = compile(step["run"].split("python3 - <<'PY'\n", 1)[1].rsplit("\nPY", 1)[0],
                        "actual schema export workflow", "exec")
         for case in ("success", "zero", "missing-name", "failed", "missing-page", "duplicate-id",
-                     "changed-context", "wrong-source", "source-changed", "cold-target"):
+                     "changed-context", "wrong-source", "source-changed", "cold-target",
+                     "wrong-last-cursor", "repeated-cursor", "changed-last-context", "unexpected-last-id",
+                     "unfinished-last-page", "short-middle-page", "duplicate-last-id"):
             with self.subTest(case=case):
                 self.check_schema_export_case(code, case)
 
@@ -363,8 +365,11 @@ class NativeScopeTests(unittest.TestCase):
                  "data": {"context": context, "next_cursor": "context:20",
                           "settings": [{"id": f"setting{n}"} for n in range(20)]}},
                 {"request": {"op": "schema", "runtime": "fixture", "cursor": "context:20"},
-                 "data": {"context": dict(context), "next_cursor": None,
+                 "data": {"context": dict(context), "next_cursor": "context:40",
                           "settings": [{"id": f"setting{n}"} for n in range(20, 40)]}},
+                {"request": {"op": "schema", "runtime": "fixture", "cursor": "context:40"},
+                 "data": {"context": dict(context), "next_cursor": None,
+                          "settings": [{"id": "uiColorConfig"}]}},
             ]
             if case == "missing-page":
                 pages.pop()
@@ -372,6 +377,21 @@ class NativeScopeTests(unittest.TestCase):
                 pages[1]["data"]["settings"][0]["id"] = "setting0"
             if case == "changed-context":
                 pages[1]["data"]["context"]["token"] = "changed"
+            if case == "wrong-last-cursor":
+                pages[2]["request"]["cursor"] = "context:wrong"
+            if case == "repeated-cursor":
+                pages[1]["data"]["next_cursor"] = pages[0]["data"]["next_cursor"]
+                pages[2]["request"]["cursor"] = pages[0]["data"]["next_cursor"]
+            if case == "changed-last-context":
+                pages[2]["data"]["context"]["token"] = "changed"
+            if case == "unexpected-last-id":
+                pages[2]["data"]["settings"][0]["id"] = "wrongPaletteSetting"
+            if case == "unfinished-last-page":
+                pages[2]["data"]["next_cursor"] = "context:41"
+            if case == "short-middle-page":
+                pages[1]["data"]["settings"].pop()
+            if case == "duplicate-last-id":
+                pages[2]["data"]["settings"][0]["id"] = "setting0"
             count = 0 if case == "zero" else 1
             name = "wrong::name" if case == "missing-name" else test
             log = (f"running {count} test\ntest {name} ... "
@@ -428,7 +448,7 @@ class NativeScopeTests(unittest.TestCase):
             if case == "success":
                 binding = json.loads((evidence / "schema-binding.json").read_text())
                 self.assertEqual((binding["status"], binding["raw_exit"], binding["descriptor_count"], binding["page_count"]),
-                                 ("PASS", 0, 40, 2))
+                                 ("PASS", 0, 41, 3))
                 self.assertEqual(json.loads((evidence / "schema-pages.json").read_text()), pages)
             else:
                 self.assertFalse((evidence / "schema-pages.json").exists())

@@ -1992,6 +1992,117 @@ test("settings value clicks honor filtered indices and the current overlay", ({
     key(w.keys.ENTER);
     assert.equal(row.val, 3, "keyboard acceptance still commits");
 });
+test("font samples keep their style through measurement, selection and panel restore", ({
+    w,
+    key,
+}) => {
+    const ast = ts.createSourceFile(
+        "appearance.ts",
+        fs.readFileSync(
+            path.join(root, "src/ui/subtitle-appearance.ts"),
+            "utf8"
+        ),
+        ts.ScriptTarget.Latest,
+        true
+    );
+    const found = [];
+    function visit(node) {
+        if (
+            ts.isFunctionDeclaration(node) &&
+            node.name?.text === "interfaceFontOptions"
+        )
+            found.push(node.getText(ast));
+        ts.forEachChild(node, visit);
+    }
+    visit(ast);
+    assert.equal(
+        found.length,
+        1,
+        "use the actual production font options function"
+    );
+    w.eval(
+        ts.transpileModule("var host = window;" + found[0], {
+            compilerOptions: { target: ts.ScriptTarget.ES5 },
+        }).outputText
+    );
+    const source = w.document.createElement("style");
+    source.id = "ott-interface-style";
+    source.nonce = "style-authority";
+    const getAttribute = source.getAttribute.bind(source);
+    source.getAttribute = (name) =>
+        name === "nonce" ? "" : getAttribute(name);
+    w.document.head.appendChild(source);
+    const script = w.document.createElement("script");
+    script.nonce = "wrong-script-authority";
+    w.document.head.appendChild(script);
+    const options = w.interfaceFontOptions(w._);
+    w.interfaceFontOptions(w._);
+    const sheet = w.document.getElementById("ott-font-samples");
+    assert.equal(sheet.nonce, "style-authority");
+    assert.equal(w.document.querySelectorAll("#ott-font-samples").length, 1);
+    assert.equal(sheet.sheet.cssRules.length, 7);
+    const expected = [
+        "Helvetica, Arial, sans-serif",
+        "Roboto",
+        "RobotoCondensed",
+        "Caveat",
+        "Liberation",
+        "Gabriela",
+        "PTSansNarrow",
+    ];
+    function sampleFont(node, index) {
+        const sample = node.querySelector(".ott-font-" + index);
+        assert(sample);
+        assert.equal(sample.getAttribute("style"), null);
+        assert.equal(w.getComputedStyle(sample).fontFamily, expected[index]);
+    }
+    const html = Object.getOwnPropertyDescriptor(
+        w.Element.prototype,
+        "innerHTML"
+    );
+    Object.defineProperty(w.Element.prototype, "innerHTML", {
+        ...html,
+        set(value) {
+            assert.doesNotMatch(
+                String(value),
+                /<span[^>]*style=/i,
+                "no serialized font styles re-enter the parser"
+            );
+            html.set.call(this, value);
+        },
+    });
+    const width = w.$.fn.width;
+    const measured = [];
+    w.$.fn.width = function (...args) {
+        const sample = this[0] && this[0].querySelector("[class^=ott-font-]");
+        if (!args.length && sample && this[0].tagName === "SPAN") {
+            const index = Number(sample.className.slice("ott-font-".length));
+            sampleFont(this[0], index);
+            measured.push(index);
+        }
+        return width.apply(this, args);
+    };
+    w.settings = { pageSize: 25 };
+    w.getViewportHeightScale = () => 1;
+    w._curVal = 0;
+    w.showPage();
+    w.listDetailElement.innerHTML = options.join(", ");
+    const savedDetail = w.listDetailElement.innerHTML;
+    const row = { name: "Font type", val: 0, values: options };
+    for (let round = 0; round < 2; round++) {
+        w.selectValue(row);
+        for (let i = 0; i < 7; i++)
+            sampleFont(w.document.getElementById("ik" + i), i);
+        key(w.keys.RIGHT);
+        sampleFont(w.listDetailElement, 1);
+        key(w.keys.RETURN);
+        assert.equal(row.val, 0, "Back leaves the selected font unchanged");
+        assert.equal(w.listDetailElement.innerHTML, savedDetail);
+        for (let i = 0; i < 7; i++) sampleFont(w.listDetailElement, i);
+    }
+    assert.deepEqual(measured, [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6]);
+    assert.equal(w.document.querySelectorAll("#ott-font-samples").length, 1);
+});
 test("settings grid keeps label markup consistent without confirming zero movement", ({
     w,
     key,

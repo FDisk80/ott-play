@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ពាក្យបញ្ជាមួយត្រូវបានបដិសេធដោយកម្មវិធីចាក់។ ពិនិត្យអ្នកផ្តល់សេវា និងការកំណត់របស់វា។",
     About: "អំពី",
+    "Accent color": "ពណ៌រំលេច",
     "Access code": "លេខកូដចូល",
     "Access denied. Check the server access code.":
         "ការចូលប្រើត្រូវបានបដិសេធ។ ពិនិត្យលេខកូដចូលប្រើម៉ាស៊ីនមេ។",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API បានបរាជ័យ ព្យាយាម M3U…",
     "API Server": "ម៉ាស៊ីនមេ API",
     "API server URL": "ម៉ាស៊ីនមេ API URL",
+    Apply: "អនុវត្ត",
+    "Apply changes to this draft, then use Save Settings.":
+        "អនុវត្តការផ្លាស់ប្តូរលើសេចក្ដីព្រាងនេះ រួចជ្រើសរក្សាទុកការកំណត់។",
     "Applying HTTP remote settings...": "កំពុងអនុវត្តការកំណត់ពីចម្ងាយ HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "អនុម័តលេខកូដសម្រាប់ %1 ជាមួយ ott approve NAME CODE៖",
@@ -116,6 +120,7 @@ var keyStrings = {
     Blue: "ខៀវ",
     "Bookmark age (days): %1": "អាយុចំណាំ (ថ្ងៃ): %1",
     "Bookmark age: %1 days": "អាយុចំណាំ៖ ថ្ងៃ %1",
+    "Border color": "ពណ៌ស៊ុម",
     Brightness: "ពន្លឺ",
     "Browse folders": "រកមើលថត",
     "Buffer Size, s": "ទំហំទ្រនាប់, s",
@@ -186,6 +191,7 @@ var keyStrings = {
     "Cloud transfer failed": "ការផ្ទេរតាមពពកបានបរាជ័យ",
     Code: "លេខកូដ",
     Color: "ពណ៌",
+    "Color schemes": "បន្សំពណ៌",
     "Color spectrum": "វិសាលគមពណ៌",
     "Command server": "ម៉ាស៊ីនមេពាក្យបញ្ជា",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -322,6 +328,7 @@ var keyStrings = {
         "មិនអាចធ្វើបច្ចុប្បន្នភាពការបញ្ជាពីចម្ងាយ HTTP បានទេ។",
     Country: "ប្រទេស",
     "Create category": "បង្កើតប្រភេទ",
+    Custom: "ផ្ទាល់ខ្លួន",
     current: "បច្ចុប្បន្ន",
     "Debug enabled. Restart to apply.":
         "បានបើកដំណើរការបំបាត់កំហុស។ ចាប់ផ្តើមឡើងវិញដើម្បីអនុវត្ត។",
@@ -480,6 +487,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "ប្រភព EPG ត្រឡប់ HTTP %1",
     "EPG source: %1": "EPG ប្រភព៖ %1",
     "EPG stopped during: %1": "EPG បានឈប់ក្នុងអំឡុងពេល៖ %1",
+    "EPG time color": "ពណ៌ពេលវេលា EPG",
     "EPG unavailable on this browser": "EPG មិនមាននៅលើកម្មវិធីរុករកតាមអ៊ីនធឺណិតនេះទេ។",
     "EPG unavailable: %1": "EPG មិនអាចប្រើបាន៖ %1",
     "EPG update failed; using saved programme guide":
@@ -549,6 +557,7 @@ var keyStrings = {
     "Hide / Return": "លាក់/បង្ហាញ",
     "Hide provider settings?": "លាក់ការកំណត់អ្នកផ្តល់សេវា?",
     "Hide providers?": "លាក់អ្នកផ្តល់សេវា?",
+    "High contrast": "កម្រិតពណ៌ខ្ពស់",
     "History in Media Library": "ប្រវត្តិនៅក្នុងបណ្ណាល័យប្រព័ន្ធផ្សព្វផ្សាយ",
     "History of watched movies": "ប្រវត្តិមើល\nច្រក",
     Home: "ទំព័រដើម",
@@ -556,6 +565,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "ការបញ្ជាពីចម្ងាយ HTTP មិនមាននៅលើឧបករណ៍នេះទេ។",
     "HTTPS support": "ការគាំទ្រ HTTPS",
+    Hue: "លំនាំពណ៌",
     ID: "ID",
     "Import settings": "នាំចូលការកំណត់",
     "In live mode: <br/>": "នៅក្នុងរបៀបផ្សាយផ្ទាល់៖ <br/>",
@@ -563,6 +573,8 @@ var keyStrings = {
     "Infobar display timeout, s": "អស់ពេលបង្ហាញរបារព័ត៌មាន, s",
     "Infobar settings": "ការកំណត់របារព័ត៌មាន",
     Information: "ព័ត៌មាន",
+    Inherited: "ទទួលបន្ត",
+    "Interface colors": "ពណ៌ចំណុចប្រទាក់",
     "Interface credits": "អ្នកចូលរួមបង្កើតចំណុចប្រទាក់",
     "Interface mode": "របៀបចំណុចប្រទាក់",
     "Interface settings": "ការកំណត់ចំណុចប្រទាក់",
@@ -571,6 +583,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "តំណឆានែលមិនត្រឹមត្រូវ! បញ្ចូលម៉ាស៊ីនពេញលេញដូចនៅក្នុងស្ទ្រីមគណៈរដ្ឋមន្ត្រី URL (ឧ. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "ការឆ្លើយតបការកំណត់ពពកមិនត្រឹមត្រូវ",
+    "Invalid color value": "តម្លៃពណ៌មិនត្រឹមត្រូវ",
     "Invalid protected source configuration":
         "ការកំណត់រចនាសម្ព័ន្ធប្រភពការពារមិនត្រឹមត្រូវ",
     "Invalid range: %1-%2": "ជួរមិនត្រឹមត្រូវ៖ %1-%2",
@@ -583,6 +596,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "ការកំណត់ KORONA TV",
     "Label (optional)": "ឈ្មោះ (ស្រេចចិត្ត)",
+    Light: "ភ្លឺ",
     "List created": "បញ្ជីត្រូវបានបង្កើតឡើង",
     "List deleted": "បានលុបបញ្ជី",
     "List location": "ទីតាំងបញ្ជី",
@@ -644,6 +658,7 @@ var keyStrings = {
     "Media Library URL": "បណ្ណាល័យប្រព័ន្ធផ្សព្វផ្សាយ URL",
     Menu: "ម៉ឺនុយ",
     "Menu items settings": "ការកំណត់ធាតុម៉ឺនុយ",
+    Midnight: "ពាក់កណ្ដាលអធ្រាត្រ",
     Modern: "ទំនើប",
     "Modern interface is unavailable. Classic remains active.":
         "ចំណុចប្រទាក់ទំនើបមិនអាចប្រើបានទេ។ ចំណុចប្រទាក់បុរាណនៅតែសកម្ម។",
@@ -689,6 +704,7 @@ var keyStrings = {
     no: "ទេ",
     "no epg at current time": "គ្មាន EPG នៅពេលបច្ចុប្បន្ន",
     "not set": "មិនបានកំណត់",
+    Ocean: "មហាសមុទ្រ",
     Off: "បិទ",
     Ok: "យល់ព្រម",
     On: "បើក",
@@ -724,6 +740,7 @@ var keyStrings = {
         "ការផ្គូផ្គងម៉ាស៊ីនមេមិនអាចប្រើបានទេ។ ស្វែងរកម៉ាស៊ីនមេម្តងទៀតដើម្បីព្យាយាមម្តងទៀត។",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "ការផ្គូផ្គងត្រូវបានច្រានចោល ឬត្រឡប់ការយល់ព្រមមិនត្រឹមត្រូវ។ ស្វែងរកម៉ាស៊ីនមេម្តងទៀតដើម្បីព្យាយាមម្តងទៀត។",
+    Palette: "ក្ដារពណ៌",
     "Parental control": "ការគ្រប់គ្រងដោយមាតាបិតា",
     Password: "ពាក្យសម្ងាត់",
     "Paste settings JSON": "បិទភ្ជាប់ការកំណត់ JSON",
@@ -769,6 +786,7 @@ var keyStrings = {
     Prepaid: "បង់ប្រាក់ជាមុន",
     "Preparing secure remote input...": "កំពុងរៀបចំការបញ្ចូលពីចម្ងាយដែលមានសុវត្ថិភាព...",
     Prev: "មុន។",
+    Preview: "មើលជាមុន",
     "Preview in channel list": "មើលជាមុននៅក្នុងបញ្ជីឆានែល",
     Previous: "មុន។",
     "Privacy policy": "គោលការណ៍ឯកជនភាព",
@@ -902,6 +920,7 @@ var keyStrings = {
     Search: "ស្វែងរក",
     "Search languages": "ស្វែងរកភាសា",
     "Search programme": "ស្វែងរកកម្មវិធីទូរទស្សន៍",
+    "Secondary text color": "ពណ៌អត្ថបទរង",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ការបញ្ចូលពីចម្ងាយសុវត្ថិភាពមិនអាចចាប់ផ្តើមបានទេ។ សូមព្យាយាមម្តងទៀត ឬប្រើក្តារចុចលើអេក្រង់។",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -921,6 +940,8 @@ var keyStrings = {
     "Select screenshot source in browser": "ជ្រើសរើសប្រភពរូបថតអេក្រង់នៅក្នុងកម្មវិធីរុករក",
     "Select the player tab or window in the browser sharing dialog.":
         "ជ្រើសរើសផ្ទាំងកម្មវិធីចាក់ ឬបង្អួចនៅក្នុងប្រអប់ចែករំលែកកម្មវិធីរុករក។",
+    "Selected item": "ធាតុដែលបានជ្រើស",
+    "Selected text color": "ពណ៌អត្ថបទដែលបានជ្រើស",
     "Send request": "ផ្ញើសំណើ",
     "Send settings": "ផ្ញើការកំណត់",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1034,6 +1055,7 @@ var keyStrings = {
     "Subscription information": "ព័ត៌មាននៃការជាវ",
     Subtitle: "ចំណងជើងរង",
     "Subtitle appearance": "រូបរាងចំណងជើងរង",
+    "Surface color": "ពណ៌ផ្ទៃ",
     Switch: "ប្តូរ",
     "Switch sound track": "ប្ដូរបទអូឌីយ៉ូ",
     "Switch subtitle": "ប្ដូរចំណងជើងរង",
@@ -1136,6 +1158,7 @@ var keyStrings = {
         "ប្រើម៉ាស៊ីនមេបញ្ជា HTTPS សម្រាប់ការវិនិច្ឆ័យពីចម្ងាយ។",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ប្រើ HTTP ឬ HTTPS ដោយគ្មានឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់នៅក្នុងអាសយដ្ឋាន។",
+    "Use inherited color": "ប្រើពណ៌ដែលទទួលបន្ត",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ប្រើឆ្វេង/ស្ដាំ ដើម្បីជ្រើសរើសវត្ថុបញ្ជា យល់ព្រម ដើម្បីដំណើរការវា ហើយឡើងលើ/ចុះក្រោម ដើម្បីរំកិល។",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1159,6 +1182,7 @@ var keyStrings = {
         "មិនអាចផ្ទុក VPortal បានទេ។ ពិនិត្យមើលតំណភ្ជាប់ សោចូលប្រើប្រាស់ និងលទ្ធភាពប្រើប្រាស់វិបផតថល។",
     volume: "កម្រិតសំឡេង",
     "Waiting for sign-in…": "កំពុងរង់ចាំការចូល...",
+    "Warm graphite": "ក្រាហ្វីតពណ៌កក់ក្ដៅ",
     "Wrong parental code !!!": "លេខកូដមាតាបិតាខុស!",
     "Xtream Codes Provider": "អ្នកផ្តល់លេខកូដ Xtream",
     "Xtream Codes settings": "ការកំណត់លេខកូដ Xtream",

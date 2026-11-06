@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ஒரு கட்டளை பிளேயரால் நிராகரிக்கப்பட்டது. அதன் வழங்குநர் மற்றும் அமைப்புகளைச் சரிபார்க்கவும்.",
     About: "பற்றி",
+    "Accent color": "வலியுறுத்தும் நிறம்",
     "Access code": "அணுகல் குறியீடு",
     "Access denied. Check the server access code.":
         "அணுகல் மறுக்கப்பட்டது. சேவையக அணுகல் குறியீட்டைச் சரிபார்க்கவும்.",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API தோல்வியடைந்தது, M3U முயற்சி...",
     "API Server": "API சர்வர்",
     "API server URL": "API சர்வர் URL",
+    Apply: "பயன்படுத்து",
+    "Apply changes to this draft, then use Save Settings.":
+        "இந்த வரைவில் மாற்றங்களைப் பயன்படுத்தி, பின்னர் «அமைப்புகளைச் சேமிக்கவும்» என்பதைத் தேர்ந்தெடுக்கவும்.",
     "Applying HTTP remote settings...":
         "HTTP ரிமோட் அமைப்புகளைப் பயன்படுத்துகிறது...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -118,6 +122,7 @@ var keyStrings = {
     Blue: "நீலம்",
     "Bookmark age (days): %1": "புக்மார்க்கின் வயது (நாட்கள்): %1",
     "Bookmark age: %1 days": "புக்மார்க் வயது: %1 நாட்கள்",
+    "Border color": "விளிம்பின் நிறம்",
     Brightness: "பிரகாசம்",
     "Browse folders": "கோப்புறைகளை உலாவுக",
     "Buffer Size, s": "தாங்கல் அளவு, எஸ்",
@@ -190,6 +195,7 @@ var keyStrings = {
     "Cloud transfer failed": "கிளவுட் பரிமாற்றம் தோல்வியடைந்தது",
     Code: "குறியீடு",
     Color: "நிறம்",
+    "Color schemes": "வண்ணத் திட்டங்கள்",
     "Color spectrum": "வண்ண நிறமாலை",
     "Command server": "கட்டளை சேவையகம்",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -329,6 +335,7 @@ var keyStrings = {
         "HTTP ரிமோட் கண்ட்ரோலைப் புதுப்பிக்க முடியவில்லை.",
     Country: "நாடு",
     "Create category": "வகையை உருவாக்கவும்",
+    Custom: "தனிப்பயன்",
     current: "தற்போதைய",
     "Debug enabled. Restart to apply.":
         "பிழைத்திருத்தம் இயக்கப்பட்டது. மாற்றத்தைப் பயன்படுத்த பிளேயரை மறுதொடக்கம் செய்யவும்.",
@@ -491,6 +498,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG ஆதாரம் திரும்பியது HTTP %1",
     "EPG source: %1": "EPG ஆதாரம்: %1",
     "EPG stopped during: %1": "EPG இதன் போது நிறுத்தப்பட்டது: %1",
+    "EPG time color": "EPG நேரத்தின் நிறம்",
     "EPG unavailable on this browser": "EPG இந்த உலாவியில் இல்லை",
     "EPG unavailable: %1": "EPG கிடைக்கவில்லை: %1",
     "EPG update failed; using saved programme guide":
@@ -561,6 +569,7 @@ var keyStrings = {
     "Hide / Return": "மறை / காட்டு",
     "Hide provider settings?": "வழங்குநர் அமைப்புகளை மறைக்கவா?",
     "Hide providers?": "வழங்குநர்களை மறைக்கவா?",
+    "High contrast": "அதிக மாறுபாடு",
     "History in Media Library": "ஊடக நூலகத்தில் வரலாறு",
     "History of watched movies": "வரலாற்றைப் பார்க்கவும்",
     Home: "முகப்பு",
@@ -568,6 +577,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP ரிமோட் கண்ட்ரோல் இந்தச் சாதனத்தில் இல்லை.",
     "HTTPS support": "HTTPS ஆதரவு",
+    Hue: "சாயல்",
     ID: "ID",
     "Import settings": "இறக்குமதி அமைப்புகள்",
     "In live mode: <br/>": "நேரடி ஒளிபரப்பின்போது:<br/>",
@@ -575,6 +585,8 @@ var keyStrings = {
     "Infobar display timeout, s": "தகவல் பட்டி காட்சி நேரம் முடிந்தது, எஸ்",
     "Infobar settings": "தகவல் பட்டி அமைப்புகள்",
     Information: "தகவல்",
+    Inherited: "மரபாகப் பெற்றது",
+    "Interface colors": "இடைமுக நிறங்கள்",
     "Interface credits": "இடைமுகத்தை உருவாக்கியவர்கள்",
     "Interface mode": "இடைமுக முறை",
     "Interface settings": "இடைமுக அமைப்புகள்",
@@ -583,6 +595,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "தவறான சேனல் இணைப்பு! உங்கள் வழங்குநர் கணக்குப் பக்கத்தில் உள்ள ஸ்ட்ரீம் URL இலிருந்து முழுமையான ஹோஸ்ட்பெயரை உள்ளிடவும் (எடுத்துக்காட்டாக subdomain.cdn-domain.tld ).",
     "Invalid cloud settings response": "தவறான கிளவுட் அமைப்புகளின் பதில்",
+    "Invalid color value": "செல்லாத நிற மதிப்பு",
     "Invalid protected source configuration": "தவறான பாதுகாக்கப்பட்ட மூல உள்ளமைவு",
     "Invalid range: %1-%2": "செல்லாத வரம்பு: %1-%2",
     "Invalid setting": "தவறான அமைப்பு",
@@ -594,6 +607,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV அமைப்புகள்",
     "Label (optional)": "பெயர் (விருப்பத்தேர்வு)",
+    Light: "வெளிர்",
     "List created": "பட்டியல் உருவாக்கப்பட்டது",
     "List deleted": "பட்டியல் நீக்கப்பட்டது",
     "List location": "பட்டியல் நிலை",
@@ -656,6 +670,7 @@ var keyStrings = {
     "Media Library URL": "ஊடக நூலகம் URL",
     Menu: "மெனு",
     "Menu items settings": "மெனு உருப்படி அமைப்புகள்",
+    Midnight: "நள்ளிரவு",
     Modern: "நவீனம்",
     "Modern interface is unavailable. Classic remains active.":
         "நவீன இடைமுகம் கிடைக்கவில்லை. பாரம்பரிய இடைமுகம் செயலில் இருக்கும்.",
@@ -702,6 +717,7 @@ var keyStrings = {
     no: "இல்லை",
     "no epg at current time": "தற்போதைய நேரத்தில் EPG இல்லை",
     "not set": "அமைக்கப்படவில்லை",
+    Ocean: "பெருங்கடல்",
     Off: "முடக்கம்",
     Ok: "சரி",
     On: "இயக்கம்",
@@ -737,6 +753,7 @@ var keyStrings = {
         "இணைத்தல் சேவையகம் கிடைக்கவில்லை. மீண்டும் முயற்சிக்க சர்வரைக் கண்டறியவும்.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "இணைத்தல் நிராகரிக்கப்பட்டது அல்லது தவறான ஒப்புதலை அளித்தது. மீண்டும் முயற்சிக்க சர்வரைக் கண்டறியவும்.",
+    Palette: "வண்ணத் தட்டு",
     "Parental control": "பெற்றோர் கட்டுப்பாடு",
     Password: "கடவுச்சொல்",
     "Paste settings JSON": "அமைப்புகளை ஒட்டவும் JSON",
@@ -782,6 +799,7 @@ var keyStrings = {
     Prepaid: "ப்ரீபெய்ட்",
     "Preparing secure remote input...": "பாதுகாப்பான ரிமோட் உள்ளீட்டைத் தயாரிக்கிறது...",
     Prev: "முந்தைய",
+    Preview: "முன்னோட்டம்",
     "Preview in channel list": "சேனல் பட்டியலில் முன்னோட்டம்",
     Previous: "முந்தையது",
     "Privacy policy": "தனியுரிமைக் கொள்கை",
@@ -915,6 +933,7 @@ var keyStrings = {
     Search: "தேடல்",
     "Search languages": "மொழிகளைத் தேடுங்கள்",
     "Search programme": "நிகழ்ச்சியைத் தேடவும்",
+    "Secondary text color": "துணை உரையின் நிறம்",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "பாதுகாப்பான ரிமோட் உள்ளீட்டைத் தொடங்க முடியவில்லை. மீண்டும் முயற்சிக்கவும் அல்லது திரையில் உள்ள விசைப்பலகையைப் பயன்படுத்தவும்.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -935,6 +954,8 @@ var keyStrings = {
         "உலாவியில் ஸ்கிரீன்ஷாட் மூலத்தைத் தேர்ந்தெடுக்கவும்",
     "Select the player tab or window in the browser sharing dialog.":
         "உலாவி பகிர்வு உரையாடலில் பிளேயர் தாவல் அல்லது சாளரத்தைத் தேர்ந்தெடுக்கவும்.",
+    "Selected item": "தேர்ந்தெடுத்த உருப்படி",
+    "Selected text color": "தேர்ந்தெடுத்த உரையின் நிறம்",
     "Send request": "கோரிக்கையை அனுப்பவும்",
     "Send settings": "அமைப்புகளை அனுப்பவும்",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1047,6 +1068,7 @@ var keyStrings = {
     "Subscription information": "சந்தா தகவல்",
     Subtitle: "வசனங்கள்",
     "Subtitle appearance": "வசனங்களின் தோற்றம்",
+    "Surface color": "மேற்பரப்பு நிறம்",
     Switch: "மாறவும்",
     "Switch sound track": "ஆடியோ டிராக்கை மாற்றவும்",
     "Switch subtitle": "வசனங்களை மாற்றவும்",
@@ -1150,6 +1172,7 @@ var keyStrings = {
         "தொலைநிலை கண்டறிதலுக்கு HTTPS கட்டளை சேவையகத்தைப் பயன்படுத்தவும்.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "முகவரியில் பயனர்பெயர் அல்லது கடவுச்சொல் இல்லாமல் HTTP அல்லது HTTPS ஐப் பயன்படுத்தவும்.",
+    "Use inherited color": "மரபாகப் பெற்ற நிறத்தைப் பயன்படுத்து",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "கட்டுப்பாட்டைத் தேர்ந்தெடுக்க இடது/வலது, அதைச் செயல்படுத்த சரி, மற்றும் உருட்ட மேல்/கீழே பயன்படுத்தவும்.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1173,6 +1196,7 @@ var keyStrings = {
         "VPortal ஐ ஏற்ற முடியவில்லை. இணைப்பு, அணுகல் விசை மற்றும் போர்டல் கிடைக்கும் தன்மையை சரிபார்க்கவும்.",
     volume: "ஒலியளவு",
     "Waiting for sign-in…": "உள்நுழைவுக்காக காத்திருக்கிறது…",
+    "Warm graphite": "வெம்மையான கிராஃபைட்",
     "Wrong parental code !!!": "தவறான பெற்றோர் குறியீடு!",
     "Xtream Codes Provider": "Xtream குறியீடுகள் வழங்குநர்",
     "Xtream Codes settings": "Xtream குறியீடுகள் அமைப்புகள்",

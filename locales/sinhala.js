@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "විධානයක් වාදකය විසින් ප්‍රතික්ෂේප කරන ලදී. එහි සැපයුම්කරු සහ සැකසුම් පරීක්ෂා කරන්න.",
     About: "ගැන",
+    "Accent color": "උද්දීපන වර්ණය",
     "Access code": "ප්රවේශ කේතය",
     "Access denied. Check the server access code.":
         "ප්‍රවේශය ප්‍රතික්ෂේප විය. සේවාදායක ප්රවේශ කේතය පරීක්ෂා කරන්න.",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API අසාර්ථක විය, M3U උත්සාහ කරමින්...",
     "API Server": "API සේවාදායකය",
     "API server URL": "API සේවාදායකය URL",
+    Apply: "යොදන්න",
+    "Apply changes to this draft, then use Save Settings.":
+        "මෙම කෙටුම්පතට වෙනස්කම් යොදා, පසුව සැකසුම් සුරකින්න තෝරන්න.",
     "Applying HTTP remote settings...": "HTTP දුරස්ථ සිටුවම් යෙදීම...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODE සමඟ %1 සඳහා කේතය අනුමත කරන්න:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "නිල්",
     "Bookmark age (days): %1": "පිටු සලකුණෙහි වයස (දින): %1",
     "Bookmark age: %1 days": "පිටු සලකුණු වයස: %1 දින",
+    "Border color": "මායිම් වර්ණය",
     Brightness: "දීප්තිය",
     "Browse folders": "ෆෝල්ඩර බ්‍රවුස් කරන්න",
     "Buffer Size, s": "බෆර ප්‍රමාණය, එස්",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "ක්ලවුඩ් දත්ත හුවමාරුව අසාර්ථක විය",
     Code: "කේතය",
     Color: "වර්ණය",
+    "Color schemes": "වර්ණ යෝජනා",
     "Color spectrum": "වර්ණ වර්ණාවලිය",
     "Command server": "විධාන සේවාදායකය",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -322,6 +328,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "HTTP දුරස්ථ පාලකය යාවත්කාලීන කළ නොහැක.",
     Country: "රට",
     "Create category": "කාණ්ඩයක් සාදන්න",
+    Custom: "අභිරුචි",
     current: "ධාරාව",
     "Debug enabled. Restart to apply.":
         "නිදොස්කරණය සක්‍රීය කර ඇත. අයදුම් කිරීමට නැවත ආරම්භ කරන්න.",
@@ -482,6 +489,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG මූලාශ්‍රය ආපසු ලබා දුන්නේ HTTP %1",
     "EPG source: %1": "EPG මූලාශ්‍රය: %1",
     "EPG stopped during: %1": "EPG නතර වූයේ: %1",
+    "EPG time color": "EPG වේලාවේ වර්ණය",
     "EPG unavailable on this browser": "EPG මෙම බ්‍රවුසරයේ නොමැත",
     "EPG unavailable: %1": "EPG නොමැත: %1",
     "EPG update failed; using saved programme guide":
@@ -551,6 +559,7 @@ var keyStrings = {
     "Hide / Return": "සඟවන්න / පෙන්වන්න",
     "Hide provider settings?": "සපයන්නාගේ සිටුවම් සඟවන්නද?",
     "Hide providers?": "සපයන්නන් සඟවන්නද?",
+    "High contrast": "ඉහළ වෙනස",
     "History in Media Library": "මාධ්‍ය පුස්තකාලයේ ඉතිහාසය",
     "History of watched movies": "ඉතිහාසය නැරඹීම",
     Home: "මුල් පිටුව",
@@ -558,6 +567,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP දුරස්ථ පාලකය මෙම උපාංගයේ නොමැත.",
     "HTTPS support": "HTTPS සහාය",
+    Hue: "වර්ණ පැහැය",
     ID: "ID",
     "Import settings": "සැකසුම් ආයාත කරන්න",
     "In live mode: <br/>": "සජීවී මාදිලියේ:<br/>",
@@ -565,6 +575,8 @@ var keyStrings = {
     "Infobar display timeout, s": "තොරතුරු තීරු සංදර්ශක කල් ඉකුත්වීම, s",
     "Infobar settings": "තොරතුරු තීරු සැකසුම්",
     Information: "තොරතුරු",
+    Inherited: "උරුම වූ",
+    "Interface colors": "අතුරුමුහුණත් වර්ණ",
     "Interface credits": "අතුරු මුහුණතට දායක වූවන්",
     "Interface mode": "අතුරුමුහුණත් මාදිලිය",
     "Interface settings": "අතුරු මුහුණත් සැකසුම්",
@@ -573,6 +585,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "වලංගු නොවන නාලිකා සබැඳියක්! කැබිනට් ප්‍රවාහයේ URL (උදා. subdomain.cdn-domain.tld) ලෙස සම්පූර්ණ ධාරකය ඇතුළු කරන්න",
     "Invalid cloud settings response": "ක්ලවුඩ් සැකසුම් සඳහා වලංගු නොවන ප්‍රතිචාරයක් ලැබුණි",
+    "Invalid color value": "වර්ණ අගය වලංගු නැත",
     "Invalid protected source configuration": "වලංගු නොවන ආරක්ෂිත මූලාශ්‍ර වින්‍යාසය",
     "Invalid range: %1-%2": "වලංගු නොවන පරාසය: %1-%2",
     "Invalid setting": "වලංගු නොවන සැකසුම",
@@ -584,6 +597,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV සැකසුම්",
     "Label (optional)": "නම (අත්‍යවශ්‍ය නොවේ)",
+    Light: "ලා පැහැති",
     "List created": "ලැයිස්තුව සාදන ලදී",
     "List deleted": "ලැයිස්තුව මකා ඇත",
     "List location": "ලැයිස්තු ස්ථානය",
@@ -645,6 +659,7 @@ var keyStrings = {
     "Media Library URL": "මාධ්‍ය පුස්තකාලය URL",
     Menu: "මෙනුව",
     "Menu items settings": "මෙනු අයිතම සැකසුම්",
+    Midnight: "මධ්‍යම රාත්‍රිය",
     Modern: "නවීන",
     "Modern interface is unavailable. Classic remains active.":
         "නවීන අතුරුමුහුණත නොමැත. සම්භාව්‍ය අතුරුමුහුණත සක්‍රියව පවතී.",
@@ -689,6 +704,7 @@ var keyStrings = {
     no: "නැත",
     "no epg at current time": "දැනට EPG නැත",
     "not set": "සකසා නැත",
+    Ocean: "සාගරය",
     Off: "අක්‍රිය",
     Ok: "හරි",
     On: "සක්‍රිය",
@@ -724,6 +740,7 @@ var keyStrings = {
         "යුගල කිරීමේ සේවාදායකය නොමැත. නැවත උත්සාහ කිරීමට සේවාදායකය නැවත සොයන්න.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "යුගල කිරීම ප්‍රතික්ෂේප කර හෝ අවලංගු අනුමැතියක් ලබා දී ඇත. නැවත උත්සාහ කිරීමට සේවාදායකය නැවත සොයන්න.",
+    Palette: "වර්ණ පුවරුව",
     "Parental control": "මාපිය පාලනය",
     Password: "මුරපදය",
     "Paste settings JSON": "සැකසුම් JSON අලවන්න",
@@ -769,6 +786,7 @@ var keyStrings = {
     Prepaid: "පෙරගෙවුම්",
     "Preparing secure remote input...": "ආරක්ෂිත දුරස්ථ ආදානය සූදානම් කරමින්...",
     Prev: "පෙර",
+    Preview: "පෙරදසුන",
     "Preview in channel list": "නාලිකා ලැයිස්තුවේ පෙරදසුන",
     Previous: "පෙර",
     "Privacy policy": "රහස්‍යතා ප්‍රතිපත්තිය",
@@ -899,6 +917,7 @@ var keyStrings = {
     Search: "සොයන්න",
     "Search languages": "භාෂා සොයන්න",
     "Search programme": "වැඩසටහන සොයන්න",
+    "Secondary text color": "ද්විතීයික පෙළ වර්ණය",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ආරක්ෂිත දුරස්ථ ආදානය ආරම්භ කළ නොහැක. කරුණාකර නැවත උත්සාහ කරන්න හෝ තිරයේ යතුරු පුවරුව භාවිතා කරන්න.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -918,6 +937,8 @@ var keyStrings = {
     "Select screenshot source in browser": "බ්‍රවුසරයේ තිරපිටපත් මූලාශ්‍රය තෝරන්න",
     "Select the player tab or window in the browser sharing dialog.":
         "බ්‍රවුසරයේ බෙදාගැනීමේ සංවාද කොටුවෙන් මාධ්‍ය වාදකයේ පටිත්ත හෝ කවුළුව තෝරන්න.",
+    "Selected item": "තෝරාගත් අයිතමය",
+    "Selected text color": "තෝරාගත් පෙළ වර්ණය",
     "Send request": "ඉල්ලීම යවන්න",
     "Send settings": "සැකසුම් යවන්න",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1030,6 +1051,7 @@ var keyStrings = {
     "Subscription information": "දායකත්ව තොරතුරු",
     Subtitle: "උපසිරැසි",
     "Subtitle appearance": "උපසිරැසි පෙනුම",
+    "Surface color": "මතුපිට වර්ණය",
     Switch: "මාරු කරන්න",
     "Switch sound track": "ශ්‍රව්‍ය ධාවන පථය මාරු කරන්න",
     "Switch subtitle": "උපසිරැසි මාරු කරන්න",
@@ -1132,6 +1154,7 @@ var keyStrings = {
         "දුරස්ථ රෝග විනිශ්චය සඳහා HTTPS විධාන සේවාදායකයක් භාවිතා කරන්න.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ලිපිනයෙහි පරිශීලක නාමයක් හෝ මුරපදයක් නොමැතිව HTTP හෝ HTTPS භාවිතා කරන්න.",
+    "Use inherited color": "උරුම වූ වර්ණය භාවිත කරන්න",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "පාලනයක් තේරීමට වම/දකුණ, එය සක්‍රිය කිරීමට OK සහ අනුචලනය කිරීමට ඉහළ/පහළ භාවිතා කරන්න.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1155,6 +1178,7 @@ var keyStrings = {
         "VPortal පූරණය කළ නොහැකි විය. සබැඳිය, ප්‍රවේශ යතුර සහ ද්වාර ලබා ගැනීමේ හැකියාව පරීක්ෂා කරන්න.",
     volume: "ශබ්ද පරිමාව",
     "Waiting for sign-in…": "පුරනය වීම සඳහා රැඳී සිටිමින්...",
+    "Warm graphite": "උණුසුම් ග්‍රැෆයිට්",
     "Wrong parental code !!!": "වැරදි මාපිය කේතය!",
     "Xtream Codes Provider": "Xtream කේත සපයන්නා",
     "Xtream Codes settings": "Xtream කේත සැකසුම්",

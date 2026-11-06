@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Grotuvas atmetė komandą. Patikrinkite jo teikėją ir nustatymus.",
     About: "Apie",
+    "Accent color": "Akcento spalva",
     "Access code": "Prieigos kodas",
     "Access denied. Check the server access code.":
         "Prieiga uždrausta. Patikrinkite serverio prieigos kodą.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API klaida, bandomas M3U…",
     "API Server": "API serveris",
     "API server URL": "API serverio URL",
+    Apply: "Taikyti",
+    "Apply changes to this draft, then use Save Settings.":
+        "Taikykite pakeitimus šiam juodraščiui, tada pasirinkite Išsaugoti nustatymus.",
     "Applying HTTP remote settings...": "Taikomi HTTP valdymo nustatymai...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Patvirtinkite %1 kodą naudodami komandą ott approve NAME CODE:",
@@ -118,6 +122,7 @@ var keyStrings = {
     Blue: "Mėlyna",
     "Bookmark age (days): %1": "Žymės amžius (dienomis): %1",
     "Bookmark age: %1 days": "Žymelės amžius: %1 dien.",
+    "Border color": "Kraštinės spalva",
     Brightness: "Šviesumas",
     "Browse folders": "Naršyti aplankus",
     "Buffer Size, s": "Buferio dydis, s",
@@ -192,6 +197,7 @@ var keyStrings = {
     "Cloud transfer failed": "Duomenų perdavimas per debesiją nepavyko",
     Code: "Prieigos kodas",
     Color: "Spalva",
+    "Color schemes": "Spalvų schemos",
     "Color spectrum": "Spalvų spektras",
     "Command server": "Komandų serveris",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -331,6 +337,7 @@ var keyStrings = {
         "Nepavyko atnaujinti HTTP valdymo nustatymų.",
     Country: "Šalis",
     "Create category": "Sukurti kategoriją",
+    Custom: "Pasirinktinis",
     current: "dabartinis",
     "Debug enabled. Restart to apply.":
         "Derinimas įjungtas. Paleiskite grotuvą iš naujo, kad pritaikytumėte pakeitimą.",
@@ -495,6 +502,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG šaltinis grąžino HTTP %1",
     "EPG source: %1": "EPG šaltinis: %1",
     "EPG stopped during: %1": "EPG sustabdymo etapas: %1",
+    "EPG time color": "EPG laiko spalva",
     "EPG unavailable on this browser": "EPG negalima naudoti šioje naršyklėje",
     "EPG unavailable: %1": "EPG nepasiekiamas: %1",
     "EPG update failed; using saved programme guide":
@@ -567,6 +575,7 @@ var keyStrings = {
     "Hide / Return": "Slėpti / rodyti",
     "Hide provider settings?": "Slėpti teikėjo nustatymus?",
     "Hide providers?": "Slėpti teikėjus?",
+    "High contrast": "Didelis kontrastas",
     "History in Media Library": "Istorija medijos bibliotekoje",
     "History of watched movies": "Peržiūrų istorija",
     Home: "Pradžia",
@@ -574,6 +583,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP valdymas šiame įrenginyje nepasiekiamas.",
     "HTTPS support": "HTTPS palaikymas",
+    Hue: "Atspalvis",
     ID: "ID",
     "Import settings": "Importuoti nustatymus",
     "In live mode: <br/>": "Tiesioginės transliacijos režimu:<br/>",
@@ -581,6 +591,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Informacijos juostos rodymo trukmė, sek.",
     "Infobar settings": "Informacijos juostos nustatymai",
     Information: "Informacija",
+    Inherited: "Paveldėtas",
+    "Interface colors": "Sąsajos spalvos",
     "Interface credits": "Sąsajos kūrėjai",
     "Interface mode": "Sąsajos režimas",
     "Interface settings": "Sąsajos nustatymai",
@@ -590,6 +602,7 @@ var keyStrings = {
         "Netinkama kanalo nuoroda! Įveskite visą pagrindinio kompiuterio vardą, kaip paskyros srauto URL (pvz., subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Netinkamas debesies nustatymų atsakymas",
+    "Invalid color value": "Netinkama spalvos reikšmė",
     "Invalid protected source configuration":
         "Neteisinga apsaugoto šaltinio konfigūracija",
     "Invalid range: %1-%2": "Netinkamas intervalas: %1-%2",
@@ -602,6 +615,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV nustatymai",
     "Label (optional)": "Pavadinimas (neprivaloma)",
+    Light: "Šviesi",
     "List created": "Sąrašas sukurtas",
     "List deleted": "Sąrašas pašalintas",
     "List location": "Sąrašo padėtis",
@@ -663,6 +677,7 @@ var keyStrings = {
     "Media Library URL": "Mediatekos URL",
     Menu: "Meniu",
     "Menu items settings": "Meniu elementų nustatymai",
+    Midnight: "Vidurnaktis",
     Modern: "Modernus",
     "Modern interface is unavailable. Classic remains active.":
         "Moderni sąsaja nepasiekiama. Klasikinė lieka aktyvi.",
@@ -709,6 +724,7 @@ var keyStrings = {
     no: "ne",
     "no epg at current time": "Šiuo metu EPG nėra",
     "not set": "nenustatyta",
+    Ocean: "Vandenynas",
     Off: "Išjungta",
     Ok: "Gerai",
     On: "Įjungta",
@@ -744,6 +760,7 @@ var keyStrings = {
         "Susiejimo serveris nepasiekiamas. Norėdami bandyti dar kartą, iš naujo raskite serverį.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Susiejimas atmestas arba gautas netinkamas patvirtinimas. Norėdami bandyti dar kartą, iš naujo raskite serverį.",
+    Palette: "Spalvų paletė",
     "Parental control": "Tėvų kontrolė",
     Password: "Slaptažodis",
     "Paste settings JSON": "Įklijuokite nustatymus JSON formatu",
@@ -788,6 +805,7 @@ var keyStrings = {
     Prepaid: "Išankstinis mokėjimas",
     "Preparing secure remote input...": "Ruošiama saugi nuotolinė įvestis...",
     Prev: "Ankstesnis",
+    Preview: "Peržiūra",
     "Preview in channel list": "Peržiūra kanalų sąraše",
     Previous: "Ankstesnis",
     "Privacy policy": "Privatumo politika",
@@ -921,6 +939,7 @@ var keyStrings = {
     Search: "Paieška",
     "Search languages": "Ieškoti kalbų",
     "Search programme": "Ieškoti laidos",
+    "Secondary text color": "Antrinio teksto spalva",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Nepavyko paleisti saugios nuotolinės įvesties. Bandykite dar kartą arba naudokite ekraninę klaviatūrą.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -941,6 +960,8 @@ var keyStrings = {
         "Naršyklėje pasirinkite ekrano kopijos šaltinį",
     "Select the player tab or window in the browser sharing dialog.":
         "Naršyklės bendrinimo dialogo lange pasirinkite grotuvo skirtuką arba langą.",
+    "Selected item": "Pasirinktas elementas",
+    "Selected text color": "Pasirinkto teksto spalva",
     "Send request": "Siųsti užklausą",
     "Send settings": "Siųsti nustatymus",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1054,6 +1075,7 @@ var keyStrings = {
     "Subscription information": "Prenumeratos informacija",
     Subtitle: "Subtitrai",
     "Subtitle appearance": "Subtitrų išvaizda",
+    "Surface color": "Paviršiaus spalva",
     Switch: "Perjungti",
     "Switch sound track": "Keisti garso takelį",
     "Switch subtitle": "Keisti subtitrus",
@@ -1160,6 +1182,7 @@ var keyStrings = {
         "Nuotolinei diagnostikai naudokite HTTPS komandų serverį.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Naudokite HTTP arba HTTPS be naudotojo vardo ar slaptažodžio adrese.",
+    "Use inherited color": "Naudoti paveldėtą spalvą",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "KAIRĖN/DEŠINĖN pasirinkite valdiklį, OK jį aktyvinkite, AUKŠTYN/ŽEMYN slinkite.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1184,6 +1207,7 @@ var keyStrings = {
         "Nepavyko įkelti VPortal. Patikrinkite nuorodą, prieigos raktą ir portalo prieinamumą.",
     volume: "garsumas",
     "Waiting for sign-in…": "Laukiama prisijungimo…",
+    "Warm graphite": "Šiltas grafitas",
     "Wrong parental code !!!": "Neteisingas tėvų kodas!!!",
     "Xtream Codes Provider": "Xtream Codes teikėjas",
     "Xtream Codes settings": "Xtream Codes nustatymai",

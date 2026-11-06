@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "命令被播放器拒绝。检查其提供商和设置。",
     About: "关于",
+    "Accent color": "强调色",
     "Access code": "访问代码",
     "Access denied. Check the server access code.":
         "访问被拒绝。检查服务器访问代码。",
@@ -79,6 +80,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API失败，尝试M3U…",
     "API Server": "API 服务器",
     "API server URL": "API 服务器 URL",
+    Apply: "应用",
+    "Apply changes to this draft, then use Save Settings.":
+        "将更改应用到此草稿，然后选择保存设置。",
     "Applying HTTP remote settings...": "应用HTTP 远程设置...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "批准 %1 和 ott approve NAME CODE 的代码：",
@@ -114,6 +118,7 @@ var keyStrings = {
     Blue: "蓝色",
     "Bookmark age (days): %1": "书签年龄（天）：%1",
     "Bookmark age: %1 days": "书签年龄：%1 天",
+    "Border color": "边框颜色",
     Brightness: "亮度",
     "Browse folders": "浏览文件夹",
     "Buffer Size, s": "缓冲区大小，s",
@@ -183,6 +188,7 @@ var keyStrings = {
     "Cloud transfer failed": "云传输失败",
     Code: "代码",
     Color: "颜色",
+    "Color schemes": "配色方案",
     "Color spectrum": "色谱",
     "Command server": "命令服务器",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -313,6 +319,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "无法更新HTTP 远程控制。",
     Country: "国家",
     "Create category": "创建类别",
+    Custom: "自定义",
     current: "电流",
     "Debug enabled. Restart to apply.": "调试已启用。重新启动即可应用。",
     "Debug HUD": "调试HUD",
@@ -466,6 +473,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG 源返回 HTTP %1",
     "EPG source: %1": "EPG 来源：%1",
     "EPG stopped during: %1": "EPG 在以下期间停止：%1",
+    "EPG time color": "EPG 时间颜色",
     "EPG unavailable on this browser": "EPG 在此浏览器上不可用",
     "EPG unavailable: %1": "EPG 不可用：%1",
     "EPG update failed; using saved programme guide":
@@ -531,6 +539,7 @@ var keyStrings = {
     "Hide / Return": "隐藏/显示",
     "Hide provider settings?": "隐藏提供商设置？",
     "Hide providers?": "隐藏提供商？",
+    "High contrast": "高对比度",
     "History in Media Library": "媒体库中的历史记录",
     "History of watched movies": "观看记录",
     Home: "首页",
@@ -538,6 +547,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP 远程控制在此设备上不可用。",
     "HTTPS support": "HTTPS 支持",
+    Hue: "色相",
     ID: "ID",
     "Import settings": "导入设置",
     "In live mode: <br/>": "实时模式：<br/>",
@@ -545,6 +555,8 @@ var keyStrings = {
     "Infobar display timeout, s": "信息栏显示超时，s",
     "Infobar settings": "信息栏设置",
     Information: "信息",
+    Inherited: "继承",
+    "Interface colors": "界面颜色",
     "Interface credits": "界面制作人员",
     "Interface mode": "界面模式",
     "Interface settings": "界面设置",
@@ -553,6 +565,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "频道链接无效！输入内阁流 URL 中的完整主机（例如 subdomain.cdn-domain.tld）",
     "Invalid cloud settings response": "无效的云设置响应",
+    "Invalid color value": "颜色值无效",
     "Invalid protected source configuration": "受保护源配置无效",
     "Invalid range: %1-%2": "范围无效：%1-%2",
     "Invalid setting": "无效设置",
@@ -564,6 +577,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV设定",
     "Label (optional)": "名称（可选）",
+    Light: "浅色",
     "List created": "列表已创建",
     "List deleted": "列表已删除",
     "List location": "列表位置",
@@ -625,6 +639,7 @@ var keyStrings = {
     "Media Library URL": "媒体库URL",
     Menu: "菜单",
     "Menu items settings": "菜单项目设置",
+    Midnight: "午夜",
     Modern: "现代",
     "Modern interface is unavailable. Classic remains active.":
         "现代界面不可用，经典界面仍处于启用状态。",
@@ -669,6 +684,7 @@ var keyStrings = {
     no: "否",
     "no epg at current time": "目前没有EPG",
     "not set": "未设置",
+    Ocean: "海洋",
     Off: "关闭",
     Ok: "确定",
     On: "开启",
@@ -704,6 +720,7 @@ var keyStrings = {
         "配对服务器不可用。再次查找服务器重试。",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "配对被拒绝或返回无效批准。再次查找服务器重试。",
+    Palette: "调色板",
     "Parental control": "家长控制",
     Password: "密码",
     "Paste settings JSON": "粘贴设置JSON",
@@ -748,6 +765,7 @@ var keyStrings = {
     Prepaid: "预付费",
     "Preparing secure remote input...": "准备安全远程输入...",
     Prev: "上一页",
+    Preview: "预览",
     "Preview in channel list": "在频道列表中预览",
     Previous: "上一页",
     "Privacy policy": "隐私政策",
@@ -873,6 +891,7 @@ var keyStrings = {
     Search: "搜索",
     "Search languages": "搜索语言",
     "Search programme": "搜索节目",
+    "Secondary text color": "次要文字颜色",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "安全远程输入无法启动。请重试或使用屏幕键盘。",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -892,6 +911,8 @@ var keyStrings = {
     "Select screenshot source in browser": "在浏览器中选择屏幕截图源",
     "Select the player tab or window in the browser sharing dialog.":
         "在浏览器共享对话框中选择播放器选项卡或窗口。",
+    "Selected item": "选中项",
+    "Selected text color": "选中文字颜色",
     "Send request": "发送请求",
     "Send settings": "发送设置",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1000,6 +1021,7 @@ var keyStrings = {
     "Subscription information": "订阅信息",
     Subtitle: "字幕",
     "Subtitle appearance": "字幕外观",
+    "Surface color": "表面颜色",
     Switch: "开关",
     "Switch sound track": "切换音轨",
     "Switch subtitle": "切换字幕",
@@ -1096,6 +1118,7 @@ var keyStrings = {
         "使用HTTPS 命令服务器进行远程诊断。",
     "Use HTTP or HTTPS without a username or password in the address.":
         "使用HTTP 或HTTPS，地址中不带用户名或密码。",
+    "Use inherited color": "使用继承的颜色",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "使用向左/向右选择控件，使用确定激活它，使用向上/向下滚动。",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1118,6 +1141,7 @@ var keyStrings = {
         "无法加载VPortal。检查链接、访问密钥和门户可用性。",
     volume: "音量",
     "Waiting for sign-in…": "等待登录...",
+    "Warm graphite": "暖石墨",
     "Wrong parental code !!!": "家长代码错误！",
     "Xtream Codes Provider": "Xtream 代码提供商",
     "Xtream Codes settings": "Xtream 代码设置",

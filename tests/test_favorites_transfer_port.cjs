@@ -17,7 +17,10 @@ function load(file, host, document = { cookie: "" }) {
         exports: {},
         Promise,
         require(name) {
-            if (name === "./favorites-physical-storage")
+            if (
+                name === "./favorites-physical-storage" ||
+                name === "../settings/interface-colors"
+            )
                 return storageImports().require(name);
             if (name === "./favorites-recovery-codec")
                 return load(

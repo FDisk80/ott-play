@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Ойноткуч буйрукту четке какты. Провайдерди жана жөндөөлөрүн текшериңиз.",
     About: "Программа жөнүндө",
+    "Accent color": "Басым түсү",
     "Access code": "Кирүү коду",
     "Access denied. Check the server access code.":
         "Кирүүгө уруксат жок. Сервердин кирүү кодун текшериңиз.",
@@ -85,6 +86,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API катасы, M3U аракет кылынууда…",
     "API Server": "API сервери",
     "API server URL": "API серверинин URL дареги",
+    Apply: "Колдонуу",
+    "Apply changes to this draft, then use Save Settings.":
+        "Өзгөртүүлөрдү бул долбоорго колдонуп, андан соң Жөндөөлөрдү сактоо буйругун тандаңыз.",
     "Applying HTTP remote settings...":
         "HTTP алыстан башкаруу жөндөөлөрү колдонулууда…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -122,6 +126,7 @@ var keyStrings = {
     Blue: "Көк",
     "Bookmark age (days): %1": "Закладка түзүлгөндөн бери (күн): %1",
     "Bookmark age: %1 days": "Белгинин жашы: %1 күн",
+    "Border color": "Чектин түсү",
     Brightness: "Жарыктык",
     "Browse folders": "Папкаларды кароо",
     "Buffer Size, s": "Буфердин көлөмү, сек",
@@ -195,6 +200,7 @@ var keyStrings = {
     "Cloud transfer failed": "Булуттан өткөрүү ишке ашкан жок",
     Code: "Код",
     Color: "Түс",
+    "Color schemes": "Түс схемалары",
     "Color spectrum": "Түс спектри",
     "Command server": "Буйрук сервери",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -335,6 +341,7 @@ var keyStrings = {
         "HTTP аркылуу алыстан башкарууну жаңыртуу мүмкүн болгон жок.",
     Country: "Өлкө",
     "Create category": "Категория түзүү",
+    Custom: "Ыңгайлаштырылган",
     current: "учурдагы",
     "Debug enabled. Restart to apply.":
         "Мүчүлүштүктөрдү издөө иштетилди. Колдонуу үчүн кайра иштетиңиз.",
@@ -501,6 +508,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG булагы HTTP %1 кайтарды",
     "EPG source: %1": "EPG булагы: %1",
     "EPG stopped during: %1": "EPG токтогон баскыч: %1",
+    "EPG time color": "EPG убактысынын түсү",
     "EPG unavailable on this browser": "Бул браузерде EPG жеткиликсиз",
     "EPG unavailable: %1": "EPG жеткиликсиз: %1",
     "EPG update failed; using saved programme guide":
@@ -575,6 +583,7 @@ var keyStrings = {
     "Hide / Return": "Жашыруу / көрсөтүү",
     "Hide provider settings?": "Провайдердин жөндөөлөрү жашырылсынбы?",
     "Hide providers?": "Провайдерлер жашырылсынбы?",
+    "High contrast": "Жогорку контраст",
     "History in Media Library": "Медиатекадагы тарых",
     "History of watched movies": "Көрүү тарыхы",
     Home: "Башкы бет",
@@ -582,6 +591,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Бул түзмөктө HTTP аркылуу алыстан башкаруу жеткиликсиз.",
     "HTTPS support": "HTTPS колдоосу",
+    Hue: "Түс өңү",
     ID: "ID",
     "Import settings": "Жөндөөлөрдү импорттоо",
     "In live mode: <br/>": "Түз эфирде:<br/>",
@@ -589,6 +599,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Маалымат тилкесин көрсөтүү убактысы, с",
     "Infobar settings": "Маалымат тилкесинин жөндөөлөрү",
     Information: "Маалымат",
+    Inherited: "Мурасталган",
+    "Interface colors": "Интерфейстин түстөрү",
     "Interface credits": "Интерфейстин авторлору",
     "Interface mode": "Интерфейс режими",
     "Interface settings": "Интерфейстин жөндөөлөрү",
@@ -597,6 +609,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Каналдын шилтемеси туура эмес! Жеке кабинеттеги агымдын URL дарегиндегидей толук хостту киргизиңиз (мисалы subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Булут жөндөөлөрү туура эмес жооп",
+    "Invalid color value": "Түстүн мааниси жараксыз",
     "Invalid protected source configuration":
         "Корголгон булактын жөндөөлөрү жараксыз",
     "Invalid range: %1-%2": "Жараксыз аралык: %1-%2",
@@ -609,6 +622,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV жөндөөлөрү",
     "Label (optional)": "Аталышы (милдеттүү эмес)",
+    Light: "Ачык",
     "List created": "Тизме түзүлдү",
     "List deleted": "Тизме өчүрүлдү",
     "List location": "Тизмедеги орун",
@@ -672,6 +686,7 @@ var keyStrings = {
     "Media Library URL": "Медиатеканын URL дареги",
     Menu: "Меню",
     "Menu items settings": "Меню пункттарынын жөндөөлөрү",
+    Midnight: "Түн ортосу",
     Modern: "Заманбап",
     "Modern interface is unavailable. Classic remains active.":
         "Заманбап интерфейс жеткиликсиз. Классикалык интерфейс активдүү бойдон калат.",
@@ -718,6 +733,7 @@ var keyStrings = {
     no: "жок",
     "no epg at current time": "Учурдагы убакыт үчүн EPG жок",
     "not set": "коюлган эмес",
+    Ocean: "Океан",
     Off: "Өчүк",
     Ok: "Макул",
     On: "Күйүк",
@@ -753,6 +769,7 @@ var keyStrings = {
         "Жупташтыруу сервери жеткиликсиз. Кайра аракет кылуу үчүн серверди кайра табыңыз.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Жупташтыруу четке кагылды же жараксыз ырастоо келди. Кайра аракет кылуу үчүн серверди кайра табыңыз.",
+    Palette: "Түстөр палитрасы",
     "Parental control": "Ата-эне көзөмөлү",
     Password: "Сырсөз",
     "Paste settings JSON": "Жөндөөлөрдүн JSON маалыматын чаптоо",
@@ -799,6 +816,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Коопсуз алыстан киргизүү даярдалууда...",
     Prev: "Мурунку",
+    Preview: "Алдын ала көрүү",
     "Preview in channel list": "Каналдар тизмесинде алдын ала көрүү",
     Previous: "Мурунку",
     "Privacy policy": "Купуялык саясаты",
@@ -934,6 +952,7 @@ var keyStrings = {
     Search: "Издөө",
     "Search languages": "Тилдерди издөө",
     "Search programme": "Берүүнү издөө",
+    "Secondary text color": "Кошумча тексттин түсү",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Коопсуз алыстан киргизүү башталган жок. Кайра аракет кылыңыз же экрандык баскычтопту колдонуңуз.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -954,6 +973,8 @@ var keyStrings = {
         "Браузерден скриншот булагын тандаңыз",
     "Select the player tab or window in the browser sharing dialog.":
         "Серепчинин бөлүшүү диалогунан ойноткуч өтмөктү же терезени тандаңыз.",
+    "Selected item": "Тандалган нерсе",
+    "Selected text color": "Тандалган тексттин түсү",
     "Send request": "Сурам жөнөтүү",
     "Send settings": "Жөндөөлөрдү жөнөтүү",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1066,6 +1087,7 @@ var keyStrings = {
     "Subscription information": "Жазылуу жөнүндө маалымат",
     Subtitle: "Субтитрлер",
     "Subtitle appearance": "Субтитрлердин көрүнүшү",
+    "Surface color": "Беттин түсү",
     Switch: "Алмаштыруу",
     "Switch sound track": "Аудио жолчону алмаштыруу",
     "Switch subtitle": "Субтитрлерди алмаштыруу",
@@ -1173,6 +1195,7 @@ var keyStrings = {
         "Алыстан диагностика үчүн HTTPS буйрук серверин колдонуңуз.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Даректе колдонуучунун аты же сырсөзү жок HTTP же HTTPS колдонуңуз.",
+    "Use inherited color": "Мурасталган түстү колдонуу",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Башкаруу элементин тандоо үчүн СОЛ/ОҢ, иштетүү үчүн OK, жылдыруу үчүн ӨЙДӨ/ЫЛДЫЙ баскычтарын колдонуңуз.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1196,6 +1219,7 @@ var keyStrings = {
         "VPortal жүктөлгөн жок. Шилтемени, кирүү ачкычын жана порталдын жеткиликтүүлүгүн текшериңиз.",
     volume: "үн деңгээли",
     "Waiting for sign-in…": "Кирүү күтүлүүдө…",
+    "Warm graphite": "Жылуу графит",
     "Wrong parental code !!!": "Ата-эне көзөмөлүнүн коду туура эмес!",
     "Xtream Codes Provider": "Xtream Codes провайдери",
     "Xtream Codes settings": "Xtream Codes жөндөөлөрү",

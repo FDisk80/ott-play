@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "A command was rejected by the player. Check its provider and settings.",
     About: "About",
+    "Accent color": "Accent color",
     "Access code": "Access code",
     "Access denied. Check the server access code.":
         "Access denied. Check the server access code.",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API failed, trying M3U…",
     "API Server": "API server",
     "API server URL": "API server URL",
+    Apply: "Apply",
+    "Apply changes to this draft, then use Save Settings.":
+        "Apply changes to this draft, then use Save Settings.",
     "Applying HTTP remote settings...": "Applying HTTP remote settings...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Approve the code for %1 with ott approve NAME CODE:",
@@ -116,6 +120,7 @@ var keyStrings = {
     Blue: "Blue",
     "Bookmark age (days): %1": "Bookmark age (days): %1",
     "Bookmark age: %1 days": "Bookmark age: %1 days",
+    "Border color": "Border color",
     Brightness: "Brightness",
     "Browse folders": "Browse folders",
     "Buffer Size, s": "Buffer size, s",
@@ -189,6 +194,7 @@ var keyStrings = {
     "Cloud transfer failed": "Cloud transfer failed",
     Code: "Code",
     Color: "Color",
+    "Color schemes": "Color schemes",
     "Color spectrum": "Color spectrum",
     "Command server": "Command server",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -325,6 +331,7 @@ var keyStrings = {
         "Could not update HTTP remote control.",
     Country: "Country",
     "Create category": "Create category",
+    Custom: "Custom",
     current: "current",
     "Debug enabled. Restart to apply.": "Debug enabled. Restart to apply.",
     "Debug HUD": "Debug HUD",
@@ -485,6 +492,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG source returned HTTP %1",
     "EPG source: %1": "EPG source: %1",
     "EPG stopped during: %1": "EPG stopped during: %1",
+    "EPG time color": "EPG time color",
     "EPG unavailable on this browser": "EPG unavailable on this browser",
     "EPG unavailable: %1": "EPG unavailable: %1",
     "EPG update failed; using saved programme guide":
@@ -556,6 +564,7 @@ var keyStrings = {
     "Hide / Return": "Hide / show",
     "Hide provider settings?": "Hide provider settings?",
     "Hide providers?": "Hide providers?",
+    "High contrast": "High contrast",
     "History in Media Library": "History in media library",
     "History of watched movies": "Watch history",
     Home: "Home",
@@ -563,6 +572,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP remote control is unavailable on this device.",
     "HTTPS support": "HTTPS support",
+    Hue: "Hue",
     ID: "ID",
     "Import settings": "Import settings",
     "In live mode: <br/>": "In live mode:<br/>",
@@ -570,6 +580,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Info bar display timeout, s",
     "Infobar settings": "Info bar settings",
     Information: "Information",
+    Inherited: "Inherited",
+    "Interface colors": "Interface colors",
     "Interface credits": "Interface credits",
     "Interface mode": "Interface mode",
     "Interface settings": "Interface settings",
@@ -578,6 +590,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Invalid cloud settings response",
+    "Invalid color value": "Invalid color value",
     "Invalid protected source configuration":
         "Invalid protected source configuration",
     "Invalid range: %1-%2": "Invalid range: %1-%2",
@@ -590,6 +603,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV settings",
     "Label (optional)": "Label (optional)",
+    Light: "Light",
     "List created": "List created",
     "List deleted": "List deleted",
     "List location": "List position",
@@ -651,6 +665,7 @@ var keyStrings = {
     "Media Library URL": "Media library URL",
     Menu: "Menu",
     "Menu items settings": "Menu item settings",
+    Midnight: "Midnight",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "Modern interface is unavailable. Classic remains active.",
@@ -696,6 +711,7 @@ var keyStrings = {
     no: "no",
     "no epg at current time": "No EPG at the current time",
     "not set": "not set",
+    Ocean: "Ocean",
     Off: "Off",
     Ok: "OK",
     On: "On",
@@ -731,6 +747,7 @@ var keyStrings = {
         "Pairing server is unavailable. Find the server again to retry.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Pairing was rejected or returned an invalid approval. Find the server again to retry.",
+    Palette: "Palette",
     "Parental control": "Parental control",
     Password: "Password",
     "Paste settings JSON": "Paste settings JSON",
@@ -776,6 +793,7 @@ var keyStrings = {
     Prepaid: "Prepaid",
     "Preparing secure remote input...": "Preparing secure remote input...",
     Prev: "Previous",
+    Preview: "Preview",
     "Preview in channel list": "Preview in channel list",
     Previous: "Previous",
     "Privacy policy": "Privacy policy",
@@ -908,6 +926,7 @@ var keyStrings = {
     Search: "Search",
     "Search languages": "Search languages",
     "Search programme": "Search programme",
+    "Secondary text color": "Secondary text color",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Secure remote input could not start. Please try again or use the on-screen keyboard.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -928,6 +947,8 @@ var keyStrings = {
         "Select screenshot source in browser",
     "Select the player tab or window in the browser sharing dialog.":
         "Select the player tab or window in the browser sharing dialog.",
+    "Selected item": "Selected item",
+    "Selected text color": "Selected text color",
     "Send request": "Send request",
     "Send settings": "Send settings",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1038,6 +1059,7 @@ var keyStrings = {
     "Subscription information": "Subscription information",
     Subtitle: "Subtitles",
     "Subtitle appearance": "Subtitle appearance",
+    "Surface color": "Surface color",
     Switch: "Switch",
     "Switch sound track": "Switch audio track",
     "Switch subtitle": "Switch subtitles",
@@ -1143,6 +1165,7 @@ var keyStrings = {
         "Use an HTTPS command server for remote diagnostics.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Use HTTP or HTTPS without a username or password in the address.",
+    "Use inherited color": "Use inherited color",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Use LEFT/RIGHT to select a control, OK to activate it, and UP/DOWN to scroll.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1166,6 +1189,7 @@ var keyStrings = {
         "Could not load VPortal. Check the link, access key, and portal availability.",
     volume: "volume",
     "Waiting for sign-in…": "Waiting for sign-in…",
+    "Warm graphite": "Warm graphite",
     "Wrong parental code !!!": "Wrong parental code!",
     "Xtream Codes Provider": "Xtream Codes Provider",
     "Xtream Codes settings": "Xtream Codes settings",

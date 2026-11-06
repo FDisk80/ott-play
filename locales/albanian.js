@@ -42,6 +42,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Një komandë u refuzua nga luajtësi i medias. Kontrolloni ofruesin dhe cilësimet e tij.",
     About: "Rreth",
+    "Accent color": "Ngjyra e theksimit",
     "Access code": "Kodi i hyrjes",
     "Access denied. Check the server access code.":
         "Qasja u refuzua. Kontrolloni kodin e hyrjes në server.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API dështoi, duke u përpjekur M3U…",
     "API Server": "Serveri API",
     "API server URL": "Serveri API URL",
+    Apply: "Zbato",
+    "Apply changes to this draft, then use Save Settings.":
+        "Zbato ndryshimet në këtë draft, pastaj përdor Ruani cilësimet.",
     "Applying HTTP remote settings...":
         "Aplikimi i cilësimeve të telekomandës HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -120,6 +124,7 @@ var keyStrings = {
     Blue: "Blu",
     "Bookmark age (days): %1": "Mosha e faqeshënuesit (ditë): %1",
     "Bookmark age: %1 days": "Mosha e faqerojtësit: %1 ditë",
+    "Border color": "Ngjyra e kornizës",
     Brightness: "Ndriçimi",
     "Browse folders": "Shfletoni dosjet",
     "Buffer Size, s": "Madhësia e buferit, s",
@@ -194,6 +199,7 @@ var keyStrings = {
     "Cloud transfer failed": "Transferimi në renë kompjuterike dështoi",
     Code: "Kodi",
     Color: "Ngjyra",
+    "Color schemes": "Skemat e ngjyrave",
     "Color spectrum": "Spektri i ngjyrave",
     "Command server": "Serveri i komandës",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -335,6 +341,7 @@ var keyStrings = {
         "Telekomanda HTTP nuk mund të përditësohej.",
     Country: "Vendi",
     "Create category": "Krijo kategori",
+    Custom: "E personalizuar",
     current: "aktuale",
     "Debug enabled. Restart to apply.":
         "Rregullimi i gabimeve është aktivizuar. Rinisni për të aplikuar.",
@@ -503,6 +510,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Burimi EPG ktheu HTTP %1",
     "EPG source: %1": "EPG burimi: %1",
     "EPG stopped during: %1": "EPG ndaloi gjatë: %1",
+    "EPG time color": "Ngjyra e orës së EPG-së",
     "EPG unavailable on this browser": "EPG nuk disponohet në këtë shfletues",
     "EPG unavailable: %1": "EPG i padisponueshëm: %1",
     "EPG update failed; using saved programme guide":
@@ -577,6 +585,7 @@ var keyStrings = {
     "Hide / Return": "Fsheh/shfaq",
     "Hide provider settings?": "Të fshihen cilësimet e ofruesit?",
     "Hide providers?": "Të fshihen ofruesit?",
+    "High contrast": "Kontrast i lartë",
     "History in Media Library": "Historia në bibliotekën mediatike",
     "History of watched movies": "Historia e shikimit",
     Home: "Ballina",
@@ -584,6 +593,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Telekomanda HTTP nuk disponohet në këtë pajisje.",
     "HTTPS support": "Mbështetje HTTPS",
+    Hue: "Tonaliteti",
     ID: "ID",
     "Import settings": "Importo cilësimet",
     "In live mode: <br/>": "Në modalitetin e drejtpërdrejtë:<br/>",
@@ -592,6 +602,8 @@ var keyStrings = {
         "Kohëzgjatja e shfaqjes së shiritit të informacionit, s",
     "Infobar settings": "Cilësimet e shiritit të informacionit",
     Information: "Informacion",
+    Inherited: "E trashëguar",
+    "Interface colors": "Ngjyrat e ndërfaqes",
     "Interface credits": "Autorët e ndërfaqes",
     "Interface mode": "Modaliteti i ndërfaqes",
     "Interface settings": "Cilësimet e ndërfaqes",
@@ -601,6 +613,7 @@ var keyStrings = {
         "Lidhje kanali e pavlefshme! Shkruani emrin e plotë të hostit nga URL-ja e transmetimit në llogarinë tuaj (p.sh. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Përgjigje e pavlefshme e cilësimeve të resë kompjuterike",
+    "Invalid color value": "Vlerë e pavlefshme e ngjyrës",
     "Invalid protected source configuration":
         "Konfigurim i pavlefshëm i burimit të mbrojtur",
     "Invalid range: %1-%2": "Interval i pavlefshëm: %1-%2",
@@ -613,6 +626,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Cilësimet KORONA TV",
     "Label (optional)": "Etiketa (opsionale)",
+    Light: "E çelët",
     "List created": "Lista e krijuar",
     "List deleted": "Lista e fshirë",
     "List location": "Pozicioni në listë",
@@ -674,6 +688,7 @@ var keyStrings = {
     "Media Library URL": "URL-ja e bibliotekës së mediave",
     Menu: "Menuja",
     "Menu items settings": "Cilësimet e artikullit të menysë",
+    Midnight: "Mesnatë",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "Ndërfaqja moderne nuk është e disponueshme. Klasikja mbetet aktive.",
@@ -720,6 +735,7 @@ var keyStrings = {
     no: "Jo",
     "no epg at current time": "Nuk ka EPG në kohën aktuale",
     "not set": "nuk është vendosur",
+    Ocean: "Oqean",
     Off: "joaktiv",
     Ok: "Në rregull",
     On: "Aktiv",
@@ -755,6 +771,7 @@ var keyStrings = {
         "Serveri i çiftimit është i padisponueshëm. Gjeni përsëri serverin për të riprovuar.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Çiftimi u refuzua ose u kthye një miratim i pavlefshëm. Gjeni përsëri serverin për të riprovuar.",
+    Palette: "Paleta",
     "Parental control": "Kontrolli prindëror",
     Password: "Fjalëkalimi",
     "Paste settings JSON": "Ngjit cilësimet JSON",
@@ -801,6 +818,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Përgatitja e hyrjes së sigurt në distancë...",
     Prev: "I mëparshëm",
+    Preview: "Parapamje",
     "Preview in channel list": "Shiko paraprakisht në listën e kanaleve",
     Previous: "E mëparshme",
     "Privacy policy": "Politika e privatësisë",
@@ -938,6 +956,7 @@ var keyStrings = {
     Search: "Kërko",
     "Search languages": "Kërko gjuhë",
     "Search programme": "Kërko program",
+    "Secondary text color": "Ngjyra e tekstit dytësor",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Hyrja e sigurt në distancë nuk mund të nisej. Provo sërish ose përdor tastierën në ekran.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -960,6 +979,8 @@ var keyStrings = {
         "Zgjidhni burimin e pamjes së ekranit në shfletues",
     "Select the player tab or window in the browser sharing dialog.":
         "Zgjidhni skedën ose dritaren e luajtësit në dialogun e ndarjes së shfletuesit.",
+    "Selected item": "Elementi i zgjedhur",
+    "Selected text color": "Ngjyra e tekstit të zgjedhur",
     "Send request": "Dërgo kërkesë",
     "Send settings": "Dërgo cilësimet",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1074,6 +1095,7 @@ var keyStrings = {
     "Subscription information": "Informacioni i abonimit",
     Subtitle: "Titrat",
     "Subtitle appearance": "Pamja e titrave",
+    "Surface color": "Ngjyra e sipërfaqes",
     Switch: "Kalo",
     "Switch sound track": "Ndërro pistën audio",
     "Switch subtitle": "Ndërro titrat",
@@ -1182,6 +1204,7 @@ var keyStrings = {
         "Përdorni një server komandash HTTPS për diagnostikim në distancë.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Përdorni HTTP ose HTTPS pa emër përdoruesi ose fjalëkalim në adresë.",
+    "Use inherited color": "Përdor ngjyrën e trashëguar",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Përdorni MAJTAS/DJATHTAS për të zgjedhur një kontroll, OK për ta aktivizuar dhe LART/POSHTË për të lëvizur.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1206,6 +1229,7 @@ var keyStrings = {
         "Nuk mund të ngarkohet VPortal. Kontrolloni lidhjen, çelësin e qasjes dhe disponueshmërinë e portalit.",
     volume: "volumi",
     "Waiting for sign-in…": "Në pritje të hyrjes…",
+    "Warm graphite": "Grafit i ngrohtë",
     "Wrong parental code !!!": "Kodi prindëror është i gabuar!",
     "Xtream Codes Provider": "Ofruesi Xtream Codes",
     "Xtream Codes settings": "Cilësimet e Xtream Codes",

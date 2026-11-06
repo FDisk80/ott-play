@@ -395,7 +395,7 @@ if (process.argv.includes("--bundle"))
     });
 for (const testCase of shortcutCases) {
     const dom = new JSDOM(
-        '<body><video id="video" tabindex="0"></video><input id="input"><textarea></textarea><select><option>A</option></select><div contenteditable="true"><span id="nested">Text</span></div><div contenteditable=""><span id="empty-editable">Text</span></div></body>',
+        '<body><video id="video" tabindex="0"></video><input id="input"><textarea></textarea><select><option>A</option></select><div contenteditable="true"><span id="nested">Text</span></div><div contenteditable=""><span id="empty-editable">Text</span></div><div contenteditable="plaintext-only"><span id="plaintext-editable">Text</span></div></body>',
         { runScripts: "outside-only" }
     );
     const w = dom.window;
@@ -430,6 +430,7 @@ for (const testCase of shortcutCases) {
             declarations(
                 testCase.code,
                 [
+                    "keyboardElementIsEditable",
                     "tryKeyboardSeek",
                     "tryKeyboardRandom",
                     "tryKeyboardFavorites",
@@ -490,9 +491,11 @@ for (const testCase of shortcutCases) {
             "select",
             "#nested",
             "#empty-editable",
+            "#plaintext-editable",
         ]) {
             const result = send(shortcut, w.document.querySelector(selector));
             assert.deepEqual(result.delta, [], "editable target " + selector);
+            assert.equal(result.event.defaultPrevented, false);
         }
         const input = w.document.querySelector("input");
         input.focus();
@@ -684,7 +687,7 @@ console.log("Exit checkpoints and stops both lanes without persisting standby");
 // R selects inside the current collection, without stealing browser/editor keys.
 for (const testCase of shortcutCases) {
     const dom = new JSDOM(
-        '<body><video tabindex="0"></video><input><div contenteditable=""><span>text</span></div></body>',
+        '<body><video tabindex="0"></video><input><select><option>A</option></select><div contenteditable=""><span id="empty-editable">text</span></div><div contenteditable="true"><span id="true-editable">text</span></div><div contenteditable="plaintext-only"><span id="plaintext-editable">text</span></div></body>',
         { runScripts: "outside-only" }
     );
     const w = dom.window;
@@ -717,7 +720,15 @@ for (const testCase of shortcutCases) {
             primaryIndex: 0,
         });
         w.eval(
-            declarations(testCase.code, ["tryKeyboardRandom"], testCase.name)
+            declarations(
+                testCase.code,
+                [
+                    "keyboardElementIsEditable",
+                    "tryKeyboardRandom",
+                    "tryKeyboardSeek",
+                ],
+                testCase.name
+            )
         );
         w.document.addEventListener("keydown", w.tryKeyboardRandom, true);
         const video = w.document.querySelector("video");
@@ -764,14 +775,37 @@ for (const testCase of shortcutCases) {
             assert.deepEqual(send({}).calls, []);
         }
         w.ott_device = "pc";
-        for (const target of [
-            w.document.querySelector("input"),
-            w.document.querySelector("span"),
+        for (const selector of [
+            "input",
+            "select",
+            "#empty-editable",
+            "#true-editable",
+            "#plaintext-editable",
         ]) {
+            const target = w.document.querySelector(selector);
+            const before = calls.length;
             const result = send({}, target);
             assert.deepEqual(result.calls, []);
             assert.equal(result.event.defaultPrevented, false);
+            // The shared predicate must not merge the handlers' return contracts.
+            assert.equal(w.tryKeyboardRandom(result.event), true);
+            assert.equal(
+                w.tryKeyboardSeek({ altKey: true, key: "ArrowRight", target }),
+                false
+            );
+            assert.equal(calls.length, before, "editable target " + selector);
         }
+        const input = w.document.querySelector("input");
+        input.focus();
+        assert.equal(w.document.activeElement, input);
+        const activeEditor = send({});
+        assert.deepEqual(
+            activeEditor.calls,
+            [],
+            "active editor owns video-targeted R"
+        );
+        assert.equal(activeEditor.event.defaultPrevented, false);
+        input.blur();
         for (const kind of ["editor", "dialog", "about", "picker"]) {
             owner = { kind };
             assert.deepEqual(send({}).calls, []);

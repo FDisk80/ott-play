@@ -1,4 +1,5 @@
 import { metadataText } from "../utils/helpers";
+import { normalizeInterfaceColorConfig } from "./interface-colors";
 import { commitSettingsWrites, SettingsWrite } from "./store";
 
 /** One transfer owns its requests, timers and about screen. */
@@ -212,6 +213,21 @@ var cloudSettingsTransfer = (function () {
         function restore(xml: string): void {
             if (w.__ottKiosk && w.__ottKiosk.enabled()) return;
             var imported = w.__ottCloudSettingsCodec.read(xml);
+            var colorConfig: string | undefined;
+            ["sUiColorConfig", "uiColorConfig"].forEach(function (key) {
+                if (!Object.prototype.hasOwnProperty.call(imported, key))
+                    return;
+                var normalized = normalizeInterfaceColorConfig(imported[key]);
+                if (
+                    normalized === null ||
+                    (colorConfig !== undefined && colorConfig !== normalized)
+                )
+                    throw new Error("Invalid interface color settings");
+                colorConfig = normalized;
+            });
+            if (colorConfig !== undefined)
+                imported.sUiColorConfig = colorConfig;
+            delete imported.uiColorConfig;
             validateOfflineProfiles(imported);
             if (!active()) return;
             if (

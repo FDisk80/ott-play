@@ -7,6 +7,7 @@ const vm = require("node:vm");
 const ts = require("typescript");
 const acorn = require("acorn");
 const files = {
+    "../settings/interface-colors": "src/settings/interface-colors.ts",
     "../storage/index": "src/storage/index.ts",
     "../utils/helpers": "src/utils/helpers.ts",
     "../utils/lzstring": "src/utils/lzstring.ts",
@@ -56,11 +57,14 @@ module.exports = function dependency(name, host, environment = {}) {
 // Real factories for full-module CJS imports and legacy AST/global fixtures.
 module.exports.storage = function storageImports(fallback) {
     const physical = module.exports("./favorites-physical-storage", {});
+    const colors = module.exports("../settings/interface-colors", {});
     return {
         ...physical,
+        ...colors,
         exports: {},
         require(name) {
             if (name === "./favorites-physical-storage") return physical;
+            if (name === "../settings/interface-colors") return colors;
             if (fallback) return fallback(name);
             throw new Error("Unexpected storage fixture dependency: " + name);
         },

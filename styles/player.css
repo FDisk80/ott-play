@@ -636,7 +636,7 @@ body.hide-list-separators:not(.interface-modern)
     font-size: 1px;
 }
 /* Settings / submenu name+value rows (replaces float:left/right).
-   Keep in sync with inline styles in window._setSetup — WKWebView needs both. */
+   Keep in sync with DOM properties in showPage — WKWebView needs both. */
 .item-label {
     flex: 1 1 0;
     min-width: 0;

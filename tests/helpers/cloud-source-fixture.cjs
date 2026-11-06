@@ -61,6 +61,16 @@ function cloudBundleSource(ast) {
             name
         );
     }
+    function namedVariable(name) {
+        const declarations = [];
+        for (const statement of ast.statements)
+            if (ts.isVariableStatement(statement))
+                for (const declaration of statement.declarationList
+                    .declarations)
+                    if (declaration.name.getText(ast) === name)
+                        declarations.push(declaration);
+        return "var " + single(declarations, name) + ";";
+    }
     const expressions = [];
     function split(expression) {
         if (ts.isParenthesizedExpression(expression))
@@ -111,6 +121,11 @@ function cloudBundleSource(ast) {
                     bridges.push(declaration);
     return [
         storagePolicySource(ast),
+        namedVariable("interfaceColorRoles"),
+        namedFunction("normalizeColorRoles"),
+        namedFunction("parseInterfaceColorConfig"),
+        namedFunction("normalizeInterfaceColorConfig"),
+        namedFunction("serializeInterfaceColors"),
         namedFunction("metadataText"),
         namedFunction("settingsFailure"),
         namedFunction("commitSettingsWrites"),
@@ -128,6 +143,7 @@ function cloudSource(bundleAst) {
     const source = [
         "src/provider/source-identity.ts",
         "src/settings/store.ts",
+        "src/settings/interface-colors.ts",
         "src/settings/cloud-codec.ts",
         "src/settings/cloud.ts",
     ]

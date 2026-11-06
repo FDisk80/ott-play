@@ -14,6 +14,7 @@ function keyboard(c) {
     c.document.addEventListener = (_name, fn) => (capture = fn);
     vm.runInContext(
         sourceFunctions("src/key-handler/index.ts", [
+            "keyboardElementIsEditable",
             "toggleKeyboardFavorite",
             "tryKeyboardFavorites",
             "tryKeyboardRandom",

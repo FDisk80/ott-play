@@ -42,6 +42,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Isidlali siwukhabile umyalelo. Jonga umboneleli neesetingi zaso.",
     About: "Malunga",
+    "Accent color": "Umbala wogxininiso",
     "Access code": "Ikhowudi yokufikelela",
     "Access denied. Check the server access code.":
         "Ukufikelela kwaliwe. Jonga ikhowudi yokufikelela kwiseva.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "I-API ayiphumelelanga, kuzanywa i-M3U…",
     "API Server": "Iseva ye-API",
     "API server URL": "I-URL yeseva ye-API",
+    Apply: "Sebenzisa",
+    "Apply changes to this draft, then use Save Settings.":
+        "Sebenzisa utshintsho kolu yilo, emva koko ukhethe Gcina iisetingi.",
     "Applying HTTP remote settings...":
         "Kusetyenziswa iisetingi zolawulo olukude nge-HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -123,6 +127,7 @@ var keyStrings = {
     Blue: "Bhlowu",
     "Bookmark age (days): %1": "Ubudala bebhukhmakhi (iintsuku): %1",
     "Bookmark age: %1 days": "Ubudala bebhukhmakhi: iintsuku %1",
+    "Border color": "Umbala womda",
     Brightness: "Ukuqaqamba",
     "Browse folders": "Khangela iifolda",
     "Buffer Size, s": "Ubungakanani besigcini sexeshana, imizuzwana",
@@ -197,6 +202,7 @@ var keyStrings = {
     "Cloud transfer failed": "Ukudluliselwa kwedatha ngelifu akuphumelelanga",
     Code: "Ikhowudi",
     Color: "Umbala",
+    "Color schemes": "Izicwangciso zemibala",
     "Color spectrum": "Uluhlu lwemibala",
     "Command server": "Iseva yemiyalelo",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -338,6 +344,7 @@ var keyStrings = {
         "Akukwazekanga ukuhlaziya ulawulo olukude lwe-HTTP.",
     Country: "Ilizwe",
     "Create category": "Yenza udidi",
+    Custom: "Eyenzelwe wena",
     current: "yangoku",
     "Debug enabled. Restart to apply.":
         "Ukulungisa iimpazamo kuvuliwe. Qala kwakhona ukuze kusetyenziswe.",
@@ -505,6 +512,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Umthombo we-EPG ubuyise i-HTTP %1",
     "EPG source: %1": "Umthombo we-EPG: %1",
     "EPG stopped during: %1": "I-EPG imile ngexesha: %1",
+    "EPG time color": "Umbala wexesha le-EPG",
     "EPG unavailable on this browser": "I-EPG ayifumaneki kwesi sikhangeli",
     "EPG unavailable: %1": "I-EPG ayifumaneki: %1",
     "EPG update failed; using saved programme guide":
@@ -582,6 +590,7 @@ var keyStrings = {
     "Hide / Return": "Fihla / bonisa",
     "Hide provider settings?": "Fihla iisetingi zomboneleli?",
     "Hide providers?": "Fihla ababoneleli?",
+    "High contrast": "Umahluko ophezulu",
     "History in Media Library": "Imbali kwithala lemidhiya",
     "History of watched movies": "Imbali yokubukela",
     Home: "Ekhaya",
@@ -589,6 +598,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Ulawulo olukude lwe-HTTP alufumaneki kwesi sixhobo.",
     "HTTPS support": "Inkxaso ye-HTTPS",
+    Hue: "Uhlobo lombala",
     ID: "ID",
     "Import settings": "Ngenisa iisetingi",
     "In live mode: <br/>": "Kwimo yosasazo ngqo:<br/>",
@@ -597,6 +607,8 @@ var keyStrings = {
         "Ixesha lokuboniswa kwebha yolwazi, imizuzwana",
     "Infobar settings": "Iisetingi zebha yolwazi",
     Information: "Ulwazi",
+    Inherited: "Efunyenwe njengelifa",
+    "Interface colors": "Imibala yojongano",
     "Interface credits": "Abanegalelo kujongano",
     "Interface mode": "Imo yojongano",
     "Interface settings": "Iisetingi zojongano",
@@ -606,6 +618,7 @@ var keyStrings = {
         "Ikhonkco lejelo alisebenzi! Faka igama elipheleleyo lomamkeli njengakwi-URL yosasazo kwiakhawunti (umzekelo subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Impendulo yemimiselo yelifu engasebenziyo",
+    "Invalid color value": "Ixabiso lombala alisebenzi",
     "Invalid protected source configuration":
         "Ulungiselelo lomthombo okhuselweyo alusebenzi",
     "Invalid range: %1-%2": "Uluhlu lwamanani olungasebenziyo: %1-%2",
@@ -618,6 +631,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Iisetingi ze-KORONA TV",
     "Label (optional)": "Igama (akunyanzelwanga)",
+    Light: "Ekhanyayo",
     "List created": "Uluhlu lwenziwe",
     "List deleted": "Uluhlu lucinyiwe",
     "List location": "Indawo yoluhlu",
@@ -680,6 +694,7 @@ var keyStrings = {
     "Media Library URL": "I-URL yethala lemidhiya",
     Menu: "Imenyu",
     "Menu items settings": "Iisetingi zezinto zemenyu",
+    Midnight: "Ezinzulwini zobusuku",
     Modern: "Yangoku",
     "Modern interface is unavailable. Classic remains active.":
         "Ujongano lwangoku alufumaneki. Olwesiqhelo luhlala lusebenza.",
@@ -726,6 +741,7 @@ var keyStrings = {
     no: "hayi",
     "no epg at current time": "Akukho EPG ngeli xesha",
     "not set": "ayisetwanga",
+    Ocean: "Ulwandle",
     Off: "Icinyiwe",
     Ok: "Kulungile",
     On: "Ivuliwe",
@@ -761,6 +777,7 @@ var keyStrings = {
         "Iseva yokubhangqa ayifumaneki. Fumana iseva kwakhona ukuze uphinde uzame.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Ukubhangqa kwaliwe okanye kubuyise imvume engasebenziyo. Fumana iseva kwakhona ukuze uphinde uzame.",
+    Palette: "Iphalethi yemibala",
     "Parental control": "Ulawulo lwabazali",
     Password: "Igama lokugqitha",
     "Paste settings JSON": "Ncamathelisa i-JSON yeesetingi",
@@ -807,6 +824,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Kulungiselelwa ukufaka okukude okukhuselekileyo...",
     Prev: "Edlulileyo",
+    Preview: "Imboniso yangaphambili",
     "Preview in channel list": "Imboniselo yangaphambili kuluhlu lwamajelo",
     Previous: "Edlulileyo",
     "Privacy policy": "Umgaqo-nkqubo wabucala",
@@ -942,6 +960,7 @@ var keyStrings = {
     Search: "Khangela",
     "Search languages": "Khangela iilwimi",
     "Search programme": "Khangela inkqubo",
+    "Secondary text color": "Umbala wombhalo wesibini",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Ukufaka okukude okukhuselekileyo akukwazanga ukuqala. Nceda uzame kwakhona okanye usebenzise ibhodi yezitshixo esesikrinini.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -962,6 +981,8 @@ var keyStrings = {
         "Khetha umthombo wesithombe-skrini kwisikhangeli",
     "Select the player tab or window in the browser sharing dialog.":
         "Khetha ithebhu yesidlali okanye ifestile kwincoko yababini yesikhangeli sokwabelana.",
+    "Selected item": "Into ekhethiweyo",
+    "Selected text color": "Umbala wombhalo okhethiweyo",
     "Send request": "Thumela isicelo",
     "Send settings": "Thumela iisetingi",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1079,6 +1100,7 @@ var keyStrings = {
     "Subscription information": "Ulwazi lomrhumo",
     Subtitle: "Imibhalo engezantsi",
     "Subtitle appearance": "Inkangeleko yemibhalo engezantsi",
+    "Surface color": "Umbala womphezulu",
     Switch: "Tshintsha",
     "Switch sound track": "Tshintsha ithrekhi yesandi",
     "Switch subtitle": "Tshintsha imibhalo engezantsi",
@@ -1189,6 +1211,7 @@ var keyStrings = {
         "Sebenzisa iseva yemiyalelo ye-HTTPS kuxilongo olukude.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Sebenzisa i-HTTP okanye i-HTTPS ngaphandle kwegama lomsebenzisi okanye lokugqitha kwidilesi.",
+    "Use inherited color": "Sebenzisa umbala ofunyenwe njengelifa",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Sebenzisa EKHOHLO/EKUNENE ukukhetha ulawulo, KULUNGILE ukulwenza lusebenze, no-PHEZULU/EZANTSI ukuskrola.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1213,6 +1236,7 @@ var keyStrings = {
         "Akukwazekanga ukulayisha i-VPortal. Jonga ikhonkco, isitshixo sokufikelela nokufumaneka kwephothali.",
     volume: "ivolyum",
     "Waiting for sign-in…": "Kulindwe ukungena…",
+    "Warm graphite": "Igrayifayithi efudumeleyo",
     "Wrong parental code !!!": "Ikhowudi yabazali ayichanekanga!",
     "Xtream Codes Provider": "Umboneleli we-Xtream Codes",
     "Xtream Codes settings": "Iisetingi ze-Xtream Codes",

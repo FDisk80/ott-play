@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "প্লেয়াৰে এটা আদেশ নাকচ কৰিলে। ইয়াৰ প্ৰদানকাৰী আৰু ছেটিংছ পৰীক্ষা কৰক।",
     About: "পৰিচয়",
+    "Accent color": "গুৰুত্ব দিয়া ৰং",
     "Access code": "প্ৰৱেশ ক’ড",
     "Access denied. Check the server access code.":
         "প্ৰৱেশাধিকাৰ নাকচ কৰা হৈছে। ছাৰ্ভাৰৰ প্ৰৱেশ ক’ড পৰীক্ষা কৰক।",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API বিফল হ’ল, M3U চেষ্টা কৰি আছে…",
     "API Server": "API ছাৰ্ভাৰ",
     "API server URL": "API ছাৰ্ভাৰৰ URL",
+    Apply: "প্ৰয়োগ কৰক",
+    "Apply changes to this draft, then use Save Settings.":
+        "এই খচৰাত পৰিৱৰ্তনসমূহ প্ৰয়োগ কৰক, তাৰ পিছত ছেটিংছ সংৰক্ষণ কৰক বাছক।",
     "Applying HTTP remote settings...": "HTTP ৰিম’ট ছেটিংছ প্ৰয়োগ হৈ আছে...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODE ব্যৱহাৰ কৰি %1-ৰ ক’ড অনুমোদন কৰক:",
@@ -116,6 +120,7 @@ var keyStrings = {
     Blue: "নীলা",
     "Bookmark age (days): %1": "বুকমাৰ্ক বয়স (দিন): %1",
     "Bookmark age: %1 days": "বুকমাৰ্কৰ বয়স: %1 দিন",
+    "Border color": "সীমাৰ ৰং",
     Brightness: "উজ্জ্বলতা",
     "Browse folders": "ফ’ল্ডাৰ চাওক",
     "Buffer Size, s": "বাফাৰৰ আকাৰ, ছেকেণ্ড",
@@ -185,6 +190,7 @@ var keyStrings = {
     "Cloud transfer failed": "ক্লাউড স্থানান্তৰ বিফল",
     Code: "ক’ড",
     Color: "ৰং",
+    "Color schemes": "ৰঙৰ আঁচনি",
     "Color spectrum": "ৰঙৰ বৰ্ণালী",
     "Command server": "আদেশ ছাৰ্ভাৰ",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -321,6 +327,7 @@ var keyStrings = {
         "HTTP ৰিম’ট নিয়ন্ত্ৰণ আপডেট কৰিব পৰা নগ’ল।",
     Country: "দেশ",
     "Create category": "শ্ৰেণী সৃষ্টি কৰক",
+    Custom: "নিজৰ পছন্দৰ",
     current: "বৰ্তমানৰ",
     "Debug enabled. Restart to apply.":
         "ডিবাগ সক্ৰিয় কৰা হ’ল। প্ৰয়োগ কৰিবলৈ পুনৰ আৰম্ভ কৰক।",
@@ -477,6 +484,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG উৎসই HTTP %1 ঘূৰাই দিলে",
     "EPG source: %1": "EPG উৎস: %1",
     "EPG stopped during: %1": "এই পৰ্যায়ত EPG বন্ধ হ’ল: %1",
+    "EPG time color": "EPG সময়ৰ ৰং",
     "EPG unavailable on this browser": "এই ব্ৰাউজাৰত EPG উপলব্ধ নহয়",
     "EPG unavailable: %1": "EPG উপলব্ধ নহয়: %1",
     "EPG update failed; using saved programme guide":
@@ -547,6 +555,7 @@ var keyStrings = {
     "Hide / Return": "লুকুৱাওক / দেখুৱাওক",
     "Hide provider settings?": "প্ৰদানকাৰীৰ ছেটিংছ লুকুৱাবনে?",
     "Hide providers?": "প্ৰদানকাৰীসমূহ লুকুৱাবনে?",
+    "High contrast": "উচ্চ বৈসাদৃশ্য",
     "History in Media Library": "মিডিয়া লাইব্ৰেৰীত ইতিহাস",
     "History of watched movies": "চোৱাৰ ইতিহাস",
     Home: "মুখ্যপৃষ্ঠা",
@@ -554,6 +563,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "এই ডিভাইচত HTTP ৰিম’ট নিয়ন্ত্ৰণ উপলব্ধ নহয়।",
     "HTTPS support": "HTTPS সমৰ্থন",
+    Hue: "বৰ্ণ",
     ID: "ID",
     "Import settings": "ছেটিংছ আমদানি কৰক",
     "In live mode: <br/>": "পোনপটীয়া মোডত:<br/>",
@@ -561,6 +571,8 @@ var keyStrings = {
     "Infobar display timeout, s": "তথ্য বাৰ দেখুওৱাৰ সময়, ছেকেণ্ড",
     "Infobar settings": "তথ্য বাৰৰ ছেটিংছ",
     Information: "তথ্য",
+    Inherited: "উত্তৰাধিকাৰসূত্ৰে পোৱা",
+    "Interface colors": "ইণ্টাৰফেচৰ ৰং",
     "Interface credits": "ইণ্টাৰফেচৰ কৃতিত্ব",
     "Interface mode": "ইণ্টাৰফেচৰ ধৰণ",
     "Interface settings": "ইণ্টাৰফেচৰ ছেটিংছ",
@@ -569,6 +581,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "চেনেলৰ লিংক বৈধ নহয়! একাউণ্টৰ ষ্ট্ৰিম URL-ত থকা সম্পূৰ্ণ হ’ষ্ট লিখক (যেনে subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "অবৈধ ক্লাউড ছেটিংছ সঁহাৰি",
+    "Invalid color value": "ৰঙৰ মান অবৈধ",
     "Invalid protected source configuration": "সুৰক্ষিত উৎসৰ বিন্যাস বৈধ নহয়",
     "Invalid range: %1-%2": "অবৈধ পৰিসৰ: %1-%2",
     "Invalid setting": "অবৈধ ছেটিং",
@@ -580,6 +593,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ছেটিংছ",
     "Label (optional)": "লেবেল (ঐচ্ছিক)",
+    Light: "উজ্জ্বল",
     "List created": "তালিকা সৃষ্টি কৰা হ’ল",
     "List deleted": "তালিকা মচা হ’ল",
     "List location": "তালিকাত অৱস্থান",
@@ -641,6 +655,7 @@ var keyStrings = {
     "Media Library URL": "মিডিয়া লাইব্ৰেৰীৰ URL",
     Menu: "মেনু",
     "Menu items settings": "মেনুৰ বস্তুৰ ছেটিংছ",
+    Midnight: "মাজনিশা",
     Modern: "আধুনিক",
     "Modern interface is unavailable. Classic remains active.":
         "আধুনিক ইণ্টাৰফেচ উপলব্ধ নহয়। ক্লাছিক সক্ৰিয় হৈ থাকিব।",
@@ -686,6 +701,7 @@ var keyStrings = {
     no: "নহয়",
     "no epg at current time": "বৰ্তমান সময়ৰ বাবে EPG নাই",
     "not set": "নিৰ্ধাৰণ কৰা হোৱা নাই",
+    Ocean: "মহাসাগৰ",
     Off: "বন্ধ",
     Ok: "ঠিক আছে",
     On: "সক্ৰিয়",
@@ -721,6 +737,7 @@ var keyStrings = {
         "যোৰ কৰাৰ ছাৰ্ভাৰ উপলব্ধ নহয়। পুনৰ চেষ্টা কৰিবলৈ ছাৰ্ভাৰ আকৌ বিচাৰক।",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "যোৰ কৰা নাকচ কৰা হ’ল বা অবৈধ অনুমোদন ঘূৰাই দিলে। পুনৰ চেষ্টা কৰিবলৈ ছাৰ্ভাৰ আকৌ বিচাৰক।",
+    Palette: "ৰঙৰ পেলেট",
     "Parental control": "অভিভাৱকীয় নিয়ন্ত্ৰণ",
     Password: "পাছৱৰ্ড",
     "Paste settings JSON": "ছেটিংছৰ JSON পেষ্ট কৰক",
@@ -765,6 +782,7 @@ var keyStrings = {
     Prepaid: "আগতীয়াকৈ পৰিশোধ",
     "Preparing secure remote input...": "সুৰক্ষিত দূৰৱৰ্তী ইনপুট প্ৰস্তুত হৈ আছে...",
     Prev: "পূৰ্বৱৰ্তী",
+    Preview: "পূৰ্বদৰ্শন",
     "Preview in channel list": "চেনেলৰ তালিকাত পূৰ্বদৰ্শন",
     Previous: "পূৰ্বৱৰ্তী",
     "Privacy policy": "গোপনীয়তা নীতি",
@@ -897,6 +915,7 @@ var keyStrings = {
     Search: "সন্ধান কৰক",
     "Search languages": "ভাষা সন্ধান কৰক",
     "Search programme": "অনুষ্ঠান সন্ধান কৰক",
+    "Secondary text color": "সহায়ক লিখনীৰ ৰং",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "সুৰক্ষিত দূৰৱৰ্তী ইনপুট আৰম্ভ কৰিব পৰা নগ’ল। পুনৰ চেষ্টা কৰক বা পৰ্দাৰ কীব’ৰ্ড ব্যৱহাৰ কৰক।",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -916,6 +935,8 @@ var keyStrings = {
     "Select screenshot source in browser": "ব্ৰাউজাৰত স্ক্ৰীণশ্বট উৎস নিৰ্বাচন কৰক",
     "Select the player tab or window in the browser sharing dialog.":
         "ব্ৰাউজাৰ অংশীদাৰী সংলাপত প্লেয়াৰ টেব বা উইণ্ড' নিৰ্ব্বাচন কৰক।",
+    "Selected item": "নিৰ্বাচিত বস্তু",
+    "Selected text color": "নিৰ্বাচিত লিখনীৰ ৰং",
     "Send request": "অনুৰোধ পঠিয়াওক",
     "Send settings": "ছেটিংছ পঠিয়াওক",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1027,6 +1048,7 @@ var keyStrings = {
     "Subscription information": "চাবস্ক্ৰিপচনৰ তথ্য",
     Subtitle: "উপশিৰোনাম",
     "Subtitle appearance": "উপশিৰোনামৰ ৰূপ",
+    "Surface color": "পৃষ্ঠৰ ৰং",
     Switch: "সলনি কৰক",
     "Switch sound track": "অডিঅ’ ট্ৰেক সলনি কৰক",
     "Switch subtitle": "উপশিৰোনাম সলনি কৰক",
@@ -1128,6 +1150,7 @@ var keyStrings = {
         "দূৰৱৰ্তী নিদানৰ বাবে HTTPS আদেশ ছাৰ্ভাৰ ব্যৱহাৰ কৰক।",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ঠিকনাত ব্যৱহাৰকাৰীৰ নাম বা পাছৱৰ্ড নথকা HTTP বা HTTPS ব্যৱহাৰ কৰক।",
+    "Use inherited color": "উত্তৰাধিকাৰসূত্ৰে পোৱা ৰং ব্যৱহাৰ কৰক",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "নিয়ন্ত্ৰণ বাছিবলৈ বাওঁ/সোঁ, সক্ৰিয় কৰিবলৈ OK আৰু স্ক্ৰ’ল কৰিবলৈ ওপৰ/তল ব্যৱহাৰ কৰক।",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1151,6 +1174,7 @@ var keyStrings = {
         "VPortal লোড কৰিব পৰা নগ’ল। লিংক, প্ৰৱেশ চাবি আৰু প’ৰ্টেলৰ উপলব্ধতা পৰীক্ষা কৰক।",
     volume: "ভলিউম",
     "Waiting for sign-in…": "প্ৰৱেশ কৰাৰ বাবে অপেক্ষা কৰি আছে…",
+    "Warm graphite": "উষ্ণ গ্ৰেফাইট",
     "Wrong parental code !!!": "অভিভাৱকৰ ক’ড ভুল!",
     "Xtream Codes Provider": "Xtream Codes প্ৰদানকাৰী",
     "Xtream Codes settings": "Xtream Codes ছেটিংছ",

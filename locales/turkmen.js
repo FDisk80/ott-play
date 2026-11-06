@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Pleýer buýrugy ret etdi. Üpçün edijini we onuň sazlamalaryny barlaň.",
     About: "Hakynda",
+    "Accent color": "Üns çekiji reňk",
     "Access code": "Giriş kody",
     "Access denied. Check the server access code.":
         "Giriş gadagan. Serweriň giriş koduny barlaň.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API şowsuz boldy, M3U synalýar…",
     "API Server": "API serweri",
     "API server URL": "API serweriniň URL salgysy",
+    Apply: "Ulan",
+    "Apply changes to this draft, then use Save Settings.":
+        "Üýtgetmeleri bu garalama ulanyň, soňra Sazlamalary sakla saýlaň.",
     "Applying HTTP remote settings...":
         "HTTP uzakdan dolandyryş sazlamalary ulanylýar...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Gök",
     "Bookmark age (days): %1": "Bellikleriň ýaşy (günler): %1",
     "Bookmark age: %1 days": "Bellik ýaşy: %1 gün",
+    "Border color": "Çarçuwanyň reňki",
     Brightness: "Ýagtylyk",
     "Browse folders": "Bukjalara seret",
     "Buffer Size, s": "Buferiň ululygy, s",
@@ -191,6 +196,7 @@ var keyStrings = {
     "Cloud transfer failed": "Bulut geçirmek şowsuz",
     Code: "Kod",
     Color: "Reňk",
+    "Color schemes": "Reňk shemalary",
     "Color spectrum": "Reňk spektri",
     "Command server": "Buýruk serweri",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -330,6 +336,7 @@ var keyStrings = {
         "HTTP uzakdan dolandyryşyny täzeläp bolmady.",
     Country: "Ýurt",
     "Create category": "Kategoriýa döret",
+    Custom: "Ýörite",
     current: "häzirki",
     "Debug enabled. Restart to apply.":
         "Näsazlyk düzedişi işledildi. Üýtgeşmeleri ulanmak üçin täzeden işlediň.",
@@ -492,6 +499,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG çeşmesi HTTP %1 gaýtardy",
     "EPG source: %1": "EPG çeşmesi: %1",
     "EPG stopped during: %1": "EPG şu tapgyrda durdy: %1",
+    "EPG time color": "EPG wagtynyň reňki",
     "EPG unavailable on this browser": "Bu brauzerde EPG elýeterli däl",
     "EPG unavailable: %1": "EPG elýeterli däl: %1",
     "EPG update failed; using saved programme guide":
@@ -562,6 +570,7 @@ var keyStrings = {
     "Hide / Return": "Gizle / görkez",
     "Hide provider settings?": "Üpçün edijiniň sazlamalary gizlensinmi?",
     "Hide providers?": "Üpçün edijiler gizlensinmi?",
+    "High contrast": "Ýokary kontrast",
     "History in Media Library": "Media kitaphanasyndaky taryh",
     "History of watched movies": "Görlenleriň taryhy",
     Home: "Baş sahypa",
@@ -569,6 +578,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Bu enjamda HTTP arkaly uzakdan dolandyrmak elýeterli däl.",
     "HTTPS support": "HTTPS goldawy",
+    Hue: "Reňk öwüşgini",
     ID: "ID",
     "Import settings": "Sazlamalary import et",
     "In live mode: <br/>": "Göni ýaýlymda:<br/>",
@@ -576,6 +586,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Maglumat panelini görkezmegiň wagty, s",
     "Infobar settings": "Maglumat paneliniň sazlamalary",
     Information: "Maglumat",
+    Inherited: "Miras alnan",
+    "Interface colors": "Interfeýs reňkleri",
     "Interface credits": "Interfeýsiň awtorlary",
     "Interface mode": "Interfeýs tertibi",
     "Interface settings": "Interfeýs sazlamalary",
@@ -584,6 +596,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Kanalyň baglanyşygy nädogry! Şahsy kabinetdäki ýaýlym URL salgysynda bolşy ýaly doly host giriziň (mysal üçin subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Bulut sazlamalarynyň nädogry jogaby",
+    "Invalid color value": "Reňkiň bahasy nädogry",
     "Invalid protected source configuration":
         "Goragly çeşmäniň sazlamasy nädogry",
     "Invalid range: %1-%2": "Nädogry aralyk: %1-%2",
@@ -596,6 +609,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV sazlamalary",
     "Label (optional)": "At (hökmany däl)",
+    Light: "Açyk",
     "List created": "Sanaw döredildi",
     "List deleted": "Sanaw pozuldy",
     "List location": "Sanawdaky orun",
@@ -658,6 +672,7 @@ var keyStrings = {
     "Media Library URL": "Media kitaphanasynyň URL salgysy",
     Menu: "Menýu",
     "Menu items settings": "Menýu bölekleriniň sazlamalary",
+    Midnight: "Ýarygije",
     Modern: "Döwrebap",
     "Modern interface is unavailable. Classic remains active.":
         "Döwrebap interfeýs elýeterli däl. Nusgawy interfeýs işjeň galýar.",
@@ -704,6 +719,7 @@ var keyStrings = {
     no: "ýok",
     "no epg at current time": "Häzirki wagt üçin EPG ýok",
     "not set": "bellenmedik",
+    Ocean: "Okean",
     Off: "Öçürilen",
     Ok: "Bolýar",
     On: "Işledilen",
@@ -739,6 +755,7 @@ var keyStrings = {
         "Jübütleşdirme serweri elýeterli däl. Gaýtadan synanyşmak üçin serweri täzeden tapyň.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Jübütleşdirmek ret edildi ýa-da nädogry tassyklama geldi. Gaýtadan synanyşmak üçin serweri täzeden tapyň.",
+    Palette: "Reňk palitrasy",
     "Parental control": "Ene-ata gözegçiligi",
     Password: "Parol",
     "Paste settings JSON": "Sazlamalaryň JSON maglumatyny goý",
@@ -784,6 +801,7 @@ var keyStrings = {
     Prepaid: "Öňünden tölemek",
     "Preparing secure remote input...": "Howpsuz uzakdan giriş taýýarlanýar...",
     Prev: "Öňki",
+    Preview: "Öňünden görmek",
     "Preview in channel list": "Kanallar sanawynda deslapky syn",
     Previous: "Öňki",
     "Privacy policy": "Gizlinlik syýasaty",
@@ -916,6 +934,7 @@ var keyStrings = {
     Search: "Gözle",
     "Search languages": "Dil gözläň",
     "Search programme": "Gepleşigi gözle",
+    "Secondary text color": "Goşmaça tekstiň reňki",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Howpsuz uzakdan girizmek başlamady. Gaýtadan synanyşyň ýa-da ekran klawiaturasyny ulanyň.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -936,6 +955,8 @@ var keyStrings = {
         "Brauzerde skrinshot çeşmesini saýlaň",
     "Select the player tab or window in the browser sharing dialog.":
         "Brauzer paýlaşmak gepleşik penjiresinde pleýer goýmasyny ýa-da penjiresini saýlaň.",
+    "Selected item": "Saýlanan element",
+    "Selected text color": "Saýlanan tekstiň reňki",
     "Send request": "Haýyş iber",
     "Send settings": "Sazlamalary iber",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1047,6 +1068,7 @@ var keyStrings = {
     "Subscription information": "Abuna ýazylma maglumaty",
     Subtitle: "Subtitrler",
     "Subtitle appearance": "Subtitrleriň görnüşi",
+    "Surface color": "Üst reňki",
     Switch: "Çalyş",
     "Switch sound track": "Ses ýazgysyny çalyş",
     "Switch subtitle": "Subtitrleri çalyş",
@@ -1154,6 +1176,7 @@ var keyStrings = {
         "Uzakdan anyklaýyş üçin HTTPS buýruk serwerini ulanyň.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Salgysynda ulanyjy ady ýa-da paroly bolmadyk HTTP ýa-da HTTPS ulanyň.",
+    "Use inherited color": "Miras alnan reňki ulan",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Dolandyryşy saýlamak üçin ÇEP/SAG, işletmek üçin OK, süýşürmek üçin ÝOKARY/AŞAK düwmelerini ulanyň.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1177,6 +1200,7 @@ var keyStrings = {
         "VPortal ýüklenmedi. Baglanyşygy, giriş açaryny we portalyň elýeterliligini barlaň.",
     volume: "ses derejesi",
     "Waiting for sign-in…": "Girişe garaşylýar…",
+    "Warm graphite": "Ýyly grafit",
     "Wrong parental code !!!": "Ene-ata gözegçiligi kody nädogry!",
     "Xtream Codes Provider": "Xtream Codes üpjün edijisi",
     "Xtream Codes settings": "Xtream Codes sazlamalary",

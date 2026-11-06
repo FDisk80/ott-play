@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Erreproduzitzaileak komando bat baztertu du. Egiaztatu hornitzailea eta haren ezarpenak.",
     About: "Honi buruz",
+    "Accent color": "Nabarmentzeko kolorea",
     "Access code": "Sarbide-kodea",
     "Access denied. Check the server access code.":
         "Sarbidea ukatu da. Egiaztatu zerbitzariaren sarbide-kodea.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "APIak huts egin du; M3U probatzen…",
     "API Server": "API zerbitzaria",
     "API server URL": "API zerbitzariaren URLa",
+    Apply: "Aplikatu",
+    "Apply changes to this draft, then use Save Settings.":
+        "Aplikatu aldaketak zirriborro honetan eta, ondoren, erabili Gorde ezarpenak.",
     "Applying HTTP remote settings...":
         "HTTP urruneko kontrolaren ezarpenak aplikatzen…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Urdina",
     "Bookmark age (days): %1": "Laster-markaren adina (egunak): %1",
     "Bookmark age: %1 days": "Laster-markaren adina: %1 egun",
+    "Border color": "Ertzaren kolorea",
     Brightness: "Distira",
     "Browse folders": "Arakatu karpetak",
     "Buffer Size, s": "Bufferraren tamaina, s",
@@ -196,6 +201,7 @@ var keyStrings = {
     "Cloud transfer failed": "Hodei-transferentziak huts egin du",
     Code: "Kodea",
     Color: "Kolorea",
+    "Color schemes": "Kolore-eskemak",
     "Color spectrum": "Kolore-espektroa",
     "Command server": "Komando-zerbitzaria",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -337,6 +343,7 @@ var keyStrings = {
         "Ezin izan da HTTP urruneko kontrola eguneratu.",
     Country: "Herrialdea",
     "Create category": "Sortu kategoria",
+    Custom: "Pertsonalizatua",
     current: "unekoa",
     "Debug enabled. Restart to apply.":
         "Arazketa aktibatuta. Berrabiarazi aldaketa aplikatzeko.",
@@ -501,6 +508,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG iturriak HTTP %1 itzuli du",
     "EPG source: %1": "EPG iturria: %1",
     "EPG stopped during: %1": "EPG hau egitean gelditu da: %1",
+    "EPG time color": "EPGko orduaren kolorea",
     "EPG unavailable on this browser":
         "EPG ez dago erabilgarri nabigatzaile honetan",
     "EPG unavailable: %1": "EPG ez dago erabilgarri: %1",
@@ -574,6 +582,7 @@ var keyStrings = {
     "Hide / Return": "Ezkutatu / erakutsi",
     "Hide provider settings?": "Hornitzailearen ezarpenak ezkutatu?",
     "Hide providers?": "Hornitzaileak ezkutatu?",
+    "High contrast": "Kontraste handia",
     "History in Media Library": "Multimedia-liburutegiko historia",
     "History of watched movies": "Ikuste-historia",
     Home: "Hasiera",
@@ -581,6 +590,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP urruneko kontrola ez dago erabilgarri gailu honetan.",
     "HTTPS support": "HTTPS euskarria",
+    Hue: "Ñabardura",
     ID: "ID",
     "Import settings": "Inportatu ezarpenak",
     "In live mode: <br/>": "Zuzeneko moduan:<br/>",
@@ -588,6 +598,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Informazio-barraren bistaratze-denbora, s",
     "Infobar settings": "Informazio-barraren ezarpenak",
     Information: "Informazioa",
+    Inherited: "Heredatua",
+    "Interface colors": "Interfazearen koloreak",
     "Interface credits": "Interfazearen egileak",
     "Interface mode": "Interfazearen modua",
     "Interface settings": "Interfazearen ezarpenak",
@@ -596,6 +608,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Kanalaren esteka baliogabea da! Sartu kontuko transmisio-URLan agertzen den ostalariaren izen osoa (adib. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Hodeiko ezarpenen erantzun baliogabea",
+    "Invalid color value": "Kolore-balio baliogabea",
     "Invalid protected source configuration":
         "Babestutako iturriaren konfigurazioa baliogabea da",
     "Invalid range: %1-%2": "Tarte baliogabea: %1-%2",
@@ -608,6 +621,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ezarpenak",
     "Label (optional)": "Etiketa (aukerakoa)",
+    Light: "Argia",
     "List created": "Zerrenda sortuta",
     "List deleted": "Zerrenda ezabatuta",
     "List location": "Zerrendako kokapena",
@@ -670,6 +684,7 @@ var keyStrings = {
     "Media Library URL": "Multimedia-liburutegiaren URLa",
     Menu: "Menua",
     "Menu items settings": "Menu-elementuen ezarpenak",
+    Midnight: "Gauerdia",
     Modern: "Modernoa",
     "Modern interface is unavailable. Classic remains active.":
         "Interfaze modernoa ez dago erabilgarri. Klasikoak aktibo jarraitzen du.",
@@ -716,6 +731,7 @@ var keyStrings = {
     no: "Ez",
     "no epg at current time": "Ez dago EPGrik uneko ordurako",
     "not set": "ezarri gabe",
+    Ocean: "Ozeanoa",
     Off: "desaktibatuta",
     Ok: "Ados",
     On: "Aktibatuta",
@@ -751,6 +767,7 @@ var keyStrings = {
         "Parekatze-zerbitzaria ez dago erabilgarri. Bilatu zerbitzaria berriro beste saiakera bat egiteko.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Parekatzea baztertu da edo baimen baliogabea itzuli du. Bilatu zerbitzaria berriro beste saiakera bat egiteko.",
+    Palette: "Paleta",
     "Parental control": "Guraso-kontrola",
     Password: "Pasahitza",
     "Paste settings JSON": "Itsatsi ezarpenen JSONa",
@@ -796,6 +813,7 @@ var keyStrings = {
     Prepaid: "Aurretiazko ordainketa",
     "Preparing secure remote input...": "Urruneko sarrera segurua prestatzen…",
     Prev: "Aurrekoa",
+    Preview: "Aurrebista",
     "Preview in channel list": "Aurrebista kanal-zerrendan",
     Previous: "Aurrekoa",
     "Privacy policy": "Pribatutasun-politika",
@@ -933,6 +951,7 @@ var keyStrings = {
     Search: "Bilatu",
     "Search languages": "Bilatu hizkuntzak",
     "Search programme": "Bilatu saioa",
+    "Secondary text color": "Bigarren mailako testuaren kolorea",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Urruneko sarrera segurua ezin izan da hasi. Saiatu berriro edo erabili pantailako teklatua.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -953,6 +972,8 @@ var keyStrings = {
         "Hautatu pantaila-argazkiaren iturria arakatzailean",
     "Select the player tab or window in the browser sharing dialog.":
         "Hautatu erreproduzitzailearen fitxa edo leihoa arakatzailea partekatzeko elkarrizketa-koadroan.",
+    "Selected item": "Hautatutako elementua",
+    "Selected text color": "Hautatutako testuaren kolorea",
     "Send request": "Bidali eskaera",
     "Send settings": "Bidali ezarpenak",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1068,6 +1089,7 @@ var keyStrings = {
     "Subscription information": "Harpidetzaren informazioa",
     Subtitle: "Azpitituluak",
     "Subtitle appearance": "Azpitituluen itxura",
+    "Surface color": "Gainazalaren kolorea",
     Switch: "Aldatu",
     "Switch sound track": "Aldatu audio-pista",
     "Switch subtitle": "Aldatu azpitituluak",
@@ -1175,6 +1197,7 @@ var keyStrings = {
         "Erabili HTTPS komando-zerbitzaria urruneko diagnostikorako.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Erabili HTTP edo HTTPS, helbidean erabiltzaile-izenik edo pasahitzik gabe.",
+    "Use inherited color": "Erabili heredatutako kolorea",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Erabili EZKERRA/ESKUINA kontrol bat hautatzeko, OK aktibatzeko eta GORA/BEHERA korritzeko.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1199,6 +1222,7 @@ var keyStrings = {
         "Ezin izan da VPortal kargatu. Egiaztatu esteka, sarbide-gakoa eta atariaren erabilgarritasuna.",
     volume: "bolumena",
     "Waiting for sign-in…": "Saioa hasteko zain…",
+    "Warm graphite": "Grafito epela",
     "Wrong parental code !!!": "Guraso-kode okerra!",
     "Xtream Codes Provider": "Xtream Codes hornitzailea",
     "Xtream Codes settings": "Xtream Codes ezarpenak",

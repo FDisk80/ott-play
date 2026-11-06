@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Atskaņotājs noraidīja komandu. Pārbaudiet tā pakalpojuma sniedzēju un iestatījumus.",
     About: "Par programmu",
+    "Accent color": "Akcenta krāsa",
     "Access code": "Piekļuves kods",
     "Access denied. Check the server access code.":
         "Piekļuve liegta. Pārbaudiet servera piekļuves kodu.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API kļūme, mēģina M3U…",
     "API Server": "API serveris",
     "API server URL": "API servera URL",
+    Apply: "Lietot",
+    "Apply changes to this draft, then use Save Settings.":
+        "Lietojiet izmaiņas šim melnrakstam un pēc tam izvēlieties Saglabāt iestatījumus.",
     "Applying HTTP remote settings...":
         "Tiek piemēroti HTTP tālvadības iestatījumi...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Zils",
     "Bookmark age (days): %1": "Grāmatzīmes vecums (dienas): %1",
     "Bookmark age: %1 days": "Grāmatzīmes vecums: %1 dienas",
+    "Border color": "Apmales krāsa",
     Brightness: "Spilgtums",
     "Browse folders": "Pārlūkot mapes",
     "Buffer Size, s": "Bufera lielums, s",
@@ -191,6 +196,7 @@ var keyStrings = {
     "Cloud transfer failed": "Neizdevās pārsūtīt datus caur mākoni",
     Code: "Piekļuves kods",
     Color: "Krāsa",
+    "Color schemes": "Krāsu shēmas",
     "Color spectrum": "Krāsu spektrs",
     "Command server": "Komandu serveris",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -331,6 +337,7 @@ var keyStrings = {
         "Neizdevās atjaunināt HTTP tālvadības iestatījumus.",
     Country: "Valsts",
     "Create category": "Izveidot kategoriju",
+    Custom: "Pielāgots",
     current: "pašreizējais",
     "Debug enabled. Restart to apply.":
         "Atkļūdošana ir ieslēgta. Lai lietotu izmaiņas, restartējiet atskaņotāju.",
@@ -495,6 +502,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG avots atgrieza HTTP %1",
     "EPG source: %1": "EPG avots: %1",
     "EPG stopped during: %1": "EPG apturēšanas posms: %1",
+    "EPG time color": "EPG laika krāsa",
     "EPG unavailable on this browser": "EPG šajā pārlūkprogrammā nav pieejams",
     "EPG unavailable: %1": "EPG nav pieejams: %1",
     "EPG update failed; using saved programme guide":
@@ -569,6 +577,7 @@ var keyStrings = {
     "Hide / Return": "Slēpt / rādīt",
     "Hide provider settings?": "Slēpt pakalpojuma sniedzēja iestatījumus?",
     "Hide providers?": "Slēpt pakalpojuma sniedzējus?",
+    "High contrast": "Augsts kontrasts",
     "History in Media Library": "Vēsture multivides bibliotēkā",
     "History of watched movies": "Skatīšanās vēsture",
     Home: "Sākums",
@@ -576,6 +585,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP tālvadība šajā ierīcē nav pieejama.",
     "HTTPS support": "HTTPS atbalsts",
+    Hue: "Nokrāsa",
     ID: "ID",
     "Import settings": "Importēt iestatījumus",
     "In live mode: <br/>": "Tiešraides režīmā:<br/>",
@@ -583,6 +593,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Informācijas joslas rādīšanas ilgums, s",
     "Infobar settings": "Informācijas joslas iestatījumi",
     Information: "Informācija",
+    Inherited: "Mantots",
+    "Interface colors": "Saskarnes krāsas",
     "Interface credits": "Saskarnes autori",
     "Interface mode": "Saskarnes režīms",
     "Interface settings": "Saskarnes iestatījumi",
@@ -591,6 +603,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Nederīga kanāla saite! Ievadiet pilnu resursdatora nosaukumu kā konta straumes URL (piem., subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Nederīga mākoņa iestatījumu atbilde",
+    "Invalid color value": "Nederīga krāsas vērtība",
     "Invalid protected source configuration":
         "Nederīga aizsargātā avota konfigurācija",
     "Invalid range: %1-%2": "Nederīgs diapazons: %1-%2",
@@ -603,6 +616,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV iestatījumi",
     "Label (optional)": "Nosaukums (neobligāts)",
+    Light: "Gaišs",
     "List created": "Saraksts izveidots",
     "List deleted": "Saraksts dzēsts",
     "List location": "Saraksta novietojums",
@@ -665,6 +679,7 @@ var keyStrings = {
     "Media Library URL": "Mediotēkas URL",
     Menu: "Izvēlne",
     "Menu items settings": "Izvēlnes vienumu iestatījumi",
+    Midnight: "Pusnakts",
     Modern: "Mūsdienīgs",
     "Modern interface is unavailable. Classic remains active.":
         "Mūsdienīgā saskarne nav pieejama. Klasiskā paliek aktīva.",
@@ -711,6 +726,7 @@ var keyStrings = {
     no: "nē",
     "no epg at current time": "Pašlaik nav EPG",
     "not set": "nav iestatīts",
+    Ocean: "Okeāns",
     Off: "Izslēgts",
     Ok: "Labi",
     On: "Ieslēgta",
@@ -746,6 +762,7 @@ var keyStrings = {
         "Pārošanas serveris nav pieejams. Lai mēģinātu vēlreiz, atrodiet serveri no jauna.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Pārošana tika noraidīta vai saņemts nederīgs apstiprinājums. Lai mēģinātu vēlreiz, atrodiet serveri no jauna.",
+    Palette: "Krāsu palete",
     "Parental control": "Vecāku kontrole",
     Password: "Parole",
     "Paste settings JSON": "Ielīmējiet iestatījumus JSON formātā",
@@ -792,6 +809,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Notiek drošas attālās ievades sagatavošana...",
     Prev: "Iepriekšējais",
+    Preview: "Priekšskatījums",
     "Preview in channel list": "Priekšskatījums kanālu sarakstā",
     Previous: "Iepriekšējais",
     "Privacy policy": "Privātuma politika",
@@ -927,6 +945,7 @@ var keyStrings = {
     Search: "Meklēt",
     "Search languages": "Meklēt valodas",
     "Search programme": "Meklēt raidījumu",
+    "Secondary text color": "Sekundārā teksta krāsa",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Drošo attālo ievadi nevarēja palaist. Lūdzu, mēģiniet vēlreiz vai izmantojiet ekrāna tastatūru.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -948,6 +967,8 @@ var keyStrings = {
         "Pārlūkprogrammā atlasiet ekrānuzņēmuma avotu",
     "Select the player tab or window in the browser sharing dialog.":
         "Pārlūkprogrammas koplietošanas dialoglodziņā atlasiet atskaņotāja cilni vai logu.",
+    "Selected item": "Atlasītais vienums",
+    "Selected text color": "Atlasītā teksta krāsa",
     "Send request": "Nosūtīt pieprasījumu",
     "Send settings": "Nosūtīt iestatījumus",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1061,6 +1082,7 @@ var keyStrings = {
     "Subscription information": "Abonementa informācija",
     Subtitle: "Subtitri",
     "Subtitle appearance": "Subtitru izskats",
+    "Surface color": "Virsmas krāsa",
     Switch: "Pārslēgt",
     "Switch sound track": "Mainīt skaņas celiņu",
     "Switch subtitle": "Mainīt subtitrus",
@@ -1167,6 +1189,7 @@ var keyStrings = {
         "Attālinātai diagnostikai izmantojiet komandu serveri HTTPS.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Izmantojiet HTTP vai HTTPS bez lietotājvārda vai paroles adresē.",
+    "Use inherited color": "Izmantot mantoto krāsu",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Ar PA KREISI/PA LABI izvēlieties vadīklu, ar OK aktivizējiet to, ar UZ AUGŠU/UZ LEJU ritiniet.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1190,6 +1213,7 @@ var keyStrings = {
         "Neizdevās ielādēt VPortal. Pārbaudiet saiti, piekļuves atslēgu un portāla pieejamību.",
     volume: "skaļums",
     "Waiting for sign-in…": "Gaida pierakstīšanos…",
+    "Warm graphite": "Silts grafīts",
     "Wrong parental code !!!": "Nepareizs vecāku kods!!!",
     "Xtream Codes Provider": "Xtream Codes pakalpojuma sniedzējs",
     "Xtream Codes settings": "Xtream Codes iestatījumi",

@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Pleyer əmri rədd etdi. Provayderi və ayarları yoxlayın.",
     About: "Haqqında",
+    "Accent color": "Vurğu rəngi",
     "Access code": "Giriş kodu",
     "Access denied. Check the server access code.":
         "Giriş rədd edildi. Serverin giriş kodunu yoxlayın.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API xətası, M3U sınanır…",
     "API Server": "API serveri",
     "API server URL": "API serverinin URL-i",
+    Apply: "Tətbiq et",
+    "Apply changes to this draft, then use Save Settings.":
+        "Dəyişiklikləri bu qaralamaya tətbiq edin, sonra Ayarları saxla seçin.",
     "Applying HTTP remote settings...":
         "HTTP uzaqdan idarəetmə ayarları tətbiq olunur…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -120,6 +124,7 @@ var keyStrings = {
     Blue: "Mavi",
     "Bookmark age (days): %1": "Əlfəcin yaşı (günlər): %1",
     "Bookmark age: %1 days": "Əlfəcinin yaşı: %1 gün",
+    "Border color": "Çərçivə rəngi",
     Brightness: "Parlaqlıq",
     "Browse folders": "Qovluqlar üzrə baxış",
     "Buffer Size, s": "Bufer ölçüsü, san",
@@ -192,6 +197,7 @@ var keyStrings = {
     "Cloud transfer failed": "Bulud ötürülməsi uğursuz oldu",
     Code: "Giriş kodu",
     Color: "Rəng",
+    "Color schemes": "Rəng sxemləri",
     "Color spectrum": "Rəng palitrası",
     "Command server": "Əmr serveri",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -332,6 +338,7 @@ var keyStrings = {
         "HTTP uzaqdan idarəetməni yeniləmək mümkün olmadı.",
     Country: "Ölkə",
     "Create category": "Kateqoriya yarat",
+    Custom: "Fərdi",
     current: "cari",
     "Debug enabled. Restart to apply.":
         "Sazlama aktivdir. Tətbiq etmək üçün pleyeri yenidən başladın.",
@@ -493,6 +500,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG mənbəyi HTTP %1 qaytardı",
     "EPG source: %1": "EPG mənbə: %1",
     "EPG stopped during: %1": "EPG dayandı: %1",
+    "EPG time color": "EPG vaxtının rəngi",
     "EPG unavailable on this browser": "EPG bu brauzerdə mövcud deyil",
     "EPG unavailable: %1": "EPG mövcud deyil: %1",
     "EPG update failed; using saved programme guide":
@@ -566,6 +574,7 @@ var keyStrings = {
     "Hide / Return": "Gizlət / göstər",
     "Hide provider settings?": "Provayder ayarları gizlədilsin?",
     "Hide providers?": "Provayderlər gizlədilsin?",
+    "High contrast": "Yüksək kontrast",
     "History in Media Library": "Media kitabxanasında tarixçə",
     "History of watched movies": "Baxış tarixçəsi",
     Home: "Ana səhifə",
@@ -573,6 +582,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Bu cihazda HTTP uzaqdan idarəetmə əlçatan deyil.",
     "HTTPS support": "HTTPS dəstəyi",
+    Hue: "Rəng tonu",
     ID: "ID",
     "Import settings": "Ayarları idxal et",
     "In live mode: <br/>": "Canlı yayım rejimində:<br/>",
@@ -580,6 +590,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Məlumat panelinin göstərilmə müddəti, san",
     "Infobar settings": "Məlumat paneli ayarları",
     Information: "Məlumat",
+    Inherited: "Miras alınmış",
+    "Interface colors": "İnterfeys rəngləri",
     "Interface credits": "İnterfeys müəllifləri",
     "Interface mode": "İnterfeys rejimi",
     "Interface settings": "İnterfeys ayarları",
@@ -588,6 +600,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Yanlış kanal keçidi! Şəxsi kabinetdəki yayım URL-indən tam host adını daxil edin (məs. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Yanlış bulud parametrləri cavabı",
+    "Invalid color value": "Yanlış rəng dəyəri",
     "Invalid protected source configuration":
         "Qorunan mənbənin konfiqurasiyası yanlışdır",
     "Invalid range: %1-%2": "Yanlış aralıq: %1-%2",
@@ -600,6 +613,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ayarları",
     "Label (optional)": "Etiket (istəyə bağlı)",
+    Light: "Açıq",
     "List created": "Siyahı yaradıldı",
     "List deleted": "Siyahı silindi",
     "List location": "Siyahının yeri",
@@ -661,6 +675,7 @@ var keyStrings = {
     "Media Library URL": "Media kitabxanasının URL-i",
     Menu: "Menyu",
     "Menu items settings": "Menyu elementlərinin ayarları",
+    Midnight: "Gecə yarısı",
     Modern: "Müasir",
     "Modern interface is unavailable. Classic remains active.":
         "Müasir interfeys əlçatan deyil. Klassik aktiv qalır.",
@@ -707,6 +722,7 @@ var keyStrings = {
     no: "xeyr",
     "no epg at current time": "Hazırkı vaxt üçün proqram cədvəli yoxdur",
     "not set": "təyin edilməyib",
+    Ocean: "Okean",
     Off: "Söndürülüb",
     Ok: "OK",
     On: "Aktivdir",
@@ -742,6 +758,7 @@ var keyStrings = {
         "Cütləşmə serveri əlçatan deyil. Yenidən sınamaq üçün serveri təkrar axtarın.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Cütləşmə rədd edildi və ya etibarsız təsdiq alındı. Yenidən sınamaq üçün serveri təkrar axtarın.",
+    Palette: "Palitra",
     "Parental control": "Valideyn nəzarəti",
     Password: "Şifrə",
     "Paste settings JSON": "JSON formatında parametrləri yapışdırın",
@@ -788,6 +805,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Təhlükəsiz uzaqdan daxiletmə hazırlanır...",
     Prev: "Əvvəlki",
+    Preview: "Önbaxış",
     "Preview in channel list": "Kanal siyahısında önbaxış",
     Previous: "Əvvəlki kanal",
     "Privacy policy": "Məxfilik siyasəti",
@@ -921,6 +939,7 @@ var keyStrings = {
     Search: "Axtarış",
     "Search languages": "Dilləri axtarın",
     "Search programme": "Veriliş axtar",
+    "Secondary text color": "İkinci dərəcəli mətn rəngi",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Təhlükəsiz uzaqdan daxiletmə başlaya bilmədi. Lütfən, yenidən cəhd edin və ya ekran klaviaturasından istifadə edin.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -942,6 +961,8 @@ var keyStrings = {
         "Brauzerdə ekran görüntüsü mənbəyini seçin",
     "Select the player tab or window in the browser sharing dialog.":
         "Brauzerin paylaşılması dialoqunda pleyer nişanını və ya pəncərəsini seçin.",
+    "Selected item": "Seçilmiş element",
+    "Selected text color": "Seçilmiş mətnin rəngi",
     "Send request": "Sorğu göndər",
     "Send settings": "Ayarları göndər",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1056,6 +1077,7 @@ var keyStrings = {
     "Subscription information": "Abunəlik məlumatları",
     Subtitle: "Altyazılar",
     "Subtitle appearance": "Altyazıların görünüşü",
+    "Surface color": "Səth rəngi",
     Switch: "Dəyiş",
     "Switch sound track": "Səs yolunu dəyiş",
     "Switch subtitle": "Altyazını dəyiş",
@@ -1163,6 +1185,7 @@ var keyStrings = {
         "Uzaqdan diaqnostika üçün HTTPS komanda serverindən istifadə edin.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Ünvanda istifadəçi adı və şifrə olmadan HTTP və ya HTTPS istifadə edin.",
+    "Use inherited color": "Miras alınmış rəngi istifadə et",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "İdarəetməni seçmək üçün SOL/SAĞ, aktivləşdirmək üçün OK, sürüşdürmək üçün YUXARI/AŞAĞI istifadə edin.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1186,6 +1209,7 @@ var keyStrings = {
         "VPortal yüklənmədi. Keçidi, giriş açarını və portalın əlçatanlığını yoxlayın.",
     volume: "səs",
     "Waiting for sign-in…": "Daxil olmaq gözlənilir...",
+    "Warm graphite": "İsti qrafit",
     "Wrong parental code !!!": "Yanlış valideyn kodu!",
     "Xtream Codes Provider": "Xtream Codes provayderi",
     "Xtream Codes settings": "Xtream Codes ayarları",

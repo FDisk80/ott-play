@@ -42,6 +42,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "یک فرمان توسط پخش‌کننده رد شد. ارائه دهنده و تنظیمات آن را بررسی کنید.",
     About: "درباره",
+    "Accent color": "رنگ تأکیدی",
     "Access code": "کد دسترسی",
     "Access denied. Check the server access code.":
         "دسترسی ممنوع است. کد دسترسی به سرور را بررسی کنید.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ناموفق بود، M3U را امتحان می‌کنید…",
     "API Server": "سرور API",
     "API server URL": "سرور API URL",
+    Apply: "اعمال",
+    "Apply changes to this draft, then use Save Settings.":
+        "تغییرات را روی این پیش‌نویس اعمال کنید، سپس «تنظیمات را ذخیره کنید» را انتخاب کنید.",
     "Applying HTTP remote settings...": "اعمال تنظیمات از راه دور HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "کد %1 را با ott approve NAME CODE تأیید کنید:",
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "آبی",
     "Bookmark age (days): %1": "سن نشانک (روز): %1",
     "Bookmark age: %1 days": "سن نشانک: روز %1",
+    "Border color": "رنگ حاشیه",
     Brightness: "روشنایی",
     "Browse folders": "پوشه ها را مرور کنید",
     "Buffer Size, s": "اندازه بافر، s",
@@ -191,6 +196,7 @@ var keyStrings = {
     "Cloud transfer failed": "انتقال ابری انجام نشد",
     Code: "کد",
     Color: "رنگ",
+    "Color schemes": "طرح‌های رنگی",
     "Color spectrum": "طیف رنگ",
     "Command server": "سرور فرمان",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -327,6 +333,7 @@ var keyStrings = {
         "کنترل از راه دور HTTP به روز نشد.",
     Country: "کشور",
     "Create category": "ایجاد دسته",
+    Custom: "سفارشی",
     current: "جریان",
     "Debug enabled. Restart to apply.":
         "اشکال زدایی فعال شد. برای اعمال مجدد راه اندازی کنید.",
@@ -490,6 +497,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "منبع EPG بازگشت HTTP %1",
     "EPG source: %1": "منبع EPG: %1",
     "EPG stopped during: %1": "EPG در طول: %1 متوقف شد",
+    "EPG time color": "رنگ زمان راهنمای برنامه",
     "EPG unavailable on this browser": "EPG در این مرورگر در دسترس نیست",
     "EPG unavailable: %1": "EPG در دسترس نیست: %1",
     "EPG update failed; using saved programme guide":
@@ -558,6 +566,7 @@ var keyStrings = {
     "Hide / Return": "پنهان کردن / نمایش",
     "Hide provider settings?": "تنظیمات ارائه دهنده پنهان شود؟",
     "Hide providers?": "ارائه دهندگان را مخفی کنید؟",
+    "High contrast": "کنتراست بالا",
     "History in Media Library": "تاریخچه در کتابخانه رسانه",
     "History of watched movies": "سابقه تماشا",
     Home: "خانه",
@@ -565,6 +574,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "کنترل از راه دور HTTP در این دستگاه در دسترس نیست.",
     "HTTPS support": "پشتیبانی HTTPS",
+    Hue: "فام",
     ID: "ID",
     "Import settings": "وارد کردن تنظیمات",
     "In live mode: <br/>": "در حالت زنده:<br/>",
@@ -572,6 +582,8 @@ var keyStrings = {
     "Infobar display timeout, s": "وقفه نمایش نوار اطلاعات، s",
     "Infobar settings": "تنظیمات نوار اطلاعات",
     Information: "اطلاعات",
+    Inherited: "به‌ارث‌رسیده",
+    "Interface colors": "رنگ‌های رابط",
     "Interface credits": "سازندگان رابط کاربری",
     "Interface mode": "حالت رابط کاربری",
     "Interface settings": "تنظیمات رابط",
@@ -580,6 +592,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "لینک کانال نامعتبر است! میزبان کامل را مانند جریان کابینت URL وارد کنید (به عنوان مثال subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "پاسخ تنظیمات ابر نامعتبر است",
+    "Invalid color value": "مقدار رنگ نامعتبر است",
     "Invalid protected source configuration":
         "پیکربندی منبع محافظت شده نامعتبر است",
     "Invalid range: %1-%2": "بازه نامعتبر: %1-%2",
@@ -592,6 +605,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "تنظیمات KORONA TV",
     "Label (optional)": "برچسب (اختیاری)",
+    Light: "روشن",
     "List created": "فهرست ایجاد شد",
     "List deleted": "لیست حذف شد",
     "List location": "موقعیت لیست",
@@ -653,6 +667,7 @@ var keyStrings = {
     "Media Library URL": "کتابخانه رسانه URL",
     Menu: "منو",
     "Menu items settings": "تنظیمات آیتم منو",
+    Midnight: "نیمه‌شب",
     Modern: "مدرن",
     "Modern interface is unavailable. Classic remains active.":
         "رابط کاربری مدرن در دسترس نیست. رابط کلاسیک فعال می‌ماند.",
@@ -699,6 +714,7 @@ var keyStrings = {
     no: "خیر",
     "no epg at current time": "در حال حاضر EPG وجود ندارد",
     "not set": "تنظیم نشده است",
+    Ocean: "اقیانوس",
     Off: "خاموش",
     Ok: "تأیید",
     On: "روشن",
@@ -734,6 +750,7 @@ var keyStrings = {
         "سرور جفت شدن در دسترس نیست. دوباره سرور را پیدا کنید تا دوباره امتحان کنید.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "جفت شدن رد شد یا تأییدیه نامعتبری برگرداند. دوباره سرور را پیدا کنید تا دوباره امتحان کنید.",
+    Palette: "پالت رنگ",
     "Parental control": "کنترل والدین",
     Password: "رمز عبور",
     "Paste settings JSON": "تنظیمات JSON را جایگذاری کنید",
@@ -780,6 +797,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "در حال آماده سازی ورودی از راه دور ایمن...",
     Prev: "قبلی",
+    Preview: "پیش‌نمایش",
     "Preview in channel list": "پیش نمایش در لیست کانال",
     Previous: "قبلی",
     "Privacy policy": "سیاست حفظ حریم خصوصی",
@@ -915,6 +933,7 @@ var keyStrings = {
     Search: "جستجو",
     "Search languages": "جستجوی زبان ها",
     "Search programme": "جستجوی برنامهٔ تلویزیونی",
+    "Secondary text color": "رنگ متن فرعی",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ورودی از راه دور ایمن شروع نشد. لطفاً دوباره امتحان کنید یا از صفحه کلید روی صفحه استفاده کنید.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -936,6 +955,8 @@ var keyStrings = {
         "منبع اسکرین شات را در مرورگر انتخاب کنید",
     "Select the player tab or window in the browser sharing dialog.":
         "برگه یا پنجره پخش کننده را در گفتگوی اشتراک گذاری مرورگر انتخاب کنید.",
+    "Selected item": "مورد انتخاب‌شده",
+    "Selected text color": "رنگ متن انتخاب‌شده",
     "Send request": "ارسال درخواست",
     "Send settings": "تنظیمات ارسال",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1052,6 +1073,7 @@ var keyStrings = {
     "Subscription information": "اطلاعات اشتراک",
     Subtitle: "زیرنویس",
     "Subtitle appearance": "ظاهر زیرنویس",
+    "Surface color": "رنگ سطح",
     Switch: "سوئیچ",
     "Switch sound track": "تغییر مسیر صوتی",
     "Switch subtitle": "تغییر زیرنویس",
@@ -1157,6 +1179,7 @@ var keyStrings = {
         "از سرور فرمان HTTPS برای تشخیص از راه دور استفاده کنید.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "از HTTP یا HTTPS بدون نام کاربری یا رمز عبور در آدرس استفاده کنید.",
+    "Use inherited color": "استفاده از رنگ به‌ارث‌رسیده",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "از چپ/راست برای انتخاب یک کنترل، OK برای فعال کردن آن و از بالا/پایین برای اسکرول استفاده کنید.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1181,6 +1204,7 @@ var keyStrings = {
         "VPortal بارگیری نشد. پیوند، کلید دسترسی و در دسترس بودن پورتال را بررسی کنید.",
     volume: "حجم صدا",
     "Waiting for sign-in…": "در انتظار ورود به سیستم…",
+    "Warm graphite": "گرافیت گرم",
     "Wrong parental code !!!": "کد والدین اشتباه است!",
     "Xtream Codes Provider": "ارائه دهنده کدهای Xtream",
     "Xtream Codes settings": "تنظیمات کدهای Xtream",

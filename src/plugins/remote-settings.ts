@@ -286,6 +286,11 @@ function createRemotePlayerSettings(w: any, readRuntime: () => string): any {
         if (/^(autorun|hdmiSupport)$/.test(id))
             result.access = { read: true, reason: "unsupported", write: false };
         if (id === "uiFontScale") result.unit = "percent";
+        if (id === "uiColorConfig") {
+            result.constraints.max_utf8_bytes = 2048;
+            result.description =
+                "Client colour overrides. Empty inherits the existing theme and colours. Otherwise use canonical version 1 JSON with supported colour roles and uppercase #RRGGBB values; arbitrary CSS is not accepted. Saved overrides are applied by the client's colour renderer.";
+        }
         if (id === "interfaceMode") {
             result.choices = [
                 { aliases: ["classic"], label: "Classic", value: 0 },

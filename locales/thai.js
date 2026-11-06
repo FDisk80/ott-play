@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "คำสั่งถูกปฏิเสธโดยเครื่องเล่น ตรวจสอบผู้ให้บริการและการตั้งค่า",
     About: "เกี่ยวกับ",
+    "Accent color": "สีเน้น",
     "Access code": "รหัสการเข้าถึง",
     "Access denied. Check the server access code.":
         "การเข้าถึงถูกปฏิเสธ ตรวจสอบรหัสการเข้าถึงเซิร์ฟเวอร์",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ล้มเหลว กำลังลอง M3U...",
     "API Server": "เซิร์ฟเวอร์ API",
     "API server URL": "เซิร์ฟเวอร์ API URL",
+    Apply: "นำไปใช้",
+    "Apply changes to this draft, then use Save Settings.":
+        "นำการเปลี่ยนแปลงไปใช้กับฉบับร่างนี้ จากนั้นเลือกบันทึกการตั้งค่า",
     "Applying HTTP remote settings...": "กำลังใช้การตั้งค่าระยะไกล HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "อนุมัติโค้ดสำหรับ %1 ด้วย ott approve NAME CODE:",
@@ -116,6 +120,7 @@ var keyStrings = {
     Blue: "สีฟ้า",
     "Bookmark age (days): %1": "อายุของบุ๊กมาร์ก (วัน): %1",
     "Bookmark age: %1 days": "อายุบุ๊กมาร์ก: %1 วัน",
+    "Border color": "สีเส้นขอบ",
     Brightness: "ความสว่าง",
     "Browse folders": "เรียกดูโฟลเดอร์",
     "Buffer Size, s": "ขนาดบัฟเฟอร์,s",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "การถ่ายโอนคลาวด์ล้มเหลว",
     Code: "รหัส",
     Color: "สี",
+    "Color schemes": "ชุดสี",
     "Color spectrum": "สเปกตรัมสี",
     "Command server": "เซิร์ฟเวอร์คำสั่ง",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -321,6 +327,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "ไม่สามารถอัพเดตรีโมตคอนโทรล HTTP ได้",
     Country: "ประเทศ",
     "Create category": "สร้างหมวดหมู่",
+    Custom: "กำหนดเอง",
     current: "ปัจจุบัน",
     "Debug enabled. Restart to apply.":
         "เปิดใช้การแก้ไขข้อบกพร่องแล้ว เริ่มต้นใหม่เพื่อสมัคร",
@@ -480,6 +487,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "แหล่ง EPG ส่งคืน HTTP %1",
     "EPG source: %1": "แหล่งที่มาของ EPG: %1",
     "EPG stopped during: %1": "EPG หยุดทำงานระหว่าง: %1",
+    "EPG time color": "สีเวลาของ EPG",
     "EPG unavailable on this browser": "EPG ไม่พร้อมใช้งานบนเบราว์เซอร์นี้",
     "EPG unavailable: %1": "EPG ไม่พร้อมใช้งาน: %1",
     "EPG update failed; using saved programme guide":
@@ -546,6 +554,7 @@ var keyStrings = {
     "Hide / Return": "ซ่อน / แสดง",
     "Hide provider settings?": "ซ่อนการตั้งค่าผู้ให้บริการหรือไม่?",
     "Hide providers?": "ซ่อนผู้ให้บริการ?",
+    "High contrast": "ความเปรียบต่างสูง",
     "History in Media Library": "ประวัติในไลบรารีสื่อ",
     "History of watched movies": "ดูประวัติ",
     Home: "หน้าหลัก",
@@ -553,6 +562,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "รีโมทคอนโทรล HTTP ไม่พร้อมใช้งานบนอุปกรณ์นี้",
     "HTTPS support": "รองรับ HTTPS",
+    Hue: "เฉดสี",
     ID: "ID",
     "Import settings": "นำเข้าการตั้งค่า",
     "In live mode: <br/>": "ในโหมดถ่ายทอดสด:<br/>",
@@ -560,6 +570,8 @@ var keyStrings = {
     "Infobar display timeout, s": "หมดเวลาการแสดงแถบข้อมูล, s",
     "Infobar settings": "การตั้งค่าแถบข้อมูล",
     Information: "ข้อมูล",
+    Inherited: "สืบทอด",
+    "Interface colors": "สีของส่วนติดต่อ",
     "Interface credits": "เครดิตอินเทอร์เฟซ",
     "Interface mode": "โหมดอินเทอร์เฟซ",
     "Interface settings": "การตั้งค่าอินเทอร์เฟซ",
@@ -568,6 +580,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "ลิงก์ช่องไม่ถูกต้อง! เข้าโฮสต์แบบเต็มเช่นเดียวกับในสตรีมตู้ URL (เช่น subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "การตอบสนองการตั้งค่าคลาวด์ไม่ถูกต้อง",
+    "Invalid color value": "ค่าสีไม่ถูกต้อง",
     "Invalid protected source configuration":
         "การกำหนดค่าแหล่งที่มาที่ได้รับการป้องกันไม่ถูกต้อง",
     "Invalid range: %1-%2": "ช่วงไม่ถูกต้อง: %1-%2",
@@ -580,6 +593,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "การตั้งค่า KORONA TV",
     "Label (optional)": "ชื่อ (ไม่บังคับ)",
+    Light: "สว่าง",
     "List created": "สร้างรายการแล้ว",
     "List deleted": "ลบรายการแล้ว",
     "List location": "ตำแหน่งรายการ",
@@ -641,6 +655,7 @@ var keyStrings = {
     "Media Library URL": "ไลบรารีสื่อ URL",
     Menu: "เมนู",
     "Menu items settings": "การตั้งค่ารายการเมนู",
+    Midnight: "เที่ยงคืน",
     Modern: "ทันสมัย",
     "Modern interface is unavailable. Classic remains active.":
         "อินเทอร์เฟซทันสมัยไม่พร้อมใช้งาน แบบคลาสสิกยังคงทำงานอยู่",
@@ -685,6 +700,7 @@ var keyStrings = {
     no: "ไม่",
     "no epg at current time": "ไม่มี EPG ในขณะนี้",
     "not set": "ไม่ได้ตั้งค่า",
+    Ocean: "มหาสมุทร",
     Off: "ปิด",
     Ok: "ตกลง",
     On: "เปิด",
@@ -720,6 +736,7 @@ var keyStrings = {
         "การจับคู่เซิร์ฟเวอร์ไม่พร้อมใช้งาน ค้นหาเซิร์ฟเวอร์อีกครั้งเพื่อลองอีกครั้ง",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "การจับคู่ถูกปฏิเสธหรือส่งคืนการอนุมัติที่ไม่ถูกต้อง ค้นหาเซิร์ฟเวอร์อีกครั้งเพื่อลองอีกครั้ง",
+    Palette: "จานสี",
     "Parental control": "การควบคุมโดยผู้ปกครอง",
     Password: "รหัสผ่าน",
     "Paste settings JSON": "วางการตั้งค่า JSON",
@@ -764,6 +781,7 @@ var keyStrings = {
     Prepaid: "แบบเติมเงิน",
     "Preparing secure remote input...": "กำลังเตรียมอินพุตระยะไกลที่ปลอดภัย...",
     Prev: "ก่อนหน้า",
+    Preview: "ดูตัวอย่าง",
     "Preview in channel list": "ดูตัวอย่างในรายการช่อง",
     Previous: "ก่อนหน้า",
     "Privacy policy": "นโยบายความเป็นส่วนตัว",
@@ -893,6 +911,7 @@ var keyStrings = {
     Search: "ค้นหา",
     "Search languages": "ค้นหาภาษา",
     "Search programme": "ค้นหารายการ",
+    "Secondary text color": "สีข้อความรอง",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ไม่สามารถเริ่มอินพุตระยะไกลแบบปลอดภัยได้ โปรดลองอีกครั้งหรือใช้แป้นพิมพ์บนหน้าจอ",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -912,6 +931,8 @@ var keyStrings = {
     "Select screenshot source in browser": "เลือกแหล่งภาพหน้าจอในเบราว์เซอร์",
     "Select the player tab or window in the browser sharing dialog.":
         "เลือกแท็บหรือหน้าต่างของเครื่องเล่นในกล่องโต้ตอบการแชร์ของเบราว์เซอร์",
+    "Selected item": "รายการที่เลือก",
+    "Selected text color": "สีข้อความที่เลือก",
     "Send request": "ส่งคำขอ",
     "Send settings": "การตั้งค่าการส่ง",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1022,6 +1043,7 @@ var keyStrings = {
     "Subscription information": "ข้อมูลการสมัครสมาชิก",
     Subtitle: "คำบรรยาย",
     "Subtitle appearance": "รูปแบบคำบรรยาย",
+    "Surface color": "สีพื้นผิว",
     Switch: "สวิตช์",
     "Switch sound track": "เปลี่ยนแทร็กเสียง",
     "Switch subtitle": "เปลี่ยนคำบรรยาย",
@@ -1123,6 +1145,7 @@ var keyStrings = {
         "ใช้เซิร์ฟเวอร์คำสั่ง HTTPS สำหรับการวินิจฉัยระยะไกล",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ใช้ HTTP หรือ HTTPS โดยไม่มีชื่อผู้ใช้หรือรหัสผ่านในที่อยู่",
+    "Use inherited color": "ใช้สีที่สืบทอดมา",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ใช้ซ้าย/ขวาเพื่อเลือกตัวควบคุม ตกลง เพื่อเปิดใช้งาน และขึ้น/ลงเพื่อเลื่อน",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1145,6 +1168,7 @@ var keyStrings = {
         "ไม่สามารถโหลด VPortal ได้ ตรวจสอบลิงก์ รหัสการเข้าถึง และความพร้อมใช้งานของพอร์ทัล",
     volume: "ระดับเสียง",
     "Waiting for sign-in…": "กำลังรอการลงชื่อเข้าใช้...",
+    "Warm graphite": "กราไฟต์โทนอุ่น",
     "Wrong parental code !!!": "รหัสผู้ปกครองผิด!",
     "Xtream Codes Provider": "ผู้ให้บริการรหัส Xtream",
     "Xtream Codes settings": "การตั้งค่ารหัส Xtream",

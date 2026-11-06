@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Նվագարկիչը մերժեց հրամանը։ Ստուգեք մատակարարն ու կարգավորումները։",
     About: "Ծրագրի մասին",
+    "Accent color": "Շեշտադրման գույն",
     "Access code": "Մուտքի կոդ",
     "Access denied. Check the server access code.":
         "Մուտքը մերժված է։ Ստուգեք սերվերի մուտքի կոդը։",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API-ն չաշխատեց, փորձարկվում է M3U…",
     "API Server": "API սերվեր",
     "API server URL": "API սերվերի URL",
+    Apply: "Կիրառել",
+    "Apply changes to this draft, then use Save Settings.":
+        "Կիրառեք փոփոխություններն այս սևագրում, ապա ընտրեք Պահպանել կարգավորումները։",
     "Applying HTTP remote settings...":
         "HTTP հեռակառավարման կարգավորումների կիրառում...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -118,6 +122,7 @@ var keyStrings = {
     Blue: "Կապույտ",
     "Bookmark age (days): %1": "Էջանիշի տարիք (օրեր)՝ %1",
     "Bookmark age: %1 days": "Էջանիշի տարիք՝ %1 օր",
+    "Border color": "Եզրագծի գույն",
     Brightness: "Պայծառություն",
     "Browse folders": "Դիտել ըստ պանակների",
     "Buffer Size, s": "Բուֆերի չափ, վ",
@@ -189,6 +194,7 @@ var keyStrings = {
     "Cloud transfer failed": "Ամպային փոխանցումը ձախողվեց",
     Code: "Մուտքի կոդը",
     Color: "Գույն",
+    "Color schemes": "Գունային սխեմաներ",
     "Color spectrum": "Գունային սպեկտր",
     "Command server": "Հրամանների սերվեր",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -329,6 +335,7 @@ var keyStrings = {
         "Չհաջողվեց թարմացնել HTTP հեռակառավարման կարգավորումները։",
     Country: "Երկիր",
     "Create category": "Ստեղծել կատեգորիա",
+    Custom: "Անհատական",
     current: "ընթացիկ",
     "Debug enabled. Restart to apply.":
         "Վրիպազերծումը միացված է։ Կիրառելու համար վերագործարկեք նվագարկիչը։",
@@ -493,6 +500,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG աղբյուրը վերադարձրեց HTTP %1",
     "EPG source: %1": "EPG աղբյուր՝ %1",
     "EPG stopped during: %1": "EPG դադարեցվել է %1 ընթացքում",
+    "EPG time color": "EPG ժամի գույն",
     "EPG unavailable on this browser": "EPG անհասանելի է այս դիտարկիչում",
     "EPG unavailable: %1": "EPG անհասանելի է՝ %1",
     "EPG update failed; using saved programme guide":
@@ -565,6 +573,7 @@ var keyStrings = {
     "Hide / Return": "Թաքցնել / ցուցադրել",
     "Hide provider settings?": "Թաքցնե՞լ մատակարարի կարգավորումները։",
     "Hide providers?": "Թաքցնե՞լ մատակարարներին։",
+    "High contrast": "Բարձր հակադրություն",
     "History in Media Library": "Պատմություն մեդիա գրադարանում",
     "History of watched movies": "Դիտումների պատմություն",
     Home: "Գլխավոր",
@@ -572,6 +581,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP հեռակառավարումն այս սարքում հասանելի չէ։",
     "HTTPS support": "HTTPS աջակցություն",
+    Hue: "Երանգ",
     ID: "ID",
     "Import settings": "Ներմուծել կարգավորումները",
     "In live mode: <br/>": "Ուղիղ եթերի ռեժիմում՝<br/>",
@@ -579,6 +589,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Տեղեկագոտու ցուցադրման տևողություն, վ",
     "Infobar settings": "Տեղեկագոտու կարգավորումներ",
     Information: "Տեղեկություն",
+    Inherited: "Ժառանգված",
+    "Interface colors": "Միջերեսի գույներ",
     "Interface credits": "Միջերեսի հեղինակներ",
     "Interface mode": "Միջերեսի ռեժիմ",
     "Interface settings": "Միջերեսի կարգավորումներ",
@@ -587,6 +599,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Ալիքի հղումն անվավեր է։ Մուտքագրեք ամբողջական հոսթը՝ ինչպես անձնական էջի հոսքի URL-ում (օր.՝ subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Անվավեր ամպի կարգավորումների պատասխան",
+    "Invalid color value": "Գույնի անվավեր արժեք",
     "Invalid protected source configuration":
         "Պաշտպանված աղբյուրի սխալ կարգավորում",
     "Invalid range: %1-%2": "Անվավեր միջակայք՝ %1-%2",
@@ -599,6 +612,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV կարգավորումներ",
     "Label (optional)": "Անվանում (ոչ պարտադիր)",
+    Light: "Լուսավոր",
     "List created": "Ցուցակը ստեղծված է",
     "List deleted": "Ցուցակը ջնջված է",
     "List location": "Ցուցակի դիրք",
@@ -660,6 +674,7 @@ var keyStrings = {
     "Media Library URL": "Մեդիա գրադարանի URL",
     Menu: "Մենյու",
     "Menu items settings": "Մենյուի տարրերի կարգավորումներ",
+    Midnight: "Կեսգիշեր",
     Modern: "Ժամանակակից",
     "Modern interface is unavailable. Classic remains active.":
         "Ժամանակակից միջերեսն անհասանելի է։ Դասականը մնում է ակտիվ։",
@@ -706,6 +721,7 @@ var keyStrings = {
     no: "ոչ",
     "no epg at current time": "Այս պահին հեռուստածրագիր չկա",
     "not set": "սահմանված չէ",
+    Ocean: "Օվկիանոս",
     Off: "Անջատված",
     Ok: "Լավ",
     On: "Միացված",
@@ -741,6 +757,7 @@ var keyStrings = {
         "Զուգակցման սերվերը հասանելի չէ։ Կրկին փորձելու համար նորից գտեք սերվերը։",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Զուգակցումը մերժվել է կամ ստացվել է անվավեր հաստատում։ Կրկին փորձելու համար նորից գտեք սերվերը։",
+    Palette: "Գունապնակ",
     "Parental control": "Ծնողական վերահսկողություն",
     Password: "Գաղտնաբառ",
     "Paste settings JSON": "Տեղադրեք կարգավորումները՝ JSON ձևաչափով",
@@ -787,6 +804,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Անվտանգ հեռակառավարման մուտքագրման նախապատրաստում...",
     Prev: "Նախորդ",
+    Preview: "Նախադիտում",
     "Preview in channel list": "Նախադիտում ալիքների ցուցակում",
     Previous: "Նախորդ",
     "Privacy policy": "Գաղտնիության քաղաքականություն",
@@ -924,6 +942,7 @@ var keyStrings = {
     Search: "Որոնել",
     "Search languages": "Որոնել լեզուներ",
     "Search programme": "Որոնել հաղորդումը",
+    "Secondary text color": "Երկրորդական տեքստի գույն",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Անվտանգ հեռակառավարման մուտքագրումը չհաջողվեց սկսել: Խնդրում ենք կրկին փորձել կամ օգտագործել էկրանի ստեղնաշարը:",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -945,6 +964,8 @@ var keyStrings = {
         "Ընտրեք սքրինշոթի աղբյուրը դիտարկիչում",
     "Select the player tab or window in the browser sharing dialog.":
         "Ընտրեք նվագարկչի ներդիրը կամ պատուհանը բրաուզերի համօգտագործման երկխոսության մեջ:",
+    "Selected item": "Ընտրված տարր",
+    "Selected text color": "Ընտրված տեքստի գույն",
     "Send request": "Ուղարկել հարցումը",
     "Send settings": "Ուղարկել կարգավորումները",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1062,6 +1083,7 @@ var keyStrings = {
     "Subscription information": "Բաժանորդագրության տվյալներ",
     Subtitle: "Ենթագրեր",
     "Subtitle appearance": "Ենթագրերի տեսք",
+    "Surface color": "Մակերևույթի գույն",
     Switch: "Փոխել",
     "Switch sound track": "Փոխել ձայնաշերտը",
     "Switch subtitle": "Փոխել ենթագրերը",
@@ -1170,6 +1192,7 @@ var keyStrings = {
         "Հեռակա ախտորոշման համար օգտագործեք HTTPS հրամանի սերվեր:",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Օգտագործեք HTTP կամ HTTPS՝ առանց օգտանվան կամ գաղտնաբառի հասցեում։",
+    "Use inherited color": "Օգտագործել ժառանգված գույնը",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Օգտագործեք ՁԱԽ/ԱՋ՝ տարրն ընտրելու, OK՝ այն ակտիվացնելու և ՎԵՐԵՎ/ՆԵՐՔԵՎ՝ ոլորելու համար։",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1194,6 +1217,7 @@ var keyStrings = {
         "Չհաջողվեց բեռնել VPortal-ը։ Ստուգեք հղումը, մուտքի բանալին և պորտալի հասանելիությունը։",
     volume: "ձայն",
     "Waiting for sign-in…": "Սպասում է մուտքի…",
+    "Warm graphite": "Ջերմ գրաֆիտ",
     "Wrong parental code !!!": "Սխալ ծնողական կոդ!!!",
     "Xtream Codes Provider": "Xtream Codes մատակարար",
     "Xtream Codes settings": "Xtream Codes կարգավորումներ",

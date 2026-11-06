@@ -139,6 +139,9 @@ require their own receipts; see [diagnostic versus release delivery](../../docs/
 
 ## What this target provides
 
+The native [interface color guide](interface-colors.md) describes the palette editor,
+shared setting format, and the build/device checks required for this candidate.
+
 The candidate offers Classic and Modern presentations of the same sources.
 Open **Browse → Settings → Interface mode**, choose **Classic** or **Modern**,
 and wait for **Selected**. Choosing the mode itself requests a non-secret

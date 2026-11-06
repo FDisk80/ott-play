@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "El reproductor ha rebutjat una ordre. Comprova el proveïdor i la seva configuració.",
     About: "Quant a",
+    "Accent color": "Color d'accent",
     "Access code": "Codi d’accés",
     "Access denied. Check the server access code.":
         "Accés denegat. Comprova el codi d’accés del servidor.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "L’API ha fallat; es prova M3U…",
     "API Server": "Servidor API",
     "API server URL": "URL del servidor API",
+    Apply: "Aplica",
+    "Apply changes to this draft, then use Save Settings.":
+        "Aplica els canvis a aquest esborrany i després utilitza Desa la configuració.",
     "Applying HTTP remote settings...":
         "S’està aplicant la configuració del control remot HTTP…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -123,6 +127,7 @@ var keyStrings = {
     Blue: "Blau",
     "Bookmark age (days): %1": "Edat del marcador (dies): %1",
     "Bookmark age: %1 days": "Antiguitat del marcador: %1 dies",
+    "Border color": "Color de la vora",
     Brightness: "Brillantor",
     "Browse folders": "Explora les carpetes",
     "Buffer Size, s": "Mida de la memòria intermèdia, s",
@@ -199,6 +204,7 @@ var keyStrings = {
     "Cloud transfer failed": "La transferència al núvol ha fallat",
     Code: "Codi",
     Color: "Color",
+    "Color schemes": "Esquemes de colors",
     "Color spectrum": "Espectre de colors",
     "Command server": "Servidor d’ordres",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -340,6 +346,7 @@ var keyStrings = {
         "No s’ha pogut actualitzar el control remot HTTP.",
     Country: "País",
     "Create category": "Crea una categoria",
+    Custom: "Personalitzat",
     current: "actual",
     "Debug enabled. Restart to apply.":
         "Depuració activada. Reinicia per aplicar el canvi.",
@@ -506,6 +513,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "La font EPG ha retornat HTTP %1",
     "EPG source: %1": "Font EPG: %1",
     "EPG stopped during: %1": "L’EPG s’ha aturat durant: %1",
+    "EPG time color": "Color de l'hora de l'EPG",
     "EPG unavailable on this browser":
         "L’EPG no està disponible en aquest navegador",
     "EPG unavailable: %1": "EPG no disponible: %1",
@@ -583,6 +591,7 @@ var keyStrings = {
     "Hide / Return": "Amaga / mostra",
     "Hide provider settings?": "Vols amagar la configuració del proveïdor?",
     "Hide providers?": "Vols amagar els proveïdors?",
+    "High contrast": "Contrast alt",
     "History in Media Library": "Historial a la biblioteca multimèdia",
     "History of watched movies": "Historial de visualització",
     Home: "Inici",
@@ -590,6 +599,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "El control remot HTTP no està disponible en aquest dispositiu.",
     "HTTPS support": "Compatibilitat amb HTTPS",
+    Hue: "To",
     ID: "ID",
     "Import settings": "Importa la configuració",
     "In live mode: <br/>": "En mode en directe:<br/>",
@@ -598,6 +608,8 @@ var keyStrings = {
         "Temps de visualització de la barra d’informació, s",
     "Infobar settings": "Configuració de la barra d’informació",
     Information: "Informació",
+    Inherited: "Heretat",
+    "Interface colors": "Colors de la interfície",
     "Interface credits": "Crèdits de la interfície",
     "Interface mode": "Mode de la interfície",
     "Interface settings": "Configuració de la interfície",
@@ -607,6 +619,7 @@ var keyStrings = {
         "Enllaç del canal no vàlid! Introdueix el nom complet de l’amfitrió que figura a l’URL de transmissió del compte (p. ex. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Resposta de configuració del núvol no vàlida",
+    "Invalid color value": "Valor de color no vàlid",
     "Invalid protected source configuration":
         "Configuració de la font protegida no vàlida",
     "Invalid range: %1-%2": "Interval no vàlid: %1-%2",
@@ -619,6 +632,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Configuració de KORONA TV",
     "Label (optional)": "Etiqueta (opcional)",
+    Light: "Clar",
     "List created": "Llista creada",
     "List deleted": "Llista suprimida",
     "List location": "Posició a la llista",
@@ -684,6 +698,7 @@ var keyStrings = {
     "Media Library URL": "URL de la biblioteca multimèdia",
     Menu: "Menú",
     "Menu items settings": "Configuració dels elements del menú",
+    Midnight: "Mitjanit",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "La interfície moderna no està disponible. La clàssica continua activa.",
@@ -730,6 +745,7 @@ var keyStrings = {
     no: "No",
     "no epg at current time": "No hi ha EPG per a l’hora actual",
     "not set": "sense definir",
+    Ocean: "Oceà",
     Off: "desactivat",
     Ok: "D’acord",
     On: "Activat",
@@ -765,6 +781,7 @@ var keyStrings = {
         "El servidor d’aparellament no està disponible. Torna a cercar el servidor per provar-ho de nou.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "L’aparellament s’ha rebutjat o ha retornat una aprovació no vàlida. Torna a cercar el servidor per provar-ho de nou.",
+    Palette: "Paleta",
     "Parental control": "Control parental",
     Password: "Contrasenya",
     "Paste settings JSON": "Enganxa el JSON de configuració",
@@ -811,6 +828,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "S’està preparant l’entrada remota segura…",
     Prev: "Anterior",
+    Preview: "Previsualització",
     "Preview in channel list": "Vista prèvia a la llista de canals",
     Previous: "Anterior",
     "Privacy policy": "Política de privadesa",
@@ -948,6 +966,7 @@ var keyStrings = {
     Search: "Cerca",
     "Search languages": "Cerca idiomes",
     "Search programme": "Cerca un programa",
+    "Secondary text color": "Color del text secundari",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "No s’ha pogut iniciar l’entrada remota segura. Torna-ho a provar o utilitza el teclat en pantalla.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -969,6 +988,8 @@ var keyStrings = {
         "Seleccioneu la font de la captura de pantalla al navegador",
     "Select the player tab or window in the browser sharing dialog.":
         "Seleccioneu la pestanya o la finestra del reproductor al diàleg per compartir el navegador.",
+    "Selected item": "Element seleccionat",
+    "Selected text color": "Color del text seleccionat",
     "Send request": "Envia la sol·licitud",
     "Send settings": "Envia la configuració",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1089,6 +1110,7 @@ var keyStrings = {
     "Subscription information": "Informació de la subscripció",
     Subtitle: "Subtítols",
     "Subtitle appearance": "Aparença dels subtítols",
+    "Surface color": "Color de la superfície",
     Switch: "Canvia",
     "Switch sound track": "Canvia la pista d’àudio",
     "Switch subtitle": "Canvia els subtítols",
@@ -1196,6 +1218,7 @@ var keyStrings = {
         "Utilitza un servidor d’ordres HTTPS per al diagnòstic remot.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Utilitza HTTP o HTTPS sense nom d’usuari ni contrasenya a l’adreça.",
+    "Use inherited color": "Utilitza el color heretat",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Utilitza ESQUERRA/DRETA per seleccionar un control, OK per activar-lo i AMUNT/AVALL per desplaçar-te.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1220,6 +1243,7 @@ var keyStrings = {
         "No s’ha pogut carregar VPortal. Comprova l’enllaç, la clau d’accés i la disponibilitat del portal.",
     volume: "volum",
     "Waiting for sign-in…": "S’espera l’inici de sessió…",
+    "Warm graphite": "Grafit càlid",
     "Wrong parental code !!!": "Codi parental incorrecte!",
     "Xtream Codes Provider": "Proveïdor Xtream Codes",
     "Xtream Codes settings": "Configuració de Xtream Codes",

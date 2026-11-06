@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "A lejátszó elutasított egy parancsot. Ellenőrizze a szolgáltatót és a beállításokat.",
     About: "Névjegy",
+    "Accent color": "Kiemelőszín",
     "Access code": "Hozzáférési kód",
     "Access denied. Check the server access code.":
         "Hozzáférés megtagadva. Ellenőrizze a kiszolgáló hozzáférési kódját.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Az API nem működik, M3U próbálása…",
     "API Server": "API-kiszolgáló",
     "API server URL": "API-kiszolgáló URL-címe",
+    Apply: "Alkalmaz",
+    "Apply changes to this draft, then use Save Settings.":
+        "Alkalmazza a módosításokat erre a piszkozatra, majd válassza a Beállítások mentése lehetőséget.",
     "Applying HTTP remote settings...":
         "A HTTP-távirányítás beállításainak alkalmazása...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -119,6 +123,7 @@ var keyStrings = {
     Blue: "Kék",
     "Bookmark age (days): %1": "A könyvjelző kora (nap): %1",
     "Bookmark age: %1 days": "Könyvjelző kora: %1 nap",
+    "Border color": "Szegély színe",
     Brightness: "Fényerő",
     "Browse folders": "Böngészés mappák szerint",
     "Buffer Size, s": "Puffer mérete, s",
@@ -194,6 +199,7 @@ var keyStrings = {
     "Cloud transfer failed": "A felhőalapú átvitel sikertelen",
     Code: "Hozzáférési kód",
     Color: "Szín",
+    "Color schemes": "Színsémák",
     "Color spectrum": "Színspektrum",
     "Command server": "Parancskiszolgáló",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -335,6 +341,7 @@ var keyStrings = {
         "Nem sikerült módosítani a HTTP-távirányítás beállításait.",
     Country: "Ország",
     "Create category": "Kategória létrehozása",
+    Custom: "Egyéni",
     current: "jelenlegi",
     "Debug enabled. Restart to apply.":
         "A hibakeresés bekapcsolva. Az alkalmazáshoz indítsa újra a lejátszót.",
@@ -497,6 +504,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG forrás visszaadott HTTP %1",
     "EPG source: %1": "EPG forrás: %1",
     "EPG stopped during: %1": "EPG leállt a következő időszakban: %1",
+    "EPG time color": "EPG-idő színe",
     "EPG unavailable on this browser":
         "A EPG nem érhető el ebben a böngészőben",
     "EPG unavailable: %1": "EPG nem elérhető: %1",
@@ -570,6 +578,7 @@ var keyStrings = {
     "Hide / Return": "Elrejtés / megjelenítés",
     "Hide provider settings?": "Elrejti a szolgáltató beállításait?",
     "Hide providers?": "Elrejti a szolgáltatókat?",
+    "High contrast": "Nagy kontraszt",
     "History in Media Library": "Előzmények a médiatárban",
     "History of watched movies": "Megtekintési előzmények",
     Home: "Kezdőlap",
@@ -577,6 +586,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "A HTTP-távirányítás nem érhető el ezen az eszközön.",
     "HTTPS support": "HTTPS-támogatás",
+    Hue: "Színárnyalat",
     ID: "Azonosító",
     "Import settings": "Beállítások importálása",
     "In live mode: <br/>": "Élő módban:<br/>",
@@ -584,6 +594,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Információs sáv megjelenítési ideje, mp",
     "Infobar settings": "Információs sáv beállításai",
     Information: "Információ",
+    Inherited: "Örökölt",
+    "Interface colors": "Felület színei",
     "Interface credits": "Felület készítői",
     "Interface mode": "Felület módja",
     "Interface settings": "Felület beállításai",
@@ -592,6 +604,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Érvénytelen csatornahivatkozás! Adja meg a teljes gépnevet az ügyfélfiók adatfolyamának URL-címéből (pl. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Érvénytelen felhőbeállítási válasz",
+    "Invalid color value": "Érvénytelen színérték",
     "Invalid protected source configuration":
         "Érvénytelen védettforrás-konfiguráció",
     "Invalid range: %1-%2": "Érvénytelen tartomány: %1-%2",
@@ -604,6 +617,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV beállításai",
     "Label (optional)": "Címke (nem kötelező)",
+    Light: "Világos",
     "List created": "Lista létrehozva",
     "List deleted": "Lista törölve",
     "List location": "Lista helye",
@@ -666,6 +680,7 @@ var keyStrings = {
     "Media Library URL": "Médiatár URL",
     Menu: "Menü",
     "Menu items settings": "Menüelemek beállításai",
+    Midnight: "Éjfél",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "A modern felület nem érhető el. A klasszikus marad aktív.",
@@ -712,6 +727,7 @@ var keyStrings = {
     no: "nem",
     "no epg at current time": "Jelenleg nincs műsorújság",
     "not set": "nincs beállítva",
+    Ocean: "Óceán",
     Off: "Ki",
     Ok: "OK",
     On: "Bekapcsolva",
@@ -747,6 +763,7 @@ var keyStrings = {
         "A párosítási kiszolgáló nem érhető el. Az újrapróbálkozáshoz keresse meg ismét a kiszolgálót.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "A párosítást elutasították, vagy érvénytelen jóváhagyás érkezett. Az újrapróbálkozáshoz keresse meg ismét a kiszolgálót.",
+    Palette: "Színpaletta",
     "Parental control": "Szülői felügyelet",
     Password: "Jelszó",
     "Paste settings JSON": "Illessze be a beállításokat JSON-formátumban",
@@ -793,6 +810,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Biztonságos távoli bevitel előkészítése...",
     Prev: "Előző",
+    Preview: "Előnézet",
     "Preview in channel list": "Előnézet a csatornalistában",
     Previous: "Előző",
     "Privacy policy": "Adatvédelmi szabályzat",
@@ -929,6 +947,7 @@ var keyStrings = {
     Search: "Keresés",
     "Search languages": "Nyelvek keresése",
     "Search programme": "Műsor keresése",
+    "Secondary text color": "Másodlagos szöveg színe",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "A biztonságos távoli bemenet nem indul el. Kérjük, próbálja újra, vagy használja a képernyő-billentyűzetet.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -950,6 +969,8 @@ var keyStrings = {
         "Válassza ki a képernyőkép forrását a böngészőben",
     "Select the player tab or window in the browser sharing dialog.":
         "Válassza ki a lejátszó lapot vagy ablakot a böngészőmegosztási párbeszédpanelen.",
+    "Selected item": "Kijelölt elem",
+    "Selected text color": "Kijelölt szöveg színe",
     "Send request": "Kérés küldése",
     "Send settings": "Beállítások küldése",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1068,6 +1089,7 @@ var keyStrings = {
     "Subscription information": "Előfizetési adatok",
     Subtitle: "Feliratok",
     "Subtitle appearance": "Feliratok megjelenése",
+    "Surface color": "Felületszín",
     Switch: "Váltás",
     "Switch sound track": "Hangsáv váltása",
     "Switch subtitle": "Felirat váltása",
@@ -1178,6 +1200,7 @@ var keyStrings = {
         "Használjon HTTPS parancskiszolgálót a távoli diagnosztikához.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Használjon HTTP-t vagy HTTPS-t, felhasználónév és jelszó nélkül a címben.",
+    "Use inherited color": "Örökölt szín használata",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "A BAL/JOBB gombbal válasszon vezérlőt, az OK-val aktiválja, a FEL/LE gombbal görgessen.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1202,6 +1225,7 @@ var keyStrings = {
         "Nem sikerült betölteni a VPortalt. Ellenőrizze a hivatkozást, a hozzáférési kulcsot és a portál elérhetőségét.",
     volume: "hangerő",
     "Waiting for sign-in…": "Várakozás a bejelentkezésre…",
+    "Warm graphite": "Meleg grafit",
     "Wrong parental code !!!": "Hibás szülői kód!!!",
     "Xtream Codes Provider": "Xtream Codes szolgáltató",
     "Xtream Codes settings": "Xtream Codes beállításai",

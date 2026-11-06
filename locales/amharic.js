@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ትእዛዙ በሚዲያ ማጫወቻው ተቀባይነት አላገኘም። አቅራቢውን እና ቅንብሮቹን ያረጋግጡ።",
     About: "ስለ",
+    "Accent color": "የማጉያ ቀለም",
     "Access code": "የመዳረሻ ኮድ",
     "Access denied. Check the server access code.":
         "መዳረሻ ተከልክሏል። የአገልጋይ መዳረሻ ኮድ ያረጋግጡ.",
@@ -79,6 +80,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API አልተሳካም፣ M3Uን በመሞከር ላይ…",
     "API Server": "API አገልጋይ",
     "API server URL": "የAPI አገልጋይ URL",
+    Apply: "ተግብር",
+    "Apply changes to this draft, then use Save Settings.":
+        "ለውጦቹን በዚህ ረቂቅ ላይ ይተግብሩ፣ ከዚያ ቅንብሮችን አስቀምጥ ይምረጡ።",
     "Applying HTTP remote settings...": "የHTTP የርቀት መቆጣጠሪያ ቅንብሮችን በመተግበር ላይ…",
     "Approve the code for %1 with ott approve NAME CODE:":
         "የ%1 ኮድን በott approve NAME CODE ያጽድቁ፦",
@@ -114,6 +118,7 @@ var keyStrings = {
     Blue: "ሰማያዊ",
     "Bookmark age (days): %1": "የዕልባት ዕድሜ (ቀናት)፡ %1",
     "Bookmark age: %1 days": "የዕልባት ዕድሜ፦ %1 ቀናት",
+    "Border color": "የድንበር ቀለም",
     Brightness: "ብሩህነት",
     "Browse folders": "አቃፊዎችን አስስ",
     "Buffer Size, s": "የቋት መጠን፣ ሰከንድ",
@@ -182,6 +187,7 @@ var keyStrings = {
     "Cloud transfer failed": "የደመና ማስተላለፍ አልተሳካም።",
     Code: "ኮድ",
     Color: "ቀለም",
+    "Color schemes": "የቀለም ጥምረቶች",
     "Color spectrum": "የቀለም ህብረቀለም",
     "Command server": "የትእዛዝ አገልጋይ",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -316,6 +322,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "የHTTP የርቀት መቆጣጠሪያን ማዘመን አልተቻለም።",
     Country: "አገር",
     "Create category": "ምድብ ፍጠር",
+    Custom: "ብጁ",
     current: "አሁን ያለው",
     "Debug enabled. Restart to apply.": "ማረም ነቅቷል። ለመተግበር እንደገና ያስጀምሩ።",
     "Debug HUD": "የማረሚያ ማሳያ",
@@ -471,6 +478,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "የEPG ምንጭ HTTP %1 መልሷል",
     "EPG source: %1": "የEPG ምንጭ፦ %1",
     "EPG stopped during: %1": "EPG በዚህ ጊዜ ቆሟል፦ %1",
+    "EPG time color": "የEPG ጊዜ ቀለም",
     "EPG unavailable on this browser": "EPG በዚህ አሳሽ አይገኝም",
     "EPG unavailable: %1": "EPG አይገኝም፦ %1",
     "EPG update failed; using saved programme guide":
@@ -537,6 +545,7 @@ var keyStrings = {
     "Hide / Return": "ደብቅ / አሳይ",
     "Hide provider settings?": "የአቅራቢ ቅንብሮችን ደብቅ?",
     "Hide providers?": "አቅራቢዎችን ደብቅ?",
+    "High contrast": "ከፍተኛ ንፅፅር",
     "History in Media Library": "በሚዲያ ቤተ መጻሕፍት ውስጥ ታሪክ",
     "History of watched movies": "የእይታ ታሪክ",
     Home: "መነሻ",
@@ -544,6 +553,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "የHTTP የርቀት መቆጣጠሪያ በዚህ መሣሪያ አይገኝም።",
     "HTTPS support": "የHTTPS ድጋፍ",
+    Hue: "የቀለም ዓይነት",
     ID: "ID",
     "Import settings": "ቅንብሮችን አስመጣ",
     "In live mode: <br/>": "በቀጥታ ስርጭት ሁነታ፦<br/>",
@@ -551,6 +561,8 @@ var keyStrings = {
     "Infobar display timeout, s": "የመረጃ አሞሌ ማሳያ ጊዜ፣ ሰከንድ",
     "Infobar settings": "የመረጃ አሞሌ ቅንብሮች",
     Information: "መረጃ",
+    Inherited: "የተወረሰ",
+    "Interface colors": "የበይነገጽ ቀለሞች",
     "Interface credits": "የበይነገጽ አበርካቾች",
     "Interface mode": "የበይነገጽ ሁነታ",
     "Interface settings": "የበይነገጽ ቅንብሮች",
@@ -559,6 +571,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "ልክ ያልሆነ የሰርጥ አገናኝ! በአቅራቢዎ መለያ ያለውን የዥረት URL ሙሉ አስተናጋጅ ስም ያስገቡ (ለምሳሌ subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "ልክ ያልሆነ የደመና ቅንብሮች ምላሽ",
+    "Invalid color value": "ልክ ያልሆነ የቀለም እሴት",
     "Invalid protected source configuration": "ልክ ያልሆነ የተጠበቀ ምንጭ ውቅር",
     "Invalid range: %1-%2": "ልክ ያልሆነ ክልል፦ %1-%2",
     "Invalid setting": "ልክ ያልሆነ ቅንብር",
@@ -570,6 +583,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "የKORONA TV ቅንብሮች",
     "Label (optional)": "መለያ (አማራጭ)",
+    Light: "ብሩህ",
     "List created": "ዝርዝር ተፈጥሯል",
     "List deleted": "ዝርዝር ተሰርዟል",
     "List location": "የዝርዝር ቦታ",
@@ -631,6 +645,7 @@ var keyStrings = {
     "Media Library URL": "የሚዲያ ቤተ መጻሕፍት URL",
     Menu: "ምናሌ",
     "Menu items settings": "የምናሌ ንጥሎች ቅንብሮች",
+    Midnight: "እኩለ ሌሊት",
     Modern: "ዘመናዊ",
     "Modern interface is unavailable. Classic remains active.":
         "ዘመናዊው በይነገጽ አይገኝም። ክላሲክ እንደነቃ ይቀጥላል።",
@@ -676,6 +691,7 @@ var keyStrings = {
     no: "አይ",
     "no epg at current time": "ለአሁኑ ጊዜ EPG የለም",
     "not set": "አልተወሰነም",
+    Ocean: "ውቅያኖስ",
     Off: "ጠፍቷል",
     Ok: "እሺ",
     On: "በርቷል",
@@ -711,6 +727,7 @@ var keyStrings = {
         "የማጣመር አገልጋዩ አይገኝም። ዳግም ለመሞከር አገልጋዩን እንደገና ይፈልጉ።",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "ማጣመሩ ተከልክሏል ወይም ልክ ያልሆነ ፈቃድ መልሷል። ዳግም ለመሞከር አገልጋዩን እንደገና ይፈልጉ።",
+    Palette: "የቀለም ሰሌዳ",
     "Parental control": "የወላጅ ቁጥጥር",
     Password: "የይለፍ ቃል",
     "Paste settings JSON": "የቅንብሮች JSON ለጥፍ",
@@ -756,6 +773,7 @@ var keyStrings = {
     Prepaid: "ቅድመ ክፍያ",
     "Preparing secure remote input...": "ደህንነቱ የተጠበቀ የርቀት ግቤት በማዘጋጀት ላይ…",
     Prev: "ቀዳሚ",
+    Preview: "ቅድመ እይታ",
     "Preview in channel list": "በሰርጥ ዝርዝር ውስጥ ቅድመ እይታ",
     Previous: "ቀዳሚ",
     "Privacy policy": "የግላዊነት መመሪያ",
@@ -883,6 +901,7 @@ var keyStrings = {
     Search: "ፈልግ",
     "Search languages": "ቋንቋዎችን ይፈልጉ",
     "Search programme": "ፕሮግራም ፈልግ",
+    "Secondary text color": "የሁለተኛ ጽሑፍ ቀለም",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ደህንነቱ የተጠበቀ የርቀት ግቤት መጀመር አልቻለም። ዳግም ይሞክሩ ወይም የማያ ገጽ ቁልፍ ሰሌዳ ይጠቀሙ።",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -902,6 +921,8 @@ var keyStrings = {
     "Select screenshot source in browser": "በአሳሽ ውስጥ የቅጽበታዊ ገጽ እይታ ምንጭን ይምረጡ",
     "Select the player tab or window in the browser sharing dialog.":
         "በአሳሽ መጋሪያ ንግግር ውስጥ የማጫወቻ ትርን ወይም መስኮትን ይምረጡ።",
+    "Selected item": "የተመረጠ ንጥል",
+    "Selected text color": "የተመረጠ ጽሑፍ ቀለም",
     "Send request": "ጥያቄ ላክ",
     "Send settings": "ቅንብሮችን ላክ",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1010,6 +1031,7 @@ var keyStrings = {
     "Subscription information": "የደንበኝነት መረጃ",
     Subtitle: "የግርጌ ጽሑፎች",
     "Subtitle appearance": "የግርጌ ጽሑፍ ገጽታ",
+    "Surface color": "የገጽታ ቀለም",
     Switch: "ቀይር",
     "Switch sound track": "የድምፅ ትራክ ቀይር",
     "Switch subtitle": "የግርጌ ጽሑፎችን ቀይር",
@@ -1108,6 +1130,7 @@ var keyStrings = {
         "ለርቀት ምርመራ የHTTPS ትእዛዝ አገልጋይ ይጠቀሙ።",
     "Use HTTP or HTTPS without a username or password in the address.":
         "በአድራሻው ውስጥ የተጠቃሚ ስም ወይም የይለፍ ቃል ሳይኖር HTTP ወይም HTTPS ይጠቀሙ።",
+    "Use inherited color": "የተወረሰውን ቀለም ተጠቀም",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "መቆጣጠሪያ ለመምረጥ ግራ/ቀኝ፣ ለማንቃት እሺ፣ ለማሸብለል ላይ/ታች ይጠቀሙ።",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1131,6 +1154,7 @@ var keyStrings = {
         "VPortal መጫን አልተቻለም። አገናኙን፣ የመዳረሻ ቁልፉን እና የፖርታሉን መገኘት ያረጋግጡ።",
     volume: "የድምፅ መጠን",
     "Waiting for sign-in…": "መግባትን በመጠበቅ ላይ…",
+    "Warm graphite": "ሞቃት ግራፋይት",
     "Wrong parental code !!!": "የተሳሳተ የወላጅ ቁጥጥር ኮድ!",
     "Xtream Codes Provider": "የXtream Codes አቅራቢ",
     "Xtream Codes settings": "የXtream Codes ቅንብሮች",

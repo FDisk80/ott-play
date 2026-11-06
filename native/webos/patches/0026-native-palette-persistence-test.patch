@@ -1,0 +1,63 @@
+--- a/rust-modules/platform/src/storage/private.rs
++++ b/rust-modules/platform/src/storage/private.rs
+@@ -717,6 +717,60 @@
+         );
+         let body = std::fs::read_to_string(dir.join("ott-control.json")).unwrap();
+         assert!(!body.contains("fixture-a"));
++    }
++    #[test]
++    fn interface_palette_survives_durable_store_reopen_and_revoked_overwrite() {
++        // This is the production host storage path with synthetic protection,
++        // not an App/TV restart or a keymanager cryptography test. Keep the
++        // complete canonical Ocean value in the application's role order.
++        let palette = r##"{"version":1,"colors":{"background":"#061826","surface":"#0C293D","text":"#EFFAFF","muted":"#A3C4D5","accent":"#5EEAD4","selection":"#155E75","selectionText":"#FFFFFF","border":"#3B6C83","epgTime":"#5EEAD4"}}"##;
++        let dir = directory("ott-private-palette-reopen");
++        assert_eq!(load_at(&dir, Namespace::OttState, open), Ok(None));
++        {
++            let permit = WritePermit::new();
++            let candidate = serde_json::json!({"version":1,"settings":{
++                "uiColorConfig":palette,"volumeStep":7,
++                "settingRevision:uiColorConfig":"palette-revision"
++            }});
++            assert_eq!(save_guarded_at(&dir, Namespace::OttState, &candidate, &permit, seal),
++                Ok(CommitReceipt::Durable));
++        }
++        // The writer's candidate and authority are gone. load_at opens a fresh
++        // JsonStore/file descriptor and decodes the committed disk envelope.
++        let disk_before = std::fs::read(dir.join("ott-state.json")).unwrap();
++        assert!(!disk_before.is_empty());
++        {
++            let reloaded = load_at(&dir, Namespace::OttState, open).unwrap().unwrap();
++            let encoded = reloaded["settings"]["uiColorConfig"].as_str().unwrap();
++            assert_eq!(encoded, palette, "canonical color bytes must survive reopen");
++            let decoded: Value = serde_json::from_str(encoded).unwrap();
++            assert_eq!(decoded["version"], 1);
++            assert_eq!(decoded["colors"].as_object().unwrap().len(), 9);
++            for (role, hex) in [
++                ("background", "#061826"), ("surface", "#0C293D"),
++                ("text", "#EFFAFF"), ("muted", "#A3C4D5"),
++                ("accent", "#5EEAD4"), ("selection", "#155E75"),
++                ("selectionText", "#FFFFFF"), ("border", "#3B6C83"),
++                ("epgTime", "#5EEAD4"),
++            ] {
++                assert_eq!(decoded["colors"][role], hex, "lost color role: {role}");
++            }
++            assert_eq!(reloaded["settings"]["volumeStep"], 7);
++            assert_eq!(reloaded["settings"]["settingRevision:uiColorConfig"], "palette-revision");
++        }
++        let retired = WritePermit::new();
++        retired.revoke();
++        assert_eq!(save_guarded_at(&dir, Namespace::OttState,
++            &serde_json::json!({"version":1,"settings":{"uiColorConfig":""}}),
++            &retired, seal), Err(Error::Revoked));
++        assert_eq!(std::fs::read(dir.join("ott-state.json")).unwrap(), disk_before,
++            "a retired instance cannot erase the saved palette");
++        assert_eq!(load_at(&dir, Namespace::OttState, open).unwrap().unwrap()
++            ["settings"]["uiColorConfig"], palette);
++        // A different storage root still inherits; no process-global value is
++        // sufficient to satisfy the reopen check.
++        let fresh = directory("ott-private-palette-fresh");
++        assert_eq!(load_at(&fresh, Namespace::OttState, open), Ok(None));
+     }
+     #[test]
+     fn denied_protection_preserves_old_record_and_never_writes_plaintext() {

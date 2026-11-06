@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Manhajar kunnawa ta ƙi umarni. Duba mai bada sabis da saitunanta.",
     About: "Game da",
+    "Accent color": "Launin jaddadawa",
     "Access code": "Lambar shiga",
     "Access denied. Check the server access code.":
         "An hana shiga. Duba lambar shiga ta sabar.",
@@ -85,6 +86,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ya gaza, ana gwada M3U…",
     "API Server": "Sabar API",
     "API server URL": "URL na sabar API",
+    Apply: "Aiwatar",
+    "Apply changes to this draft, then use Save Settings.":
+        "Aiwatar da canje-canje a wannan daftarin, sannan zaɓi Ajiye saituna.",
     "Applying HTTP remote settings...":
         "Ana amfani da saitunan sarrafa HTTP daga nesa…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Shuɗi",
     "Bookmark age (days): %1": "Shekarun alamar (kwanaki): %1",
     "Bookmark age: %1 days": "Tsawon lokacin alama: kwanaki %1",
+    "Border color": "Launin iyaka",
     Brightness: "Haske",
     "Browse folders": "Duba manyan fayiloli",
     "Buffer Size, s": "Girman ma'ajiyar wucin gadi, sakan",
@@ -192,6 +197,7 @@ var keyStrings = {
     "Cloud transfer failed": "Canja wurin girgije ya kasa",
     Code: "Lamba",
     Color: "Launi",
+    "Color schemes": "Tsare-tsaren launi",
     "Color spectrum": "Bakan launuka",
     "Command server": "Sabar umarni",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -330,6 +336,7 @@ var keyStrings = {
         "Ba a iya sabunta sarrafa HTTP daga nesa ba.",
     Country: "Ƙasa",
     "Create category": "Ƙirƙiri rukuni",
+    Custom: "Na musamman",
     current: "na yanzu",
     "Debug enabled. Restart to apply.":
         "An kunna gano kurakurai. Sake kunnawa don amfani da canjin.",
@@ -494,6 +501,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Tushen EPG ya dawo da HTTP %1",
     "EPG source: %1": "Tushen EPG: %1",
     "EPG stopped during: %1": "EPG ya tsaya yayin: %1",
+    "EPG time color": "Launin lokacin EPG",
     "EPG unavailable on this browser": "EPG ba ya samuwa a wannan burauza",
     "EPG unavailable: %1": "EPG ba ya samuwa: %1",
     "EPG update failed; using saved programme guide":
@@ -566,6 +574,7 @@ var keyStrings = {
     "Hide / Return": "Ɓoye / nuna",
     "Hide provider settings?": "Ɓoye saitunan mai bada sabis?",
     "Hide providers?": "Ɓoye masu bada sabis?",
+    "High contrast": "Babban bambanci",
     "History in Media Library": "Tarihi a ɗakin kafofin watsa labarai",
     "History of watched movies": "Tarihin kallo",
     Home: "Farko",
@@ -573,6 +582,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Sarrafa HTTP daga nesa ba ya samuwa a wannan na'ura.",
     "HTTPS support": "Goyon bayan HTTPS",
+    Hue: "Nau'in launi",
     ID: "ID",
     "Import settings": "Shigo da saituna",
     "In live mode: <br/>": "A yanayin kai tsaye:<br/>",
@@ -580,6 +590,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Tsawon nuna sandar bayani, sakan",
     "Infobar settings": "Saitunan sandar bayani",
     Information: "Bayani",
+    Inherited: "An gada",
+    "Interface colors": "Launukan mahada",
     "Interface credits": "Masu bada gudunmawar manhaja",
     "Interface mode": "Yanayin mu'amala",
     "Interface settings": "Saitunan fuskar manhaja",
@@ -588,6 +600,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Hanyar haɗin tasha ba ta inganta ba! Shigar da cikakken mai masauki kamar a URL na rafi a asusunka (misali subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Amsar saitunan girgije mara inganci",
+    "Invalid color value": "Ƙimar launi ba ta dace ba",
     "Invalid protected source configuration":
         "Saitin tushen da aka kare ba ya inganta",
     "Invalid range: %1-%2": "Tazara marar inganci: %1-%2",
@@ -600,6 +613,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Saitunan KORONA TV",
     "Label (optional)": "Suna (na zaɓi)",
+    Light: "Mai haske",
     "List created": "An ƙirƙiri jeri",
     "List deleted": "An goge jeri",
     "List location": "Matsayin jeri",
@@ -662,6 +676,7 @@ var keyStrings = {
     "Media Library URL": "URL na ɗakin kafofin watsa labarai",
     Menu: "Zaɓuɓɓuka",
     "Menu items settings": "Saitunan abubuwan zaɓi",
+    Midnight: "Tsakar dare",
     Modern: "Na zamani",
     "Modern interface is unavailable. Classic remains active.":
         "Ba a samun mu'amala ta zamani. Ta gargajiya za ta ci gaba da aiki.",
@@ -708,6 +723,7 @@ var keyStrings = {
     no: "a'a",
     "no epg at current time": "Babu EPG na wannan lokaci",
     "not set": "ba a saita ba",
+    Ocean: "Teku",
     Off: "A kashe",
     Ok: "To",
     On: "A kunne",
@@ -743,6 +759,7 @@ var keyStrings = {
         "Sabar haɗawa ba ta samuwa. Sake neman sabar don gwadawa.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "An ƙi haɗawa ko an dawo da amincewa mara inganci. Sake neman sabar don gwadawa.",
+    Palette: "Allon launuka",
     "Parental control": "Ikon iyaye",
     Password: "Kalmar sirri",
     "Paste settings JSON": "Manna JSON na saituna",
@@ -789,6 +806,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Ana shirya amintaccen shigarwa daga nesa…",
     Prev: "Na baya",
+    Preview: "Duban farko",
     "Preview in channel list": "Dubawa a jerin tashoshi",
     Previous: "Na baya",
     "Privacy policy": "Manufar sirri",
@@ -923,6 +941,7 @@ var keyStrings = {
     Search: "Nema",
     "Search languages": "Bincika harsuna",
     "Search programme": "Nemi shiri",
+    "Secondary text color": "Launin rubutu na biyu",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Amintaccen shigarwa daga nesa bai iya farawa ba. Sake gwadawa ko yi amfani da madannan allo.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -943,6 +962,8 @@ var keyStrings = {
         "Zaɓi tushen hotunan allo a cikin mai lilo",
     "Select the player tab or window in the browser sharing dialog.":
         "Zaɓi shafin mai kunnawa ko taga a cikin maganganun musayar burauza.",
+    "Selected item": "Abin da aka zaɓa",
+    "Selected text color": "Launin rubutun da aka zaɓa",
     "Send request": "Aika buƙata",
     "Send settings": "Aika saituna",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1054,6 +1075,7 @@ var keyStrings = {
     "Subscription information": "Bayanan biyan kuɗin sabis",
     Subtitle: "Rubutun fassara",
     "Subtitle appearance": "Siffar rubutun ƙasa",
+    "Surface color": "Launin saman",
     Switch: "Sauya",
     "Switch sound track": "Sauya layin sauti",
     "Switch subtitle": "Sauya rubutun fassara",
@@ -1161,6 +1183,7 @@ var keyStrings = {
         "Yi amfani da sabar umarni ta HTTPS don binciken matsala daga nesa.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Yi amfani da HTTP ko HTTPS ba tare da sunan mai amfani ko kalmar sirri a adireshin ba.",
+    "Use inherited color": "Yi amfani da launin da aka gada",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Yi amfani da HAGU/DAMA don zaɓin abin sarrafawa, TO don kunna shi, SAMA/ƘASA don gungurawa.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1186,6 +1209,7 @@ var keyStrings = {
         "Ba a iya loda VPortal ba. Duba hanyar haɗin, maɓallin shiga da samuwar tashar.",
     volume: "ƙarar sauti",
     "Waiting for sign-in…": "Ana jiran shiga…",
+    "Warm graphite": "Grafayit mai ɗumi",
     "Wrong parental code !!!": "Lambar ikon iyaye ba daidai ba!",
     "Xtream Codes Provider": "Mai bada sabis na Xtream Codes",
     "Xtream Codes settings": "Saitunan Xtream Codes",

@@ -42,6 +42,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Porogaramu yo gukina yanze itegeko. Reba utanga serivisi n'igenamiterere ryayo.",
     About: "Ibyerekeye",
+    "Accent color": "Ibara ryo gushimangira",
     "Access code": "Kode yo kwinjira",
     "Access denied. Check the server access code.":
         "Kwinjira byanze. Reba kode yo kwinjira kuri seriveri.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API yanze, turagerageza M3U…",
     "API Server": "Seriveri ya API",
     "API server URL": "URL ya seriveri ya API",
+    Apply: "Shyira mu bikorwa",
+    "Apply changes to this draft, then use Save Settings.":
+        "Shyira impinduka muri uyu mushinga, hanyuma uhitemo Bika igenamiterere.",
     "Applying HTTP remote settings...":
         "Igenamiterere ryo kugenzura kure hakoreshejwe HTTP ririmo gushyirwa mu bikorwa...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -122,6 +126,7 @@ var keyStrings = {
     Blue: "Ubururu",
     "Bookmark age (days): %1": "Iminsi ikimenyetso kimaze: %1",
     "Bookmark age: %1 days": "Igihe ikimenyetso kimaze: iminsi %1",
+    "Border color": "Ibara ry’umupaka",
     Brightness: "Ububengerane",
     "Browse folders": "Reba ububiko bwa dosiye",
     "Buffer Size, s": "Ingano y'ububiko bw'agateganyo, s",
@@ -196,6 +201,7 @@ var keyStrings = {
         "Kohereza amakuru mu bubiko bwo kuri interineti byananiranye",
     Code: "Kode",
     Color: "Ibara",
+    "Color schemes": "Imigambi y’amabara",
     "Color spectrum": "Urukurikirane rw'amabara",
     "Command server": "Seriveri y'amategeko",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -337,6 +343,7 @@ var keyStrings = {
         "Kuvugurura igenzura rya kure rya HTTP byanze.",
     Country: "Igihugu",
     "Create category": "Kora icyiciro",
+    Custom: "Byihariye",
     current: "iki gihe",
     "Debug enabled. Restart to apply.":
         "Gukemura amakosa byafunguwe. Ongera utangize kugira ngo bikore.",
@@ -505,6 +512,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Isoko ya EPG yasubije HTTP %1",
     "EPG source: %1": "Isoko ya EPG: %1",
     "EPG stopped during: %1": "EPG yahagaze mu gihe cya: %1",
+    "EPG time color": "Ibara ry’igihe cya EPG",
     "EPG unavailable on this browser": "EPG ntiboneka kuri iyi mushakisha",
     "EPG unavailable: %1": "EPG ntiboneka: %1",
     "EPG update failed; using saved programme guide":
@@ -580,6 +588,7 @@ var keyStrings = {
     "Hide / Return": "Hisha / erekana",
     "Hide provider settings?": "Guhisha igenamiterere ry'utanga serivisi?",
     "Hide providers?": "Guhisha abatanga serivisi?",
+    "High contrast": "Itandukaniro rinini",
     "History in Media Library": "Amateka mu isomero ry'ibitangazamakuru",
     "History of watched movies": "Amateka yo kureba",
     Home: "Ahabanza",
@@ -587,6 +596,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Igenzura ryo kure rya HTTP ntiriboneka kuri iki gikoresho.",
     "HTTPS support": "Gushyigikira HTTPS",
+    Hue: "Ubwoko bw’ibara",
     ID: "Indangamuntu",
     "Import settings": "Injiza igenamiterere",
     "In live mode: <br/>": "Mu buryo bw'imbonankubone:<br/>",
@@ -595,6 +605,8 @@ var keyStrings = {
         "Igihe akabaho k'amakuru kamara kagaragara, s",
     "Infobar settings": "Igenamiterere ry'akabaho k'amakuru",
     Information: "Amakuru",
+    Inherited: "Byarazwe",
+    "Interface colors": "Amabara y’imigaragarire",
     "Interface credits": "Abagize uruhare mu migaragarire",
     "Interface mode": "Uburyo bw'imigaragarire",
     "Interface settings": "Igenamiterere ry'imigaragarire",
@@ -604,6 +616,7 @@ var keyStrings = {
         "Ihuza rya shene ntiryemewe! Injiza izina ryose ry'umwakirizi nk'uko riri muri URL y'isakaza kuri konti (urugero subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Igisubizo cy’igenamiterere kivuye mu bubiko bwo kuri interineti nticyemewe",
+    "Invalid color value": "Agaciro k’ibara ntikemewe",
     "Invalid protected source configuration":
         "Igenamiterere ry'isoko irinzwe ntiryemewe",
     "Invalid range: %1-%2": "Intera itemewe: %1-%2",
@@ -616,6 +629,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Igenamiterere rya KORONA TV",
     "Label (optional)": "Izina (si ngombwa)",
+    Light: "Yera",
     "List created": "Urutonde rwakozwe",
     "List deleted": "Urutonde rwasibwe",
     "List location": "Umwanya w'urutonde",
@@ -679,6 +693,7 @@ var keyStrings = {
     "Media Library URL": "URL y'isomero ry'ibitangazamakuru",
     Menu: "Ibikubiyemo",
     "Menu items settings": "Igenamiterere ry'ikintu cyo mu bikubiyemo",
+    Midnight: "Igicuku",
     Modern: "Bugezweho",
     "Modern interface is unavailable. Classic remains active.":
         "Imigaragarire igezweho ntiboneka. Isanzwe irakomeza gukora.",
@@ -725,6 +740,7 @@ var keyStrings = {
     no: "oya",
     "no epg at current time": "Nta EPG iriho kuri iki gihe",
     "not set": "ntibyashyizweho",
+    Ocean: "Inyanja",
     Off: "Bizimye",
     Ok: "Yego",
     On: "Bifunguye",
@@ -760,6 +776,7 @@ var keyStrings = {
         "Seriveri yo guhuza ibikoresho ntiboneka. Ongera ushakishe seriveri kugira ngo ugerageze.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Guhuza ibikoresho byanzwe cyangwa byasubije icyemezo kitemewe. Ongera ushakishe seriveri kugira ngo ugerageze.",
+    Palette: "Urutonde rw’amabara",
     "Parental control": "Igenzura ry'ababyeyi",
     Password: "Ijambo ry'ibanga",
     "Paste settings JSON": "Shyiramo JSON y'igenamiterere wakopiye",
@@ -807,6 +824,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Turategura iyinjiza rya kure ririnzwe...",
     Prev: "Ibibanza",
+    Preview: "Igaragaza mbere",
     "Preview in channel list": "Reba agace ka videwo mu rutonde rwa shene",
     Previous: "Ibibanza",
     "Privacy policy": "Politiki y'ibanga",
@@ -942,6 +960,7 @@ var keyStrings = {
     Search: "Shakisha",
     "Search languages": "Shakisha indimi",
     "Search programme": "Shakisha ikiganiro",
+    "Secondary text color": "Ibara ry’inyandiko y’inyongera",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Iyinjiza rya kure ririnzwe ryanze gutangira. Ongera ugerageze cyangwa ukoreshe mwandikisho yo kuri ekara.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -962,6 +981,8 @@ var keyStrings = {
         "Hitamo inkomoko y’amafoto ya ecran muri mushakisha",
     "Select the player tab or window in the browser sharing dialog.":
         "Mu gasanduku ko gusangiza ka mushakisha, hitamo tab cyangwa idirishya rya porogaramu ikina.",
+    "Selected item": "Ikintu cyatoranyijwe",
+    "Selected text color": "Ibara ry’inyandiko yatoranyijwe",
     "Send request": "Ohereza ubusabe",
     "Send settings": "Ohereza igenamiterere",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1080,6 +1101,7 @@ var keyStrings = {
     "Subscription information": "Amakuru yo kwiyandikisha",
     Subtitle: "Inyandiko zisobanura amajwi",
     "Subtitle appearance": "Imigaragarire y'inyandiko zisobanura amajwi",
+    "Surface color": "Ibara ry’ubuso",
     Switch: "Hindura",
     "Switch sound track": "Hindura umurongo w'amajwi",
     "Switch subtitle": "Hindura inyandiko zisobanura amajwi",
@@ -1191,6 +1213,7 @@ var keyStrings = {
         "Koresha seriveri y'amategeko ya HTTPS ku isuzuma ryo kure.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Koresha HTTP cyangwa HTTPS bidafite izina ry'ukoresha cyangwa ijambo ry'ibanga muri aderesi.",
+    "Use inherited color": "Koresha ibara ryarazwe",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Koresha IBUMOSO/IBURYO guhitamo buto, OK kuyikoresha, na HEJURU/HASI kunyereza.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1215,6 +1238,7 @@ var keyStrings = {
         "Gufungura VPortal byanze. Reba ihuza, urufunguzo rwo kwinjira n'uko urubuga ruboneka.",
     volume: "ijwi",
     "Waiting for sign-in…": "Dutegereje kwinjira…",
+    "Warm graphite": "Garafite ishyushye",
     "Wrong parental code !!!": "Kode y'ababyeyi si yo!",
     "Xtream Codes Provider": "Utanga serivisi ya Xtream Codes",
     "Xtream Codes settings": "Igenamiterere rya Xtream Codes",

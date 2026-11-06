@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "एक आदेश प्लेयर द्वारा अस्वीकार गरियो। यसको प्रदायक र सेटिङहरू जाँच गर्नुहोस्।",
     About: "बारे",
+    "Accent color": "विशेष रङ",
     "Access code": "पहुँच कोड",
     "Access denied. Check the server access code.":
         "पहुँच अस्वीकार गरियो। सर्भर पहुँच कोड जाँच गर्नुहोस्।",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API असफल, M3U प्रयास गर्दै...",
     "API Server": "API सर्भर",
     "API server URL": "API सर्भर URL",
+    Apply: "लागू गर्नुहोस्",
+    "Apply changes to this draft, then use Save Settings.":
+        "यस मस्यौदामा परिवर्तनहरू लागू गर्नुहोस्, त्यसपछि सेटिङहरू बचत गर्नुहोस् छान्नुहोस्।",
     "Applying HTTP remote settings...": "HTTP रिमोट सेटिङहरू लागू गर्दै...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODE सँग %1 को लागि कोड अनुमोदन गर्नुहोस्:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "निलो",
     "Bookmark age (days): %1": "बुकमार्कको उमेर (दिन): %1",
     "Bookmark age: %1 days": "बुकमार्क उमेर: %1 दिनहरू",
+    "Border color": "किनाराको रङ",
     Brightness: "चमक",
     "Browse folders": "फोल्डरहरू ब्राउज गर्नुहोस्",
     "Buffer Size, s": "बफर साइज, s",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "क्लाउड स्थानान्तरण असफल भयो",
     Code: "कोड",
     Color: "रङ",
+    "Color schemes": "रङ योजनाहरू",
     "Color spectrum": "रङ स्पेक्ट्रम",
     "Command server": "कमाण्ड सर्भर",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -322,6 +328,7 @@ var keyStrings = {
         "HTTP रिमोट कन्ट्रोल अपडेट गर्न सकिएन।",
     Country: "देश",
     "Create category": "कोटी सिर्जना गर्नुहोस्",
+    Custom: "अनुकूलित",
     current: "वर्तमान",
     "Debug enabled. Restart to apply.":
         "डिबग सक्षम गरियो। लागू गर्न पुन: सुरु गर्नुहोस्।",
@@ -484,6 +491,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG स्रोत HTTP %1 फिर्ता भयो",
     "EPG source: %1": "EPG स्रोत: %1",
     "EPG stopped during: %1": "EPG यस समयमा रोकियो: %1",
+    "EPG time color": "EPG समयको रङ",
     "EPG unavailable on this browser": "EPG यस ब्राउजरमा उपलब्ध छैन",
     "EPG unavailable: %1": "EPG अनुपलब्ध: %1",
     "EPG update failed; using saved programme guide":
@@ -552,6 +560,7 @@ var keyStrings = {
     "Hide / Return": "लुकाउनुहोस् / देखाउनुहोस्",
     "Hide provider settings?": "प्रदायक सेटिङहरू लुकाउने?",
     "Hide providers?": "प्रदायकहरू लुकाउने?",
+    "High contrast": "उच्च कन्ट्रास्ट",
     "History in Media Library": "मिडिया लाइब्रेरीमा इतिहास",
     "History of watched movies": "हेर्ने इतिहास",
     Home: "गृहपृष्ठ",
@@ -559,6 +568,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP रिमोट कन्ट्रोल यस यन्त्रमा उपलब्ध छैन।",
     "HTTPS support": "HTTPS समर्थन",
+    Hue: "रङको आभा",
     ID: "ID",
     "Import settings": "सेटिङ आयात गर्नुहोस्",
     "In live mode: <br/>": "लाइभ मोडमा: <br/>",
@@ -566,6 +576,8 @@ var keyStrings = {
     "Infobar display timeout, s": "जानकारी पट्टी प्रदर्शन टाइमआउट, s",
     "Infobar settings": "जानकारी पट्टी सेटिङहरू",
     Information: "जानकारी",
+    Inherited: "विरासतमा प्राप्त",
+    "Interface colors": "इन्टरफेसका रङहरू",
     "Interface credits": "इन्टरफेसका योगदानकर्ताहरू",
     "Interface mode": "इन्टरफेस मोड",
     "Interface settings": "इन्टरफेस सेटिङहरू",
@@ -574,6 +586,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "अवैध च्यानल लिङ्क! क्याबिनेट स्ट्रिममा जस्तै पूर्ण होस्ट प्रविष्ट गर्नुहोस् URL (जस्तै subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "अमान्य क्लाउड सेटिङ्स प्रतिक्रिया",
+    "Invalid color value": "रङको मान अमान्य छ",
     "Invalid protected source configuration": "अवैध सुरक्षित स्रोत कन्फिगरेसन",
     "Invalid range: %1-%2": "अमान्य दायरा: %1-%2",
     "Invalid setting": "अमान्य सेटिङ",
@@ -585,6 +598,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV सेटिङहरू",
     "Label (optional)": "नाम (वैकल्पिक)",
+    Light: "हलुका",
     "List created": "सूची सिर्जना गरियो",
     "List deleted": "सूची मेटाइयो",
     "List location": "सूची स्थिति",
@@ -646,6 +660,7 @@ var keyStrings = {
     "Media Library URL": "मिडिया लाइब्रेरी URL",
     Menu: "मेनु",
     "Menu items settings": "मेनु वस्तु सेटिङहरू",
+    Midnight: "मध्यरात",
     Modern: "आधुनिक",
     "Modern interface is unavailable. Classic remains active.":
         "आधुनिक इन्टरफेस उपलब्ध छैन। क्लासिक सक्रिय रहनेछ।",
@@ -691,6 +706,7 @@ var keyStrings = {
     no: "होइन",
     "no epg at current time": "हालको समयमा कुनै EPG छैन",
     "not set": "सेट गरिएको छैन",
+    Ocean: "महासागर",
     Off: "बन्द",
     Ok: "ठीक छ",
     On: "खुला",
@@ -726,6 +742,7 @@ var keyStrings = {
         "जोडा बनाउने सर्भर उपलब्ध छैन। पुन: प्रयास गर्न सर्भर फेला पार्नुहोस्।",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "जोडी अस्वीकार गरियो वा अवैध अनुमोदन फिर्ता गरियो। पुन: प्रयास गर्न सर्भर फेला पार्नुहोस्।",
+    Palette: "रङ प्यालेट",
     "Parental control": "अभिभावकीय नियन्त्रण",
     Password: "पासवर्ड",
     "Paste settings JSON": "टाँस्नुहोस् सेटिङहरू JSON",
@@ -771,6 +788,7 @@ var keyStrings = {
     Prepaid: "प्रिपेड",
     "Preparing secure remote input...": "सुरक्षित रिमोट इनपुट तयार गर्दै...",
     Prev: "अघिल्लो",
+    Preview: "पूर्वावलोकन",
     "Preview in channel list": "च्यानल सूचीमा पूर्वावलोकन",
     Previous: "अघिल्लो",
     "Privacy policy": "गोपनीयता नीति",
@@ -904,6 +922,7 @@ var keyStrings = {
     Search: "खोज्नुहोस्",
     "Search languages": "भाषाहरू खोज्नुहोस्",
     "Search programme": "कार्यक्रम खोज्नुहोस्",
+    "Secondary text color": "सहायक पाठको रङ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "सुरक्षित रिमोट इनपुट सुरु गर्न सकिएन। कृपया पुन: प्रयास गर्नुहोस् वा अन-स्क्रिन किबोर्ड प्रयोग गर्नुहोस्।",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -923,6 +942,8 @@ var keyStrings = {
     "Select screenshot source in browser": "ब्राउजरमा स्क्रिनसट स्रोत चयन गर्नुहोस्",
     "Select the player tab or window in the browser sharing dialog.":
         "ब्राउजर साझेदारी संवादमा प्लेयर ट्याब वा विन्डो चयन गर्नुहोस्।",
+    "Selected item": "चयन गरिएको वस्तु",
+    "Selected text color": "चयन गरिएको पाठको रङ",
     "Send request": "अनुरोध पठाउनुहोस्",
     "Send settings": "सेटिङहरू पठाउनुहोस्",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1035,6 +1056,7 @@ var keyStrings = {
     "Subscription information": "सदस्यता जानकारी",
     Subtitle: "उपशीर्षक",
     "Subtitle appearance": "उपशीर्षकको स्वरूप",
+    "Surface color": "सतहको रङ",
     Switch: "स्विच",
     "Switch sound track": "अडियो ट्र्याक बदल्नुहोस्",
     "Switch subtitle": "उपशीर्षक बदल्नुहोस्",
@@ -1134,6 +1156,7 @@ var keyStrings = {
         "टाढाको निदानका लागि HTTPS आदेश सर्भर प्रयोग गर्नुहोस्।",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ठेगानामा प्रयोगकर्ता नाम वा पासवर्ड बिना HTTP वा HTTPS प्रयोग गर्नुहोस्।",
+    "Use inherited color": "विरासतमा प्राप्त रङ प्रयोग गर्नुहोस्",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "नियन्त्रण चयन गर्न बायाँ/दायाँ प्रयोग गर्नुहोस्, यसलाई सक्रिय गर्न ठीक छ, र स्क्रोल गर्न माथि/डाउन प्रयोग गर्नुहोस्।",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1157,6 +1180,7 @@ var keyStrings = {
         "VPortal लोड गर्न सकिएन। लिङ्क, पहुँच कुञ्जी, र पोर्टल उपलब्धता जाँच गर्नुहोस्।",
     volume: "ध्वनि भोल्युम",
     "Waiting for sign-in…": "साइन-इनको लागि प्रतिक्षा गर्दै...",
+    "Warm graphite": "न्यानो ग्रेफाइट",
     "Wrong parental code !!!": "गलत अभिभावकीय कोड!",
     "Xtream Codes Provider": "Xtream कोड प्रदायक",
     "Xtream Codes settings": "Xtream कोड सेटिङहरू",

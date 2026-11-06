@@ -1,0 +1,44 @@
+diff --git a/rust-modules/src/app/ott_usb_selected_first_tests.rs b/rust-modules/src/app/ott_usb_selected_first_tests.rs
+--- a/rust-modules/src/app/ott_usb_selected_first_tests.rs
++++ b/rust-modules/src/app/ott_usb_selected_first_tests.rs
+@@ -752,7 +752,9 @@
+     let old_path = directory.0.join("old-placement").to_str().unwrap().to_owned();
+     assert!(!usb::is_usb_path(&old_path));
+     let binding = UsbBinding::from_observed("ext4", "fixture-uuid", "/", "Movies/夏").unwrap();
+-    let (app, mut r) = loaded(portable_saved_intent(&old_path, Some(binding.clone())));
++    // Keep the owner in place across both Loaded and Saved, as installed() does.
++    let mut app = Box::new(app());
++    let mut r = load_into(&mut app, portable_saved_intent(&old_path, Some(binding.clone())));
+     let before = serde_json::to_value(&r.saved).unwrap();
+     let task = take_restore(&mut r);
+     let usb::Task::Restore { binding: actual, source } = &task else { unreachable!() };
+@@ -773,7 +775,7 @@
+     assert!(r.local_inventory.sources.is_empty());
+     hold_slots(&mut r);
+     arm_writer(&mut r);
+-    let mut app = deliver(app, r, Ok(saved));
++    deliver_into(&mut app, r, Ok(saved));
+     let mut r = app.ott.take().unwrap();
+     release_slots(&mut r);
+     let Some(ott_catalog::Task::LocalFolder { source, .. }) = r.take_catalog_task() else {
+@@ -792,7 +794,8 @@
+     let path = directory.0.join("Movies/夏").to_str().unwrap().to_owned();
+     for wrong_identity in [false, true] {
+         let binding = UsbBinding::from_observed("ext4", "fixture-uuid", "/", "Movies/夏").unwrap();
+-        let (mut app, mut r) = loaded(portable_saved_intent(&path, Some(binding)));
++        let mut app = Box::new(app());
++        let mut r = load_into(&mut app, portable_saved_intent(&path, Some(binding)));
+         let before = serde_json::to_value(&r.saved).unwrap();
+         let task = take_restore(&mut r);
+         let off = OffFrame::for_test();
+@@ -858,7 +861,9 @@
+     let directory = Directory::new();
+     let path = directory.0.join("Movies/夏").to_str().unwrap().to_owned();
+     let binding = UsbBinding::from_observed("ext4", "fixture-uuid", "/", "Movies/夏").unwrap();
+-    let (_, mut r) = loaded(portable_saved_intent(&path, Some(binding)));
++    let mut app = Box::new(app());
++    let mut r = load_into(&mut app, portable_saved_intent(&path, Some(binding)));
++    drop(app);
+     let task = take_restore(&mut r);
+     let usb::Answer::Restored { source, .. } = restored(&r, &directory, task) else { unreachable!() };
+     let mut observations = 0;

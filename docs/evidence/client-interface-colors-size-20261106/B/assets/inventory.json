@@ -1,0 +1,3380 @@
+{
+  "version": 1,
+  "purpose": "Paired emitted-asset cost evidence; not build, budget or release qualification",
+  "complete": true,
+  "node": "22.23.4",
+  "zlib": "1.3.1-e00f703",
+  "limits": {
+    "directoryEntries": 20000,
+    "directories": 2048,
+    "depth": 12,
+    "selectedFiles": 2400,
+    "fileBytes": 33554432,
+    "totalBytes": 134217728,
+    "measurementModuleBytes": 1048576,
+    "errors": 64
+  },
+  "measurement": {
+    "path": "scripts/classic-size.cjs",
+    "sha256": "c8f2296757ab6146323bf754118cd85e4b4df3ee265bebe6fceee58608821727",
+    "export": "collectBundleMeasurement",
+    "gzipLevel": 9
+  },
+  "expectedLocalesPerFamily": 88,
+  "expectedLocaleNames": [
+    "afrikaans.js",
+    "albanian.js",
+    "amharic.js",
+    "arabic.js",
+    "armenian.js",
+    "assamese.js",
+    "azerbaijani.js",
+    "basque.js",
+    "belarusian.js",
+    "bengali.js",
+    "bosnian.js",
+    "bulgarian.js",
+    "burmese.js",
+    "catalan.js",
+    "chinese.js",
+    "croatian.js",
+    "czech.js",
+    "danish.js",
+    "dutch.js",
+    "english.js",
+    "estonian.js",
+    "filipino.js",
+    "finnish.js",
+    "french.js",
+    "galician.js",
+    "georgian.js",
+    "german.js",
+    "greek.js",
+    "gujarati.js",
+    "hausa.js",
+    "hebrew.js",
+    "hindi.js",
+    "hungarian.js",
+    "icelandic.js",
+    "igbo.js",
+    "indonesian.js",
+    "irish.js",
+    "italian.js",
+    "japanese.js",
+    "kannada.js",
+    "kazakh.js",
+    "khmer.js",
+    "kinyarwanda.js",
+    "korean.js",
+    "kurdish.js",
+    "kyrgyz.js",
+    "lao.js",
+    "latvian.js",
+    "lithuanian.js",
+    "macedonian.js",
+    "malagasy.js",
+    "malay.js",
+    "malayalam.js",
+    "maltese.js",
+    "marathi.js",
+    "mongolian.js",
+    "nepali.js",
+    "norwegian.js",
+    "odia.js",
+    "pashto.js",
+    "persian.js",
+    "polish.js",
+    "portuguese.js",
+    "punjabi.js",
+    "romanian.js",
+    "russian.js",
+    "serbian.js",
+    "sindhi.js",
+    "sinhala.js",
+    "slovak.js",
+    "slovenian.js",
+    "somali.js",
+    "spanish.js",
+    "swahili.js",
+    "swedish.js",
+    "tajik.js",
+    "tamil.js",
+    "telugu.js",
+    "thai.js",
+    "turkish.js",
+    "turkmen.js",
+    "ukrainian.js",
+    "urdu.js",
+    "uzbek.js",
+    "vietnamese.js",
+    "xhosa.js",
+    "yoruba.js",
+    "zulu.js"
+  ],
+  "records": [
+    {
+      "family": "mobile",
+      "category": "stylesheets",
+      "bytes": 412,
+      "gzipBytes": 242,
+      "path": "dist-mobile/devices/pc2/player.css",
+      "sha256": "5902485736d78e8595960d2323346111333f40ff437ecbe4ee749aaf1c5193fa",
+      "preservedPath": "raw/dist-mobile/devices/pc2/player.css"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 10444,
+      "gzipBytes": 4378,
+      "path": "dist-mobile/dist/color-appearance.js",
+      "sha256": "c32efdd01585f50b5564004fc74aa7105d77c8b50af17bbee675f38c62bdc05d",
+      "preservedPath": "raw/dist-mobile/dist/color-appearance.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 3011,
+      "gzipBytes": 1354,
+      "path": "dist-mobile/dist/control-transport.js",
+      "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2",
+      "preservedPath": "raw/dist-mobile/dist/control-transport.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 257665,
+      "gzipBytes": 66255,
+      "path": "dist-mobile/dist/favorites-transfer.js",
+      "sha256": "489f339a72e71b8d6edf28f2e9bc531fc621908b71851233f92abbc4ab6539e8",
+      "preservedPath": "raw/dist-mobile/dist/favorites-transfer.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 9238,
+      "gzipBytes": 3446,
+      "path": "dist-mobile/dist/local-compatibility.js",
+      "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148",
+      "preservedPath": "raw/dist-mobile/dist/local-compatibility.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 5763,
+      "gzipBytes": 2273,
+      "path": "dist-mobile/dist/local-drop.js",
+      "sha256": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e",
+      "preservedPath": "raw/dist-mobile/dist/local-drop.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 8455,
+      "gzipBytes": 3336,
+      "path": "dist-mobile/dist/local-media-ui.js",
+      "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6",
+      "preservedPath": "raw/dist-mobile/dist/local-media-ui.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 11635,
+      "gzipBytes": 4019,
+      "path": "dist-mobile/dist/media-companion.js",
+      "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1",
+      "preservedPath": "raw/dist-mobile/dist/media-companion.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 38314,
+      "gzipBytes": 12236,
+      "path": "dist-mobile/dist/modern-interface.js",
+      "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9",
+      "preservedPath": "raw/dist-mobile/dist/modern-interface.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 21591,
+      "gzipBytes": 8051,
+      "path": "dist-mobile/dist/perf-capture.js",
+      "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576",
+      "preservedPath": "raw/dist-mobile/dist/perf-capture.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 1212063,
+      "gzipBytes": 370809,
+      "path": "dist-mobile/dist/player.js",
+      "sha256": "119a7686bd2e195ca30ae03d132ed988cab52bb66b6f9d12c0bfb844e1bd8dbe",
+      "preservedPath": "raw/dist-mobile/dist/player.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 9463,
+      "gzipBytes": 3591,
+      "path": "dist-mobile/dist/provider-catalog.js",
+      "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d",
+      "preservedPath": "raw/dist-mobile/dist/provider-catalog.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 15753,
+      "gzipBytes": 6157,
+      "path": "dist-mobile/dist/provider-edem.js",
+      "sha256": "5f424ea9fd9c917175c4c9ee80a24f721446bd1b37856c18a0d749a69b219175",
+      "preservedPath": "raw/dist-mobile/dist/provider-edem.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 19349,
+      "gzipBytes": 7077,
+      "path": "dist-mobile/dist/provider-m3u.js",
+      "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227",
+      "preservedPath": "raw/dist-mobile/dist/provider-m3u.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 11808,
+      "gzipBytes": 4395,
+      "path": "dist-mobile/dist/provider-playlist.js",
+      "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c",
+      "preservedPath": "raw/dist-mobile/dist/provider-playlist.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 62592,
+      "gzipBytes": 21439,
+      "path": "dist-mobile/dist/provider-plex.js",
+      "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d",
+      "preservedPath": "raw/dist-mobile/dist/provider-plex.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 18737,
+      "gzipBytes": 6878,
+      "path": "dist-mobile/dist/provider-stalker.js",
+      "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298",
+      "preservedPath": "raw/dist-mobile/dist/provider-stalker.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 91666,
+      "gzipBytes": 28700,
+      "path": "dist-mobile/dist/provider-torrent.js",
+      "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920",
+      "preservedPath": "raw/dist-mobile/dist/provider-torrent.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 11391,
+      "gzipBytes": 4360,
+      "path": "dist-mobile/dist/provider-vportal.js",
+      "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7",
+      "preservedPath": "raw/dist-mobile/dist/provider-vportal.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 4158,
+      "gzipBytes": 1748,
+      "path": "dist-mobile/dist/provider-xtream.js",
+      "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02",
+      "preservedPath": "raw/dist-mobile/dist/provider-xtream.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 2560,
+      "gzipBytes": 1203,
+      "path": "dist-mobile/dist/remote-local-runner.js",
+      "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541",
+      "preservedPath": "raw/dist-mobile/dist/remote-local-runner.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 15788,
+      "gzipBytes": 5518,
+      "path": "dist-mobile/dist/remote-provider-fields.js",
+      "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3",
+      "preservedPath": "raw/dist-mobile/dist/remote-provider-fields.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 6603,
+      "gzipBytes": 2503,
+      "path": "dist-mobile/dist/remote-settings-extras.js",
+      "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e",
+      "preservedPath": "raw/dist-mobile/dist/remote-settings-extras.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 32885,
+      "gzipBytes": 10418,
+      "path": "dist-mobile/dist/remote-settings-lifecycle.js",
+      "sha256": "f9b19360e71b7cc5563ea06e1693c4aac5b74b7f066a6c7659913dcad732ddbd",
+      "preservedPath": "raw/dist-mobile/dist/remote-settings-lifecycle.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 15851,
+      "gzipBytes": 5205,
+      "path": "dist-mobile/dist/remote-settings.js",
+      "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251",
+      "preservedPath": "raw/dist-mobile/dist/remote-settings.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 3342,
+      "gzipBytes": 1558,
+      "path": "dist-mobile/dist/runtime-debug-details.js",
+      "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce",
+      "preservedPath": "raw/dist-mobile/dist/runtime-debug-details.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 1144,
+      "gzipBytes": 599,
+      "path": "dist-mobile/dist/shaka-tracks.js",
+      "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29",
+      "preservedPath": "raw/dist-mobile/dist/shaka-tracks.js"
+    },
+    {
+      "family": "mobile",
+      "category": "rootJavaScript",
+      "bytes": 8823,
+      "gzipBytes": 3869,
+      "path": "dist-mobile/dist/subtitle-appearance.js",
+      "sha256": "d6136c7d15b8021bb99b113e4b61f68b703a53e5000ec65132508fd2f894b21a",
+      "preservedPath": "raw/dist-mobile/dist/subtitle-appearance.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 68679,
+      "gzipBytes": 19788,
+      "path": "dist-mobile/locales/afrikaans.js",
+      "sha256": "d0d74347e82d2e5e0e9ec5790002ce61f4b73cc2c51599e6c3cde7e7690383c0",
+      "preservedPath": "raw/dist-mobile/locales/afrikaans.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73480,
+      "gzipBytes": 20825,
+      "path": "dist-mobile/locales/albanian.js",
+      "sha256": "ffeb749ea53f107993390fdb4b75ef535fc7f4dc5ca3b6c230c43fffc11f2323",
+      "preservedPath": "raw/dist-mobile/locales/albanian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 88964,
+      "gzipBytes": 22940,
+      "path": "dist-mobile/locales/amharic.js",
+      "sha256": "1d86e9497e72bc9417a9eea5c510b04ed814c2f42e875bb25b79210a6c17497b",
+      "preservedPath": "raw/dist-mobile/locales/amharic.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 84017,
+      "gzipBytes": 21717,
+      "path": "dist-mobile/locales/arabic.js",
+      "sha256": "6eaf7fa2d57fad60831ee36b697cd187969f9922801aab13499af7a67660ff3a",
+      "preservedPath": "raw/dist-mobile/locales/arabic.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 96575,
+      "gzipBytes": 22990,
+      "path": "dist-mobile/locales/armenian.js",
+      "sha256": "6577554346901544d5ead71e519a6a34f740f20fe05a701bc9f396b0de5663b4",
+      "preservedPath": "raw/dist-mobile/locales/armenian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 110000,
+      "gzipBytes": 22600,
+      "path": "dist-mobile/locales/assamese.js",
+      "sha256": "b278d941a63ef508335f03cb4e6e0301b5a6e8be4220dc9fc42a5dde82ed7d69",
+      "preservedPath": "raw/dist-mobile/locales/assamese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73388,
+      "gzipBytes": 20594,
+      "path": "dist-mobile/locales/azerbaijani.js",
+      "sha256": "c7b9ba7afd3f291779a21e9daa7861b80bda53b25a20245267a34a7b08255426",
+      "preservedPath": "raw/dist-mobile/locales/azerbaijani.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72246,
+      "gzipBytes": 19946,
+      "path": "dist-mobile/locales/basque.js",
+      "sha256": "f73a603ce65ea4fde8c7eb825f2a19f1979209e3ff4285b468503119b833f0e5",
+      "preservedPath": "raw/dist-mobile/locales/basque.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 91986,
+      "gzipBytes": 23005,
+      "path": "dist-mobile/locales/belarusian.js",
+      "sha256": "0545a07ff866a4e1398d58f75f93d43a0f6bc5f074ec983c9383bae3218286e1",
+      "preservedPath": "raw/dist-mobile/locales/belarusian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 113486,
+      "gzipBytes": 23059,
+      "path": "dist-mobile/locales/bengali.js",
+      "sha256": "838b01c5a198f94d4964e46cd8666eaa39e756cd17262e8a2a39829d2e05d3c5",
+      "preservedPath": "raw/dist-mobile/locales/bengali.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70983,
+      "gzipBytes": 20506,
+      "path": "dist-mobile/locales/bosnian.js",
+      "sha256": "c070657e26c86a0898c65e9736c734b837a39c416019c299660079e8fa60f22d",
+      "preservedPath": "raw/dist-mobile/locales/bosnian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 96459,
+      "gzipBytes": 22951,
+      "path": "dist-mobile/locales/bulgarian.js",
+      "sha256": "13f59bee49b56f9c57596d9823bf02053f2c9112c24cfd0aa7e2b85a04b1eff0",
+      "preservedPath": "raw/dist-mobile/locales/bulgarian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 133489,
+      "gzipBytes": 24371,
+      "path": "dist-mobile/locales/burmese.js",
+      "sha256": "4ff557e5f09e535b8cd97b88c17fdb95b2e3c150d081596e7e2ee22d25f69b75",
+      "preservedPath": "raw/dist-mobile/locales/burmese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 75351,
+      "gzipBytes": 20377,
+      "path": "dist-mobile/locales/catalan.js",
+      "sha256": "ea6bfe125bfe115e37b1c4a5cd91665b64d2649fd3b667321f1a52a91601dbd6",
+      "preservedPath": "raw/dist-mobile/locales/catalan.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70714,
+      "gzipBytes": 26110,
+      "path": "dist-mobile/locales/chinese.js",
+      "sha256": "cdda5b07082c657f25a66957a460f73277d15f74159b1f92728d9f0a13662489",
+      "preservedPath": "raw/dist-mobile/locales/chinese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71535,
+      "gzipBytes": 20589,
+      "path": "dist-mobile/locales/croatian.js",
+      "sha256": "e792921aaf52205a788ab8f80e787614c992be1f0e70ae655c0592d7ad321d17",
+      "preservedPath": "raw/dist-mobile/locales/croatian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71308,
+      "gzipBytes": 20620,
+      "path": "dist-mobile/locales/czech.js",
+      "sha256": "45c1b5bc3ea87248cb0ffb2f6730637313ce8b37ac43b8887c038bac2bf91817",
+      "preservedPath": "raw/dist-mobile/locales/czech.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 69094,
+      "gzipBytes": 19565,
+      "path": "dist-mobile/locales/danish.js",
+      "sha256": "9b27ba1ac7493750cc19868204796d63bd9db514fc47dae06bb3f19833312956",
+      "preservedPath": "raw/dist-mobile/locales/danish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70937,
+      "gzipBytes": 19806,
+      "path": "dist-mobile/locales/dutch.js",
+      "sha256": "0e8fdb25fbbcef90cd9665e5fe75376d5f03b0a8d24336dbb8c4068d9c06f09a",
+      "preservedPath": "raw/dist-mobile/locales/dutch.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 65230,
+      "gzipBytes": 13740,
+      "path": "dist-mobile/locales/english.js",
+      "sha256": "b2e15e97970fe2731efcd4f2435d8bef762588b7bfd50075dc9eee417aec0b9f",
+      "preservedPath": "raw/dist-mobile/locales/english.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 68585,
+      "gzipBytes": 20122,
+      "path": "dist-mobile/locales/estonian.js",
+      "sha256": "9d5a93565e2db172207b912171661c731d264b1febe6473658c011331ddca1d6",
+      "preservedPath": "raw/dist-mobile/locales/estonian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 74137,
+      "gzipBytes": 19799,
+      "path": "dist-mobile/locales/filipino.js",
+      "sha256": "2c4edb59c154deff5fc7afa8af31b52ccdda52d199f790e4361323cd876da20b",
+      "preservedPath": "raw/dist-mobile/locales/filipino.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71024,
+      "gzipBytes": 20476,
+      "path": "dist-mobile/locales/finnish.js",
+      "sha256": "71e93f460fba8b64baa09ce5f01755affb2b38e2c9c837120ffe660706d4e7c0",
+      "preservedPath": "raw/dist-mobile/locales/finnish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 74883,
+      "gzipBytes": 20454,
+      "path": "dist-mobile/locales/french.js",
+      "sha256": "4d799c0b99c081c1d6671e89ac44857deb8675ad3a0c162f1cdfec6f8a8113d0",
+      "preservedPath": "raw/dist-mobile/locales/french.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73367,
+      "gzipBytes": 19973,
+      "path": "dist-mobile/locales/galician.js",
+      "sha256": "153cb032f44e76121529ec1aa07c8277c3c503c2cc807cbc2947605a710215c1",
+      "preservedPath": "raw/dist-mobile/locales/galician.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 120333,
+      "gzipBytes": 23480,
+      "path": "dist-mobile/locales/georgian.js",
+      "sha256": "64250d56a2e2df9d454186c7163b76998f024578027392e9e3b6d077b038f220",
+      "preservedPath": "raw/dist-mobile/locales/georgian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73656,
+      "gzipBytes": 20516,
+      "path": "dist-mobile/locales/german.js",
+      "sha256": "72c115024a1d9d939d062d1bd48321f228aeca6f8b351eed7d62a068071ef10c",
+      "preservedPath": "raw/dist-mobile/locales/german.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 101709,
+      "gzipBytes": 23922,
+      "path": "dist-mobile/locales/greek.js",
+      "sha256": "d30f8f765b2d73cb000086133e79132d02a7d25d0a701d679681f94427eaae3e",
+      "preservedPath": "raw/dist-mobile/locales/greek.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 108463,
+      "gzipBytes": 22955,
+      "path": "dist-mobile/locales/gujarati.js",
+      "sha256": "f86f3839664ecd746729975f7fafdd369e92a33e4a494168738079b0c6ad047d",
+      "preservedPath": "raw/dist-mobile/locales/gujarati.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 69763,
+      "gzipBytes": 19583,
+      "path": "dist-mobile/locales/hausa.js",
+      "sha256": "58210b08f09c4c8b7b699841eafd6585b4a20544bc2f0e21570f44152273bc47",
+      "preservedPath": "raw/dist-mobile/locales/hausa.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 76819,
+      "gzipBytes": 20670,
+      "path": "dist-mobile/locales/hebrew.js",
+      "sha256": "a416d0fa29758bc3708fd7f7a00cc1b27eb07bf7cbe863b47b6d280583414da8",
+      "preservedPath": "raw/dist-mobile/locales/hebrew.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 110129,
+      "gzipBytes": 23225,
+      "path": "dist-mobile/locales/hindi.js",
+      "sha256": "df0f167ca410f5af9c1385ddfc76e63556c96db0cb1d4892ec35f7a40a67bdf3",
+      "preservedPath": "raw/dist-mobile/locales/hindi.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 75793,
+      "gzipBytes": 21370,
+      "path": "dist-mobile/locales/hungarian.js",
+      "sha256": "2aeac5ac128a3ec17a84feb1b9322dd596db5e1c804dac430fe996981425a2ee",
+      "preservedPath": "raw/dist-mobile/locales/hungarian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70142,
+      "gzipBytes": 20546,
+      "path": "dist-mobile/locales/icelandic.js",
+      "sha256": "27fd87addb3c607afcad587ac86e8a6e467bf86fd2888347aa88f723b1125914",
+      "preservedPath": "raw/dist-mobile/locales/icelandic.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71860,
+      "gzipBytes": 19494,
+      "path": "dist-mobile/locales/igbo.js",
+      "sha256": "78d9540eb77550c963672e03c3d995c77af7d9b7f85ac2ee104209dfa6a300aa",
+      "preservedPath": "raw/dist-mobile/locales/igbo.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 68699,
+      "gzipBytes": 18985,
+      "path": "dist-mobile/locales/indonesian.js",
+      "sha256": "5453276c94f62c08b33e8f10bcbfc5f1180fcc4e8b3f49dfd27fb125ca7d38a3",
+      "preservedPath": "raw/dist-mobile/locales/indonesian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73856,
+      "gzipBytes": 20764,
+      "path": "dist-mobile/locales/irish.js",
+      "sha256": "8462e791ed10d09bac1087e667108884f65fb642b0b6fa7597653a6b527f612c",
+      "preservedPath": "raw/dist-mobile/locales/irish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72394,
+      "gzipBytes": 19876,
+      "path": "dist-mobile/locales/italian.js",
+      "sha256": "8b71faa1876fa778779ae53ebb17023b570dc428fbf90a32cd9dabd67a310070",
+      "preservedPath": "raw/dist-mobile/locales/italian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 89080,
+      "gzipBytes": 28657,
+      "path": "dist-mobile/locales/japanese.js",
+      "sha256": "26cc79b709b472a471653e53c43d86feb68974c7f3d8379d53e5eb44322f2540",
+      "preservedPath": "raw/dist-mobile/locales/japanese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 123115,
+      "gzipBytes": 23546,
+      "path": "dist-mobile/locales/kannada.js",
+      "sha256": "91410202d263edf6279c0e0987a20e010d4ab70ef84a8892a0699a4c9e46ac8b",
+      "preservedPath": "raw/dist-mobile/locales/kannada.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 95215,
+      "gzipBytes": 22422,
+      "path": "dist-mobile/locales/kazakh.js",
+      "sha256": "9af2da52fd77f3ba868659a658e9e1b23c3cb8b73de0cebc4da50e421ac2fb66",
+      "preservedPath": "raw/dist-mobile/locales/kazakh.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 119584,
+      "gzipBytes": 23302,
+      "path": "dist-mobile/locales/khmer.js",
+      "sha256": "c409bd05cbbd6547c0909fef2dbbd34da70da34c337a91e30e278df9aa20aaad",
+      "preservedPath": "raw/dist-mobile/locales/khmer.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 74672,
+      "gzipBytes": 20368,
+      "path": "dist-mobile/locales/kinyarwanda.js",
+      "sha256": "6051112abd2aade692b17e874387b4a2b6aa576a57c5e508a75510c3704858ec",
+      "preservedPath": "raw/dist-mobile/locales/kinyarwanda.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 107922,
+      "gzipBytes": 45643,
+      "path": "dist-mobile/locales/korean.js",
+      "sha256": "6103d94d342ffda1d0b0c9a60d2cef88ae41fb0fa6ece806321d42e6235785d4",
+      "preservedPath": "raw/dist-mobile/locales/korean.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73580,
+      "gzipBytes": 20820,
+      "path": "dist-mobile/locales/kurdish.js",
+      "sha256": "94b456092cbf5b292fdf6568c13d1065775de38d1cf2beac0ae6cb231bf77359",
+      "preservedPath": "raw/dist-mobile/locales/kurdish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 96297,
+      "gzipBytes": 22707,
+      "path": "dist-mobile/locales/kyrgyz.js",
+      "sha256": "d94c0790fde4d2b3367b845c6a257c9d669e94bc28789b64328003003c0ea9b3",
+      "preservedPath": "raw/dist-mobile/locales/kyrgyz.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 106349,
+      "gzipBytes": 21962,
+      "path": "dist-mobile/locales/lao.js",
+      "sha256": "c4c6e1a0a6b1c0cfa6453b355f0480e3fd11246f0c731e4ac9f5d54fd52f6719",
+      "preservedPath": "raw/dist-mobile/locales/lao.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73776,
+      "gzipBytes": 20712,
+      "path": "dist-mobile/locales/latvian.js",
+      "sha256": "13e94af7c320c319400ac5191aacf3bfaaaea2f867cf563712921fc64b0d1d24",
+      "preservedPath": "raw/dist-mobile/locales/latvian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71886,
+      "gzipBytes": 20748,
+      "path": "dist-mobile/locales/lithuanian.js",
+      "sha256": "ffb6ed2ad60b5e1a83d799c96a2f7d89356d2135b3742dd366a6fb7a0c95966e",
+      "preservedPath": "raw/dist-mobile/locales/lithuanian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 95653,
+      "gzipBytes": 22634,
+      "path": "dist-mobile/locales/macedonian.js",
+      "sha256": "30bdd7cb3141d7d2dcd17fdb33ae0e5ef4214bae92801f94bd24050d4420bb0d",
+      "preservedPath": "raw/dist-mobile/locales/macedonian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 76556,
+      "gzipBytes": 20141,
+      "path": "dist-mobile/locales/malagasy.js",
+      "sha256": "89b4c258c2dd53078634149c32af8af7b0577ed215a6af344ff79b050da8eea4",
+      "preservedPath": "raw/dist-mobile/locales/malagasy.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 68632,
+      "gzipBytes": 19057,
+      "path": "dist-mobile/locales/malay.js",
+      "sha256": "f2ae5f432ac62ebfe2536b5bf17d838c71b62d4caf191bd30a93c1e6e7f8e268",
+      "preservedPath": "raw/dist-mobile/locales/malay.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 125782,
+      "gzipBytes": 24024,
+      "path": "dist-mobile/locales/malayalam.js",
+      "sha256": "00402a4758a5bb3c707b80358aca109633c751c5c724a17d197135968ec8ab92",
+      "preservedPath": "raw/dist-mobile/locales/malayalam.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73285,
+      "gzipBytes": 20482,
+      "path": "dist-mobile/locales/maltese.js",
+      "sha256": "0e183a0177c7dd30b9c6e96dff5f02171f7b9f23a2bf29428bf53d7f993b7c25",
+      "preservedPath": "raw/dist-mobile/locales/maltese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 109712,
+      "gzipBytes": 23056,
+      "path": "dist-mobile/locales/marathi.js",
+      "sha256": "c64dc6f481bc2d11658b8ee370b666362afb92a61632399e6c98ecb344520241",
+      "preservedPath": "raw/dist-mobile/locales/marathi.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 95737,
+      "gzipBytes": 22242,
+      "path": "dist-mobile/locales/mongolian.js",
+      "sha256": "e62ab1dc451cf5cd2a1fe1f045db315165e5053903081bc67d623c9c538c5fb6",
+      "preservedPath": "raw/dist-mobile/locales/mongolian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 115699,
+      "gzipBytes": 23087,
+      "path": "dist-mobile/locales/nepali.js",
+      "sha256": "7ebd219ae7564dd417a1581a27f1f19af40258757682a68c428a64bcd500bef8",
+      "preservedPath": "raw/dist-mobile/locales/nepali.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 69080,
+      "gzipBytes": 19725,
+      "path": "dist-mobile/locales/norwegian.js",
+      "sha256": "cef2424e0f10fce5be38336652b81d6af25e52a33c803298927e2af6642c2932",
+      "preservedPath": "raw/dist-mobile/locales/norwegian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 112529,
+      "gzipBytes": 22464,
+      "path": "dist-mobile/locales/odia.js",
+      "sha256": "abc3b794a97716ee82fad057a56a8444a820221a31b8ce4be5969d0cf63606ca",
+      "preservedPath": "raw/dist-mobile/locales/odia.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 86108,
+      "gzipBytes": 22391,
+      "path": "dist-mobile/locales/pashto.js",
+      "sha256": "d0f79478fb1eefb5f0b10b04f9bf7bd07bb80742cedfb9cfe8a954017ddbaa6e",
+      "preservedPath": "raw/dist-mobile/locales/pashto.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 87741,
+      "gzipBytes": 21934,
+      "path": "dist-mobile/locales/persian.js",
+      "sha256": "c4290165d5415032bc0f497384dd0c4525c46856f51455ee5feeb21841ca0607",
+      "preservedPath": "raw/dist-mobile/locales/persian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71429,
+      "gzipBytes": 20684,
+      "path": "dist-mobile/locales/polish.js",
+      "sha256": "9440e39567cf4fbbfe88a40151524e23ed79657c8dfe2a215f5f24cbf9ee700b",
+      "preservedPath": "raw/dist-mobile/locales/polish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72956,
+      "gzipBytes": 19992,
+      "path": "dist-mobile/locales/portuguese.js",
+      "sha256": "b325a8001baf8db506e18e309df1c0d61d314d0a9bc73314c468c738d9c64818",
+      "preservedPath": "raw/dist-mobile/locales/portuguese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 109400,
+      "gzipBytes": 23281,
+      "path": "dist-mobile/locales/punjabi.js",
+      "sha256": "81f3f545746e6c7ca130e217c8f2a533ea2679c194b700a7eeeaaa187894b75d",
+      "preservedPath": "raw/dist-mobile/locales/punjabi.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73201,
+      "gzipBytes": 20451,
+      "path": "dist-mobile/locales/romanian.js",
+      "sha256": "893ad2bb7957f3f236abd9fcec8b18fc788279e36fdf6db6ad0bf4a529101da0",
+      "preservedPath": "raw/dist-mobile/locales/romanian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 92052,
+      "gzipBytes": 22701,
+      "path": "dist-mobile/locales/russian.js",
+      "sha256": "8180e3a1fcaff0557611a15d8a9f227fef928c0b87c2fd5e329dd95f607c9a11",
+      "preservedPath": "raw/dist-mobile/locales/russian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 93066,
+      "gzipBytes": 22888,
+      "path": "dist-mobile/locales/serbian.js",
+      "sha256": "178466e156b3f4755af86fb704a420688aa0395b57f425e6c72f3c52a1baf7c6",
+      "preservedPath": "raw/dist-mobile/locales/serbian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 84435,
+      "gzipBytes": 21399,
+      "path": "dist-mobile/locales/sindhi.js",
+      "sha256": "85d3e1f75e0f308a18869c80b7297a7c2d77c8e5d33ad9cea48c7f2f8076013b",
+      "preservedPath": "raw/dist-mobile/locales/sindhi.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 114644,
+      "gzipBytes": 23372,
+      "path": "dist-mobile/locales/sinhala.js",
+      "sha256": "a8abcb7910c72733dc9452bb0fd9ace050e3e3587c32215ed636b98044ad3c8c",
+      "preservedPath": "raw/dist-mobile/locales/sinhala.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73021,
+      "gzipBytes": 21219,
+      "path": "dist-mobile/locales/slovak.js",
+      "sha256": "868c6613f595e33529d1b0403b54a8f4e3f356e5ae484da77400e406b611218b",
+      "preservedPath": "raw/dist-mobile/locales/slovak.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70742,
+      "gzipBytes": 20399,
+      "path": "dist-mobile/locales/slovenian.js",
+      "sha256": "e87a786068e5da91d0675a629a59f1f0dc3f6463f02a548d86e4768cd018e826",
+      "preservedPath": "raw/dist-mobile/locales/slovenian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72459,
+      "gzipBytes": 20675,
+      "path": "dist-mobile/locales/somali.js",
+      "sha256": "a11f18b53346a27622f00c57de0eed35281188554b3d353859c0595dad7c0831",
+      "preservedPath": "raw/dist-mobile/locales/somali.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72871,
+      "gzipBytes": 20166,
+      "path": "dist-mobile/locales/spanish.js",
+      "sha256": "a0b242265019d2233984bd9d3684e6cc2421534222a1de1ae88f380354211f51",
+      "preservedPath": "raw/dist-mobile/locales/spanish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70917,
+      "gzipBytes": 20120,
+      "path": "dist-mobile/locales/swahili.js",
+      "sha256": "4234db4cdce2dd404059826bda78f5ec8b895b09d38ace99144a5aba40d85782",
+      "preservedPath": "raw/dist-mobile/locales/swahili.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 70018,
+      "gzipBytes": 19842,
+      "path": "dist-mobile/locales/swedish.js",
+      "sha256": "3620c7d79387ef74cda0b762ceb4c3b357ac7e36de2e41870e7cbc37e3a5b017",
+      "preservedPath": "raw/dist-mobile/locales/swedish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 95507,
+      "gzipBytes": 22266,
+      "path": "dist-mobile/locales/tajik.js",
+      "sha256": "9d975c202ed27d908cc3ac734f1801af210d0fb79a79985c3c2a7f9b82950276",
+      "preservedPath": "raw/dist-mobile/locales/tajik.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 125883,
+      "gzipBytes": 23490,
+      "path": "dist-mobile/locales/tamil.js",
+      "sha256": "b9ddb673d21d8dbfa49b9194401bdbdf2842117101338fbe40a5ad1d53c953e9",
+      "preservedPath": "raw/dist-mobile/locales/tamil.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 123101,
+      "gzipBytes": 23682,
+      "path": "dist-mobile/locales/telugu.js",
+      "sha256": "a392122ec621cf8616ebc0894b6b44ce02e52cf1c5519407a7a32ec123c857a9",
+      "preservedPath": "raw/dist-mobile/locales/telugu.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 112713,
+      "gzipBytes": 22709,
+      "path": "dist-mobile/locales/thai.js",
+      "sha256": "3e09c6e8c279681881e62b3f219d6b3b3587156ececd79c6631a3d7fb4918982",
+      "preservedPath": "raw/dist-mobile/locales/thai.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 71336,
+      "gzipBytes": 20179,
+      "path": "dist-mobile/locales/turkish.js",
+      "sha256": "9f6cb4a89f423a3b24e09943bbd0a500701a382c1132ca95dbf27420e846eaf0",
+      "preservedPath": "raw/dist-mobile/locales/turkish.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72668,
+      "gzipBytes": 20273,
+      "path": "dist-mobile/locales/turkmen.js",
+      "sha256": "d563f16d1fb952bff1e82b50d2c15811c26e785045190223f7c1a6c7d14cee7e",
+      "preservedPath": "raw/dist-mobile/locales/turkmen.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 94798,
+      "gzipBytes": 22942,
+      "path": "dist-mobile/locales/ukrainian.js",
+      "sha256": "c9d2f9b10b8f499e751ad3adf1ac45f943328a597fb8f02a8df6c1aa4ea9ae37",
+      "preservedPath": "raw/dist-mobile/locales/ukrainian.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 89513,
+      "gzipBytes": 22158,
+      "path": "dist-mobile/locales/urdu.js",
+      "sha256": "ad0b09865cd8aca11ec649384994d02ba657708793c5a0697741bd57b5a455c9",
+      "preservedPath": "raw/dist-mobile/locales/urdu.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72378,
+      "gzipBytes": 20290,
+      "path": "dist-mobile/locales/uzbek.js",
+      "sha256": "714d41a7a052ee7fa6cde8a55b22678d302ca1f49f2ae75a790e3ca3f8fcee1d",
+      "preservedPath": "raw/dist-mobile/locales/uzbek.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 76078,
+      "gzipBytes": 20394,
+      "path": "dist-mobile/locales/vietnamese.js",
+      "sha256": "58ad93b974ac1fc1b22a1aed083edda4343159627b8eadd675bd6eb2a6ccd38b",
+      "preservedPath": "raw/dist-mobile/locales/vietnamese.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 72944,
+      "gzipBytes": 20550,
+      "path": "dist-mobile/locales/xhosa.js",
+      "sha256": "fa6e64888e7c18cb992d704593270f97c6849bd53820aab8fa61178336f69304",
+      "preservedPath": "raw/dist-mobile/locales/xhosa.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 78498,
+      "gzipBytes": 21082,
+      "path": "dist-mobile/locales/yoruba.js",
+      "sha256": "6e339413371dc4280697214cf4994a3af0ae41b1c6bbb879bb3f964fbe127f38",
+      "preservedPath": "raw/dist-mobile/locales/yoruba.js"
+    },
+    {
+      "family": "mobile",
+      "category": "locales",
+      "bytes": 73342,
+      "gzipBytes": 20428,
+      "path": "dist-mobile/locales/zulu.js",
+      "sha256": "f5bcbb5f695714e3e289ce9e1659c16a9a8556b8475d843335137931ea8d614a",
+      "preservedPath": "raw/dist-mobile/locales/zulu.js"
+    },
+    {
+      "family": "mobile",
+      "category": "stylesheets",
+      "bytes": 77036,
+      "gzipBytes": 13609,
+      "path": "dist-mobile/styles/player.css",
+      "sha256": "9c6ba4acb04814d30447d7e84acc47e0a668ed3fb5b136e57d4ccdd0e35edd24",
+      "preservedPath": "raw/dist-mobile/styles/player.css"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 10444,
+      "gzipBytes": 4378,
+      "path": "dist/color-appearance.js",
+      "sha256": "c32efdd01585f50b5564004fc74aa7105d77c8b50af17bbee675f38c62bdc05d",
+      "preservedPath": "raw/dist/color-appearance.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 3011,
+      "gzipBytes": 1354,
+      "path": "dist/control-transport.js",
+      "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2",
+      "preservedPath": "raw/dist/control-transport.js"
+    },
+    {
+      "family": "web",
+      "category": "stylesheets",
+      "bytes": 412,
+      "gzipBytes": 242,
+      "path": "dist/devices/pc2/player.css",
+      "sha256": "5902485736d78e8595960d2323346111333f40ff437ecbe4ee749aaf1c5193fa",
+      "preservedPath": "raw/dist/devices/pc2/player.css"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 257665,
+      "gzipBytes": 66255,
+      "path": "dist/favorites-transfer.js",
+      "sha256": "489f339a72e71b8d6edf28f2e9bc531fc621908b71851233f92abbc4ab6539e8",
+      "preservedPath": "raw/dist/favorites-transfer.js"
+    },
+    {
+      "family": "web",
+      "category": "stylesheets",
+      "bytes": 3022,
+      "gzipBytes": 987,
+      "path": "dist/js/browser-app/window-controls.css",
+      "sha256": "80806d2ea9e278dfda794f80a5447c2c8e3a2d7c40f2778b0191f43fc7763870",
+      "preservedPath": "raw/dist/js/browser-app/window-controls.css"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 9238,
+      "gzipBytes": 3446,
+      "path": "dist/local-compatibility.js",
+      "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148",
+      "preservedPath": "raw/dist/local-compatibility.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 5763,
+      "gzipBytes": 2273,
+      "path": "dist/local-drop.js",
+      "sha256": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e",
+      "preservedPath": "raw/dist/local-drop.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 8455,
+      "gzipBytes": 3336,
+      "path": "dist/local-media-ui.js",
+      "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6",
+      "preservedPath": "raw/dist/local-media-ui.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 68679,
+      "gzipBytes": 19788,
+      "path": "dist/locales/afrikaans.js",
+      "sha256": "d0d74347e82d2e5e0e9ec5790002ce61f4b73cc2c51599e6c3cde7e7690383c0",
+      "preservedPath": "raw/dist/locales/afrikaans.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73480,
+      "gzipBytes": 20825,
+      "path": "dist/locales/albanian.js",
+      "sha256": "ffeb749ea53f107993390fdb4b75ef535fc7f4dc5ca3b6c230c43fffc11f2323",
+      "preservedPath": "raw/dist/locales/albanian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 88964,
+      "gzipBytes": 22940,
+      "path": "dist/locales/amharic.js",
+      "sha256": "1d86e9497e72bc9417a9eea5c510b04ed814c2f42e875bb25b79210a6c17497b",
+      "preservedPath": "raw/dist/locales/amharic.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 84017,
+      "gzipBytes": 21717,
+      "path": "dist/locales/arabic.js",
+      "sha256": "6eaf7fa2d57fad60831ee36b697cd187969f9922801aab13499af7a67660ff3a",
+      "preservedPath": "raw/dist/locales/arabic.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 96575,
+      "gzipBytes": 22990,
+      "path": "dist/locales/armenian.js",
+      "sha256": "6577554346901544d5ead71e519a6a34f740f20fe05a701bc9f396b0de5663b4",
+      "preservedPath": "raw/dist/locales/armenian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 110000,
+      "gzipBytes": 22600,
+      "path": "dist/locales/assamese.js",
+      "sha256": "b278d941a63ef508335f03cb4e6e0301b5a6e8be4220dc9fc42a5dde82ed7d69",
+      "preservedPath": "raw/dist/locales/assamese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73388,
+      "gzipBytes": 20594,
+      "path": "dist/locales/azerbaijani.js",
+      "sha256": "c7b9ba7afd3f291779a21e9daa7861b80bda53b25a20245267a34a7b08255426",
+      "preservedPath": "raw/dist/locales/azerbaijani.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72246,
+      "gzipBytes": 19946,
+      "path": "dist/locales/basque.js",
+      "sha256": "f73a603ce65ea4fde8c7eb825f2a19f1979209e3ff4285b468503119b833f0e5",
+      "preservedPath": "raw/dist/locales/basque.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 91986,
+      "gzipBytes": 23005,
+      "path": "dist/locales/belarusian.js",
+      "sha256": "0545a07ff866a4e1398d58f75f93d43a0f6bc5f074ec983c9383bae3218286e1",
+      "preservedPath": "raw/dist/locales/belarusian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 113486,
+      "gzipBytes": 23059,
+      "path": "dist/locales/bengali.js",
+      "sha256": "838b01c5a198f94d4964e46cd8666eaa39e756cd17262e8a2a39829d2e05d3c5",
+      "preservedPath": "raw/dist/locales/bengali.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70983,
+      "gzipBytes": 20506,
+      "path": "dist/locales/bosnian.js",
+      "sha256": "c070657e26c86a0898c65e9736c734b837a39c416019c299660079e8fa60f22d",
+      "preservedPath": "raw/dist/locales/bosnian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 96459,
+      "gzipBytes": 22951,
+      "path": "dist/locales/bulgarian.js",
+      "sha256": "13f59bee49b56f9c57596d9823bf02053f2c9112c24cfd0aa7e2b85a04b1eff0",
+      "preservedPath": "raw/dist/locales/bulgarian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 133489,
+      "gzipBytes": 24371,
+      "path": "dist/locales/burmese.js",
+      "sha256": "4ff557e5f09e535b8cd97b88c17fdb95b2e3c150d081596e7e2ee22d25f69b75",
+      "preservedPath": "raw/dist/locales/burmese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 75351,
+      "gzipBytes": 20377,
+      "path": "dist/locales/catalan.js",
+      "sha256": "ea6bfe125bfe115e37b1c4a5cd91665b64d2649fd3b667321f1a52a91601dbd6",
+      "preservedPath": "raw/dist/locales/catalan.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70714,
+      "gzipBytes": 26110,
+      "path": "dist/locales/chinese.js",
+      "sha256": "cdda5b07082c657f25a66957a460f73277d15f74159b1f92728d9f0a13662489",
+      "preservedPath": "raw/dist/locales/chinese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71535,
+      "gzipBytes": 20589,
+      "path": "dist/locales/croatian.js",
+      "sha256": "e792921aaf52205a788ab8f80e787614c992be1f0e70ae655c0592d7ad321d17",
+      "preservedPath": "raw/dist/locales/croatian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71308,
+      "gzipBytes": 20620,
+      "path": "dist/locales/czech.js",
+      "sha256": "45c1b5bc3ea87248cb0ffb2f6730637313ce8b37ac43b8887c038bac2bf91817",
+      "preservedPath": "raw/dist/locales/czech.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 69094,
+      "gzipBytes": 19565,
+      "path": "dist/locales/danish.js",
+      "sha256": "9b27ba1ac7493750cc19868204796d63bd9db514fc47dae06bb3f19833312956",
+      "preservedPath": "raw/dist/locales/danish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70937,
+      "gzipBytes": 19806,
+      "path": "dist/locales/dutch.js",
+      "sha256": "0e8fdb25fbbcef90cd9665e5fe75376d5f03b0a8d24336dbb8c4068d9c06f09a",
+      "preservedPath": "raw/dist/locales/dutch.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 65230,
+      "gzipBytes": 13740,
+      "path": "dist/locales/english.js",
+      "sha256": "b2e15e97970fe2731efcd4f2435d8bef762588b7bfd50075dc9eee417aec0b9f",
+      "preservedPath": "raw/dist/locales/english.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 68585,
+      "gzipBytes": 20122,
+      "path": "dist/locales/estonian.js",
+      "sha256": "9d5a93565e2db172207b912171661c731d264b1febe6473658c011331ddca1d6",
+      "preservedPath": "raw/dist/locales/estonian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 74137,
+      "gzipBytes": 19799,
+      "path": "dist/locales/filipino.js",
+      "sha256": "2c4edb59c154deff5fc7afa8af31b52ccdda52d199f790e4361323cd876da20b",
+      "preservedPath": "raw/dist/locales/filipino.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71024,
+      "gzipBytes": 20476,
+      "path": "dist/locales/finnish.js",
+      "sha256": "71e93f460fba8b64baa09ce5f01755affb2b38e2c9c837120ffe660706d4e7c0",
+      "preservedPath": "raw/dist/locales/finnish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 74883,
+      "gzipBytes": 20454,
+      "path": "dist/locales/french.js",
+      "sha256": "4d799c0b99c081c1d6671e89ac44857deb8675ad3a0c162f1cdfec6f8a8113d0",
+      "preservedPath": "raw/dist/locales/french.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73367,
+      "gzipBytes": 19973,
+      "path": "dist/locales/galician.js",
+      "sha256": "153cb032f44e76121529ec1aa07c8277c3c503c2cc807cbc2947605a710215c1",
+      "preservedPath": "raw/dist/locales/galician.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 120333,
+      "gzipBytes": 23480,
+      "path": "dist/locales/georgian.js",
+      "sha256": "64250d56a2e2df9d454186c7163b76998f024578027392e9e3b6d077b038f220",
+      "preservedPath": "raw/dist/locales/georgian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73656,
+      "gzipBytes": 20516,
+      "path": "dist/locales/german.js",
+      "sha256": "72c115024a1d9d939d062d1bd48321f228aeca6f8b351eed7d62a068071ef10c",
+      "preservedPath": "raw/dist/locales/german.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 101709,
+      "gzipBytes": 23922,
+      "path": "dist/locales/greek.js",
+      "sha256": "d30f8f765b2d73cb000086133e79132d02a7d25d0a701d679681f94427eaae3e",
+      "preservedPath": "raw/dist/locales/greek.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 108463,
+      "gzipBytes": 22955,
+      "path": "dist/locales/gujarati.js",
+      "sha256": "f86f3839664ecd746729975f7fafdd369e92a33e4a494168738079b0c6ad047d",
+      "preservedPath": "raw/dist/locales/gujarati.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 69763,
+      "gzipBytes": 19583,
+      "path": "dist/locales/hausa.js",
+      "sha256": "58210b08f09c4c8b7b699841eafd6585b4a20544bc2f0e21570f44152273bc47",
+      "preservedPath": "raw/dist/locales/hausa.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 76819,
+      "gzipBytes": 20670,
+      "path": "dist/locales/hebrew.js",
+      "sha256": "a416d0fa29758bc3708fd7f7a00cc1b27eb07bf7cbe863b47b6d280583414da8",
+      "preservedPath": "raw/dist/locales/hebrew.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 110129,
+      "gzipBytes": 23225,
+      "path": "dist/locales/hindi.js",
+      "sha256": "df0f167ca410f5af9c1385ddfc76e63556c96db0cb1d4892ec35f7a40a67bdf3",
+      "preservedPath": "raw/dist/locales/hindi.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 75793,
+      "gzipBytes": 21370,
+      "path": "dist/locales/hungarian.js",
+      "sha256": "2aeac5ac128a3ec17a84feb1b9322dd596db5e1c804dac430fe996981425a2ee",
+      "preservedPath": "raw/dist/locales/hungarian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70142,
+      "gzipBytes": 20546,
+      "path": "dist/locales/icelandic.js",
+      "sha256": "27fd87addb3c607afcad587ac86e8a6e467bf86fd2888347aa88f723b1125914",
+      "preservedPath": "raw/dist/locales/icelandic.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71860,
+      "gzipBytes": 19494,
+      "path": "dist/locales/igbo.js",
+      "sha256": "78d9540eb77550c963672e03c3d995c77af7d9b7f85ac2ee104209dfa6a300aa",
+      "preservedPath": "raw/dist/locales/igbo.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 68699,
+      "gzipBytes": 18985,
+      "path": "dist/locales/indonesian.js",
+      "sha256": "5453276c94f62c08b33e8f10bcbfc5f1180fcc4e8b3f49dfd27fb125ca7d38a3",
+      "preservedPath": "raw/dist/locales/indonesian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73856,
+      "gzipBytes": 20764,
+      "path": "dist/locales/irish.js",
+      "sha256": "8462e791ed10d09bac1087e667108884f65fb642b0b6fa7597653a6b527f612c",
+      "preservedPath": "raw/dist/locales/irish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72394,
+      "gzipBytes": 19876,
+      "path": "dist/locales/italian.js",
+      "sha256": "8b71faa1876fa778779ae53ebb17023b570dc428fbf90a32cd9dabd67a310070",
+      "preservedPath": "raw/dist/locales/italian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 89080,
+      "gzipBytes": 28657,
+      "path": "dist/locales/japanese.js",
+      "sha256": "26cc79b709b472a471653e53c43d86feb68974c7f3d8379d53e5eb44322f2540",
+      "preservedPath": "raw/dist/locales/japanese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 123115,
+      "gzipBytes": 23546,
+      "path": "dist/locales/kannada.js",
+      "sha256": "91410202d263edf6279c0e0987a20e010d4ab70ef84a8892a0699a4c9e46ac8b",
+      "preservedPath": "raw/dist/locales/kannada.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 95215,
+      "gzipBytes": 22422,
+      "path": "dist/locales/kazakh.js",
+      "sha256": "9af2da52fd77f3ba868659a658e9e1b23c3cb8b73de0cebc4da50e421ac2fb66",
+      "preservedPath": "raw/dist/locales/kazakh.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 119584,
+      "gzipBytes": 23302,
+      "path": "dist/locales/khmer.js",
+      "sha256": "c409bd05cbbd6547c0909fef2dbbd34da70da34c337a91e30e278df9aa20aaad",
+      "preservedPath": "raw/dist/locales/khmer.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 74672,
+      "gzipBytes": 20368,
+      "path": "dist/locales/kinyarwanda.js",
+      "sha256": "6051112abd2aade692b17e874387b4a2b6aa576a57c5e508a75510c3704858ec",
+      "preservedPath": "raw/dist/locales/kinyarwanda.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 107922,
+      "gzipBytes": 45643,
+      "path": "dist/locales/korean.js",
+      "sha256": "6103d94d342ffda1d0b0c9a60d2cef88ae41fb0fa6ece806321d42e6235785d4",
+      "preservedPath": "raw/dist/locales/korean.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73580,
+      "gzipBytes": 20820,
+      "path": "dist/locales/kurdish.js",
+      "sha256": "94b456092cbf5b292fdf6568c13d1065775de38d1cf2beac0ae6cb231bf77359",
+      "preservedPath": "raw/dist/locales/kurdish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 96297,
+      "gzipBytes": 22707,
+      "path": "dist/locales/kyrgyz.js",
+      "sha256": "d94c0790fde4d2b3367b845c6a257c9d669e94bc28789b64328003003c0ea9b3",
+      "preservedPath": "raw/dist/locales/kyrgyz.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 106349,
+      "gzipBytes": 21962,
+      "path": "dist/locales/lao.js",
+      "sha256": "c4c6e1a0a6b1c0cfa6453b355f0480e3fd11246f0c731e4ac9f5d54fd52f6719",
+      "preservedPath": "raw/dist/locales/lao.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73776,
+      "gzipBytes": 20712,
+      "path": "dist/locales/latvian.js",
+      "sha256": "13e94af7c320c319400ac5191aacf3bfaaaea2f867cf563712921fc64b0d1d24",
+      "preservedPath": "raw/dist/locales/latvian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71886,
+      "gzipBytes": 20748,
+      "path": "dist/locales/lithuanian.js",
+      "sha256": "ffb6ed2ad60b5e1a83d799c96a2f7d89356d2135b3742dd366a6fb7a0c95966e",
+      "preservedPath": "raw/dist/locales/lithuanian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 95653,
+      "gzipBytes": 22634,
+      "path": "dist/locales/macedonian.js",
+      "sha256": "30bdd7cb3141d7d2dcd17fdb33ae0e5ef4214bae92801f94bd24050d4420bb0d",
+      "preservedPath": "raw/dist/locales/macedonian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 76556,
+      "gzipBytes": 20141,
+      "path": "dist/locales/malagasy.js",
+      "sha256": "89b4c258c2dd53078634149c32af8af7b0577ed215a6af344ff79b050da8eea4",
+      "preservedPath": "raw/dist/locales/malagasy.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 68632,
+      "gzipBytes": 19057,
+      "path": "dist/locales/malay.js",
+      "sha256": "f2ae5f432ac62ebfe2536b5bf17d838c71b62d4caf191bd30a93c1e6e7f8e268",
+      "preservedPath": "raw/dist/locales/malay.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 125782,
+      "gzipBytes": 24024,
+      "path": "dist/locales/malayalam.js",
+      "sha256": "00402a4758a5bb3c707b80358aca109633c751c5c724a17d197135968ec8ab92",
+      "preservedPath": "raw/dist/locales/malayalam.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73285,
+      "gzipBytes": 20482,
+      "path": "dist/locales/maltese.js",
+      "sha256": "0e183a0177c7dd30b9c6e96dff5f02171f7b9f23a2bf29428bf53d7f993b7c25",
+      "preservedPath": "raw/dist/locales/maltese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 109712,
+      "gzipBytes": 23056,
+      "path": "dist/locales/marathi.js",
+      "sha256": "c64dc6f481bc2d11658b8ee370b666362afb92a61632399e6c98ecb344520241",
+      "preservedPath": "raw/dist/locales/marathi.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 95737,
+      "gzipBytes": 22242,
+      "path": "dist/locales/mongolian.js",
+      "sha256": "e62ab1dc451cf5cd2a1fe1f045db315165e5053903081bc67d623c9c538c5fb6",
+      "preservedPath": "raw/dist/locales/mongolian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 115699,
+      "gzipBytes": 23087,
+      "path": "dist/locales/nepali.js",
+      "sha256": "7ebd219ae7564dd417a1581a27f1f19af40258757682a68c428a64bcd500bef8",
+      "preservedPath": "raw/dist/locales/nepali.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 69080,
+      "gzipBytes": 19725,
+      "path": "dist/locales/norwegian.js",
+      "sha256": "cef2424e0f10fce5be38336652b81d6af25e52a33c803298927e2af6642c2932",
+      "preservedPath": "raw/dist/locales/norwegian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 112529,
+      "gzipBytes": 22464,
+      "path": "dist/locales/odia.js",
+      "sha256": "abc3b794a97716ee82fad057a56a8444a820221a31b8ce4be5969d0cf63606ca",
+      "preservedPath": "raw/dist/locales/odia.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 86108,
+      "gzipBytes": 22391,
+      "path": "dist/locales/pashto.js",
+      "sha256": "d0f79478fb1eefb5f0b10b04f9bf7bd07bb80742cedfb9cfe8a954017ddbaa6e",
+      "preservedPath": "raw/dist/locales/pashto.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 87741,
+      "gzipBytes": 21934,
+      "path": "dist/locales/persian.js",
+      "sha256": "c4290165d5415032bc0f497384dd0c4525c46856f51455ee5feeb21841ca0607",
+      "preservedPath": "raw/dist/locales/persian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71429,
+      "gzipBytes": 20684,
+      "path": "dist/locales/polish.js",
+      "sha256": "9440e39567cf4fbbfe88a40151524e23ed79657c8dfe2a215f5f24cbf9ee700b",
+      "preservedPath": "raw/dist/locales/polish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72956,
+      "gzipBytes": 19992,
+      "path": "dist/locales/portuguese.js",
+      "sha256": "b325a8001baf8db506e18e309df1c0d61d314d0a9bc73314c468c738d9c64818",
+      "preservedPath": "raw/dist/locales/portuguese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 109400,
+      "gzipBytes": 23281,
+      "path": "dist/locales/punjabi.js",
+      "sha256": "81f3f545746e6c7ca130e217c8f2a533ea2679c194b700a7eeeaaa187894b75d",
+      "preservedPath": "raw/dist/locales/punjabi.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73201,
+      "gzipBytes": 20451,
+      "path": "dist/locales/romanian.js",
+      "sha256": "893ad2bb7957f3f236abd9fcec8b18fc788279e36fdf6db6ad0bf4a529101da0",
+      "preservedPath": "raw/dist/locales/romanian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 92052,
+      "gzipBytes": 22701,
+      "path": "dist/locales/russian.js",
+      "sha256": "8180e3a1fcaff0557611a15d8a9f227fef928c0b87c2fd5e329dd95f607c9a11",
+      "preservedPath": "raw/dist/locales/russian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 93066,
+      "gzipBytes": 22888,
+      "path": "dist/locales/serbian.js",
+      "sha256": "178466e156b3f4755af86fb704a420688aa0395b57f425e6c72f3c52a1baf7c6",
+      "preservedPath": "raw/dist/locales/serbian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 84435,
+      "gzipBytes": 21399,
+      "path": "dist/locales/sindhi.js",
+      "sha256": "85d3e1f75e0f308a18869c80b7297a7c2d77c8e5d33ad9cea48c7f2f8076013b",
+      "preservedPath": "raw/dist/locales/sindhi.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 114644,
+      "gzipBytes": 23372,
+      "path": "dist/locales/sinhala.js",
+      "sha256": "a8abcb7910c72733dc9452bb0fd9ace050e3e3587c32215ed636b98044ad3c8c",
+      "preservedPath": "raw/dist/locales/sinhala.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73021,
+      "gzipBytes": 21219,
+      "path": "dist/locales/slovak.js",
+      "sha256": "868c6613f595e33529d1b0403b54a8f4e3f356e5ae484da77400e406b611218b",
+      "preservedPath": "raw/dist/locales/slovak.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70742,
+      "gzipBytes": 20399,
+      "path": "dist/locales/slovenian.js",
+      "sha256": "e87a786068e5da91d0675a629a59f1f0dc3f6463f02a548d86e4768cd018e826",
+      "preservedPath": "raw/dist/locales/slovenian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72459,
+      "gzipBytes": 20675,
+      "path": "dist/locales/somali.js",
+      "sha256": "a11f18b53346a27622f00c57de0eed35281188554b3d353859c0595dad7c0831",
+      "preservedPath": "raw/dist/locales/somali.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72871,
+      "gzipBytes": 20166,
+      "path": "dist/locales/spanish.js",
+      "sha256": "a0b242265019d2233984bd9d3684e6cc2421534222a1de1ae88f380354211f51",
+      "preservedPath": "raw/dist/locales/spanish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70917,
+      "gzipBytes": 20120,
+      "path": "dist/locales/swahili.js",
+      "sha256": "4234db4cdce2dd404059826bda78f5ec8b895b09d38ace99144a5aba40d85782",
+      "preservedPath": "raw/dist/locales/swahili.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 70018,
+      "gzipBytes": 19842,
+      "path": "dist/locales/swedish.js",
+      "sha256": "3620c7d79387ef74cda0b762ceb4c3b357ac7e36de2e41870e7cbc37e3a5b017",
+      "preservedPath": "raw/dist/locales/swedish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 95507,
+      "gzipBytes": 22266,
+      "path": "dist/locales/tajik.js",
+      "sha256": "9d975c202ed27d908cc3ac734f1801af210d0fb79a79985c3c2a7f9b82950276",
+      "preservedPath": "raw/dist/locales/tajik.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 125883,
+      "gzipBytes": 23490,
+      "path": "dist/locales/tamil.js",
+      "sha256": "b9ddb673d21d8dbfa49b9194401bdbdf2842117101338fbe40a5ad1d53c953e9",
+      "preservedPath": "raw/dist/locales/tamil.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 123101,
+      "gzipBytes": 23682,
+      "path": "dist/locales/telugu.js",
+      "sha256": "a392122ec621cf8616ebc0894b6b44ce02e52cf1c5519407a7a32ec123c857a9",
+      "preservedPath": "raw/dist/locales/telugu.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 112713,
+      "gzipBytes": 22709,
+      "path": "dist/locales/thai.js",
+      "sha256": "3e09c6e8c279681881e62b3f219d6b3b3587156ececd79c6631a3d7fb4918982",
+      "preservedPath": "raw/dist/locales/thai.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 71336,
+      "gzipBytes": 20179,
+      "path": "dist/locales/turkish.js",
+      "sha256": "9f6cb4a89f423a3b24e09943bbd0a500701a382c1132ca95dbf27420e846eaf0",
+      "preservedPath": "raw/dist/locales/turkish.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72668,
+      "gzipBytes": 20273,
+      "path": "dist/locales/turkmen.js",
+      "sha256": "d563f16d1fb952bff1e82b50d2c15811c26e785045190223f7c1a6c7d14cee7e",
+      "preservedPath": "raw/dist/locales/turkmen.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 94798,
+      "gzipBytes": 22942,
+      "path": "dist/locales/ukrainian.js",
+      "sha256": "c9d2f9b10b8f499e751ad3adf1ac45f943328a597fb8f02a8df6c1aa4ea9ae37",
+      "preservedPath": "raw/dist/locales/ukrainian.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 89513,
+      "gzipBytes": 22158,
+      "path": "dist/locales/urdu.js",
+      "sha256": "ad0b09865cd8aca11ec649384994d02ba657708793c5a0697741bd57b5a455c9",
+      "preservedPath": "raw/dist/locales/urdu.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72378,
+      "gzipBytes": 20290,
+      "path": "dist/locales/uzbek.js",
+      "sha256": "714d41a7a052ee7fa6cde8a55b22678d302ca1f49f2ae75a790e3ca3f8fcee1d",
+      "preservedPath": "raw/dist/locales/uzbek.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 76078,
+      "gzipBytes": 20394,
+      "path": "dist/locales/vietnamese.js",
+      "sha256": "58ad93b974ac1fc1b22a1aed083edda4343159627b8eadd675bd6eb2a6ccd38b",
+      "preservedPath": "raw/dist/locales/vietnamese.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 72944,
+      "gzipBytes": 20550,
+      "path": "dist/locales/xhosa.js",
+      "sha256": "fa6e64888e7c18cb992d704593270f97c6849bd53820aab8fa61178336f69304",
+      "preservedPath": "raw/dist/locales/xhosa.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 78498,
+      "gzipBytes": 21082,
+      "path": "dist/locales/yoruba.js",
+      "sha256": "6e339413371dc4280697214cf4994a3af0ae41b1c6bbb879bb3f964fbe127f38",
+      "preservedPath": "raw/dist/locales/yoruba.js"
+    },
+    {
+      "family": "web",
+      "category": "locales",
+      "bytes": 73342,
+      "gzipBytes": 20428,
+      "path": "dist/locales/zulu.js",
+      "sha256": "f5bcbb5f695714e3e289ce9e1659c16a9a8556b8475d843335137931ea8d614a",
+      "preservedPath": "raw/dist/locales/zulu.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 11635,
+      "gzipBytes": 4019,
+      "path": "dist/media-companion.js",
+      "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1",
+      "preservedPath": "raw/dist/media-companion.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 38314,
+      "gzipBytes": 12236,
+      "path": "dist/modern-interface.js",
+      "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9",
+      "preservedPath": "raw/dist/modern-interface.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 7285,
+      "gzipBytes": 2038,
+      "path": "dist/offline-worker.js",
+      "sha256": "ce06cbda553221133226127ccb54308efbe52c7f6631893204258a980f60be85",
+      "preservedPath": "raw/dist/offline-worker.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 21591,
+      "gzipBytes": 8051,
+      "path": "dist/perf-capture.js",
+      "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576",
+      "preservedPath": "raw/dist/perf-capture.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 1212101,
+      "gzipBytes": 370753,
+      "path": "dist/player.js",
+      "sha256": "1c367abbeeb4d681790c8094f1871fd0a34e91a47b1c48d2080214c7d5f3c8e8",
+      "preservedPath": "raw/dist/player.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 9463,
+      "gzipBytes": 3591,
+      "path": "dist/provider-catalog.js",
+      "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d",
+      "preservedPath": "raw/dist/provider-catalog.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 15753,
+      "gzipBytes": 6157,
+      "path": "dist/provider-edem.js",
+      "sha256": "5f424ea9fd9c917175c4c9ee80a24f721446bd1b37856c18a0d749a69b219175",
+      "preservedPath": "raw/dist/provider-edem.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 19349,
+      "gzipBytes": 7077,
+      "path": "dist/provider-m3u.js",
+      "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227",
+      "preservedPath": "raw/dist/provider-m3u.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 11808,
+      "gzipBytes": 4395,
+      "path": "dist/provider-playlist.js",
+      "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c",
+      "preservedPath": "raw/dist/provider-playlist.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 62592,
+      "gzipBytes": 21439,
+      "path": "dist/provider-plex.js",
+      "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d",
+      "preservedPath": "raw/dist/provider-plex.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 18737,
+      "gzipBytes": 6878,
+      "path": "dist/provider-stalker.js",
+      "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298",
+      "preservedPath": "raw/dist/provider-stalker.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 91666,
+      "gzipBytes": 28700,
+      "path": "dist/provider-torrent.js",
+      "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920",
+      "preservedPath": "raw/dist/provider-torrent.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 11391,
+      "gzipBytes": 4360,
+      "path": "dist/provider-vportal.js",
+      "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7",
+      "preservedPath": "raw/dist/provider-vportal.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 4158,
+      "gzipBytes": 1748,
+      "path": "dist/provider-xtream.js",
+      "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02",
+      "preservedPath": "raw/dist/provider-xtream.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 2560,
+      "gzipBytes": 1203,
+      "path": "dist/remote-local-runner.js",
+      "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541",
+      "preservedPath": "raw/dist/remote-local-runner.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 15788,
+      "gzipBytes": 5518,
+      "path": "dist/remote-provider-fields.js",
+      "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3",
+      "preservedPath": "raw/dist/remote-provider-fields.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 6603,
+      "gzipBytes": 2503,
+      "path": "dist/remote-settings-extras.js",
+      "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e",
+      "preservedPath": "raw/dist/remote-settings-extras.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 32885,
+      "gzipBytes": 10418,
+      "path": "dist/remote-settings-lifecycle.js",
+      "sha256": "f9b19360e71b7cc5563ea06e1693c4aac5b74b7f066a6c7659913dcad732ddbd",
+      "preservedPath": "raw/dist/remote-settings-lifecycle.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 15851,
+      "gzipBytes": 5205,
+      "path": "dist/remote-settings.js",
+      "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251",
+      "preservedPath": "raw/dist/remote-settings.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 3342,
+      "gzipBytes": 1558,
+      "path": "dist/runtime-debug-details.js",
+      "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce",
+      "preservedPath": "raw/dist/runtime-debug-details.js"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 1144,
+      "gzipBytes": 599,
+      "path": "dist/shaka-tracks.js",
+      "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29",
+      "preservedPath": "raw/dist/shaka-tracks.js"
+    },
+    {
+      "family": "web",
+      "category": "stylesheets",
+      "bytes": 77926,
+      "gzipBytes": 13745,
+      "path": "dist/styles/player.css",
+      "sha256": "d648792884fc16d65013d8316fd2ccc80724bcb8c3c3aa7a309c69060c07f2b8",
+      "preservedPath": "raw/dist/styles/player.css"
+    },
+    {
+      "family": "web",
+      "category": "rootJavaScript",
+      "bytes": 8823,
+      "gzipBytes": 3869,
+      "path": "dist/subtitle-appearance.js",
+      "sha256": "d6136c7d15b8021bb99b113e4b61f68b703a53e5000ec65132508fd2f894b21a",
+      "preservedPath": "raw/dist/subtitle-appearance.js"
+    },
+    {
+      "family": "tauri",
+      "category": "stylesheets",
+      "bytes": 412,
+      "gzipBytes": 242,
+      "path": "src-tauri/frontend/devices/pc2/player.css",
+      "sha256": "5902485736d78e8595960d2323346111333f40ff437ecbe4ee749aaf1c5193fa",
+      "preservedPath": "raw/src-tauri/frontend/devices/pc2/player.css"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 10444,
+      "gzipBytes": 4378,
+      "path": "src-tauri/frontend/dist/color-appearance.js",
+      "sha256": "c32efdd01585f50b5564004fc74aa7105d77c8b50af17bbee675f38c62bdc05d",
+      "preservedPath": "raw/src-tauri/frontend/dist/color-appearance.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 3011,
+      "gzipBytes": 1354,
+      "path": "src-tauri/frontend/dist/control-transport.js",
+      "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2",
+      "preservedPath": "raw/src-tauri/frontend/dist/control-transport.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 257665,
+      "gzipBytes": 66255,
+      "path": "src-tauri/frontend/dist/favorites-transfer.js",
+      "sha256": "489f339a72e71b8d6edf28f2e9bc531fc621908b71851233f92abbc4ab6539e8",
+      "preservedPath": "raw/src-tauri/frontend/dist/favorites-transfer.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 9238,
+      "gzipBytes": 3446,
+      "path": "src-tauri/frontend/dist/local-compatibility.js",
+      "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148",
+      "preservedPath": "raw/src-tauri/frontend/dist/local-compatibility.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 5763,
+      "gzipBytes": 2273,
+      "path": "src-tauri/frontend/dist/local-drop.js",
+      "sha256": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e",
+      "preservedPath": "raw/src-tauri/frontend/dist/local-drop.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 8455,
+      "gzipBytes": 3336,
+      "path": "src-tauri/frontend/dist/local-media-ui.js",
+      "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6",
+      "preservedPath": "raw/src-tauri/frontend/dist/local-media-ui.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 11635,
+      "gzipBytes": 4019,
+      "path": "src-tauri/frontend/dist/media-companion.js",
+      "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1",
+      "preservedPath": "raw/src-tauri/frontend/dist/media-companion.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 38314,
+      "gzipBytes": 12236,
+      "path": "src-tauri/frontend/dist/modern-interface.js",
+      "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9",
+      "preservedPath": "raw/src-tauri/frontend/dist/modern-interface.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 21591,
+      "gzipBytes": 8051,
+      "path": "src-tauri/frontend/dist/perf-capture.js",
+      "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576",
+      "preservedPath": "raw/src-tauri/frontend/dist/perf-capture.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 1212063,
+      "gzipBytes": 370809,
+      "path": "src-tauri/frontend/dist/player.js",
+      "sha256": "119a7686bd2e195ca30ae03d132ed988cab52bb66b6f9d12c0bfb844e1bd8dbe",
+      "preservedPath": "raw/src-tauri/frontend/dist/player.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 9463,
+      "gzipBytes": 3591,
+      "path": "src-tauri/frontend/dist/provider-catalog.js",
+      "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-catalog.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 15753,
+      "gzipBytes": 6157,
+      "path": "src-tauri/frontend/dist/provider-edem.js",
+      "sha256": "5f424ea9fd9c917175c4c9ee80a24f721446bd1b37856c18a0d749a69b219175",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-edem.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 19349,
+      "gzipBytes": 7077,
+      "path": "src-tauri/frontend/dist/provider-m3u.js",
+      "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-m3u.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 11808,
+      "gzipBytes": 4395,
+      "path": "src-tauri/frontend/dist/provider-playlist.js",
+      "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-playlist.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 62592,
+      "gzipBytes": 21439,
+      "path": "src-tauri/frontend/dist/provider-plex.js",
+      "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-plex.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 18737,
+      "gzipBytes": 6878,
+      "path": "src-tauri/frontend/dist/provider-stalker.js",
+      "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-stalker.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 91666,
+      "gzipBytes": 28700,
+      "path": "src-tauri/frontend/dist/provider-torrent.js",
+      "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-torrent.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 11391,
+      "gzipBytes": 4360,
+      "path": "src-tauri/frontend/dist/provider-vportal.js",
+      "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-vportal.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 4158,
+      "gzipBytes": 1748,
+      "path": "src-tauri/frontend/dist/provider-xtream.js",
+      "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02",
+      "preservedPath": "raw/src-tauri/frontend/dist/provider-xtream.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 2560,
+      "gzipBytes": 1203,
+      "path": "src-tauri/frontend/dist/remote-local-runner.js",
+      "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541",
+      "preservedPath": "raw/src-tauri/frontend/dist/remote-local-runner.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 15788,
+      "gzipBytes": 5518,
+      "path": "src-tauri/frontend/dist/remote-provider-fields.js",
+      "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3",
+      "preservedPath": "raw/src-tauri/frontend/dist/remote-provider-fields.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 6603,
+      "gzipBytes": 2503,
+      "path": "src-tauri/frontend/dist/remote-settings-extras.js",
+      "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e",
+      "preservedPath": "raw/src-tauri/frontend/dist/remote-settings-extras.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 32885,
+      "gzipBytes": 10418,
+      "path": "src-tauri/frontend/dist/remote-settings-lifecycle.js",
+      "sha256": "f9b19360e71b7cc5563ea06e1693c4aac5b74b7f066a6c7659913dcad732ddbd",
+      "preservedPath": "raw/src-tauri/frontend/dist/remote-settings-lifecycle.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 15851,
+      "gzipBytes": 5205,
+      "path": "src-tauri/frontend/dist/remote-settings.js",
+      "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251",
+      "preservedPath": "raw/src-tauri/frontend/dist/remote-settings.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 3342,
+      "gzipBytes": 1558,
+      "path": "src-tauri/frontend/dist/runtime-debug-details.js",
+      "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce",
+      "preservedPath": "raw/src-tauri/frontend/dist/runtime-debug-details.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 1144,
+      "gzipBytes": 599,
+      "path": "src-tauri/frontend/dist/shaka-tracks.js",
+      "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29",
+      "preservedPath": "raw/src-tauri/frontend/dist/shaka-tracks.js"
+    },
+    {
+      "family": "tauri",
+      "category": "rootJavaScript",
+      "bytes": 8823,
+      "gzipBytes": 3869,
+      "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+      "sha256": "d6136c7d15b8021bb99b113e4b61f68b703a53e5000ec65132508fd2f894b21a",
+      "preservedPath": "raw/src-tauri/frontend/dist/subtitle-appearance.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 68679,
+      "gzipBytes": 19788,
+      "path": "src-tauri/frontend/locales/afrikaans.js",
+      "sha256": "d0d74347e82d2e5e0e9ec5790002ce61f4b73cc2c51599e6c3cde7e7690383c0",
+      "preservedPath": "raw/src-tauri/frontend/locales/afrikaans.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73480,
+      "gzipBytes": 20825,
+      "path": "src-tauri/frontend/locales/albanian.js",
+      "sha256": "ffeb749ea53f107993390fdb4b75ef535fc7f4dc5ca3b6c230c43fffc11f2323",
+      "preservedPath": "raw/src-tauri/frontend/locales/albanian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 88964,
+      "gzipBytes": 22940,
+      "path": "src-tauri/frontend/locales/amharic.js",
+      "sha256": "1d86e9497e72bc9417a9eea5c510b04ed814c2f42e875bb25b79210a6c17497b",
+      "preservedPath": "raw/src-tauri/frontend/locales/amharic.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 84017,
+      "gzipBytes": 21717,
+      "path": "src-tauri/frontend/locales/arabic.js",
+      "sha256": "6eaf7fa2d57fad60831ee36b697cd187969f9922801aab13499af7a67660ff3a",
+      "preservedPath": "raw/src-tauri/frontend/locales/arabic.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 96575,
+      "gzipBytes": 22990,
+      "path": "src-tauri/frontend/locales/armenian.js",
+      "sha256": "6577554346901544d5ead71e519a6a34f740f20fe05a701bc9f396b0de5663b4",
+      "preservedPath": "raw/src-tauri/frontend/locales/armenian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 110000,
+      "gzipBytes": 22600,
+      "path": "src-tauri/frontend/locales/assamese.js",
+      "sha256": "b278d941a63ef508335f03cb4e6e0301b5a6e8be4220dc9fc42a5dde82ed7d69",
+      "preservedPath": "raw/src-tauri/frontend/locales/assamese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73388,
+      "gzipBytes": 20594,
+      "path": "src-tauri/frontend/locales/azerbaijani.js",
+      "sha256": "c7b9ba7afd3f291779a21e9daa7861b80bda53b25a20245267a34a7b08255426",
+      "preservedPath": "raw/src-tauri/frontend/locales/azerbaijani.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72246,
+      "gzipBytes": 19946,
+      "path": "src-tauri/frontend/locales/basque.js",
+      "sha256": "f73a603ce65ea4fde8c7eb825f2a19f1979209e3ff4285b468503119b833f0e5",
+      "preservedPath": "raw/src-tauri/frontend/locales/basque.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 91986,
+      "gzipBytes": 23005,
+      "path": "src-tauri/frontend/locales/belarusian.js",
+      "sha256": "0545a07ff866a4e1398d58f75f93d43a0f6bc5f074ec983c9383bae3218286e1",
+      "preservedPath": "raw/src-tauri/frontend/locales/belarusian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 113486,
+      "gzipBytes": 23059,
+      "path": "src-tauri/frontend/locales/bengali.js",
+      "sha256": "838b01c5a198f94d4964e46cd8666eaa39e756cd17262e8a2a39829d2e05d3c5",
+      "preservedPath": "raw/src-tauri/frontend/locales/bengali.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70983,
+      "gzipBytes": 20506,
+      "path": "src-tauri/frontend/locales/bosnian.js",
+      "sha256": "c070657e26c86a0898c65e9736c734b837a39c416019c299660079e8fa60f22d",
+      "preservedPath": "raw/src-tauri/frontend/locales/bosnian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 96459,
+      "gzipBytes": 22951,
+      "path": "src-tauri/frontend/locales/bulgarian.js",
+      "sha256": "13f59bee49b56f9c57596d9823bf02053f2c9112c24cfd0aa7e2b85a04b1eff0",
+      "preservedPath": "raw/src-tauri/frontend/locales/bulgarian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 133489,
+      "gzipBytes": 24371,
+      "path": "src-tauri/frontend/locales/burmese.js",
+      "sha256": "4ff557e5f09e535b8cd97b88c17fdb95b2e3c150d081596e7e2ee22d25f69b75",
+      "preservedPath": "raw/src-tauri/frontend/locales/burmese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 75351,
+      "gzipBytes": 20377,
+      "path": "src-tauri/frontend/locales/catalan.js",
+      "sha256": "ea6bfe125bfe115e37b1c4a5cd91665b64d2649fd3b667321f1a52a91601dbd6",
+      "preservedPath": "raw/src-tauri/frontend/locales/catalan.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70714,
+      "gzipBytes": 26110,
+      "path": "src-tauri/frontend/locales/chinese.js",
+      "sha256": "cdda5b07082c657f25a66957a460f73277d15f74159b1f92728d9f0a13662489",
+      "preservedPath": "raw/src-tauri/frontend/locales/chinese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71535,
+      "gzipBytes": 20589,
+      "path": "src-tauri/frontend/locales/croatian.js",
+      "sha256": "e792921aaf52205a788ab8f80e787614c992be1f0e70ae655c0592d7ad321d17",
+      "preservedPath": "raw/src-tauri/frontend/locales/croatian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71308,
+      "gzipBytes": 20620,
+      "path": "src-tauri/frontend/locales/czech.js",
+      "sha256": "45c1b5bc3ea87248cb0ffb2f6730637313ce8b37ac43b8887c038bac2bf91817",
+      "preservedPath": "raw/src-tauri/frontend/locales/czech.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 69094,
+      "gzipBytes": 19565,
+      "path": "src-tauri/frontend/locales/danish.js",
+      "sha256": "9b27ba1ac7493750cc19868204796d63bd9db514fc47dae06bb3f19833312956",
+      "preservedPath": "raw/src-tauri/frontend/locales/danish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70937,
+      "gzipBytes": 19806,
+      "path": "src-tauri/frontend/locales/dutch.js",
+      "sha256": "0e8fdb25fbbcef90cd9665e5fe75376d5f03b0a8d24336dbb8c4068d9c06f09a",
+      "preservedPath": "raw/src-tauri/frontend/locales/dutch.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 65230,
+      "gzipBytes": 13740,
+      "path": "src-tauri/frontend/locales/english.js",
+      "sha256": "b2e15e97970fe2731efcd4f2435d8bef762588b7bfd50075dc9eee417aec0b9f",
+      "preservedPath": "raw/src-tauri/frontend/locales/english.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 68585,
+      "gzipBytes": 20122,
+      "path": "src-tauri/frontend/locales/estonian.js",
+      "sha256": "9d5a93565e2db172207b912171661c731d264b1febe6473658c011331ddca1d6",
+      "preservedPath": "raw/src-tauri/frontend/locales/estonian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 74137,
+      "gzipBytes": 19799,
+      "path": "src-tauri/frontend/locales/filipino.js",
+      "sha256": "2c4edb59c154deff5fc7afa8af31b52ccdda52d199f790e4361323cd876da20b",
+      "preservedPath": "raw/src-tauri/frontend/locales/filipino.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71024,
+      "gzipBytes": 20476,
+      "path": "src-tauri/frontend/locales/finnish.js",
+      "sha256": "71e93f460fba8b64baa09ce5f01755affb2b38e2c9c837120ffe660706d4e7c0",
+      "preservedPath": "raw/src-tauri/frontend/locales/finnish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 74883,
+      "gzipBytes": 20454,
+      "path": "src-tauri/frontend/locales/french.js",
+      "sha256": "4d799c0b99c081c1d6671e89ac44857deb8675ad3a0c162f1cdfec6f8a8113d0",
+      "preservedPath": "raw/src-tauri/frontend/locales/french.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73367,
+      "gzipBytes": 19973,
+      "path": "src-tauri/frontend/locales/galician.js",
+      "sha256": "153cb032f44e76121529ec1aa07c8277c3c503c2cc807cbc2947605a710215c1",
+      "preservedPath": "raw/src-tauri/frontend/locales/galician.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 120333,
+      "gzipBytes": 23480,
+      "path": "src-tauri/frontend/locales/georgian.js",
+      "sha256": "64250d56a2e2df9d454186c7163b76998f024578027392e9e3b6d077b038f220",
+      "preservedPath": "raw/src-tauri/frontend/locales/georgian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73656,
+      "gzipBytes": 20516,
+      "path": "src-tauri/frontend/locales/german.js",
+      "sha256": "72c115024a1d9d939d062d1bd48321f228aeca6f8b351eed7d62a068071ef10c",
+      "preservedPath": "raw/src-tauri/frontend/locales/german.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 101709,
+      "gzipBytes": 23922,
+      "path": "src-tauri/frontend/locales/greek.js",
+      "sha256": "d30f8f765b2d73cb000086133e79132d02a7d25d0a701d679681f94427eaae3e",
+      "preservedPath": "raw/src-tauri/frontend/locales/greek.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 108463,
+      "gzipBytes": 22955,
+      "path": "src-tauri/frontend/locales/gujarati.js",
+      "sha256": "f86f3839664ecd746729975f7fafdd369e92a33e4a494168738079b0c6ad047d",
+      "preservedPath": "raw/src-tauri/frontend/locales/gujarati.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 69763,
+      "gzipBytes": 19583,
+      "path": "src-tauri/frontend/locales/hausa.js",
+      "sha256": "58210b08f09c4c8b7b699841eafd6585b4a20544bc2f0e21570f44152273bc47",
+      "preservedPath": "raw/src-tauri/frontend/locales/hausa.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 76819,
+      "gzipBytes": 20670,
+      "path": "src-tauri/frontend/locales/hebrew.js",
+      "sha256": "a416d0fa29758bc3708fd7f7a00cc1b27eb07bf7cbe863b47b6d280583414da8",
+      "preservedPath": "raw/src-tauri/frontend/locales/hebrew.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 110129,
+      "gzipBytes": 23225,
+      "path": "src-tauri/frontend/locales/hindi.js",
+      "sha256": "df0f167ca410f5af9c1385ddfc76e63556c96db0cb1d4892ec35f7a40a67bdf3",
+      "preservedPath": "raw/src-tauri/frontend/locales/hindi.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 75793,
+      "gzipBytes": 21370,
+      "path": "src-tauri/frontend/locales/hungarian.js",
+      "sha256": "2aeac5ac128a3ec17a84feb1b9322dd596db5e1c804dac430fe996981425a2ee",
+      "preservedPath": "raw/src-tauri/frontend/locales/hungarian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70142,
+      "gzipBytes": 20546,
+      "path": "src-tauri/frontend/locales/icelandic.js",
+      "sha256": "27fd87addb3c607afcad587ac86e8a6e467bf86fd2888347aa88f723b1125914",
+      "preservedPath": "raw/src-tauri/frontend/locales/icelandic.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71860,
+      "gzipBytes": 19494,
+      "path": "src-tauri/frontend/locales/igbo.js",
+      "sha256": "78d9540eb77550c963672e03c3d995c77af7d9b7f85ac2ee104209dfa6a300aa",
+      "preservedPath": "raw/src-tauri/frontend/locales/igbo.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 68699,
+      "gzipBytes": 18985,
+      "path": "src-tauri/frontend/locales/indonesian.js",
+      "sha256": "5453276c94f62c08b33e8f10bcbfc5f1180fcc4e8b3f49dfd27fb125ca7d38a3",
+      "preservedPath": "raw/src-tauri/frontend/locales/indonesian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73856,
+      "gzipBytes": 20764,
+      "path": "src-tauri/frontend/locales/irish.js",
+      "sha256": "8462e791ed10d09bac1087e667108884f65fb642b0b6fa7597653a6b527f612c",
+      "preservedPath": "raw/src-tauri/frontend/locales/irish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72394,
+      "gzipBytes": 19876,
+      "path": "src-tauri/frontend/locales/italian.js",
+      "sha256": "8b71faa1876fa778779ae53ebb17023b570dc428fbf90a32cd9dabd67a310070",
+      "preservedPath": "raw/src-tauri/frontend/locales/italian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 89080,
+      "gzipBytes": 28657,
+      "path": "src-tauri/frontend/locales/japanese.js",
+      "sha256": "26cc79b709b472a471653e53c43d86feb68974c7f3d8379d53e5eb44322f2540",
+      "preservedPath": "raw/src-tauri/frontend/locales/japanese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 123115,
+      "gzipBytes": 23546,
+      "path": "src-tauri/frontend/locales/kannada.js",
+      "sha256": "91410202d263edf6279c0e0987a20e010d4ab70ef84a8892a0699a4c9e46ac8b",
+      "preservedPath": "raw/src-tauri/frontend/locales/kannada.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 95215,
+      "gzipBytes": 22422,
+      "path": "src-tauri/frontend/locales/kazakh.js",
+      "sha256": "9af2da52fd77f3ba868659a658e9e1b23c3cb8b73de0cebc4da50e421ac2fb66",
+      "preservedPath": "raw/src-tauri/frontend/locales/kazakh.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 119584,
+      "gzipBytes": 23302,
+      "path": "src-tauri/frontend/locales/khmer.js",
+      "sha256": "c409bd05cbbd6547c0909fef2dbbd34da70da34c337a91e30e278df9aa20aaad",
+      "preservedPath": "raw/src-tauri/frontend/locales/khmer.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 74672,
+      "gzipBytes": 20368,
+      "path": "src-tauri/frontend/locales/kinyarwanda.js",
+      "sha256": "6051112abd2aade692b17e874387b4a2b6aa576a57c5e508a75510c3704858ec",
+      "preservedPath": "raw/src-tauri/frontend/locales/kinyarwanda.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 107922,
+      "gzipBytes": 45643,
+      "path": "src-tauri/frontend/locales/korean.js",
+      "sha256": "6103d94d342ffda1d0b0c9a60d2cef88ae41fb0fa6ece806321d42e6235785d4",
+      "preservedPath": "raw/src-tauri/frontend/locales/korean.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73580,
+      "gzipBytes": 20820,
+      "path": "src-tauri/frontend/locales/kurdish.js",
+      "sha256": "94b456092cbf5b292fdf6568c13d1065775de38d1cf2beac0ae6cb231bf77359",
+      "preservedPath": "raw/src-tauri/frontend/locales/kurdish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 96297,
+      "gzipBytes": 22707,
+      "path": "src-tauri/frontend/locales/kyrgyz.js",
+      "sha256": "d94c0790fde4d2b3367b845c6a257c9d669e94bc28789b64328003003c0ea9b3",
+      "preservedPath": "raw/src-tauri/frontend/locales/kyrgyz.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 106349,
+      "gzipBytes": 21962,
+      "path": "src-tauri/frontend/locales/lao.js",
+      "sha256": "c4c6e1a0a6b1c0cfa6453b355f0480e3fd11246f0c731e4ac9f5d54fd52f6719",
+      "preservedPath": "raw/src-tauri/frontend/locales/lao.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73776,
+      "gzipBytes": 20712,
+      "path": "src-tauri/frontend/locales/latvian.js",
+      "sha256": "13e94af7c320c319400ac5191aacf3bfaaaea2f867cf563712921fc64b0d1d24",
+      "preservedPath": "raw/src-tauri/frontend/locales/latvian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71886,
+      "gzipBytes": 20748,
+      "path": "src-tauri/frontend/locales/lithuanian.js",
+      "sha256": "ffb6ed2ad60b5e1a83d799c96a2f7d89356d2135b3742dd366a6fb7a0c95966e",
+      "preservedPath": "raw/src-tauri/frontend/locales/lithuanian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 95653,
+      "gzipBytes": 22634,
+      "path": "src-tauri/frontend/locales/macedonian.js",
+      "sha256": "30bdd7cb3141d7d2dcd17fdb33ae0e5ef4214bae92801f94bd24050d4420bb0d",
+      "preservedPath": "raw/src-tauri/frontend/locales/macedonian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 76556,
+      "gzipBytes": 20141,
+      "path": "src-tauri/frontend/locales/malagasy.js",
+      "sha256": "89b4c258c2dd53078634149c32af8af7b0577ed215a6af344ff79b050da8eea4",
+      "preservedPath": "raw/src-tauri/frontend/locales/malagasy.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 68632,
+      "gzipBytes": 19057,
+      "path": "src-tauri/frontend/locales/malay.js",
+      "sha256": "f2ae5f432ac62ebfe2536b5bf17d838c71b62d4caf191bd30a93c1e6e7f8e268",
+      "preservedPath": "raw/src-tauri/frontend/locales/malay.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 125782,
+      "gzipBytes": 24024,
+      "path": "src-tauri/frontend/locales/malayalam.js",
+      "sha256": "00402a4758a5bb3c707b80358aca109633c751c5c724a17d197135968ec8ab92",
+      "preservedPath": "raw/src-tauri/frontend/locales/malayalam.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73285,
+      "gzipBytes": 20482,
+      "path": "src-tauri/frontend/locales/maltese.js",
+      "sha256": "0e183a0177c7dd30b9c6e96dff5f02171f7b9f23a2bf29428bf53d7f993b7c25",
+      "preservedPath": "raw/src-tauri/frontend/locales/maltese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 109712,
+      "gzipBytes": 23056,
+      "path": "src-tauri/frontend/locales/marathi.js",
+      "sha256": "c64dc6f481bc2d11658b8ee370b666362afb92a61632399e6c98ecb344520241",
+      "preservedPath": "raw/src-tauri/frontend/locales/marathi.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 95737,
+      "gzipBytes": 22242,
+      "path": "src-tauri/frontend/locales/mongolian.js",
+      "sha256": "e62ab1dc451cf5cd2a1fe1f045db315165e5053903081bc67d623c9c538c5fb6",
+      "preservedPath": "raw/src-tauri/frontend/locales/mongolian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 115699,
+      "gzipBytes": 23087,
+      "path": "src-tauri/frontend/locales/nepali.js",
+      "sha256": "7ebd219ae7564dd417a1581a27f1f19af40258757682a68c428a64bcd500bef8",
+      "preservedPath": "raw/src-tauri/frontend/locales/nepali.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 69080,
+      "gzipBytes": 19725,
+      "path": "src-tauri/frontend/locales/norwegian.js",
+      "sha256": "cef2424e0f10fce5be38336652b81d6af25e52a33c803298927e2af6642c2932",
+      "preservedPath": "raw/src-tauri/frontend/locales/norwegian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 112529,
+      "gzipBytes": 22464,
+      "path": "src-tauri/frontend/locales/odia.js",
+      "sha256": "abc3b794a97716ee82fad057a56a8444a820221a31b8ce4be5969d0cf63606ca",
+      "preservedPath": "raw/src-tauri/frontend/locales/odia.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 86108,
+      "gzipBytes": 22391,
+      "path": "src-tauri/frontend/locales/pashto.js",
+      "sha256": "d0f79478fb1eefb5f0b10b04f9bf7bd07bb80742cedfb9cfe8a954017ddbaa6e",
+      "preservedPath": "raw/src-tauri/frontend/locales/pashto.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 87741,
+      "gzipBytes": 21934,
+      "path": "src-tauri/frontend/locales/persian.js",
+      "sha256": "c4290165d5415032bc0f497384dd0c4525c46856f51455ee5feeb21841ca0607",
+      "preservedPath": "raw/src-tauri/frontend/locales/persian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71429,
+      "gzipBytes": 20684,
+      "path": "src-tauri/frontend/locales/polish.js",
+      "sha256": "9440e39567cf4fbbfe88a40151524e23ed79657c8dfe2a215f5f24cbf9ee700b",
+      "preservedPath": "raw/src-tauri/frontend/locales/polish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72956,
+      "gzipBytes": 19992,
+      "path": "src-tauri/frontend/locales/portuguese.js",
+      "sha256": "b325a8001baf8db506e18e309df1c0d61d314d0a9bc73314c468c738d9c64818",
+      "preservedPath": "raw/src-tauri/frontend/locales/portuguese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 109400,
+      "gzipBytes": 23281,
+      "path": "src-tauri/frontend/locales/punjabi.js",
+      "sha256": "81f3f545746e6c7ca130e217c8f2a533ea2679c194b700a7eeeaaa187894b75d",
+      "preservedPath": "raw/src-tauri/frontend/locales/punjabi.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73201,
+      "gzipBytes": 20451,
+      "path": "src-tauri/frontend/locales/romanian.js",
+      "sha256": "893ad2bb7957f3f236abd9fcec8b18fc788279e36fdf6db6ad0bf4a529101da0",
+      "preservedPath": "raw/src-tauri/frontend/locales/romanian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 92052,
+      "gzipBytes": 22701,
+      "path": "src-tauri/frontend/locales/russian.js",
+      "sha256": "8180e3a1fcaff0557611a15d8a9f227fef928c0b87c2fd5e329dd95f607c9a11",
+      "preservedPath": "raw/src-tauri/frontend/locales/russian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 93066,
+      "gzipBytes": 22888,
+      "path": "src-tauri/frontend/locales/serbian.js",
+      "sha256": "178466e156b3f4755af86fb704a420688aa0395b57f425e6c72f3c52a1baf7c6",
+      "preservedPath": "raw/src-tauri/frontend/locales/serbian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 84435,
+      "gzipBytes": 21399,
+      "path": "src-tauri/frontend/locales/sindhi.js",
+      "sha256": "85d3e1f75e0f308a18869c80b7297a7c2d77c8e5d33ad9cea48c7f2f8076013b",
+      "preservedPath": "raw/src-tauri/frontend/locales/sindhi.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 114644,
+      "gzipBytes": 23372,
+      "path": "src-tauri/frontend/locales/sinhala.js",
+      "sha256": "a8abcb7910c72733dc9452bb0fd9ace050e3e3587c32215ed636b98044ad3c8c",
+      "preservedPath": "raw/src-tauri/frontend/locales/sinhala.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73021,
+      "gzipBytes": 21219,
+      "path": "src-tauri/frontend/locales/slovak.js",
+      "sha256": "868c6613f595e33529d1b0403b54a8f4e3f356e5ae484da77400e406b611218b",
+      "preservedPath": "raw/src-tauri/frontend/locales/slovak.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70742,
+      "gzipBytes": 20399,
+      "path": "src-tauri/frontend/locales/slovenian.js",
+      "sha256": "e87a786068e5da91d0675a629a59f1f0dc3f6463f02a548d86e4768cd018e826",
+      "preservedPath": "raw/src-tauri/frontend/locales/slovenian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72459,
+      "gzipBytes": 20675,
+      "path": "src-tauri/frontend/locales/somali.js",
+      "sha256": "a11f18b53346a27622f00c57de0eed35281188554b3d353859c0595dad7c0831",
+      "preservedPath": "raw/src-tauri/frontend/locales/somali.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72871,
+      "gzipBytes": 20166,
+      "path": "src-tauri/frontend/locales/spanish.js",
+      "sha256": "a0b242265019d2233984bd9d3684e6cc2421534222a1de1ae88f380354211f51",
+      "preservedPath": "raw/src-tauri/frontend/locales/spanish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70917,
+      "gzipBytes": 20120,
+      "path": "src-tauri/frontend/locales/swahili.js",
+      "sha256": "4234db4cdce2dd404059826bda78f5ec8b895b09d38ace99144a5aba40d85782",
+      "preservedPath": "raw/src-tauri/frontend/locales/swahili.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 70018,
+      "gzipBytes": 19842,
+      "path": "src-tauri/frontend/locales/swedish.js",
+      "sha256": "3620c7d79387ef74cda0b762ceb4c3b357ac7e36de2e41870e7cbc37e3a5b017",
+      "preservedPath": "raw/src-tauri/frontend/locales/swedish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 95507,
+      "gzipBytes": 22266,
+      "path": "src-tauri/frontend/locales/tajik.js",
+      "sha256": "9d975c202ed27d908cc3ac734f1801af210d0fb79a79985c3c2a7f9b82950276",
+      "preservedPath": "raw/src-tauri/frontend/locales/tajik.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 125883,
+      "gzipBytes": 23490,
+      "path": "src-tauri/frontend/locales/tamil.js",
+      "sha256": "b9ddb673d21d8dbfa49b9194401bdbdf2842117101338fbe40a5ad1d53c953e9",
+      "preservedPath": "raw/src-tauri/frontend/locales/tamil.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 123101,
+      "gzipBytes": 23682,
+      "path": "src-tauri/frontend/locales/telugu.js",
+      "sha256": "a392122ec621cf8616ebc0894b6b44ce02e52cf1c5519407a7a32ec123c857a9",
+      "preservedPath": "raw/src-tauri/frontend/locales/telugu.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 112713,
+      "gzipBytes": 22709,
+      "path": "src-tauri/frontend/locales/thai.js",
+      "sha256": "3e09c6e8c279681881e62b3f219d6b3b3587156ececd79c6631a3d7fb4918982",
+      "preservedPath": "raw/src-tauri/frontend/locales/thai.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 71336,
+      "gzipBytes": 20179,
+      "path": "src-tauri/frontend/locales/turkish.js",
+      "sha256": "9f6cb4a89f423a3b24e09943bbd0a500701a382c1132ca95dbf27420e846eaf0",
+      "preservedPath": "raw/src-tauri/frontend/locales/turkish.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72668,
+      "gzipBytes": 20273,
+      "path": "src-tauri/frontend/locales/turkmen.js",
+      "sha256": "d563f16d1fb952bff1e82b50d2c15811c26e785045190223f7c1a6c7d14cee7e",
+      "preservedPath": "raw/src-tauri/frontend/locales/turkmen.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 94798,
+      "gzipBytes": 22942,
+      "path": "src-tauri/frontend/locales/ukrainian.js",
+      "sha256": "c9d2f9b10b8f499e751ad3adf1ac45f943328a597fb8f02a8df6c1aa4ea9ae37",
+      "preservedPath": "raw/src-tauri/frontend/locales/ukrainian.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 89513,
+      "gzipBytes": 22158,
+      "path": "src-tauri/frontend/locales/urdu.js",
+      "sha256": "ad0b09865cd8aca11ec649384994d02ba657708793c5a0697741bd57b5a455c9",
+      "preservedPath": "raw/src-tauri/frontend/locales/urdu.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72378,
+      "gzipBytes": 20290,
+      "path": "src-tauri/frontend/locales/uzbek.js",
+      "sha256": "714d41a7a052ee7fa6cde8a55b22678d302ca1f49f2ae75a790e3ca3f8fcee1d",
+      "preservedPath": "raw/src-tauri/frontend/locales/uzbek.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 76078,
+      "gzipBytes": 20394,
+      "path": "src-tauri/frontend/locales/vietnamese.js",
+      "sha256": "58ad93b974ac1fc1b22a1aed083edda4343159627b8eadd675bd6eb2a6ccd38b",
+      "preservedPath": "raw/src-tauri/frontend/locales/vietnamese.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 72944,
+      "gzipBytes": 20550,
+      "path": "src-tauri/frontend/locales/xhosa.js",
+      "sha256": "fa6e64888e7c18cb992d704593270f97c6849bd53820aab8fa61178336f69304",
+      "preservedPath": "raw/src-tauri/frontend/locales/xhosa.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 78498,
+      "gzipBytes": 21082,
+      "path": "src-tauri/frontend/locales/yoruba.js",
+      "sha256": "6e339413371dc4280697214cf4994a3af0ae41b1c6bbb879bb3f964fbe127f38",
+      "preservedPath": "raw/src-tauri/frontend/locales/yoruba.js"
+    },
+    {
+      "family": "tauri",
+      "category": "locales",
+      "bytes": 73342,
+      "gzipBytes": 20428,
+      "path": "src-tauri/frontend/locales/zulu.js",
+      "sha256": "f5bcbb5f695714e3e289ce9e1659c16a9a8556b8475d843335137931ea8d614a",
+      "preservedPath": "raw/src-tauri/frontend/locales/zulu.js"
+    },
+    {
+      "family": "tauri",
+      "category": "stylesheets",
+      "bytes": 77036,
+      "gzipBytes": 13609,
+      "path": "src-tauri/frontend/styles/player.css",
+      "sha256": "9c6ba4acb04814d30447d7e84acc47e0a668ed3fb5b136e57d4ccdd0e35edd24",
+      "preservedPath": "raw/src-tauri/frontend/styles/player.css"
+    }
+  ],
+  "families": [
+    {
+      "name": "web",
+      "assetRoot": "dist",
+      "javaScriptRoot": "dist",
+      "totals": {
+        "rootJavaScript": {
+          "files": 28,
+          "bytes": 1917415,
+          "gzipBytes": 593357
+        },
+        "stylesheets": {
+          "files": 3,
+          "bytes": 81360,
+          "gzipBytes": 14974
+        },
+        "locales": {
+          "files": 88,
+          "bytes": 7571493,
+          "gzipBytes": 1912065
+        }
+      }
+    },
+    {
+      "name": "tauri",
+      "assetRoot": "src-tauri/frontend",
+      "javaScriptRoot": "src-tauri/frontend/dist",
+      "totals": {
+        "rootJavaScript": {
+          "files": 27,
+          "bytes": 1910092,
+          "gzipBytes": 591375
+        },
+        "stylesheets": {
+          "files": 2,
+          "bytes": 77448,
+          "gzipBytes": 13851
+        },
+        "locales": {
+          "files": 88,
+          "bytes": 7571493,
+          "gzipBytes": 1912065
+        }
+      }
+    },
+    {
+      "name": "mobile",
+      "assetRoot": "dist-mobile",
+      "javaScriptRoot": "dist-mobile/dist",
+      "totals": {
+        "rootJavaScript": {
+          "files": 27,
+          "bytes": 1910092,
+          "gzipBytes": 591375
+        },
+        "stylesheets": {
+          "files": 2,
+          "bytes": 77448,
+          "gzipBytes": 13851
+        },
+        "locales": {
+          "files": 88,
+          "bytes": 7571493,
+          "gzipBytes": 1912065
+        }
+      }
+    }
+  ],
+  "totals": {
+    "rootJavaScript": {
+      "files": 82,
+      "bytes": 5737599,
+      "gzipBytes": 1776107
+    },
+    "stylesheets": {
+      "files": 7,
+      "bytes": 236256,
+      "gzipBytes": 42676
+    },
+    "locales": {
+      "files": 264,
+      "bytes": 22714479,
+      "gzipBytes": 5736195
+    }
+  },
+  "errors": [],
+  "omittedErrors": 0
+}

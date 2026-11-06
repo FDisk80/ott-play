@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Nolavin'ny mpamaky ny baiko. Jereo ny mpamatsy sy ny fikirakirany.",
     About: "Mombamomba",
+    "Accent color": "Loko fanasongadinana",
     "Access code": "Kaody fidirana",
     "Access denied. Check the server access code.":
         "Tsy nahazo niditra. Jereo ny kaody fidiran'ny lohamilina.",
@@ -85,6 +86,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Tsy nahomby ny API, manandrana M3U…",
     "API Server": "Lohamilina API",
     "API server URL": "URL an'ny lohamilina API",
+    Apply: "Ampiharo",
+    "Apply changes to this draft, then use Save Settings.":
+        "Ampiharo amin’ity drafitra ity ny fanovana, avy eo fidio Tehirizo ny fikirakirana.",
     "Applying HTTP remote settings...":
         "Mampihatra ny fikirakirana fanaraha-maso HTTP lavitra…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -125,6 +129,7 @@ var keyStrings = {
     Blue: "Manga",
     "Bookmark age (days): %1": "Taonan'ny tsoratadidy (andro): %1",
     "Bookmark age: %1 days": "Faharetan'ny maripejy: %1 andro",
+    "Border color": "Lokon’ny sisiny",
     Brightness: "Famirapiratana",
     "Browse folders": "Jereo ny lahatahiry",
     "Buffer Size, s": "Haben'ny fitadidiana vonjimaika, s",
@@ -203,6 +208,7 @@ var keyStrings = {
     "Cloud transfer failed": "Tsy nahomby ny famindrana angona amin’ny rahona",
     Code: "Kaody",
     Color: "Loko",
+    "Color schemes": "Fandaminana loko",
     "Color spectrum": "Andian-doko",
     "Command server": "Lohamilina baiko",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -345,6 +351,7 @@ var keyStrings = {
         "Tsy afaka nanavao ny fanaraha-maso HTTP lavitra.",
     Country: "Firenena",
     "Create category": "Mamoròna sokajy",
+    Custom: "Namboarina manokana",
     current: "ankehitriny",
     "Debug enabled. Restart to apply.":
         "Mandeha ny fitadiavana lesoka. Avereno atomboka mba hampiharana ny fanovana.",
@@ -513,6 +520,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Namerina HTTP %1 ny loharano EPG",
     "EPG source: %1": "Loharano EPG: %1",
     "EPG stopped during: %1": "Nijanona ny EPG nandritra ny: %1",
+    "EPG time color": "Lokon’ny ora EPG",
     "EPG unavailable on this browser":
         "Tsy misy EPG amin'ity mpitety tranonkala ity",
     "EPG unavailable: %1": "Tsy misy EPG: %1",
@@ -589,6 +597,7 @@ var keyStrings = {
     "Hide / Return": "Afeno / asehoy",
     "Hide provider settings?": "Afeno ny fikirakiran'ny mpamatsy?",
     "Hide providers?": "Afeno ny mpamatsy?",
+    "High contrast": "Fifanoharana avo",
     "History in Media Library":
         "Tantara ao amin'ny tranombokin'ny haino aman-jery",
     "History of watched movies": "Tantaran'ny fijerena",
@@ -597,6 +606,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Tsy misy fanaraha-maso HTTP lavitra amin'ity fitaovana ity.",
     "HTTPS support": "Fanohanana HTTPS",
+    Hue: "Karazan-doko",
     ID: "ID",
     "Import settings": "Ampidiro ny fikirakirana",
     "In live mode: <br/>": "Amin'ny fandefasana mivantana:<br/>",
@@ -605,6 +615,8 @@ var keyStrings = {
         "Faharetan'ny fampisehoana bara fampahalalana, s",
     "Infobar settings": "Fikirakirana bara fampahalalana",
     Information: "Fampahalalana",
+    Inherited: "Nolovaina",
+    "Interface colors": "Lokon’ny endrika",
     "Interface credits": "Mpandray anjara amin'ny endriky ny rindranasa",
     "Interface mode": "Fomba fampisehoana",
     "Interface settings": "Fikirakirana endriky ny rindranasa",
@@ -613,6 +625,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Rohy fantsona tsy manan-kery! Ampidiro ny anarana feno an'ny lohamilina araka ny URL fikorianana ao amin'ny kaontinao (ohatra subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Valin'ny firafitry ny rahona tsy mety",
+    "Invalid color value": "Sanda loko tsy mety",
     "Invalid protected source configuration":
         "Fikirakirana loharano voaaro tsy manan-kery",
     "Invalid range: %1-%2": "Elanelana tsy mety: %1-%2",
@@ -625,6 +638,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Fikirakirana KORONA TV",
     "Label (optional)": "Anarana (tsy voatery)",
+    Light: "Mazava",
     "List created": "Voaforona ny lisitra",
     "List deleted": "Voafafa ny lisitra",
     "List location": "Toeran'ny lisitra",
@@ -690,6 +704,7 @@ var keyStrings = {
     "Media Library URL": "URL tranombokin'ny haino aman-jery",
     Menu: "Safidy",
     "Menu items settings": "Fikirakirana singa ao amin'ny safidy",
+    Midnight: "Misasakalina",
     Modern: "Maoderina",
     "Modern interface is unavailable. Classic remains active.":
         "Tsy misy ny endrika maoderina. Mbola miasa ny endrika mahazatra.",
@@ -736,6 +751,7 @@ var keyStrings = {
     no: "tsia",
     "no epg at current time": "Tsy misy EPG amin'izao fotoana izao",
     "not set": "mbola tsy napetraka",
+    Ocean: "Ranomasimbe",
     Off: "Maty",
     Ok: "Eny ary",
     On: "Mandeha",
@@ -771,6 +787,7 @@ var keyStrings = {
         "Tsy misy ny lohamilina fampifandraisana. Tadiavo indray ny lohamilina mba hanandrana.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Nolavina ny fampifandraisana na nahazoana fankatoavana tsy manan-kery. Tadiavo indray ny lohamilina mba hanandrana.",
+    Palette: "Takela-doko",
     "Parental control": "Fanaraha-mason'ny ray aman-dreny",
     Password: "Tenimiafina",
     "Paste settings JSON": "Apetaho ny JSON fikirakirana",
@@ -818,6 +835,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Manomana fampidirana lavitra azo antoka…",
     Prev: "Teo aloha",
+    Preview: "Topi-maso",
     "Preview in channel list": "Topi-maso ao amin'ny lisitra fantsona",
     Previous: "Teo aloha",
     "Privacy policy": "Politika momba ny fiainana manokana",
@@ -957,6 +975,7 @@ var keyStrings = {
     Search: "Mitadiava",
     "Search languages": "Mitadiava fiteny",
     "Search programme": "Mitadiava fandaharana",
+    "Secondary text color": "Lokon’ny lahatsoratra faharoa",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Tsy afaka nanomboka ny fampidirana lavitra azo antoka. Andramo indray na ampiasao ny fitendry eo amin'ny efijery.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -978,6 +997,8 @@ var keyStrings = {
         "Safidio ny loharano pikantsary ao amin'ny navigateur",
     "Select the player tab or window in the browser sharing dialog.":
         "Ao amin’ny varavarankely fizarana ao amin’ny navigateur, fidio ny kiheba na varavarankelin’ny mpamaky haino aman-jery.",
+    "Selected item": "Zavatra voafidy",
+    "Selected text color": "Lokon’ny lahatsoratra voafidy",
     "Send request": "Alefaso ny fangatahana",
     "Send settings": "Alefaso ny fikirakirana",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1099,6 +1120,7 @@ var keyStrings = {
     "Subscription information": "Mombamomba ny famandrihana",
     Subtitle: "Dikanteny",
     "Subtitle appearance": "Endriky ny dikanteny",
+    "Surface color": "Lokon’ny velarana",
     Switch: "Ovao",
     "Switch sound track": "Ovao ny raki-peo",
     "Switch subtitle": "Ovao ny dikanteny",
@@ -1212,6 +1234,7 @@ var keyStrings = {
         "Mampiasà lohamilina baiko HTTPS ho an'ny fitiliana lavitra.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Mampiasà HTTP na HTTPS tsy misy anaran'ny mpampiasa na tenimiafina ao amin'ny adiresy.",
+    "Use inherited color": "Ampiasao ny loko nolovaina",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Ampiasao HAVIA/HAVANANA hisafidianana fanaraha-maso, ENY ARY hampandehanana azy, ary AMBONY/AMBANY hikisahana.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1236,6 +1259,7 @@ var keyStrings = {
         "Tsy afaka naka VPortal. Jereo ny rohy, fanalahidy fidirana ary ny fisian'ny vavahady.",
     volume: "hamafin'ny feo",
     "Waiting for sign-in…": "Miandry fidirana…",
+    "Warm graphite": "Grafita mafana",
     "Wrong parental code !!!": "Diso ny kaodin'ny ray aman-dreny!",
     "Xtream Codes Provider": "Mpamatsy Xtream Codes",
     "Xtream Codes settings": "Fikirakirana Xtream Codes",
