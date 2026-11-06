@@ -1118,8 +1118,6 @@ Studio 2026 ডিফল্ট ইন্টারফেস থিম। Classic 
 
 [সচিত্র নির্ভরযোগ্যতা পর্যালোচনা](docs/plex-provider.md#reliability-review-process-and-results)-য় loading ও cancellation-এর নিয়ম, সম্পূর্ণ catalog ও file switching-এর সংশোধন এবং পরিমাপ করা Chromium/WebKit যাচাই ফল ব্যাখ্যা করা হয়েছে।
 
-ঐচ্ছিক OTT server ইন্টিগ্রেশন আলাদা NAS library entry ও M3U export দিয়ে বিদ্যমান Plex server-এর catalog ও সামঞ্জস্যপূর্ণ playback-ও প্রকাশ করে। [সার্ভারের library configuration ও client access](docs/synology-library.md) দেখুন।
-
 <a id="related-repositories"></a>
 
 ## সংশ্লিষ্ট রেপোজিটরি

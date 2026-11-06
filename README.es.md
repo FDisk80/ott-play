@@ -1116,8 +1116,6 @@ Cada reproductor puede conectarse a una cuenta Plex o Plex Media Server mediante
 
 La [revisión ilustrada de fiabilidad](docs/plex-provider.md#reliability-review-process-and-results) explica las normas de carga y cancelación, correcciones para catálogos completos y cambio de archivos, y resultados medidos de validación Chromium/WebKit.
 
-Una integración opcional del servidor OTT también expone el catálogo de un servidor Plex existente y reproducción compatible mediante una entrada de biblioteca NAS separada y exportación M3U. Consulte [configuración de biblioteca del servidor y acceso de clientes](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Repositorios relacionados
