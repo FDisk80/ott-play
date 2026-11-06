@@ -409,6 +409,91 @@ for (const [profile, folderSelection] of ["typescript", "static-core"].flatMap(
         }
     }
 }
+// Raw backups use storage keys, but also accept the typed color-field alias.
+// Keep the real storage policy, transaction and color parser in this fixture.
+{
+    const oldColor = '{"version":1,"colors":{"accent":"#102030"}}';
+    const rawColor = '{"colors":{"text":"#abcdef"},"version":1}';
+    const canonical = '{"version":1,"colors":{"text":"#ABCDEF"}}';
+    function colorFixture() {
+        const stored = new Map([
+            ["ordinary", "before"],
+            ["sUiColorConfig", oldColor],
+            ["m3u:m3uArr", providerPayload],
+        ]);
+        let writes = 0;
+        const c = vm.createContext({
+            stbDelItem(key) {
+                writes++;
+                stored.delete(key);
+            },
+            stbGetItem: (key) => stored.get(key) ?? null,
+            stbSetItem(key, value) {
+                writes++;
+                stored.set(key, value);
+            },
+            storage: { dump: () => Object.fromEntries(stored) },
+        });
+        c.window = c;
+        require("./helpers/shared-core-runtime.cjs")(c, { vendorOnly: true });
+        vm.runInContext(cloud + "\n" + policy, c);
+        return { c, stored, writes: () => writes };
+    }
+    for (const [colorFields, expected] of [
+        [{}, undefined],
+        [{ sUiColorConfig: "" }, ""],
+        [{ uiColorConfig: "" }, ""],
+        [{ sUiColorConfig: rawColor }, canonical],
+        [{ uiColorConfig: rawColor }, canonical],
+        [{ sUiColorConfig: canonical, uiColorConfig: rawColor }, canonical],
+    ]) {
+        const f = colorFixture();
+        const imported = {
+            ...colorFields,
+            "m3u:m3uArr": providerPayload,
+            ordinary: "after",
+        };
+        const original = JSON.stringify(imported);
+        const exported = f.c.portableSettingsSnapshot(imported);
+        assert.equal(exported.uiColorConfig, undefined);
+        if (Object.keys(colorFields).length)
+            assert.equal(exported.sUiColorConfig, expected);
+        else assert.equal(exported.sUiColorConfig, undefined);
+        f.c.restoreLocalSettingsSnapshot(imported);
+        assert.equal(f.stored.get("sUiColorConfig"), expected);
+        assert.equal(f.stored.has("sUiColorConfig"), expected !== undefined);
+        assert.equal(f.stored.has("uiColorConfig"), false);
+        assert.equal(f.stored.get("ordinary"), "after");
+        assert.equal(f.stored.get("m3u:m3uArr"), providerPayload);
+        assert.equal(JSON.stringify(imported), original);
+    }
+    for (const colorFields of [
+        { sUiColorConfig: "not JSON" },
+        { sUiColorConfig: '{"version":2,"colors":{}}' },
+        { sUiColorConfig: '{"version":1,"colors":{"unknown":"#112233"}}' },
+        { sUiColorConfig: '{"version":1,"colors":{"text":"red"}}' },
+        { uiColorConfig: null },
+        { uiColorConfig: {} },
+        { sUiColorConfig: " ".repeat(2049) },
+        { sUiColorConfig: oldColor, uiColorConfig: canonical },
+        { sUiColorConfig: canonical, uiColorConfig: "invalid" },
+    ]) {
+        const f = colorFixture();
+        const before = [...f.stored];
+        const imported = { ...colorFields, ordinary: "after" };
+        assert.throws(() => f.c.portableSettingsSnapshot(imported), /color/i);
+        assert.throws(
+            () => f.c.restoreLocalSettingsSnapshot(imported),
+            /color/i
+        );
+        assert.deepEqual([...f.stored], before);
+        assert.equal(
+            f.writes(),
+            0,
+            "invalid color rejects the entire raw restore"
+        );
+    }
+}
 console.log(
     "PASS local settings backups: real source/static save and restore, nested cloud exclusion, same-device credentials, unchanged listener consent and real command-generation revocation"
 );

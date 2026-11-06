@@ -153,6 +153,51 @@ check(
         }
     }
 );
+check(
+    "typed color backup roundtrips, preserves omitted fields and validates before confirmation",
+    () => {
+        const original =
+            '{"version":1,"colors":{"text":"#112233","accent":"#AABBCC"}}';
+        const existing = '{"version":1,"colors":{"selection":"#445566"}}';
+        const from = fixture();
+        from.data.set("sUiColorConfig", original);
+        from.w.loadSettings();
+        const exported = from.export();
+        assert.equal(exported.settings.uiColorConfig, original);
+        for (const mode of ["replace", "omit", "reset", "invalid"]) {
+            const to = fixture();
+            to.data.set("sUiColorConfig", existing);
+            to.w.loadSettings();
+            const payload = plain(exported);
+            if (mode === "omit") delete payload.settings.uiColorConfig;
+            if (mode === "reset") payload.settings.uiColorConfig = "";
+            if (mode === "invalid")
+                payload.settings.uiColorConfig = '{"version":2,"colors":{}}';
+            const before = [...to.data];
+            to.import(payload);
+            assert.deepEqual(
+                [...to.data],
+                before,
+                "No writes before valid confirmation"
+            );
+            if (mode === "invalid") {
+                assert.equal(to.confirm(), undefined);
+                assert.equal(to.result(), false);
+                continue;
+            }
+            assert.equal(to.accept(), true);
+            const expected =
+                mode === "replace"
+                    ? original
+                    : mode === "reset"
+                      ? ""
+                      : existing;
+            assert.equal(to.data.get("sUiColorConfig"), expected);
+            to.w.loadSettings();
+            assert.equal(to.w.settings.uiColorConfig, expected);
+        }
+    }
+);
 check("JSON backups cannot export, replace or enable stream addons", () => {
     const copied = '["https://copied.invalid/PRIVATE/manifest.json"]';
     for (const own of [

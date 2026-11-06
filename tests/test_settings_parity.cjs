@@ -294,6 +294,24 @@ function fixture(
     );
     vm.runInContext(
         compile(
+            fs.readFileSync(
+                path.join(root, "src/settings/interface-colors.ts"),
+                "utf8"
+            )
+        ),
+        w
+    );
+    vm.runInContext(
+        compile(
+            fs.readFileSync(
+                path.join(root, "src/ui/interface-colors.ts"),
+                "utf8"
+            )
+        ),
+        w
+    );
+    vm.runInContext(
+        compile(
             fs.readFileSync(path.join(root, "src/settings/index.ts"), "utf8")
         ),
         w
@@ -445,40 +463,39 @@ function save(w) {
     assert.match(sleep, />Off&nbsp;/);
     assert.doesNotMatch(sleep, /fontello/);
     assert.match(w.getListItem(row("useGraphicalIndicators")), /fontello/);
-    for (const [id, color] of [
-        ["highlightColor", "#FFDB26"],
-        ["highlightColorSel", "#606080"],
-        ["highlightColorB", "#000000"],
-    ]) {
-        assert.match(w.getListItem(row(id)), new RegExp(color));
-        assert.match(row(id).cur, /background:/);
-        assert.doesNotMatch(row(id).cur, /select|undefined|NaN/);
-    }
-    w.eSHLcolorB = "120,50";
-    assert.match(w.getListItem(row("highlightColorB")), /#008000/);
+    assert.equal(row("uiColorConfig").cur, "Inherited");
+    for (const id of ["highlightColor", "highlightColorSel", "highlightColorB"])
+        assert.equal(
+            row(id),
+            undefined,
+            "Legacy pickers are replaced by one color editor"
+        );
+    const custom = JSON.stringify({ colors: { text: "#AABBCC" }, version: 1 });
+    row("uiColorConfig").val = custom;
+    assert.equal(row("uiColorConfig").cur, "Custom");
     assert.equal(
-        typed().highlightColorB,
-        "255,0",
-        "Color preview stays in the settings draft"
+        typed().uiColorConfig,
+        "",
+        "Color Apply changes only the draft"
     );
     assert.equal(typed().interfaceTheme, 2);
     w.listKeyHandlerFn(w.keys.RETURN);
     assert.equal(
-        typed().highlightColorB,
-        "255,0",
+        typed().uiColorConfig,
+        "",
         "Cancel preserves the saved palette"
     );
     w.settingsInterface();
-    assert.match(w.getListItem(row("highlightColorB")), /#000000/);
-    w.eSHLcolorB = "120,50";
+    assert.equal(row("uiColorConfig").cur, "Inherited");
+    row("uiColorConfig").val = custom;
     save(w);
-    assert.equal(typed().highlightColorB, "120,50");
+    assert.equal(typed().uiColorConfig, custom);
     assert.equal(
         typed().interfaceTheme,
-        0,
-        "Accepted custom color selects Classic only on Save"
+        2,
+        "Color overrides preserve the selected theme"
     );
-    assert.equal(stored.get("sSHLcolorB"), "120,50");
+    assert.equal(stored.get("sUiColorConfig"), custom);
 }
 console.log("PASS Interface text, color swatches and draft Save/Cancel");
 for (const [id, bridge, initial, expected, selector, property] of [
@@ -602,11 +619,22 @@ for (const [id, bridge, initial, expected, selector, property] of [
         w.uiInit();
         const open = () => {
             if (id === "epgTimeColor") w.settingsChannels();
-            else w.settingsInterface();
+            else {
+                w.settingsInterface();
+                // Legacy callers retain these draft-aware pickers even though
+                // the current settings page has one unified Colors entry.
+                w[
+                    {
+                        highlightColor: "colorDialog",
+                        highlightColorB: "backColorDialog",
+                        highlightColorSel: "selColorDialog",
+                    }[id]
+                ]();
+                return;
+            }
             const row = w.listArray.find((entry) => entry.settingId === id);
             w.selIndex = w.listArray.indexOf(row);
             w.dispatchKey(w.keys.ENTER);
-            return row;
         };
         const press = (key, target = w.document.body) => {
             target.focus();
@@ -628,7 +656,7 @@ for (const [id, bridge, initial, expected, selector, property] of [
             assert(control, id + " renders " + key);
             control.click();
         };
-        const row = open();
+        open();
         click("LEFT");
         click("RIGHT");
         click("UP");
@@ -659,15 +687,6 @@ for (const [id, bridge, initial, expected, selector, property] of [
             "Set only commits to the page draft"
         );
         assert.notEqual(w[bridge], initial);
-        if (id !== "epgTimeColor") {
-            const swatch = w.document.createElement("div");
-            swatch.innerHTML = row.cur;
-            assert.equal(
-                swatch.firstChild.style.backgroundColor,
-                preview,
-                "The parent swatch matches the accepted preview"
-            );
-        }
         press("GREEN");
         assert.equal(typed().interfaceTheme, id === "epgTimeColor" ? 2 : 0);
         assert.equal(
@@ -1178,6 +1197,11 @@ const noWindowSettings = vm.createContext({});
 vm.runInContext(
     compile(
         fs.readFileSync(path.join(root, "src/settings/store.ts"), "utf8") +
+            "\n" +
+            fs.readFileSync(
+                path.join(root, "src/settings/interface-colors.ts"),
+                "utf8"
+            ) +
             "\n" +
             fs.readFileSync(path.join(root, "src/settings/index.ts"), "utf8")
     ),

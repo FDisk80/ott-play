@@ -68,6 +68,18 @@ function variable(file, name) {
                     return js("var " + d.getText(a) + ";");
     throw Error(name);
 }
+function interfaceColorSource() {
+    return [
+        variable("src/settings/interface-colors.ts", "interfaceColorRoles"),
+        func("src/settings/interface-colors.ts", "normalizeColorRoles"),
+        func("src/settings/interface-colors.ts", "parseInterfaceColorConfig"),
+        ...[
+            "interfaceColorRgb",
+            "interfaceColorRules",
+            "applyInterfaceColors",
+        ].map((name) => func("src/ui/interface-colors.ts", name)),
+    ].join("\n");
+}
 function fixture() {
     const d = new JSDOM(
         '<div id="listAbout" style="display:none"></div><div id="dialogbox" style="display:none"></div><div id="listEdit"></div><div id="listIn"></div><div id="listCaption"></div><div id="listDetail"></div><div id="listPodval"></div>',
@@ -195,6 +207,11 @@ test("cloud bundle extraction selects exact closures and rejects missing depende
         "function isStorageMetadataKey(key) { return key === STORAGE_FALLBACK_KEYS; }",
         "function isInstallationSettingsKey(key) { return isStorageMetadataKey(key); }",
         "function isPortableSettingsKey(key) { return !isInstallationSettingsKey(key); }",
+        "var interfaceColorRoles = [];",
+        "function normalizeColorRoles(value) { return value; }",
+        "function parseInterfaceColorConfig(value) { return value; }",
+        "function normalizeInterfaceColorConfig(value) { return value; }",
+        "function serializeInterfaceColors(value) { return value; }",
         "function metadataText(value) { return value; }",
         "function settingsFailure() {}",
         "function commitSettingsWrites() {}",
@@ -213,6 +230,11 @@ test("cloud bundle extraction selects exact closures and rejects missing depende
         "isStorageMetadataKey",
         "isInstallationSettingsKey",
         "isPortableSettingsKey",
+        "interfaceColorRoles",
+        "normalizeColorRoles",
+        "parseInterfaceColorConfig",
+        "normalizeInterfaceColorConfig",
+        "serializeInterfaceColors",
         "metadataText",
         "settingsFailure",
         "commitSettingsWrites",
@@ -230,6 +252,53 @@ test("cloud bundle extraction selects exact closures and rejects missing depende
             name + " must come from the supplied artifact"
         );
     }
+});
+
+test("cloud supplied-artifact extraction retains nonempty color normalization", () => {
+    const supplied =
+        bundleAst ||
+        ts.createSourceFile(
+            "cloud-source-artifact.js",
+            cloudSource(),
+            ts.ScriptTarget.Latest,
+            true
+        );
+    const isolated = vm.createContext({ window: {} });
+    const extracted = ts.createSourceFile(
+        "extracted-cloud.js",
+        cloudSource(supplied),
+        ts.ScriptTarget.Latest,
+        true
+    );
+    const colorNames = [
+        "normalizeColorRoles",
+        "parseInterfaceColorConfig",
+        "normalizeInterfaceColorConfig",
+        "serializeInterfaceColors",
+    ];
+    vm.runInContext(
+        extracted.statements
+            .filter(
+                (node) =>
+                    (ts.isFunctionDeclaration(node) &&
+                        colorNames.includes(node.name?.text)) ||
+                    (ts.isVariableStatement(node) &&
+                        node.declarationList.declarations.some(
+                            (item) =>
+                                item.name.getText(extracted) ===
+                                "interfaceColorRoles"
+                        ))
+            )
+            .map((node) => node.getText(extracted))
+            .join("\n"),
+        isolated
+    );
+    assert.equal(
+        isolated.normalizeInterfaceColorConfig(
+            '{"colors":{"accent":"#aabbcc","background":"#010203"},"version":1}'
+        ),
+        '{"version":1,"colors":{"background":"#010203","accent":"#AABBCC"}}'
+    );
 });
 
 test("channel list keeps hostile titles as text and preserves intentional row layout", () => {
@@ -1170,7 +1239,8 @@ test("EPG color updates an already-rendered time row across default, custom and 
             tooltip: null,
         });
         w.eval(
-            variable("src/settings/index.ts", "epgTimeColors") +
+            interfaceColorSource() +
+                variable("src/settings/index.ts", "epgTimeColors") +
                 func("src/settings/index.ts", "epgTimeColorPair") +
                 func("src/ui/index.ts", "hsvToRgb") +
                 func("src/ui/index.ts", "epgTimeCssColor") +
@@ -1333,7 +1403,8 @@ test("EPG color paints current and future rows without CSS variables", () => {
             tooltip: null,
         });
         w.eval(
-            variable("src/settings/index.ts", "epgTimeColors") +
+            interfaceColorSource() +
+                variable("src/settings/index.ts", "epgTimeColors") +
                 func("src/settings/index.ts", "epgTimeColorPair") +
                 func("src/ui/index.ts", "hsvToRgb") +
                 func("src/ui/index.ts", "epgTimeCssColor") +

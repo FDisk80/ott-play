@@ -671,4 +671,79 @@ check(
         assert.equal(f.restarts(), 1);
     }
 );
+const oldColor = '{"version":1,"colors":{"accent":"#102030"}}';
+const rawColor = '{"colors":{"text":"#abcdef"},"version":1}';
+const canonicalColor = '{"version":1,"colors":{"text":"#ABCDEF"}}';
+for (const [name, colorFields, expected] of [
+    ["missing removes the client override", {}, undefined],
+    ["explicit empty resets", { sUiColorConfig: "" }, ""],
+    ["canonical empty resets", { uiColorConfig: "" }, ""],
+    ["raw value normalizes", { sUiColorConfig: rawColor }, canonicalColor],
+    ["canonical alias normalizes", { uiColorConfig: rawColor }, canonicalColor],
+    [
+        "equivalent aliases normalize",
+        { sUiColorConfig: canonicalColor, uiColorConfig: rawColor },
+        canonicalColor,
+    ],
+])
+    check("color restore: " + name, (f) => {
+        f.stored.set("sUiColorConfig", oldColor);
+        const profile =
+            '{"active":0,"M3Us":[{"www":"https://one.invalid/list"}]}';
+        f.deliver(
+            f.payload({
+                ...colorFields,
+                "m3u:m3uArr": profile,
+                ordinary: "after",
+            })
+        );
+        assert.equal(f.stored.get("sUiColorConfig"), expected);
+        assert.equal(f.stored.has("sUiColorConfig"), expected !== undefined);
+        assert.equal(f.stored.has("uiColorConfig"), false);
+        assert.equal(f.stored.get("m3u:m3uArr"), profile);
+        assert.equal(f.stored.get("ordinary"), "after");
+        assert.equal(f.restarts(), 1);
+    });
+for (const [name, colorFields] of [
+    ["malformed", { sUiColorConfig: "not JSON" }],
+    ["unknown version", { sUiColorConfig: '{"version":2,"colors":{}}' }],
+    [
+        "unknown role",
+        { sUiColorConfig: '{"version":1,"colors":{"unknown":"#112233"}}' },
+    ],
+    [
+        "invalid HEX",
+        { sUiColorConfig: '{"version":1,"colors":{"text":"red"}}' },
+    ],
+    ["oversized", { sUiColorConfig: " ".repeat(2049) }],
+    [
+        "conflicting aliases",
+        { sUiColorConfig: oldColor, uiColorConfig: canonicalColor },
+    ],
+    [
+        "invalid alias",
+        { sUiColorConfig: canonicalColor, uiColorConfig: "invalid" },
+    ],
+])
+    check("color restore atomically rejects " + name, (f) => {
+        f.stored.set("sUiColorConfig", oldColor);
+        const before = [...f.stored];
+        f.deliver(f.payload({ ...colorFields, ordinary: "after" }));
+        assert.deepEqual([...f.stored], before);
+        assert.equal(f.mutations(), 0);
+        assert.equal(f.restarts(), 0);
+        assert(f.html().includes("Invalid cloud settings response"));
+    });
+check(
+    "explicit cloud export carries this client's color configuration",
+    (f) => {
+        f.stored.set("sUiColorConfig", canonicalColor);
+        f.w.cloudSendSettings();
+        const exported = f.w.__ottCloudSettingsCodec.read(
+            f.requests[0].options.data.d
+        );
+        assert.equal(exported.sUiColorConfig, canonicalColor);
+        assert.equal(exported.ordinary, "before");
+    }
+);
 console.log("Cloud settings session: " + passed + " scenarios passed");
