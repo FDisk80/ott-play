@@ -124,12 +124,8 @@ export function interfaceColorRules(raw: string, opacity: number): string {
     ): void {
         if (!value) return;
         rules.push(
-            selectors
-                .split(",")
-                .map(function (selector) {
-                    return scope + selector;
-                })
-                .join(",") +
+            scope +
+                selectors.replace(/,/g, "," + scope) +
                 "{" +
                 property +
                 ":" +
@@ -234,7 +230,7 @@ export function interfaceColorRules(raw: string, opacity: number): string {
     color(" .ott-epg-time", colors.epgTime);
     // Selected ink is independent of accent, including subsequently created rows.
     var selected =
-        ' #listIn .item.ott-selected, #listIn .item.ott-selected *, #dialogbox .ott-selected, #listPopUp .ott-selected, #numprog [aria-pressed="true"], #listEdit .ott-selected, #listAbout .ott-selected,' +
+        ' #dialogbox .ott-selected, #listPopUp .ott-selected, #numprog [aria-pressed="true"], #listEdit .ott-selected, #listAbout .ott-selected,' +
         modern +
         ".modern-rail-action.ott-selected," +
         modern +
@@ -245,7 +241,10 @@ export function interfaceColorRules(raw: string, opacity: number): string {
         ".modern-hero-action:focus," +
         modern +
         ".modern-player-action:focus";
-    color(selected, colors.selectionText);
+    color(
+        " #listIn .item.ott-selected, #listIn .item.ott-selected *," + selected,
+        colors.selectionText
+    );
     // A settings action nests a .btn with its own dark fill. It must use the
     // selected row's surface when custom selected ink would otherwise be hidden.
     rule(
@@ -261,20 +260,7 @@ export function interfaceColorRules(raw: string, opacity: number): string {
         " #dialogbox .ott-color-selected, #dialogbox .ott-color-selected .btn",
         colors.selection
     );
-    background(
-        ' #listIn .item.ott-selected, #dialogbox .ott-selected, #listPopUp .ott-selected, #numprog [aria-pressed="true"], #listEdit .ott-selected, #listAbout .ott-selected,' +
-            modern +
-            ".modern-rail-action.ott-selected," +
-            modern +
-            ".modern-rail-action.modern-rail-selected," +
-            modern +
-            ".modern-rail-action:focus," +
-            modern +
-            ".modern-hero-action:focus," +
-            modern +
-            ".modern-player-action:focus",
-        colors.selection
-    );
+    background(" #listIn .item.ott-selected," + selected, colors.selection);
     return rules.join("\n");
 }
 

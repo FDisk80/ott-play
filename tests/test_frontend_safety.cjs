@@ -369,6 +369,104 @@ test("both native style creators preserve the author nonce without script author
                 assert.equal(styles[0].nonce, initialNonce);
                 assert(styles[0].sheet.cssRules.length > 0);
             }
+            const targets = w.document.createElement("div");
+            targets.innerHTML =
+                '<div id="list"></div><div id="listIn"></div><div id="listCaption"></div>' +
+                '<div class="item"></div><div id="it42"></div><div id="ott-tauri-drag-strip"></div>';
+            w.document.body.appendChild(targets);
+            w.document.documentElement.classList.add("ott-tauri-frameless");
+            const dragStyle = w.document.getElementById(
+                "ott-tauri-frameless-drag"
+            );
+            const rules = Array.from(dragStyle.sheet.cssRules);
+            const matchingRules = (element) =>
+                rules.filter(
+                    (rule) =>
+                        rule.selectorText && element.matches(rule.selectorText)
+                );
+            // JSDOM drops unknown native CSS properties from CSSOM. Read only
+            // the two drag declarations from the actual generated flat sheet;
+            // selectors still match the DOM, and ordinary CSS uses CSSOM below.
+            const flatRule = /([^{}]+)\{([^{}]*)\}/g;
+            assert.equal(
+                dragStyle.textContent.replace(flatRule, "").trim(),
+                "",
+                "native stylesheet remains flat for this declaration reader"
+            );
+            const nativeRules = Array.from(
+                dragStyle.textContent.matchAll(flatRule),
+                (match) => ({
+                    declarations: Array.from(
+                        match[2].matchAll(
+                            /(?:^|;)\s*((?:-webkit-)?app-region)\s*:\s*([^;]*)/g
+                        ),
+                        (declaration) => ({
+                            important: /!important\s*$/i.test(declaration[2]),
+                            property: declaration[1],
+                            value: declaration[2]
+                                .replace(/\s*!important\s*$/i, "")
+                                .trim(),
+                        })
+                    ),
+                    selector: match[1].trim(),
+                })
+            );
+            const strip = targets.querySelector("#ott-tauri-drag-strip");
+            for (const open of [false, true]) {
+                w.document.documentElement.classList.toggle(
+                    "ott-tauri-overlay-open",
+                    open
+                );
+                for (const selector of [
+                    "#list",
+                    "#listIn",
+                    "#listCaption",
+                    ".item",
+                    '[id^="it"]',
+                    "#ott-tauri-drag-strip",
+                ]) {
+                    const element = targets.querySelector(selector);
+                    for (const property of [
+                        "-webkit-app-region",
+                        "app-region",
+                    ]) {
+                        // Every applicable native declaration must agree, so
+                        // specificity cannot re-enable native drag.
+                        const declarations = nativeRules
+                            .filter((rule) => element.matches(rule.selector))
+                            .flatMap((rule) => rule.declarations)
+                            .filter(
+                                (declaration) =>
+                                    declaration.property === property
+                            );
+                        assert(
+                            declarations.length > 0,
+                            `${selector} has ${property} protection with overlay=${open}`
+                        );
+                        for (const declaration of declarations) {
+                            assert.equal(declaration.value, "no-drag");
+                            assert.equal(declaration.important, true);
+                        }
+                    }
+                }
+                const computed = w.getComputedStyle(strip);
+                assert.equal(computed.display === "none", open);
+                assert.equal(computed.pointerEvents, open ? "none" : "auto");
+                if (open) {
+                    for (const property of ["display", "pointer-events"]) {
+                        assert(
+                            matchingRules(strip).some(
+                                (rule) =>
+                                    rule.style.getPropertyValue(property) ===
+                                        "none" &&
+                                    rule.style.getPropertyPriority(property) ===
+                                        "important"
+                            ),
+                            `overlay ${property} remains authoritative`
+                        );
+                    }
+                }
+            }
         } finally {
             dom.window.close();
         }

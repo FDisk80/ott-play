@@ -303,6 +303,23 @@ export function tryKeyboardFavorites(event: KeyboardEvent): boolean {
     return true;
 }
 
+function keyboardElementIsEditable(element: any): boolean {
+    while (element) {
+        if (
+            /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName || "") ||
+            element.isContentEditable ||
+            (element.getAttribute &&
+                element.hasAttribute("contenteditable") &&
+                /^(|true|plaintext-only)$/i.test(
+                    element.getAttribute("contenteditable")
+                ))
+        )
+            return true;
+        element = element.parentElement;
+    }
+    return false;
+}
+
 /** Choose one item from the visible collection without changing its order. */
 export function tryKeyboardRandom(event: KeyboardEvent): boolean {
     var w = window as any;
@@ -329,23 +346,11 @@ export function tryKeyboardRandom(event: KeyboardEvent): boolean {
         event.shiftKey
     )
         return true;
-    function editable(element: any): boolean {
-        while (element) {
-            if (
-                /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName || "") ||
-                element.isContentEditable ||
-                (element.getAttribute &&
-                    element.hasAttribute("contenteditable") &&
-                    /^(|true|plaintext-only)$/i.test(
-                        element.getAttribute("contenteditable")
-                    ))
-            )
-                return true;
-            element = element.parentElement;
-        }
-        return false;
-    }
-    if (editable(event.target) || editable(document.activeElement)) return true;
+    if (
+        keyboardElementIsEditable(event.target) ||
+        keyboardElementIsEditable(document.activeElement)
+    )
+        return true;
     var kiosk = w.__ottKiosk;
     if (
         kiosk &&
@@ -472,23 +477,10 @@ export function tryKeyboardSeek(event: KeyboardEvent): boolean {
             (kiosk && kiosk.screenBlocked && kiosk.screenBlocked()))
     )
         return false;
-    function editable(element: any): boolean {
-        while (element) {
-            if (
-                /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName || "") ||
-                element.isContentEditable ||
-                (element.getAttribute &&
-                    element.hasAttribute("contenteditable") &&
-                    /^(|true|plaintext-only)$/i.test(
-                        element.getAttribute("contenteditable")
-                    ))
-            )
-                return true;
-            element = element.parentElement;
-        }
-        return false;
-    }
-    if (editable(event.target) || editable(document.activeElement))
+    if (
+        keyboardElementIsEditable(event.target) ||
+        keyboardElementIsEditable(document.activeElement)
+    )
         return false;
     if (
         kiosk &&

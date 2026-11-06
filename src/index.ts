@@ -3617,26 +3617,15 @@ if (typeof window.__TAURI__ !== "undefined") {
         if (!document.getElementById(STYLE_ID)) {
             const style = createInterfaceStyle();
             style.id = STYLE_ID;
-            const noDragCss = NO_DRAG_SEL.split(",")
-                .map((s) => "html." + CLASS + " " + s.trim())
-                .join(",\n");
+            const noDragPrefix = "html." + CLASS + " ";
+            const noDragCss =
+                noDragPrefix + NO_DRAG_SEL.replace(/,/g, ",\n" + noDragPrefix);
             style.textContent =
                 "html." +
                 CLASS +
                 ", html." +
                 CLASS +
                 " body {\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n" +
-                "html." +
-                CLASS +
-                " #list,\nhtml." +
-                CLASS +
-                " #listIn,\nhtml." +
-                CLASS +
-                " #listCaption,\nhtml." +
-                CLASS +
-                " .item,\nhtml." +
-                CLASS +
-                ' [id^="it"] {\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n' +
                 "#" +
                 STRIP_ID +
                 " {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: " +
@@ -3651,7 +3640,7 @@ if (typeof window.__TAURI__ !== "undefined") {
                 OVERLAY_CLASS +
                 " #" +
                 STRIP_ID +
-                " {\n  display: none !important;\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n  pointer-events: none !important;\n}\n" +
+                " {\n  display: none !important;\n  pointer-events: none !important;\n}\n" +
                 noDragCss +
                 " {\n  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n";
             document.head.appendChild(style);
@@ -7180,12 +7169,7 @@ window.settingsCommands = function (): void {
     uid = uid || "not generated";
 
     function text(value: any): string {
-        return String(value)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+        return metadataText(String(value));
     }
 
     function selectControl(index: number, focus: boolean): void {
