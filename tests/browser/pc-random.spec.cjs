@@ -344,7 +344,10 @@ test("PC R selects a media item without shuffling the displayed folder", async (
         await page.evaluate(() =>
             window.curList.map((id) => window.channels[id].channel_name)
         )
-    ).toEqual(["Film 1", "Film 2"]);
+    ).toEqual([
+        "Random media fixture - Film 1",
+        "Random media fixture - Film 2",
+    ]);
     expect(await page.evaluate(() => window.listArray.slice())).toEqual(order);
     await page.keyboard.press("r");
     await expect
