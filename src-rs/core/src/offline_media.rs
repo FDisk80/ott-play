@@ -6091,6 +6091,7 @@ mod tests {
             let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
                 .await
                 .unwrap();
+            library.source_records().await.unwrap();
             let folder = base.join("Allowed");
             let other = base.join("Other");
             fs::create_dir(&folder).await.unwrap();
@@ -6212,6 +6213,7 @@ mod tests {
         let library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         let work = library.background.enter().unwrap();
@@ -6256,6 +6258,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let blocked_path = base.join("Blocked");
         let selected_path = base.join("Selected");
         fs::create_dir(&blocked_path).await.unwrap();
@@ -6343,6 +6346,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         let work = library.background.enter().unwrap();
@@ -6406,6 +6410,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         fs::write(folder.join("first.mp4"), b"first").await.unwrap();
@@ -6509,6 +6514,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Excluded");
         fs::create_dir(&folder).await.unwrap();
         let work = library.background.enter().unwrap();
@@ -6544,6 +6550,7 @@ mod tests {
         let library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         let work = library.background.enter().unwrap();
@@ -6583,6 +6590,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         for name in ["slow.mp4", "ready.mp4", "another.mp4", "last.mp4"] {
@@ -6654,6 +6662,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir_all(folder.join("Ready")).await.unwrap();
         fs::create_dir(folder.join("Blocked")).await.unwrap();
@@ -6702,6 +6711,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         // The root has exactly one entry, so its first result is always Ready.
         // Block its next read (EOF) while Ready/clip.mp4 is still being found.
@@ -6743,6 +6753,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         for name in ["one.mp4", "two.mp4"] {
@@ -6824,6 +6835,7 @@ mod tests {
         let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
             .await
             .unwrap();
+        library.source_records().await.unwrap();
         let folder = base.join("Movies");
         fs::create_dir(&folder).await.unwrap();
         for name in ["slow.mp4", "ready.mp4"] {
