@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Şîn",
     "Bookmark age (days): %1": "Dem ji tomarkirina nîşanê ve (roj): %1",
     "Bookmark age: %1 days": "Temenê nîşankirinê: %1 roj",
+    Brightness: "Ronahî",
     "Browse folders": "Li peldankan bigerin",
     "Buffer Size, s": "Dirêjahiya tamponê, çirke",
     "Buffering...": "Tê barkirin...",
@@ -709,6 +710,7 @@ var keyStrings = {
     "not set": "nayê danîn",
     Off: "Girtî",
     Ok: "Baş e",
+    On: "Vekirî",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Tenê ev TV dikare peyama we qebûl bike. Girêdan piştî 10 hûrdeman diqede.",
     Open: "Veke",

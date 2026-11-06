@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Синій",
     "Bookmark age (days): %1": "Вік закладки (дні): %1",
     "Bookmark age: %1 days": "Вік закладки: %1 дн.",
+    Brightness: "Яскравість",
     "Browse folders": "Перегляд за папками",
     "Buffer Size, s": "Розмір буфера, с",
     "Buffering...": "Буферизація...",
@@ -704,6 +705,7 @@ var keyStrings = {
     "not set": "не задано",
     Off: "Вимкнено",
     Ok: "ОК",
+    On: "Увімкнено",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Тільки цей телевізор може прийняти ваше повідомлення. Термін дії посилання закінчується через 10 хвилин.",
     Open: "Відкрити",

@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "நீலம்",
     "Bookmark age (days): %1": "புக்மார்க்கின் வயது (நாட்கள்): %1",
     "Bookmark age: %1 days": "புக்மார்க் வயது: %1 நாட்கள்",
+    Brightness: "பிரகாசம்",
     "Browse folders": "கோப்புறைகளை உலாவுக",
     "Buffer Size, s": "தாங்கல் அளவு, எஸ்",
     "Buffering...": "இடையகத்தில் ஏற்றுகிறது...",
@@ -703,6 +704,7 @@ var keyStrings = {
     "not set": "அமைக்கப்படவில்லை",
     Off: "முடக்கம்",
     Ok: "சரி",
+    On: "இயக்கம்",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "இந்த டிவியால் மட்டுமே உங்கள் செய்தியை ஏற்க முடியும். இணைப்பு 10 நிமிடங்களுக்குப் பிறகு காலாவதியாகிவிடும்.",
     Open: "திறக்கவும்",

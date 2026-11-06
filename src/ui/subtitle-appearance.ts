@@ -246,6 +246,37 @@
         );
         var choice = page.choice;
         var label = page.label;
+        function colorChoice(
+            name: string,
+            id: string,
+            action: any,
+            brightness?: number
+        ): any {
+            var row: any = { name: name, settingId: id, values: action };
+            Object.defineProperty(row, "cur", {
+                get: function () {
+                    var hex =
+                        "#" +
+                        ui
+                            .color(row.val, brightness)
+                            .split(",")
+                            .map(function (part: string) {
+                                return ("0" + Number(part).toString(16)).slice(
+                                    -2
+                                );
+                            })
+                            .join("")
+                            .toUpperCase();
+                    return (
+                        '<span aria-hidden="true" style="display:inline-block;width:1em;height:1em;vertical-align:middle;border:1px solid currentColor;background:' +
+                        hex +
+                        '"></span> ' +
+                        hex
+                    );
+                },
+            });
+            return row;
+        }
 
         var mediaLanguageCodes = Object.keys(ui.languages);
         var mediaLanguageLabels = mediaLanguageCodes.map(function (code) {
@@ -343,7 +374,7 @@
                     }),
                 },
                 choice(label("Sleep timer"), "sleepTimeout", [
-                    label("off"),
+                    label("Off"),
                     label("30 minutes"),
                     label("1 hour"),
                     label("2 hours"),
@@ -368,36 +399,26 @@
                     settingOffset: 3,
                     values: [3, 4, 5, 6, 7, 8, 9, 10],
                 },
-                {
-                    cur: label("select"),
-                    name:
-                        host._("Color spectrum") +
+                colorChoice(
+                    host._("Color spectrum") + " (" + host._("Classic") + ")",
+                    "highlightColor",
+                    host.colorDialog,
+                    100
+                ),
+                colorChoice(
+                    host._("Background color of selected item") +
                         " (" +
                         host._("Classic") +
                         ")",
-                    settingId: "highlightColor",
-                    values: host.colorDialog,
-                },
-                {
-                    cur: label("select"),
-                    name:
-                        host._("Background color of selected item") +
-                        " (" +
-                        host._("Classic") +
-                        ")",
-                    settingId: "highlightColorSel",
-                    values: host.selColorDialog,
-                },
-                {
-                    cur: label("select"),
-                    name:
-                        host._("Background color") +
-                        " (" +
-                        host._("Classic") +
-                        ")",
-                    settingId: "highlightColorB",
-                    values: host.backColorDialog,
-                },
+                    "highlightColorSel",
+                    host.selColorDialog,
+                    50
+                ),
+                colorChoice(
+                    host._("Background color") + " (" + host._("Classic") + ")",
+                    "highlightColorB",
+                    host.backColorDialog
+                ),
                 choice(
                     label("Permanent clock on screen"),
                     "permanentTime",

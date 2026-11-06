@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Кабуд",
     "Bookmark age (days): %1": "Синну соли хатчӯб (рӯзҳо): %1",
     "Bookmark age: %1 days": "Муҳлати нишона: %1 рӯз",
+    Brightness: "Равшанӣ",
     "Browse folders": "Дидани ҷузвдонҳо",
     "Buffer Size, s": "Андозаи буфер, с",
     "Buffering...": "Буферкунӣ...",
@@ -713,6 +714,7 @@ var keyStrings = {
     "not set": "муайян нашудааст",
     Off: "Хомӯш",
     Ok: "Хуб",
+    On: "Фаъол",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Танҳо ин телевизор метавонад паёми шуморо қабул кунад. Пайванд пас аз 10 дақиқа ба охир мерасад.",
     Open: "Кушоед",

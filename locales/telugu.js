@@ -114,6 +114,7 @@ var keyStrings = {
     Blue: "నీలం",
     "Bookmark age (days): %1": "బుక్‌మార్క్ వయస్సు (రోజులు): %1",
     "Bookmark age: %1 days": "బుక్‌మార్క్ వయస్సు: %1 రోజులు",
+    Brightness: "ప్రకాశం",
     "Browse folders": "ఫోల్డర్‌లను బ్రౌజ్ చేయండి",
     "Buffer Size, s": "బఫర్ పరిమాణం, s",
     "Buffering...": "బఫర్‌లో లోడ్ అవుతోంది...",
@@ -684,6 +685,7 @@ var keyStrings = {
     "not set": "సెట్ చేయబడలేదు",
     Off: "ఆఫ్",
     Ok: "సరే",
+    On: "ఆన్",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "ఈ టీవీ మాత్రమే మీ సందేశాన్ని ఆమోదించగలదు. 10 నిమిషాల తర్వాత లింక్ గడువు ముగుస్తుంది.",
     Open: "తెరవండి",

@@ -116,6 +116,7 @@ var keyStrings = {
     Blue: "Modrá",
     "Bookmark age (days): %1": "Stáří záložky (dny): %1",
     "Bookmark age: %1 days": "Stáří záložky: %1 dní",
+    Brightness: "Jas",
     "Browse folders": "Procházet složky",
     "Buffer Size, s": "Velikost vyrovnávací paměti, s",
     "Buffering...": "Načítání do vyrovnávací paměti...",
@@ -700,6 +701,7 @@ var keyStrings = {
     "not set": "nenastaveno",
     Off: "Vypnuto",
     Ok: "OK",
+    On: "Zapnuto",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Vaši zprávu může přijmout pouze tento televizor. Platnost odkazu vyprší po 10 minutách.",
     Open: "Otevřít",

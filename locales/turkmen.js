@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Gök",
     "Bookmark age (days): %1": "Bellikleriň ýaşy (günler): %1",
     "Bookmark age: %1 days": "Bellik ýaşy: %1 gün",
+    Brightness: "Ýagtylyk",
     "Browse folders": "Bukjalara seret",
     "Buffer Size, s": "Buferiň ululygy, s",
     "Buffering...": "Buferlenýär...",
@@ -705,6 +706,7 @@ var keyStrings = {
     "not set": "bellenmedik",
     Off: "Öçürilen",
     Ok: "Bolýar",
+    On: "Işledilen",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Habaryňyzy diňe şu telewizor kabul edip biler. Baglanyşyk 10 minutdan soň gutarýar.",
     Open: "Aç",

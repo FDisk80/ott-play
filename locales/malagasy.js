@@ -125,6 +125,7 @@ var keyStrings = {
     Blue: "Manga",
     "Bookmark age (days): %1": "Taonan'ny tsoratadidy (andro): %1",
     "Bookmark age: %1 days": "Faharetan'ny maripejy: %1 andro",
+    Brightness: "Famirapiratana",
     "Browse folders": "Jereo ny lahatahiry",
     "Buffer Size, s": "Haben'ny fitadidiana vonjimaika, s",
     "Buffering...": "Mampiditra angona vonjimaika...",
@@ -737,6 +738,7 @@ var keyStrings = {
     "not set": "mbola tsy napetraka",
     Off: "Maty",
     Ok: "Eny ary",
+    On: "Mandeha",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Ity fahitalavitra ity ihany no afaka manaiky ny hafatrao. Tapitra ny rohy rehefa afaka 10 minitra.",
     Open: "Sokafy",

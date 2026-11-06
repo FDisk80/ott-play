@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "ブルー",
     "Bookmark age (days): %1": "ブックマークの経過日数：%1",
     "Bookmark age: %1 days": "ブックマーク年齢：%1日",
+    Brightness: "明るさ",
     "Browse folders": "フォルダを参照する",
     "Buffer Size, s": "バッファサイズ、s",
     "Buffering...": "バッファリング中...",
@@ -707,6 +708,7 @@ var keyStrings = {
     "not set": "未設定",
     Off: "オフ",
     Ok: "確認",
+    On: "オン",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "あなたのメッセージを受信できるのはこのテレビだけです。リンクは 10 分後に期限切れになります。",
     Open: "開く",

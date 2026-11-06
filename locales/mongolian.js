@@ -122,6 +122,7 @@ var keyStrings = {
     Blue: "Цэнхэр",
     "Bookmark age (days): %1": "Хавчуургын нас (өдөр): %1",
     "Bookmark age: %1 days": "Хавчуургын нас: %1 өдөр",
+    Brightness: "Гэрэлтэлт",
     "Browse folders": "Хавтас үзэх",
     "Buffer Size, s": "Буферийн хэмжээ, с",
     "Buffering...": "Буферт ачаалж байна...",
@@ -715,6 +716,7 @@ var keyStrings = {
     "not set": "тохируулаагүй",
     Off: "Унтраалттай",
     Ok: "За",
+    On: "Асаалттай",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Зөвхөн энэ ТВ таны мессежийг хүлээн авах боломжтой. Холбоос 10 минутын дараа дуусна.",
     Open: "Нээх",

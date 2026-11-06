@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "Modra",
     "Bookmark age (days): %1": "Starost zaznamka (dnevi): %1",
     "Bookmark age: %1 days": "Starost zaznamka: %1 dni",
+    Brightness: "Svetlost",
     "Browse folders": "Brskanje po mapah",
     "Buffer Size, s": "Velikost medpomnilnika, s",
     "Buffering...": "Medpomnjenje...",
@@ -715,6 +716,7 @@ var keyStrings = {
     "not set": "ni nastavljeno",
     Off: "Izklopljeno",
     Ok: "OK",
+    On: "Vklopljeno",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Samo ta TV lahko sprejme vaše sporočilo. Povezava poteče po 10 minutah.",
     Open: "Odpri",

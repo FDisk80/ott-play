@@ -124,6 +124,7 @@ var keyStrings = {
     Blue: "Asul",
     "Bookmark age (days): %1": "Edad ng bookmark (mga araw): %1",
     "Bookmark age: %1 days": "Edad ng bookmark: %1 araw",
+    Brightness: "Liwanag",
     "Browse folders": "Mag-browse ng mga folder",
     "Buffer Size, s": "Laki ng buffer, s",
     "Buffering...": "Nagba-buffer...",
@@ -723,6 +724,7 @@ var keyStrings = {
     "not set": "hindi nakatakda",
     Off: "Naka-off",
     Ok: "OK",
+    On: "Naka-on",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Tanging ang TV na ito ang maaaring tumanggap ng iyong mensahe. Mag-e-expire ang link pagkatapos ng 10 minuto.",
     Open: "Buksan",

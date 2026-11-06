@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const ts = require("typescript");
 let {
     CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE,
+    INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
     DESKTOP_DROP_ALLOWANCE,
     DESKTOP_VIDEO_QUEUE_ALLOWANCE,
     AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE,
@@ -123,12 +124,14 @@ function capsWithoutAllowances(names) {
     for (const { name, initializer } of initializers.sort(
         (a, b) => b.initializer.pos - a.initializer.pos
     )) {
-        const neutral =
-            name === "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE"
-                ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0})})"
-                : name === "DESKTOP_DROP_ALLOWANCE"
-                  ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
-                  : "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})";
+        const neutral = [
+            "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
+            "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
+        ].includes(name)
+            ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0})})"
+            : name === "DESKTOP_DROP_ALLOWANCE"
+              ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
+              : "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})";
         source =
             source.slice(0, initializer.getStart(parsed)) +
             neutral +
@@ -149,9 +152,195 @@ function capsWithoutAllowances(names) {
         );
     return baseline.exports;
 }
+// Observed net payload accounting preserves the previous headroom. The two
+// artifacts use different identities; never relabel them as an isolated experiment.
+const notificationEvidence = require("../docs/evidence/interface-notification-settings-size-20261106.json");
+const preNotificationCaps = capsWithoutAllowances([
+    "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
+]);
+assert.equal(
+    notificationEvidence.status,
+    "OBSERVED_NET_PAIR_NOT_BUILD_QUALIFICATION"
+);
+assert.equal(notificationEvidence.compatibility.same_version_envelope, false);
+assert.equal(
+    notificationEvidence.compatibility
+        .isolated_same_identity_feature_measurement,
+    false
+);
+assert.equal(
+    notificationEvidence.compatibility.final_combined_head_gate_required,
+    true
+);
+assert.deepEqual(
+    notificationEvidence.baseline.toolchain,
+    notificationEvidence.candidate.toolchain
+);
+assert.deepEqual(
+    INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
+    notificationEvidence.measured_allowance
+);
+assert(Object.isFrozen(INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE));
+for (const cap of Object.values(INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE))
+    assert(Object.isFrozen(cap));
+for (const source of [
+    notificationEvidence.baseline,
+    notificationEvidence.candidate,
+]) {
+    assert.match(source.head, /^[0-9a-f]{40}$/);
+    assert.match(source.report_sha256, /^[0-9a-f]{64}$/);
+}
+const notificationPaths = new Map();
+for (const entry of ARTIFACTS) {
+    notificationPaths.set(entry, "entry");
+    const directory = path.posix.dirname(entry);
+    for (const name of Object.keys(CLASSIC_PROVIDER_BUNDLES))
+        notificationPaths.set(
+            directory + "/provider-" + name + ".js",
+            "provider"
+        );
+    for (const name of Object.keys(CLASSIC_OPTIONAL_BUNDLES))
+        notificationPaths.set(directory + "/" + name + ".js", "optional");
+}
+assert.deepEqual(
+    notificationEvidence.assets.map((a) => a.path).sort(),
+    [...notificationPaths.keys()].sort()
+);
+let unchangedNotificationAssets = 0;
+for (const asset of notificationEvidence.assets) {
+    assert.equal(asset.kind, notificationPaths.get(asset.path));
+    for (const side of ["baseline", "candidate"]) {
+        assert.match(asset[side].sha256, /^[0-9a-f]{64}$/);
+        for (const metric of ["bytes", "gzipBytes"])
+            assert(
+                Number.isSafeInteger(asset[side][metric]) &&
+                    asset[side][metric] > 0
+            );
+    }
+    if (
+        asset.kind !== "entry" &&
+        !asset.path.endsWith("/subtitle-appearance.js")
+    ) {
+        assert.deepEqual(asset.baseline, asset.candidate, asset.path);
+        unchangedNotificationAssets++;
+    }
+    const cap =
+        asset.kind === "entry"
+            ? latestCaps.BUDGET
+            : asset.kind === "provider"
+              ? PROVIDER_BUDGET
+              : latestCaps.OPTIONAL_BUDGETS[
+                    path.posix.basename(asset.path, ".js")
+                ];
+    assert(cap, asset.path);
+    for (const metric of ["bytes", "gzipBytes"])
+        assert(
+            asset.candidate[metric] <= cap[metric],
+            asset.path + " fits current " + metric + " cap"
+        );
+}
+assert.equal(unchangedNotificationAssets, 72);
+assert.equal(
+    unchangedNotificationAssets,
+    notificationEvidence.compatibility.unchanged_other_assets
+);
+for (const [part, select] of [
+    ["entry", (a) => a.kind === "entry"],
+    ["appearance", (a) => a.path.endsWith("/subtitle-appearance.js")],
+]) {
+    const assets = notificationEvidence.assets.filter(select);
+    assert.equal(assets.length, 3);
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE[part][metric],
+            Math.max(
+                ...assets.map((a) => a.candidate[metric] - a.baseline[metric])
+            ),
+            part + " counts maximum observed delta, not overrun or target sum"
+        );
+}
+assert.deepEqual(
+    notificationEvidence.variants.map((v) => v.entry).sort(),
+    [...ARTIFACTS].sort()
+);
+for (const variant of notificationEvidence.variants) {
+    const assets = notificationEvidence.assets.filter(
+        (a) => path.posix.dirname(a.path) === path.posix.dirname(variant.entry)
+    );
+    for (const [scope, name] of [
+        ["legacyTotal", "LEGACY_TOTAL_BUDGET"],
+        ["total", "TOTAL_BUDGET"],
+    ]) {
+        const included =
+            scope === "legacyTotal"
+                ? assets.filter((a) => a.kind !== "optional")
+                : assets;
+        for (const metric of ["bytes", "gzipBytes"]) {
+            for (const side of ["baseline", "candidate"])
+                assert.equal(
+                    variant[side][scope][metric],
+                    included.reduce((sum, a) => sum + a[side][metric], 0)
+                );
+            assert(
+                variant.candidate[scope][metric] <= latestCaps[name][metric]
+            );
+            assert(
+                latestCaps[name][metric] - variant.candidate[scope][metric] >=
+                    preNotificationCaps[name][metric] -
+                        variant.baseline[scope][metric],
+                variant.entry + " retains previous measured headroom"
+            );
+        }
+    }
+}
+for (const [name, before] of Object.entries(notificationEvidence.caps_before)) {
+    const oldCap =
+        name === "appearance"
+            ? preNotificationCaps.OPTIONAL_BUDGETS["subtitle-appearance"]
+            : preNotificationCaps[name];
+    const newCap =
+        name === "appearance"
+            ? latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"]
+            : latestCaps[name];
+    assert.deepEqual(oldCap, before);
+    assert.deepEqual(newCap, notificationEvidence.caps_after[name]);
+    for (const metric of ["bytes", "gzipBytes"]) {
+        const allowance = INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE;
+        const delta =
+            name === "appearance"
+                ? allowance.appearance[metric]
+                : allowance.entry[metric] +
+                  (["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"].includes(name)
+                      ? allowance.appearance[metric]
+                      : 0);
+        assert.equal(
+            newCap[metric] - oldCap[metric],
+            delta,
+            name + " counts each component exactly once"
+        );
+    }
+}
+for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+    assert.deepEqual(
+        require("../scripts/classic-size.cjs")[name],
+        preNotificationCaps[name]
+    );
+assert.deepEqual(
+    Object.keys(latestCaps.OPTIONAL_BUDGETS).sort(),
+    Object.keys(preNotificationCaps.OPTIONAL_BUDGETS).sort()
+);
+for (const [name, cap] of Object.entries(latestCaps.OPTIONAL_BUDGETS))
+    if (name !== "subtitle-appearance")
+        assert.deepEqual(cap, preNotificationCaps.OPTIONAL_BUDGETS[name], name);
+// Old receipts are immutable and predate this named feature. Keep their
+// projections separate; the later live-inspector section restores latestCaps.
+
 // The queue is a separately emitted optional chunk. Keep its measured increment
 // out of older receipts and never treat the version-mismatched entry delta as cost.
-const preQueueCaps = capsWithoutAllowances(["DESKTOP_VIDEO_QUEUE_ALLOWANCE"]);
+const preQueueCaps = capsWithoutAllowances([
+    "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
+    "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
+]);
 const queueEvidence = require("../docs/evidence/desktop-video-queue-size-20261105.json");
 assert.equal(queueEvidence.schema, 1);
 assert.deepEqual(DESKTOP_VIDEO_QUEUE_ALLOWANCE, { bytes: 407, gzipBytes: 169 });
@@ -168,7 +357,7 @@ assert.deepEqual(
     queueEvidence.reference_cap
 );
 assert.deepEqual(
-    latestCaps.OPTIONAL_BUDGETS["local-drop"],
+    preNotificationCaps.OPTIONAL_BUDGETS["local-drop"],
     queueEvidence.proposed_cap
 );
 for (const side of ["baseline", "candidate"]) {
@@ -256,13 +445,13 @@ assert.equal(
 );
 for (const metric of ["bytes", "gzipBytes"]) {
     assert.equal(
-        latestCaps.OPTIONAL_BUDGETS["local-drop"][metric] -
+        preNotificationCaps.OPTIONAL_BUDGETS["local-drop"][metric] -
             preQueueCaps.OPTIONAL_BUDGETS["local-drop"][metric],
         DESKTOP_VIDEO_QUEUE_ALLOWANCE[metric]
     );
     for (const name of ["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"])
         assert.equal(
-            latestCaps[name][metric] - preQueueCaps[name][metric],
+            preNotificationCaps[name][metric] - preQueueCaps[name][metric],
             DESKTOP_VIDEO_QUEUE_ALLOWANCE[metric],
             name +
                 " includes one optional increment, not three target copies or the entry delta"
@@ -275,15 +464,15 @@ for (const name of [
     "OPTIONAL_BUDGET",
 ])
     assert.deepEqual(
-        require("../scripts/classic-size.cjs")[name],
+        preNotificationCaps[name],
         preQueueCaps[name],
         name + " is unchanged by the optional queue allowance"
     );
 assert.deepEqual(
-    Object.keys(latestCaps.OPTIONAL_BUDGETS).sort(),
+    Object.keys(preNotificationCaps.OPTIONAL_BUDGETS).sort(),
     Object.keys(preQueueCaps.OPTIONAL_BUDGETS).sort()
 );
-for (const [name, cap] of Object.entries(latestCaps.OPTIONAL_BUDGETS))
+for (const [name, cap] of Object.entries(preNotificationCaps.OPTIONAL_BUDGETS))
     if (name !== "local-drop")
         assert.deepEqual(cap, preQueueCaps.OPTIONAL_BUDGETS[name], name);
 
@@ -291,6 +480,7 @@ for (const [name, cap] of Object.entries(latestCaps.OPTIONAL_BUDGETS))
 // inventories. Allocate the largest per-platform delta, never their sum.
 const presentationEvidence = require("../docs/evidence/classic-presentation-settings-size-20261105.json");
 const presentationBaseline = capsWithoutAllowances([
+    "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
     "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
 ]);
@@ -424,10 +614,7 @@ for (const [name, before] of Object.entries(presentationEvidence.caps_before)) {
     }
 }
 for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
-    assert.deepEqual(
-        require("../scripts/classic-size.cjs")[name],
-        presentationBaseline[name]
-    );
+    assert.deepEqual(preNotificationCaps[name], presentationBaseline[name]);
 for (const [name, cap] of Object.entries(preQueueCaps.OPTIONAL_BUDGETS))
     if (name !== "subtitle-appearance")
         assert.deepEqual(
@@ -439,6 +626,7 @@ for (const [name, cap] of Object.entries(preQueueCaps.OPTIONAL_BUDGETS))
 // Qualify desktop startup and its new optional asset independently. Earlier
 // receipts predate both; remove them only from the historical cap projections.
 const desktopBaseline = capsWithoutAllowances([
+    "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
     "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
     "DESKTOP_DROP_ALLOWANCE",
@@ -486,10 +674,7 @@ for (const metric of ["bytes", "gzipBytes"]) {
         );
 }
 for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
-    assert.deepEqual(
-        require("../scripts/classic-size.cjs")[name],
-        desktopBaseline[name]
-    );
+    assert.deepEqual(preNotificationCaps[name], desktopBaseline[name]);
 assert.deepEqual(
     Object.fromEntries(
         Object.entries(presentationBaseline.OPTIONAL_BUDGETS).filter(
@@ -507,16 +692,19 @@ CLASSIC_OPTIONAL_BUNDLES = Object.fromEntries(
 // Remove only those named features from historical projections. Live checks
 // below retain the complete merged caps and restore the full asset inventory.
 const preRecoveryCaps = capsWithoutAllowances([
+    "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
     "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
     "DESKTOP_DROP_ALLOWANCE",
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 const withoutAutoRecovery = capsWithoutAllowances([
+    "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 function historicalCapsWithoutAllowances(names) {
     return capsWithoutAllowances([
+        "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
         "DESKTOP_VIDEO_QUEUE_ALLOWANCE",
         "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
         "DESKTOP_DROP_ALLOWANCE",
@@ -689,13 +877,14 @@ for (const name of [
 ])
     for (const metric of ["bytes", "gzipBytes"])
         assert.equal(
-            latestCaps[name][metric] - withoutAutoRecovery[name][metric],
+            preNotificationCaps[name][metric] -
+                withoutAutoRecovery[name][metric],
             AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE[metric],
             name + " counts Auto recovery once alongside desktop drop"
         );
 for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET", "OPTIONAL_BUDGETS"])
     assert.deepEqual(
-        require("../scripts/classic-size.cjs")[name],
+        preNotificationCaps[name],
         withoutAutoRecovery[name],
         name + " is unchanged by Auto recovery"
     );
@@ -5467,6 +5656,8 @@ try {
         desktopVideoQueueAllowance: DESKTOP_VIDEO_QUEUE_ALLOWANCE,
         favoritesCategoryPersistenceAllowance:
             FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE,
+        interfaceNotificationSettingsAllowance:
+            INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
         localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
         localFavoriteWriteRecoveryAllowance:
             LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE,

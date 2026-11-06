@@ -122,6 +122,7 @@ var keyStrings = {
     Blue: "Көк",
     "Bookmark age (days): %1": "Закладка түзүлгөндөн бери (күн): %1",
     "Bookmark age: %1 days": "Белгинин жашы: %1 күн",
+    Brightness: "Жарыктык",
     "Browse folders": "Папкаларды кароо",
     "Buffer Size, s": "Буфердин көлөмү, сек",
     "Buffering...": "Буферленүүдө...",
@@ -719,6 +720,7 @@ var keyStrings = {
     "not set": "коюлган эмес",
     Off: "Өчүк",
     Ok: "Макул",
+    On: "Күйүк",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Бул сыналгы гана билдирүүңүздү кабыл ала алат. Шилтеме 10 мүнөттөн кийин бүтөт.",
     Open: "Ачуу",

@@ -24,6 +24,12 @@ function testInventoryWithoutCompiler() {
         "Connection-authorized diagnostics must remain in the runtime inventory"
     );
     for (const [moduleFile, consumer] of [
+        ["build/ui/notification-banners.js", "build/ui/index.js"],
+        ["build/ui/notification-banners.js", "build/commands/index.js"],
+        [
+            "build/ui/notification-banners.js",
+            "build/plugins/remote-notifications.js",
+        ],
         ["build/commands/player-state.js", "build/commands/remote-requests.js"],
         ["build/plugins/player-state.js", "build/plugins/command-server.js"],
     ]) {

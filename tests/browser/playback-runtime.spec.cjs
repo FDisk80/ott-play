@@ -425,10 +425,12 @@ test("native editor remote button explains missing configuration and keeps the f
         .getByRole("button", { exact: true, name: "Remote text entry" })
         .click();
     await expect(field).toHaveValue("Local draft");
-    await expect(page.locator("#info")).toHaveText(
-        "Remote text entry not configured"
-    );
-    await expect(page.locator("#info")).toBeVisible();
+    await expect(
+        page.locator("#notifications .remote-notify-local")
+    ).toHaveText("Remote text entry not configured");
+    await expect(
+        page.locator("#notifications .remote-notify-local")
+    ).toBeVisible();
     expect(fixture.requests).toEqual([]);
     expect(await page.evaluate(() => window.__nativeRemoteSaves)).toEqual([]);
     expect(fixture.errors).toEqual([]);

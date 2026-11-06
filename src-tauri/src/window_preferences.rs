@@ -12,18 +12,19 @@ static NEXT_TEMPORARY: AtomicU64 = AtomicU64::new(0);
 /// A missing preference keeps the normal window default. Other invalid input
 /// is reported to the caller, which can warn and use the same default.
 pub fn read_always_on_top(root: &Path) -> io::Result<bool> {
-    read_bool(root, TOPMOST_FILE)
+    read_bool(root, TOPMOST_FILE, false)
 }
 
+/// New instances constrain interactive resizing; explicit saved false stays false.
 pub fn read_aspect_lock(root: &Path) -> io::Result<bool> {
-    read_bool(root, ASPECT_FILE)
+    read_bool(root, ASPECT_FILE, true)
 }
 
-fn read_bool(root: &Path, name: &str) -> io::Result<bool> {
+fn read_bool(root: &Path, name: &str, default: bool) -> io::Result<bool> {
     let path = root.join(name);
     let metadata = match fs::symlink_metadata(&path) {
         Ok(metadata) => metadata,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(default),
         Err(error) => return Err(error),
     };
     // This is an app-owned preference, not a general input path. Reject
@@ -125,16 +126,16 @@ mod tests {
     }
 
     #[test]
-    fn aspect_preference_is_off_by_default_independent_and_instance_scoped() {
+    fn aspect_preference_is_on_by_default_independent_and_preserves_saved_false() {
         let root = TestDirectory::new();
-        assert!(!read_aspect_lock(&root.0).unwrap());
+        assert!(read_aspect_lock(&root.0).unwrap());
         write_always_on_top(&root.0, true).unwrap();
-        assert!(!read_aspect_lock(&root.0).unwrap());
-        for enabled in [true, true, false] {
+        assert!(read_aspect_lock(&root.0).unwrap());
+        for enabled in [false, true, true, false] {
             write_aspect_lock(&root.0, enabled).unwrap();
             assert_eq!(read_aspect_lock(&root.0).unwrap(), enabled);
             assert!(read_always_on_top(&root.0).unwrap());
-            assert!(!read_aspect_lock(&root.0.join("other")).unwrap());
+            assert!(read_aspect_lock(&root.0.join("other")).unwrap());
         }
     }
 

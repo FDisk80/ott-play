@@ -120,6 +120,7 @@ var keyStrings = {
     Blue: "Anụnụ anụnụ",
     "Bookmark age (days): %1": "Afọ ibe edokọbara (ụbọchị): %1",
     "Bookmark age: %1 days": "Afọ akara ibe: ụbọchị %1",
+    Brightness: "Nchapụta",
     "Browse folders": "Chọgharịa folda",
     "Buffer Size, s": "Nha ebe nchekwa nwa oge, sekọnd",
     "Buffering...": "Na-ebunye data...",
@@ -700,6 +701,7 @@ var keyStrings = {
     "not set": "etinyebeghị",
     Off: "Gbanyụrụ",
     Ok: "Ọ dị mma",
+    On: "Agbanyere",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Naanị TV a nwere ike ịnara ozi gị. Njikọ ahụ ga-agwụ mgbe nkeji iri gachara.",
     Open: "Mepee",

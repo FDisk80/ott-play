@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Bluu",
     "Bookmark age (days): %1": "Umri wa alamisho (siku): %1",
     "Bookmark age: %1 days": "Alamisha umri: siku %1",
+    Brightness: "Mwangaza",
     "Browse folders": "Vinjari folda",
     "Buffer Size, s": "Ukubwa wa bafa, s",
     "Buffering...": "Inahifadhi data kwa muda...",
@@ -719,6 +720,7 @@ var keyStrings = {
     "not set": "haijawekwa",
     Off: "Imezimwa",
     Ok: "Sawa",
+    On: "Imewashwa",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "TV hii pekee ndiyo inaweza kukubali ujumbe wako. Kiungo kinaisha baada ya dakika 10.",
     Open: "Fungua",

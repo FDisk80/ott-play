@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Kék",
     "Bookmark age (days): %1": "A könyvjelző kora (nap): %1",
     "Bookmark age: %1 days": "Könyvjelző kora: %1 nap",
+    Brightness: "Fényerő",
     "Browse folders": "Böngészés mappák szerint",
     "Buffer Size, s": "Puffer mérete, s",
     "Buffering...": "Pufferelés...",
@@ -713,6 +714,7 @@ var keyStrings = {
     "not set": "nincs beállítva",
     Off: "Ki",
     Ok: "OK",
+    On: "Bekapcsolva",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Csak ez a TV fogadja el az üzenetét. A link 10 perc múlva lejár.",
     Open: "Megnyitás",

@@ -71,6 +71,7 @@ const CLASSIC_MODULES = [
     "build/ui/input-router.js",
     "build/ui/classic-screen-port.js",
     "build/ui/menu-registry.js",
+    "build/ui/notification-banners.js",
     "build/ui/accessibility.js",
     "build/ui/live-recovery.js",
     "build/ui/interface-mode.js",

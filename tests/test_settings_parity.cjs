@@ -305,10 +305,15 @@ function fixture(
         w
     );
     vm.runInContext(
+        compile(selectedSource("src/ui/index.ts", ["hsvToRgb"])),
+        w
+    );
+    vm.runInContext(
         compile(
             selectedSource(
                 "src/index.ts",
                 [
+                    "classicColorRgb",
                     "createSettingsPage",
                     "setListArrays",
                     "loadSubtitleAppearance",
@@ -417,6 +422,297 @@ function fixture(
 function save(w) {
     w.listKeyHandlerFn(w.keys.GREEN);
 }
+
+// Interface presentation regression; kept before the broad platform matrix.
+{
+    const { w, typed, stored } = fixture("tauri");
+    vm.runInContext(
+        compile(
+            selectedSource(
+                "src/localization/index.ts",
+                ["translate"],
+                [],
+                ["translations", "useGraphicIcons"]
+            )
+        ),
+        w
+    );
+    w._ = w.translate;
+    w.sGrapI = 1;
+    w.settingsInterface();
+    const row = (id) => w.listArray.find((entry) => entry.settingId === id);
+    const sleep = w.getListItem(row("sleepTimeout"));
+    assert.match(sleep, />Off&nbsp;/);
+    assert.doesNotMatch(sleep, /fontello/);
+    assert.match(w.getListItem(row("useGraphicalIndicators")), /fontello/);
+    for (const [id, color] of [
+        ["highlightColor", "#FFDB26"],
+        ["highlightColorSel", "#606080"],
+        ["highlightColorB", "#000000"],
+    ]) {
+        assert.match(w.getListItem(row(id)), new RegExp(color));
+        assert.match(row(id).cur, /background:/);
+        assert.doesNotMatch(row(id).cur, /select|undefined|NaN/);
+    }
+    w.eSHLcolorB = "120,50";
+    assert.match(w.getListItem(row("highlightColorB")), /#008000/);
+    assert.equal(
+        typed().highlightColorB,
+        "255,0",
+        "Color preview stays in the settings draft"
+    );
+    assert.equal(typed().interfaceTheme, 2);
+    w.listKeyHandlerFn(w.keys.RETURN);
+    assert.equal(
+        typed().highlightColorB,
+        "255,0",
+        "Cancel preserves the saved palette"
+    );
+    w.settingsInterface();
+    assert.match(w.getListItem(row("highlightColorB")), /#000000/);
+    w.eSHLcolorB = "120,50";
+    save(w);
+    assert.equal(typed().highlightColorB, "120,50");
+    assert.equal(
+        typed().interfaceTheme,
+        0,
+        "Accepted custom color selects Classic only on Save"
+    );
+    assert.equal(stored.get("sSHLcolorB"), "120,50");
+}
+console.log("PASS Interface text, color swatches and draft Save/Cancel");
+for (const [id, bridge, initial, expected, selector, property] of [
+    [
+        "highlightColor",
+        "eSHLcolor",
+        "50,85",
+        "rgb(255, 255, 25)",
+        "#progress",
+        "backgroundColor",
+    ],
+    [
+        "highlightColorSel",
+        "eSHLcolSel",
+        "240,25",
+        "rgb(96, 89, 128)",
+        null,
+        null,
+    ],
+    [
+        "highlightColorB",
+        "eSHLcolorB",
+        "255,0",
+        "rgb(5, 0, 13)",
+        ".list_back",
+        "backgroundColor",
+    ],
+    [
+        "epgTimeColor",
+        "eEpgTimeColor",
+        0,
+        "rgb(255, 255, 25)",
+        ":root",
+        "--ott-epg-time-color",
+    ],
+]) {
+    const { JSDOM } = require("jsdom");
+    const dom = new JSDOM(
+        '<div id="listAbout" style="display:none"></div><div id="listCaption"></div><div id="listPodval"></div><div id="listDetail"></div><div id="progress"></div><div class="list_back"></div>',
+        { runScripts: "outside-only" }
+    );
+    try {
+        dom.window.eval(
+            fs.readFileSync(path.join(root, "js/jquery-1.11.1.min.js"), "utf8")
+        );
+        const originalIs = dom.window.$.fn.is;
+        dom.window.$.fn.is = function (selector) {
+            return selector === ":visible"
+                ? !!this[0] && this[0].style.display !== "none"
+                : originalIs.call(this, selector);
+        };
+        const { w, typed, stored } = fixture("tauri");
+        Object.assign(w, {
+            $: dom.window.$,
+            $tooltipSpan: null,
+            document: dom.window.document,
+            jQuery: dom.window.jQuery,
+            nativeListInertia: null,
+            stbEventToKeyCode: (event) => event.keyCode,
+            strDOWN: "Down",
+            strENTER: "OK",
+            strLEFT: "Left",
+            strRETURN: "Back",
+            strRIGHT: "Right",
+            strUP: "Up",
+            tooltip: null,
+        });
+        Object.assign(w.keys, {
+            BLUE: 406,
+            DOWN: 40,
+            RED: 403,
+            UP: 38,
+            YELLOW: 405,
+        });
+        require("./helpers/screen-runtime.cjs")(w);
+        vm.runInContext(
+            compile(
+                selectedSource("src/utils/helpers.ts", [
+                    "metadataText",
+                    "metadataHtml",
+                ])
+            ),
+            w
+        );
+        vm.runInContext(
+            compile(
+                selectedSource("src/ui/index.ts", [
+                    "uiInit",
+                    "localizedTextHtml",
+                    "renderButtonHint",
+                    "saveListPanelState",
+                    "restoreListPanelState",
+                    "bindColorDialogInput",
+                    "showColorDialog",
+                    "colorDialog",
+                    "selColorDialog",
+                    "backColorDialog",
+                    "epgTimeColorDialog",
+                    "epgTimeCssColor",
+                ])
+            ),
+            w
+        );
+        vm.runInContext(
+            compile(selectedSource("src/index.ts", ["setColor"])),
+            w
+        );
+        vm.runInContext(
+            compile(
+                selectedSource("src/key-handler/index.ts", [
+                    "cancelNativeListInertia",
+                    "keyHandler",
+                    "dispatchKey",
+                ])
+            ),
+            w
+        );
+        w._doKey = w.dispatchKey;
+        w.showPage = () => w.__ottClassicScreenPort.commitList();
+        w.document.addEventListener("keydown", w.keyHandler);
+        w.uiInit();
+        const open = () => {
+            if (id === "epgTimeColor") w.settingsChannels();
+            else w.settingsInterface();
+            const row = w.listArray.find((entry) => entry.settingId === id);
+            w.selIndex = w.listArray.indexOf(row);
+            w.dispatchKey(w.keys.ENTER);
+            return row;
+        };
+        const press = (key, target = w.document.body) => {
+            target.focus();
+            target.dispatchEvent(
+                new dom.window.KeyboardEvent("keydown", {
+                    bubbles: true,
+                    cancelable: true,
+                    keyCode: w.keys[key],
+                })
+            );
+        };
+        const click = (key, footer = false) => {
+            const control = w.document.querySelector(
+                (footer ? "#listPodval" : "#listAbout") +
+                    ' [data-ott-key="' +
+                    w.keys[key] +
+                    '"]'
+            );
+            assert(control, id + " renders " + key);
+            control.click();
+        };
+        const row = open();
+        click("LEFT");
+        click("RIGHT");
+        click("UP");
+        click("DOWN");
+        // Key and actual delegated click routes both reach the owned picker.
+        press("RIGHT");
+        press("UP");
+        const preview =
+            w.document.getElementById("step").style[
+                id === "highlightColor" || id === "epgTimeColor"
+                    ? "color"
+                    : "backgroundColor"
+            ];
+        assert.equal(
+            preview,
+            expected,
+            id + " uses the production HSV interpretation"
+        );
+        press(
+            "ENTER",
+            w.document.querySelector(
+                '#listAbout [data-ott-key="' + w.keys.LEFT + '"]'
+            )
+        );
+        assert.equal(
+            typed()[id],
+            initial,
+            "Set only commits to the page draft"
+        );
+        assert.notEqual(w[bridge], initial);
+        if (id !== "epgTimeColor") {
+            const swatch = w.document.createElement("div");
+            swatch.innerHTML = row.cur;
+            assert.equal(
+                swatch.firstChild.style.backgroundColor,
+                preview,
+                "The parent swatch matches the accepted preview"
+            );
+        }
+        press("GREEN");
+        assert.equal(typed().interfaceTheme, id === "epgTimeColor" ? 2 : 0);
+        assert.equal(
+            id === "epgTimeColor"
+                ? w.document.documentElement.style
+                      .getPropertyValue(property)
+                      .replace(/,/g, ", ")
+                : selector
+                  ? w.document.querySelector(selector).style[property]
+                  : w.curColorB.replace(/,/g, ", "),
+            preview,
+            "Main Save publishes exactly the preview using real setColor"
+        );
+        const saved = typed()[id];
+        const persisted = [...stored];
+        open();
+        click("BLUE");
+        press("RETURN");
+        assert.equal(
+            id === "epgTimeColor" ? w.__ottSettingsEditor.get(id) : w[bridge],
+            saved,
+            "Picker Cancel leaves the page draft intact"
+        );
+        press("RETURN");
+        assert.equal(typed()[id], saved);
+        assert.deepEqual([...stored], persisted);
+        open();
+        click("BLUE");
+        click("ENTER", true);
+        press("RETURN");
+        assert.equal(
+            typed()[id],
+            saved,
+            "Page Cancel discards an accepted picker edit"
+        );
+        assert.deepEqual([...stored], persisted);
+        console.log(
+            "PASS Interface actual picker, Set/Save and both Cancel routes " +
+                id
+        );
+    } finally {
+        dom.window.close();
+    }
+}
+// End Interface presentation regression.
 
 for (const profile of [
     "server",
@@ -2429,9 +2725,10 @@ require("node:test").test(
                     const ipc = [],
                         messages = [];
                     let acknowledge,
-                        enabled = false,
                         paints = 0,
                         closed = 0;
+                    const states = { alwaysOnTop: false, aspectLock: true };
+                    const desired = !states[kind];
                     w.navigator = { userAgent: "desktop" };
                     w.__TAURI__ = {
                         core: {
@@ -2442,26 +2739,34 @@ require("node:test").test(
                                 ]);
                                 if (command === "get_window_aspect_lock")
                                     return Promise.resolve({
-                                        active: false,
-                                        enabled,
+                                        active: states.aspectLock,
+                                        enabled: states.aspectLock,
                                         ok: true,
                                         supported: true,
                                     });
+                                assert.equal(
+                                    command,
+                                    kind === "alwaysOnTop"
+                                        ? "set_always_on_top"
+                                        : "set_window_aspect_lock"
+                                );
                                 return new Promise((resolve) => {
                                     acknowledge = () => {
-                                        enabled =
+                                        states[kind] =
                                             kind === "alwaysOnTop"
                                                 ? args.alwaysOnTop
                                                 : args.enabled;
                                         resolve(
                                             kind === "alwaysOnTop"
                                                 ? {
-                                                      alwaysOnTop: enabled,
+                                                      alwaysOnTop:
+                                                          states.alwaysOnTop,
                                                       ok: true,
                                                   }
                                                 : {
-                                                      active: enabled,
-                                                      enabled,
+                                                      active: states.aspectLock,
+                                                      enabled:
+                                                          states.aspectLock,
                                                       ok: true,
                                                       supported: true,
                                                   }
@@ -2472,7 +2777,10 @@ require("node:test").test(
                         },
                         window: {
                             getCurrentWindow: () => ({
-                                isAlwaysOnTop: () => Promise.resolve(enabled),
+                                isAlwaysOnTop: () => {
+                                    ipc.push(["isAlwaysOnTop", undefined]);
+                                    return Promise.resolve(states.alwaysOnTop);
+                                },
                                 label: "main",
                             }),
                         },
@@ -2501,14 +2809,12 @@ require("node:test").test(
                     assert(
                         rows
                             .slice(2, 4)
-                            .every(
-                                (row) => !row.settingId && row.cur === "select"
-                            )
+                            .every((row) => !row.settingId && row.cur === "…")
                     );
                     assert.deepEqual(
                         ipc,
                         [],
-                        "Opening Interface never queries or changes native state"
+                        "The initial render waits for asynchronous native readback"
                     );
                     const font = rows.find(
                         (row) => row.settingId === "uiFontScale"
@@ -2518,8 +2824,33 @@ require("node:test").test(
                         (row) => row.id === "window." + kind
                     );
                     w.selIndex = index;
-                    const before = [...stored],
-                        paintCount = paints;
+                    const before = [...stored];
+                    const openingPaints = paints;
+                    await settle();
+                    const openingReads = [
+                        ["isAlwaysOnTop", undefined],
+                        ["get_window_aspect_lock", undefined],
+                    ];
+                    assert.deepEqual(
+                        ipc,
+                        openingReads,
+                        "Opening probes both states without issuing a setter"
+                    );
+                    assert.deepEqual(
+                        Array.from(rows.slice(2, 4), (row) => row.cur),
+                        ["off", "yes"]
+                    );
+                    assert.equal(
+                        paints,
+                        openingPaints + 2,
+                        "Each completed readback paints its checkbox"
+                    );
+                    assert.equal(w.__ottClassicScreenPort.listOwner(), owner);
+                    assert.equal(w.__ottSettingsEditor, editor);
+                    assert.equal(editor.get("uiFontScale"), 130);
+                    assert.equal(w.selIndex, index);
+                    assert.deepEqual([...stored], before);
+                    const paintCount = paints;
                     assert.equal(w.listKeyHandlerFn(w.keys.ENTER), true);
                     await settle();
                     assert.equal(
@@ -2529,24 +2860,45 @@ require("node:test").test(
                     );
                     assert.deepEqual(
                         ipc,
-                        kind === "alwaysOnTop"
-                            ? [["set_always_on_top", { alwaysOnTop: true }]]
-                            : [
-                                  ["get_window_aspect_lock", undefined],
-                                  ["set_window_aspect_lock", { enabled: true }],
-                              ]
+                        openingReads.concat(
+                            kind === "alwaysOnTop"
+                                ? [
+                                      ["isAlwaysOnTop", undefined],
+                                      [
+                                          "set_always_on_top",
+                                          { alwaysOnTop: desired },
+                                      ],
+                                  ]
+                                : [
+                                      ["get_window_aspect_lock", undefined],
+                                      [
+                                          "set_window_aspect_lock",
+                                          { enabled: desired },
+                                      ],
+                                  ]
+                        )
                     );
                     assert.deepEqual(
                         messages,
                         [],
                         "No success before native acknowledgement"
                     );
+                    assert.equal(
+                        paints,
+                        paintCount,
+                        "The pending setter cannot optimistically repaint"
+                    );
+                    assert.equal(
+                        rows[index].cur,
+                        kind === "alwaysOnTop" ? "off" : "yes"
+                    );
                     acknowledge();
                     await settle();
                     assert.deepEqual(messages, [
                         (kind === "alwaysOnTop"
                             ? "Always on top"
-                            : "Lock window to 16:9") + ": on",
+                            : "Lock window to 16:9") +
+                            (desired ? ": On" : ": Off"),
                     ]);
                     assert.equal(w.listArray, rows);
                     assert.equal(w.__ottSettingsEditor, editor);
@@ -2554,9 +2906,10 @@ require("node:test").test(
                     assert.equal(w.selIndex, index);
                     assert.equal(
                         paints,
-                        paintCount,
-                        "A native acknowledgement does not repaint settings"
+                        paintCount + 1,
+                        "The acknowledged checkbox redraw preserves the settings page"
                     );
+                    assert.equal(rows[index].cur, desired ? "yes" : "off");
                     assert.equal(closed, 0);
                     assert(editor.active());
                     assert.equal(editor.get("uiFontScale"), 130);
@@ -2578,11 +2931,11 @@ require("node:test").test(
                         finish === "save" ? 130 : 100
                     );
                     assert.equal(
-                        enabled,
-                        true,
+                        states[kind],
+                        desired,
                         "Save/Cancel never replays or reverses a native action"
                     );
-                    assert.equal(ipc.length, kind === "alwaysOnTop" ? 1 : 2);
+                    assert.equal(ipc.length, 4);
                 }
             }
         }
@@ -2599,12 +2952,25 @@ require("node:test").test(
                 w.sInterfaceMode = mode;
                 const messages = [];
                 let finish,
-                    paints = 0;
+                    paints = 0,
+                    reads = 0,
+                    writes = 0;
                 w.navigator = { userAgent: "desktop" };
                 w.__TAURI__ = {
                     core: {
-                        invoke: () =>
-                            new Promise((resolve, fail) => {
+                        invoke: (command) => {
+                            if (command === "get_window_aspect_lock") {
+                                reads++;
+                                return Promise.resolve({
+                                    active: true,
+                                    enabled: true,
+                                    ok: true,
+                                    supported: true,
+                                });
+                            }
+                            assert.equal(command, "set_always_on_top");
+                            writes++;
+                            return new Promise((resolve, fail) => {
                                 finish = () =>
                                     reject
                                         ? fail(Error("denied"))
@@ -2612,11 +2978,15 @@ require("node:test").test(
                                               alwaysOnTop: true,
                                               ok: true,
                                           });
-                            }),
+                            });
+                        },
                     },
                     window: {
                         getCurrentWindow: () => ({
-                            isAlwaysOnTop: () => Promise.resolve(false),
+                            isAlwaysOnTop: () => {
+                                reads++;
+                                return Promise.resolve(false);
+                            },
                             label: "main",
                         }),
                     },
@@ -2649,6 +3019,19 @@ require("node:test").test(
                 );
                 font.val = font.settingValues.indexOf(140);
                 w.selIndex = 7;
+                const openingPaints = paints;
+                await settle();
+                assert.equal(
+                    paints,
+                    openingPaints + 2,
+                    "Only the replacement page's two readbacks paint before the old ACK"
+                );
+                assert.deepEqual(
+                    Array.from(rows.slice(2, 4), (row) => row.cur),
+                    ["off", "yes"]
+                );
+                assert.equal(reads, 5);
+                assert.equal(writes, 1);
                 const before = paints;
                 finish();
                 await pending;
@@ -2658,6 +3041,13 @@ require("node:test").test(
                 assert.equal(w.__ottClassicScreenPort.listOwner(), owner);
                 assert.equal(w.selIndex, 7);
                 assert.equal(paints, before);
+                assert.deepEqual(
+                    Array.from(rows.slice(2, 4), (row) => row.cur),
+                    ["off", "yes"],
+                    "An old ACK cannot replace the new page's confirmed checkbox states"
+                );
+                assert.equal(reads, 5);
+                assert.equal(writes, 1);
                 assert(editor.active());
                 assert.equal(editor.get("uiFontScale"), 140);
                 assert.equal(typed().uiFontScale, 100);

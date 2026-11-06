@@ -1,3 +1,4 @@
+const notificationBanners = require("./helpers/notification-banners.cjs")();
 const numericKeyState = require("./helpers/numeric-key-state.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -143,6 +144,7 @@ const cmdContext = {
     },
     exports: {},
     require(name) {
+        if (name === "../ui/notification-banners") return notificationBanners;
         if (name === "../localization") return localeRuntime;
         if (name === "./random-channel") {
             const helper = {
@@ -511,6 +513,7 @@ console.log(
 // Exercise the real dictionaries, interpolation and Unicode search policy at
 // the visible notification boundary. Remote-authored messages remain literal.
 const dom = new JSDOM('<div id="notifications"></div>', {
+    pretendToBeVisual: true,
     runScripts: "outside-only",
 });
 try {
@@ -544,6 +547,8 @@ try {
         document: host.document,
         exports: {},
         require(name) {
+            if (name === "../ui/notification-banners")
+                return notificationBanners;
             if (name === "../localization") return host;
             if (name === "./random-channel") return cmdContext.require(name);
             if (name === "../shared/wire-contracts")
@@ -641,7 +646,7 @@ try {
         literal
     );
     assert.equal(
-        last().children.length,
+        last().querySelector(".remote-notify-message").children.length,
         0,
         "provider names are text, never markup"
     );
@@ -709,7 +714,10 @@ try {
     assert.equal(last().dir, "auto");
     command({ command: "popup_message", message: literal });
     assert.equal(last().textContent, literal);
-    assert.equal(last().children.length, 0);
+    assert.equal(
+        last().querySelector(".remote-notify-message").children.length,
+        0
+    );
     command({ command: "popup_message", message: "No channels loaded" });
     assert.equal(
         last().textContent,

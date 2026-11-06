@@ -146,6 +146,42 @@
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
 
+## [1.1.66] - Development line
+
+### Changes
+
+- Reused the live local-folder handle when saving the startup cache while preserving source generation checks.
+- Fixed Enter confirmation and focus restoration in EPG and Classic color pickers.
+- Show confirmed native window state in Interface settings. Keep the current
+  indicator until a change is acknowledged, report unavailable controls, and
+  ignore replies that belong to an older settings page or request.
+- Enable the native 16:9 window lock by default when no preference is saved.
+  Preserve an explicitly saved enabled or disabled preference.
+- Restore all three Classic interface color pickers with color swatches,
+  consistent HSV previews, and working Set, Save and Cancel actions. Localize
+  the Sleep Off choice and the additional control labels.
+- Use one notification renderer for local and remote notices. Slide banners in
+  and out, fade the surface, text and icon together, and smoothly collapse the
+  measured heading while retaining the message. Preserve notification lifetimes,
+  reduced-motion behavior and cleanup when playback enters standby or the
+  display is suspended.
+
+### Upgrade
+
+- Existing profiles, Favorites and saved interface preferences are retained.
+  Only instances without a saved aspect-lock preference adopt the 16:9 default;
+  an explicitly saved off setting stays off.
+- Shared interface changes apply to the web player, OTTserver, Tauri and
+  Capacitor. The native window default applies to Tauri; this release does not
+  establish additional physical-device compatibility.
+
+### Security
+
+- No security vulnerability fix is claimed for this release. Local notification
+  messages continue to render as plain text, and existing remote-control
+  authorization requirements remain unchanged.
+
+
 ## [1.1.65] - Development line
 
 - Integrate the experimental native webOS client with progressive Local and

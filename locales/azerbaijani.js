@@ -120,6 +120,7 @@ var keyStrings = {
     Blue: "Mavi",
     "Bookmark age (days): %1": "Əlfəcin yaşı (günlər): %1",
     "Bookmark age: %1 days": "Əlfəcinin yaşı: %1 gün",
+    Brightness: "Parlaqlıq",
     "Browse folders": "Qovluqlar üzrə baxış",
     "Buffer Size, s": "Bufer ölçüsü, san",
     "Buffering...": "Buferlənir...",
@@ -708,6 +709,7 @@ var keyStrings = {
     "not set": "təyin edilməyib",
     Off: "Söndürülüb",
     Ok: "OK",
+    On: "Aktivdir",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Yalnız bu televizor mesajınızı qəbul edə bilər. Link 10 dəqiqədən sonra bitir.",
     Open: "Aç",

@@ -31,25 +31,8 @@
             pointer-events: none;
         }
         #notifications > .notify + .notify { margin-top: 8px; }
-        .notify {
-            max-width: 25em;
-            padding: 0.5em 0.8em;
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: inherit;
-            font-weight: bold;
-            color: #f0f0f0;
-            word-wrap: break-word;
-            background: rgba(0, 0, 0, 0.88);
-            border-left: 0.15em solid #fbc02d;
-            border-radius: 0.2em;
-            box-shadow: 0.1em 0.1em 0.3em rgba(0, 0, 0, 0.6);
-            animation: notifyIn 0.3s ease-out;
-        }
-        .notify-out {
-            animation: notifyOut 0.3s ease-in forwards;
-        }
-        /* Remote home events use viewport sizing, independent of the TV skin's
-           em scale. Only the surface is translucent; text keeps full contrast. */
+        /* Shared local/remote banners use viewport sizing independent of TV skins.
+           Surface, icon and text share one fade; heading clips measured pixels. */
         .notify.remote-notify {
             position: relative;
             /* Keep the fading surface behind text even with reduced motion. */
@@ -77,7 +60,7 @@
         .notify.remote-notify.remote-notify-out {
             animation: remoteNotifyOut 320ms cubic-bezier(0.4, 0, 1, 1) both;
         }
-        .notify.remote-notify::before, .remote-notify-icon {
+        .notify.remote-notify::before, .remote-notify-icon, .remote-notify-content {
             animation: remoteNotifySurfaceIn 480ms ease-out both,
                        remoteNotifyFade 4020ms linear 980ms forwards;
             animation-duration: inherit;
@@ -113,11 +96,15 @@
         }
         .remote-notify-icon::before { content: "i"; }
         .remote-notify-content { flex: 1 1 auto; min-width: 0; }
-        .remote-notify-label, .remote-notify-title {
-            animation: remoteNotifyFold 480ms ease-in-out 980ms forwards;
+        .remote-notify-heading { overflow: hidden; }
+        .remote-notify-heading-body { padding-bottom: 0.3em; }
+        .remote-notify-running .remote-notify-foldable {
+            animation: remoteNotifyFold 960ms cubic-bezier(0.4, 0, 0.2, 1) 980ms forwards;
+        }
+        .remote-notify-running .remote-notify-foldable > .remote-notify-heading-body {
+            animation: remoteNotifyHeadingUp 960ms cubic-bezier(0.4, 0, 0.2, 1) 980ms forwards;
         }
         .remote-notify-label { max-height: 1.4em; overflow: hidden; }
-        .remote-notify-title { animation-delay: 1460ms; }
         .notify.remote-notify-with-image {
             display: block;
             padding: 0;
@@ -165,7 +152,6 @@
             line-height: 1.4;
             -webkit-line-clamp: 3;
         }
-        .remote-notify-title + .remote-notify-message { margin-top: 0.3em; }
         .notify.remote-notify-warning::before { border-color: #ffd079; }
         .remote-notify-warning .remote-notify-icon { background: #4b3a23; color: #ffd99a; }
         .remote-notify-warning .remote-notify-label { color: #ffd99a; }
@@ -204,7 +190,10 @@
             }
         }
         @keyframes remoteNotifyFold {
-            to { max-height: 0; margin-bottom: 0; transform: translateY(-0.5em); }
+            to { height: 0; }
+        }
+        @keyframes remoteNotifyHeadingUp {
+            to { transform: translateY(-100%); }
         }
         @keyframes remoteNotifySurfaceIn {
             from { opacity: 0.04; }
@@ -212,37 +201,30 @@
         }
         @keyframes remoteNotifyFade {
             from { opacity: 1; }
-            to { opacity: 0.04; }
+            to { opacity: 0.18; }
+        }
+        .notify.remote-notify-lite { animation-name: remoteNotifySimpleIn; }
+        .notify.remote-notify-lite.remote-notify-out { animation-name: remoteNotifySimpleOut; }
+        .notify.remote-notify-lite::before { box-shadow: none; }
+        @keyframes remoteNotifySimpleIn {
+            from { transform: translateX(calc(100% + 40px)); }
+            to { transform: translateX(0); }
+        }
+        @keyframes remoteNotifySimpleOut {
+            from { transform: translateX(0); }
+            to { transform: translateX(calc(100% + 40px)); }
         }
         @media (prefers-reduced-motion: reduce) {
             .notify.remote-notify, .notify.remote-notify.remote-notify-out,
             .notify.remote-notify::before, .remote-notify-icon, .remote-notify-image,
-            .remote-notify-label, .remote-notify-title { animation: none; }
-        }
-        @keyframes notifyIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        @keyframes notifyOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
+            .remote-notify-content, .remote-notify-running .remote-notify-foldable,
+            .remote-notify-running .remote-notify-foldable > .remote-notify-heading-body {
+                animation: none;
             }
         }
         /* First paint: hide shell until CSS loads / boot ends.
            Scoped to body.booting so !important can be lifted (jQuery .show
            cannot override a permanent display:none !important). */
-        body.booting #info,
         body.booting #info1,
         body.booting #list,
         body.booting #list_osd,
@@ -434,8 +416,7 @@
             <div id="boot-status"></div>
             <div id="boot-log"></div>
         </div>
-        <div id="info" role="status" aria-live="polite" aria-atomic="true" class="osd"></div>
-        <div id="numprog" class="osd"></div>
+            <div id="numprog" class="osd"></div>
         <div id="liveRecoveryStatus" class="osd" role="status" aria-live="off" aria-hidden="true"></div>
         <div id="volume_div"><div id="volume"></div></div>
         <div id="mute"></div>

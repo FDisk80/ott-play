@@ -113,7 +113,7 @@ def validate_evidence(report, missing, *, platform="windows"):
                 f"Wrong {name} native state")
 
     aspect = report.get("aspect", {})
-    validate_aspect_state(aspect.get("initial"), False, False)
+    validate_aspect_state(aspect.get("initial"), True, True)
     validate_aspect_state(aspect.get("final"), False, False)
     sequence = aspect.get("set_sequence", [])
     require(len(sequence) == 4, "Incomplete aspect idempotence sequence")
@@ -151,7 +151,7 @@ def validate_restoration_evidence(report, phase, *, platform="windows"):
         require(state.get("topmost") is expected and state.get("win32_topmost") is expected
                 and state.get("fullscreen") is False, f"Wrong restored {name} native state")
 
-    validate_aspect_state(report.get("aspect_initial"), phase == "unpin", phase == "unpin")
+    validate_aspect_state(report.get("aspect_initial"), phase != "verify-off", phase != "verify-off")
     validate_aspect_state(report.get("aspect_final"), phase == "pin", phase == "pin")
     validate_sizing_probe(report.get("aspect_sizing", {}), phase == "pin")
 
@@ -227,8 +227,8 @@ def validate_appkit_baseline(report):
 def validate_appkit_evidence(report):
     baseline = validate_appkit_baseline(report)
     require(report.get("aux_unchanged") is True, "Auxiliary AppKit window changed")
-    validate_aspect_state(report.get("initial_state"), False, False)
-    validate_appkit_snapshot(report.get("initial"), baseline, active=False)
+    validate_aspect_state(report.get("initial_state"), True, True)
+    validate_appkit_snapshot(report.get("initial"), baseline, active=True)
     sequence = report.get("set_sequence", [])
     require(len(sequence) == 4, "Incomplete AppKit idempotence sequence")
     for item, enabled in zip(sequence, [True, True, False, False]):
@@ -284,7 +284,7 @@ def validate_appkit_restoration(report, phase):
             "Wrong AppKit preference phase")
     require(report.get("aux_unchanged") is True, "Auxiliary AppKit window changed")
     baseline = validate_appkit_baseline(report)
-    for name, enabled in [("initial", phase == "unpin"), ("final", phase == "pin")]:
+    for name, enabled in [("initial", phase != "verify-off"), ("final", phase == "pin")]:
         validate_aspect_state(report.get(name + "_state"), enabled, enabled)
         validate_appkit_snapshot(report.get(name), baseline, active=enabled)
 

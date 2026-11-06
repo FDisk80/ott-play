@@ -88,14 +88,6 @@ async function setup(outcome) {
     let selectedScreen = true,
         removedCalls = 0,
         shown;
-    const metadataText = fn(
-        extract(
-            "src/utils/helpers.ts",
-            (n) =>
-                ts.isFunctionDeclaration(n) && n.name?.text === "metadataText"
-        ),
-        {}
-    );
     const removed = fn(
         extract(
             "src/commands/global-favorites.ts",
@@ -104,7 +96,6 @@ async function setup(outcome) {
                 n.name.getText() === "favoriteRemoved"
         ).replace(/^favoriteRemoved:\s*/, ""),
         {
-            metadataText,
             remotePlayerInfo: () => ({ runtime: "runtime" }),
             runtime: "runtime",
             w: { _: (x) => x, showShift: (x) => banners.push(x) },
@@ -234,14 +225,26 @@ function notificationBoundary() {
     let active = "a";
     const banners = [],
         w = { _: (x) => x, showShift: (x) => banners.push(x) };
-    const metadataText = fn(
+    const { JSDOM } = require("jsdom");
+    const dom = new JSDOM('<div id="notifications"></div>', {
+        pretendToBeVisual: true,
+    });
+    const showShift = fn(
         extract(
-            "src/utils/helpers.ts",
-            (n) =>
-                ts.isFunctionDeclaration(n) && n.name?.text === "metadataText"
+            "src/ui/index.ts",
+            (n) => ts.isFunctionDeclaration(n) && n.name?.text === "showShift"
         ),
-        {}
+        {
+            createNotificationBanners:
+                require("./helpers/notification-banners.cjs")()
+                    .createNotificationBanners,
+            window: dom.window,
+        }
     );
+    w.showShift = (text) => {
+        banners.push(text);
+        showShift(text);
+    };
     const notify = fn(
         extract(
             "src/commands/global-favorites.ts",
@@ -250,14 +253,13 @@ function notificationBoundary() {
                 n.name.getText() === "favoriteRemoved"
         ).replace(/^favoriteRemoved:\s*/, ""),
         {
-            metadataText,
             remotePlayerInfo: () => ({ runtime: active }),
             runtime: "a",
             w,
         }
     );
     notify("<A> & B");
-    assert.deepEqual(banners, ["Favorites: − &lt;A&gt; &amp; B"]);
+    assert.deepEqual(banners, ["Favorites: − <A> & B"]);
     const toggle = fn(
         extract(
             "src/commands/global-favorites.ts",
@@ -266,7 +268,6 @@ function notificationBoundary() {
                 n.name.getText() === "favoriteToggled"
         ).replace(/^favoriteToggled:\s*/, ""),
         {
-            metadataText,
             remotePlayerInfo: () => ({ runtime: active }),
             runtime: "a",
             w,
@@ -275,15 +276,23 @@ function notificationBoundary() {
     toggle("<b>A & B</b> &amp;", true);
     toggle("<b>A & B</b> &amp;", false);
     assert.deepEqual(banners.slice(1), [
-        "Favorites: + &lt;b&gt;A &amp; B&lt;/b&gt; &amp;amp;",
-        "Favorites: − &lt;b&gt;A &amp; B&lt;/b&gt; &amp;amp;",
+        "Favorites: + <b>A & B</b> &amp;",
+        "Favorites: − <b>A & B</b> &amp;",
     ]);
     active = "b";
     notify("stale");
     toggle("stale", true);
     assert.equal(banners.length, 3);
+    const message = dom.window.document.querySelector(".remote-notify-message");
+    assert.equal(message.textContent, banners[2]);
+    assert.equal(
+        message.children.length,
+        0,
+        "markup and entity-looking file names remain literal text"
+    );
+    dom.window.close();
     console.log(
-        "PASS MAIN-owned escaped notification port and stale-runtime suppression; no optional helper import"
+        "PASS MAIN-owned plain-text banner DOM and stale-runtime suppression; no optional helper import"
     );
 }
 async function categoryFixture(count, device = "pc") {
@@ -688,7 +697,7 @@ async function main() {
     assert.equal((await good.f.store.snapshot()).entries.length, 0);
     assert.equal(good.removedCalls, 1);
     assert.equal(good.banners.length, 1);
-    assert.match(good.banners[0], /Favorites: − A &lt;name&gt; &amp; B/);
+    assert.equal(good.banners[0], "Favorites: − A <name> & B");
     console.log(
         "PASS actual F capture -> input router -> screen global callback -> UUID store removal and one literal-name banner"
     );

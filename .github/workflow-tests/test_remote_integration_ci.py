@@ -77,7 +77,7 @@ class RemoteIntegrationCI(unittest.TestCase):
         }
         self.assertEqual(checkouts, {
             ".control-integration": "9b28c08eefca3948c78336e7e16a45e6fc492e31",
-            ".control-current": "23dd41d5a534b0224ce21e770a6c3b19df751d01",
+            ".control-current": "477d2d4adfeb4ce3fa007a443ea9388d41c85447",
             ".control-global": "27d1abc81de025fa93e3ac7dc6fbcc67eb6de130",
         })
         for build, folder, binary in (

@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "Синий",
     "Bookmark age (days): %1": "Давность закладки (дни): %1",
     "Bookmark age: %1 days": "Давность закладки: %1 дн.",
+    Brightness: "Яркость",
     "Browse folders": "Просмотр по папкам",
     "Buffer Size, s": "Размер буфера, с",
     "Buffering...": "Буферизация...",
@@ -704,6 +705,7 @@ var keyStrings = {
     "not set": "не задано",
     Off: "Выключено",
     Ok: "ОК",
+    On: "Включен",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Только этот телевизор сможет получить ваше сообщение. Ссылка действует 10 минут.",
     Open: "Открыть",

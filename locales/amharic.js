@@ -114,6 +114,7 @@ var keyStrings = {
     Blue: "ሰማያዊ",
     "Bookmark age (days): %1": "የዕልባት ዕድሜ (ቀናት)፡ %1",
     "Bookmark age: %1 days": "የዕልባት ዕድሜ፦ %1 ቀናት",
+    Brightness: "ብሩህነት",
     "Browse folders": "አቃፊዎችን አስስ",
     "Buffer Size, s": "የቋት መጠን፣ ሰከንድ",
     "Buffering...": "እየተጫነ ነው...",
@@ -677,6 +678,7 @@ var keyStrings = {
     "not set": "አልተወሰነም",
     Off: "ጠፍቷል",
     Ok: "እሺ",
+    On: "በርቷል",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "መልእክትዎን የሚቀበለው ይህ ቲቪ ብቻ ነው። አገናኙ ከ10 ደቂቃ በኋላ ጊዜው ያልፍበታል።",
     Open: "ክፈት",

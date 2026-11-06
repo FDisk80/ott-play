@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Koʻk",
     "Bookmark age (days): %1": "Xatcho'pning yoshi (kunlar): %1",
     "Bookmark age: %1 days": "Xatchoʻp yoshi: %1 kun",
+    Brightness: "Yorqinlik",
     "Browse folders": "Jildlar boʻyicha koʻrish",
     "Buffer Size, s": "Bufer hajmi, s",
     "Buffering...": "Buferlanmoqda...",
@@ -716,6 +717,7 @@ var keyStrings = {
     "not set": "belgilanmagan",
     Off: "Oʻchirilgan",
     Ok: "OK",
+    On: "Yoqilgan",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Faqat shu televizor xabaringizni qabul qilishi mumkin. Havola 10 daqiqadan so'ng tugaydi.",
     Open: "Ochish",

@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "نيرو",
     "Bookmark age (days): %1": "بک مارڪ جي عمر (ڏينهن): %1",
     "Bookmark age: %1 days": "بڪ مارڪ جي عمر: %1 ڏينهن",
+    Brightness: "چمڪ",
     "Browse folders": "فولڊر ڏسو",
     "Buffer Size, s": "بفر جي ماپ، سي",
     "Buffering...": "بفر ۾ لوڊ ٿي رهيو آهي...",
@@ -695,6 +696,7 @@ var keyStrings = {
     "not set": "مقرر نه ٿيل",
     Off: "بند",
     Ok: "ٺيڪ",
+    On: "چالو",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "صرف هي ٽي وي توهان جو پيغام قبول ڪري سگهي ٿو. لنڪ 10 منٽن کان پوء ختم ٿي ويندي.",
     Open: "کوليو",

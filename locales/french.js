@@ -124,6 +124,7 @@ var keyStrings = {
     Blue: "Bleu",
     "Bookmark age (days): %1": "Âge du signet (jours) : %1",
     "Bookmark age: %1 days": "Ancienneté du signet : %1 jours",
+    Brightness: "Luminosité",
     "Browse folders": "Parcourir les dossiers",
     "Buffer Size, s": "Taille du tampon, s",
     "Buffering...": "Mise en mémoire tampon...",
@@ -731,6 +732,7 @@ var keyStrings = {
     "not set": "non défini",
     Off: "Désactivé",
     Ok: "OK",
+    On: "Activée",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Seul ce téléviseur peut accepter votre message. Le lien expire après 10 minutes.",
     Open: "Ouvrir",

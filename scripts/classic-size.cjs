@@ -809,8 +809,19 @@ const CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE = Object.freeze({
     appearance: Object.freeze({ bytes: 195, gzipBytes: 74 }),
     entry: Object.freeze({ bytes: 2281, gzipBytes: 1049 }),
 });
+// Observed RC1-base b158b94 -> PR1070 head55bf1f2 (merge6dc0851) net cost.
+// Node22.23.4/zlib1.3.1 match; build identities differ, so this is not an
+// isolated same-identity optimization experiment. Take the maximum per target:
+// entry +3111/+1055 raw/gzip and appearance +301/+197, without extra reserve.
+// Count each once in its aggregate; retain prior headroom and all other caps.
+// Evidence: docs/evidence/interface-notification-settings-size-20261106.json.
+const INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE = Object.freeze({
+    appearance: Object.freeze({ bytes: 301, gzipBytes: 197 }),
+    entry: Object.freeze({ bytes: 3111, gzipBytes: 1055 }),
+});
 const BUDGET = Object.freeze({
     bytes:
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
         DESKTOP_DROP_ALLOWANCE.entry.bytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
@@ -848,6 +859,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
         AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
@@ -1065,6 +1077,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
         DESKTOP_DROP_ALLOWANCE.entry.bytes +
         NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE.bytes +
@@ -1115,6 +1128,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
         AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE.gzipBytes +
@@ -1306,10 +1320,12 @@ const OPTIONAL_BUDGETS = Object.freeze({
     // Keep the existing lazy editor and its original measurement headroom.
     "subtitle-appearance": Object.freeze({
         bytes:
+            INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.bytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.bytes +
             8100 +
             MODERN_INTERFACE_RELATED_ALLOWANCES["subtitle-appearance"].bytes,
         gzipBytes:
+            INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
             3400 +
             MODERN_INTERFACE_RELATED_ALLOWANCES["subtitle-appearance"]
@@ -1325,7 +1341,9 @@ const OPTIONAL_BUDGETS = Object.freeze({
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
         DESKTOP_VIDEO_QUEUE_ALLOWANCE.bytes +
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.bytes +
         DESKTOP_DROP_ALLOWANCE.entry.bytes +
         DESKTOP_DROP_ALLOWANCE.optional.bytes +
@@ -1414,7 +1432,9 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
         DESKTOP_VIDEO_QUEUE_ALLOWANCE.gzipBytes +
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
+        INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
         DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
         DESKTOP_DROP_ALLOWANCE.optional.gzipBytes +
@@ -1693,6 +1713,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         favoritesTransferOptionalAllowance:
             FAVORITES_TRANSFER_OPTIONAL_ALLOWANCE,
         favoritesTransferPlexAllowance: FAVORITES_TRANSFER_PLEX_ALLOWANCE,
+        interfaceNotificationSettingsAllowance:
+            INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
         legacyTotalBudget: LEGACY_TOTAL_BUDGET,
         localCommandSessionAllowance: LOCAL_COMMAND_SESSION_ALLOWANCE,
         localCompatibilityAllowance: LOCAL_COMPATIBILITY_ALLOWANCE,
@@ -2049,6 +2071,8 @@ function writeBuildBundleReport(
                 FAVORITES_TRANSFER_OPTIONAL_ALLOWANCE,
             favoritesTransferPlexAllowance: FAVORITES_TRANSFER_PLEX_ALLOWANCE,
             inputErrors,
+            interfaceNotificationSettingsAllowance:
+                INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
             legacyTotalBudget: LEGACY_TOTAL_BUDGET,
             localFavoritesPathAllowance: LOCAL_FAVORITES_PATH_ALLOWANCE,
             localFavoriteWriteRecoveryAllowance:
@@ -2176,6 +2200,7 @@ module.exports = {
     FAVORITES_TRANSFER_ENTRY_ALLOWANCE,
     FAVORITES_TRANSFER_OPTIONAL_ALLOWANCE,
     FAVORITES_TRANSFER_PLEX_ALLOWANCE,
+    INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE,
     inspectBundleSets,
     inspectBundles,
     LEGACY_TOTAL_BUDGET,

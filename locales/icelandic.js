@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "Blár",
     "Bookmark age (days): %1": "Aldur bókamerkis (dagar): %1",
     "Bookmark age: %1 days": "Aldur bókamerkis: %1 dagar",
+    Brightness: "Birtustig",
     "Browse folders": "Fletta í möppum",
     "Buffer Size, s": "Stærð biðminnis, sek",
     "Buffering...": "Hleður í biðminni...",
@@ -696,6 +697,7 @@ var keyStrings = {
     "not set": "ekki stillt",
     Off: "slökkt",
     Ok: "Í lagi",
+    On: "Kveikt",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Aðeins þetta sjónvarp getur samþykkt skilaboðin þín. Tengillinn rennur út eftir 10 mínútur.",
     Open: "Opna",

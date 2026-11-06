@@ -1520,35 +1520,34 @@ for (const profile of ["server", "tauri"]) {
                 // install() keeps wall time running until explicitly paused.
                 await page.clock.install({ time: 0 });
                 await page.clock.pauseAt(60000);
+                const local = page.locator(
+                    "#notifications .remote-notify-local"
+                );
                 await page.evaluate(() => showShift("Previous notification"));
                 await page.clock.runFor(2500);
                 await page.evaluate(() => showShift("Settings saved"));
                 await page.clock.runFor(500);
-                await expect(page.locator("#info")).toBeVisible();
-                await expect(page.locator("#info")).toHaveText(
-                    "Settings saved"
-                );
+                await expect(local).toBeVisible();
+                await expect(local).toHaveText("Settings saved");
                 await page.clock.runFor(2499);
-                await expect(page.locator("#info")).toBeVisible();
+                await expect(local).toBeVisible();
                 await page.clock.runFor(1);
-                await expect(page.locator("#info")).toBeHidden();
+                await expect(local).toHaveCount(0);
                 await page.evaluate(() => showShift("Detached notification"));
                 await page.clock.runFor(2500);
                 await page.evaluate(() => {
-                    const oldInfo = document.getElementById("info");
-                    const replacement = oldInfo.cloneNode(false);
-                    oldInfo.replaceWith(replacement);
+                    const oldContainer =
+                        document.getElementById("notifications");
+                    oldContainer.replaceWith(oldContainer.cloneNode(false));
                     showShift("Replacement node");
                 });
                 await page.clock.runFor(500);
-                await expect(page.locator("#info")).toBeVisible();
-                await expect(page.locator("#info")).toHaveText(
-                    "Replacement node"
-                );
+                await expect(local).toBeVisible();
+                await expect(local).toHaveText("Replacement node");
                 await page.clock.runFor(2499);
-                await expect(page.locator("#info")).toBeVisible();
+                await expect(local).toBeVisible();
                 await page.clock.runFor(1);
-                await expect(page.locator("#info")).toBeHidden();
+                await expect(local).toHaveCount(0);
                 expect(fixture.errors).toEqual([]);
                 expect(fixture.unexpectedRequests).toEqual([]);
             } finally {

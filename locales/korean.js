@@ -116,6 +116,7 @@ var keyStrings = {
     Blue: "블루",
     "Bookmark age (days): %1": "북마크 기간(일): %1",
     "Bookmark age: %1 days": "북마크 기간: %1일",
+    Brightness: "밝기",
     "Browse folders": "폴더 찾아보기",
     "Buffer Size, s": "버퍼 크기, s",
     "Buffering...": "버퍼링 중...",
@@ -701,6 +702,7 @@ var keyStrings = {
     "not set": "설정되지 않음",
     Off: "꺼짐",
     Ok: "확인",
+    On: "켜짐",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "이 TV에서만 귀하의 메시지를 수신할 수 있습니다. 링크는 10분 후에 만료됩니다.",
     Open: "열기",

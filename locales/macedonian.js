@@ -120,6 +120,7 @@ var keyStrings = {
     Blue: "Сина",
     "Bookmark age (days): %1": "Старост на обележувачот (денови): %1",
     "Bookmark age: %1 days": "Старост на обележувачот: %1 дена",
+    Brightness: "Осветленост",
     "Browse folders": "Прегледај папки",
     "Buffer Size, s": "Големина на баферот, с",
     "Buffering...": "Баферување...",
@@ -720,6 +721,7 @@ var keyStrings = {
     "not set": "не е поставено",
     Off: "исклучено",
     Ok: "Во ред",
+    On: "Вклучено",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Само овој ТВ може да ја прифати вашата порака. Линкот истекува по 10 минути.",
     Open: "Отвори",

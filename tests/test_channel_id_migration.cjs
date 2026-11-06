@@ -314,7 +314,9 @@ c.require = (name) =>
         ? require("./load-wire.cjs")()
         : name === "../localization"
           ? commandLocale
-          : {};
+          : name === "../ui/notification-banners"
+            ? require("./helpers/notification-banners.cjs")()
+            : {};
 c.document = { getElementById: () => null };
 vm.runInContext(
     ts.transpileModule(

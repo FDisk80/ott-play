@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "Կապույտ",
     "Bookmark age (days): %1": "Էջանիշի տարիք (օրեր)՝ %1",
     "Bookmark age: %1 days": "Էջանիշի տարիք՝ %1 օր",
+    Brightness: "Պայծառություն",
     "Browse folders": "Դիտել ըստ պանակների",
     "Buffer Size, s": "Բուֆերի չափ, վ",
     "Buffering...": "Բուֆերացում...",
@@ -707,6 +708,7 @@ var keyStrings = {
     "not set": "սահմանված չէ",
     Off: "Անջատված",
     Ok: "Լավ",
+    On: "Միացված",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Միայն այս հեռուստացույցը կարող է ընդունել ձեր հաղորդագրությունը: Հղման ժամկետը լրանում է 10 րոպե անց։",
     Open: "Բացել",

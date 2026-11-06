@@ -5,6 +5,7 @@ import {
 } from "../localization";
 import { checkProviderUrl, selectProviderByIndex } from "../provider";
 import { type Command, validPlayerCommand } from "../shared/wire-contracts";
+import { createNotificationBanners } from "../ui/notification-banners";
 import { randomChannels } from "./random-channel";
 
 export type { Command } from "../shared/wire-contracts";
@@ -35,33 +36,10 @@ declare let window: any;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-/**
- * Show a popup notification in the top-right corner.
- * Creates a <div class="notify"> element, appends it to #notifications,
- * and auto-removes it after `durationSec` seconds.
- *
- * @param text     - Message text to display.
- * @param durationSec — How long (seconds) the popup stays visible. Default 5.
- */
+/** Show plain text through the shared local/remote banner renderer. */
 export function showPopup(text: string, durationSec = 5) {
-    if (!text) {
-        return;
-    }
-    const container = document.getElementById("notifications");
-    if (!container) {
-        return;
-    }
-    const el = document.createElement("div");
-    el.className = "notify";
-    el.dir = "auto";
-    el.textContent = text;
-    container.appendChild(el);
-    setTimeout(function () {
-        el.classList.add("notify-out");
-        setTimeout(function () {
-            el.remove();
-        }, 300);
-    }, durationSec * 1000);
+    if (!text) return;
+    createNotificationBanners(window).showLocal(text, durationSec * 1000);
 }
 
 /**

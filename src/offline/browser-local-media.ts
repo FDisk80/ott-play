@@ -283,9 +283,12 @@ export function installBrowserLocalMedia(w: any): any {
                             );
                             return;
                         }
+                        // Reuse the root already used by this scan or lookup,
+                        // rather than re-transfer the freshly restored handle.
                         store.put(
                             Object.assign({}, current, {
                                 bootstrap: candidates,
+                                handle: record.handle,
                             })
                         );
                     };

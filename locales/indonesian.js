@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Biru",
     "Bookmark age (days): %1": "Usia penanda (hari): %1",
     "Bookmark age: %1 days": "Usia penanda: %1 hari",
+    Brightness: "Kecerahan",
     "Browse folders": "Jelajahi folder",
     "Buffer Size, s": "Ukuran buffer, dtk",
     "Buffering...": "Mengisi buffer...",
@@ -707,6 +708,7 @@ var keyStrings = {
     "not set": "belum diatur",
     Off: "Nonaktif",
     Ok: "OK",
+    On: "Aktif",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Hanya TV ini yang dapat menerima pesan Anda. Tautan kedaluwarsa setelah 10 menit.",
     Open: "Buka",

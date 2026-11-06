@@ -113,6 +113,7 @@ var keyStrings = {
     Blue: "ສີຟ້າ",
     "Bookmark age (days): %1": "ອາຍຸຂອງບຸກມາກ (ມື້): %1",
     "Bookmark age: %1 days": "ອາຍຸບຸກມາກ: %1 ມື້",
+    Brightness: "ຄວາມສະຫວ່າງ",
     "Browse folders": "ເບິ່ງໂຟນເດີ",
     "Buffer Size, s": "ຂະໜາດບັບເຟີ, ວິ",
     "Buffering...": "ກຳລັງໂຫຼດຂໍ້ມູນຊົ່ວຄາວ...",
@@ -672,6 +673,7 @@ var keyStrings = {
     "not set": "ຍັງບໍ່ກຳນົດ",
     Off: "ປິດ",
     Ok: "ຕົກລົງ",
+    On: "ເປີດ",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "ມີແຕ່ໂທລະທັດເຄື່ອງນີ້ເທົ່ານັ້ນທີ່ສາມາດຮັບເອົາຂໍ້ຄວາມຂອງທ່ານໄດ້. ລິ້ງໝົດອາຍຸຫຼັງຈາກ 10 ນາທີ.",
     Open: "ເປີດ",

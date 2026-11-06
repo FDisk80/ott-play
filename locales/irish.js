@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Gorm",
     "Bookmark age (days): %1": "Aois leabharmharc (laethanta): %1",
     "Bookmark age: %1 days": "Aois an leabharmhairc: %1 lá",
+    Brightness: "Gile",
     "Browse folders": "Brabhsáil fillteáin",
     "Buffer Size, s": "Méid an mhaoláin, soic",
     "Buffering...": "Á mhaolánú...",
@@ -719,6 +720,7 @@ var keyStrings = {
     "not set": "gan socrú",
     Off: "múchta",
     Ok: "Ceart go leor",
+    On: "Ar siúl",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Ní féidir ach leis an teilifís seo glacadh le do theachtaireacht. Téann an nasc in éag tar éis 10 nóiméad.",
     Open: "Oscail",

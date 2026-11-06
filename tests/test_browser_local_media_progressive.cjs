@@ -105,9 +105,10 @@ function fixture(count, extension = "mp4", brokenIndex = -1, mime, waits = {}) {
                 get: (id) => {
                     const request = {};
                     queueMicrotask(() => {
-                        request.result = saved.find(
-                            (record) => record.id === id
-                        );
+                        const record = saved.find((record) => record.id === id);
+                        request.result = waits.readback
+                            ? waits.readback(record)
+                            : record;
                         request.onsuccess();
                     });
                     return request;
@@ -537,6 +538,104 @@ async function flushScans() {
     );
     releaseDeadFiles();
     await flushScans();
+
+    const reusedRootWaits = {};
+    const reusedRoot = fixture(3, "mp4", -1, undefined, reusedRootWaits);
+    const operationalRoot = reusedRoot.saved()[0].handle;
+    const restoredRoots = [];
+    reusedRootWaits.readback = (record) => {
+        assert.equal(reusedRoot.permissionQueries(), 1);
+        assert.ok(reusedRoot.iteratorReads() > 0);
+        assert.ok(reusedRoot.reads() > 0);
+        // IDB reads restore a distinct wrapper, unlike the default test store.
+        const restoredRoot = { ...record.handle };
+        restoredRoots.push(restoredRoot);
+        return {
+            ...record,
+            created: 7,
+            handle: restoredRoot,
+            name: "Current stored name",
+            userMetadata: "preserve this current value",
+        };
+    };
+    await settle(reusedRoot.api.list());
+    await flushScans();
+    assert.equal(reusedRoot.writes(), 3);
+    assert.equal(restoredRoots.length, 3);
+    assert.ok(restoredRoots.every((handle) => handle !== operationalRoot));
+    assert.equal(
+        reusedRoot.saved()[0].handle,
+        operationalRoot,
+        "cache writes must retain the root that completed native use"
+    );
+    assert.equal(reusedRoot.saved()[0].created, 7);
+    assert.equal(reusedRoot.saved()[0].name, "Current stored name");
+    assert.equal(
+        reusedRoot.saved()[0].userMetadata,
+        "preserve this current value"
+    );
+    assert.equal(reusedRoot.saved()[0].bootstrap.length, 3);
+
+    for (const mutation of ["reconnect", "remove"]) {
+        const changedWaits = {};
+        const changed = fixture(1, "mp4", -1, undefined, changedWaits);
+        const replacementRoot = { ...changed.saved()[0].handle };
+        changedWaits.readback = (record) => {
+            // Model another context committing before this cache transaction.
+            changed.saved().splice(0);
+            if (mutation === "remove") return undefined;
+            const replacement = {
+                ...record,
+                bootstrap: [],
+                cacheEpoch: "new-root-generation",
+                handle: replacementRoot,
+            };
+            changed.saved().push(replacement);
+            return replacement;
+        };
+        const changedCatalog = await settle(changed.api.list());
+        await flushScans();
+        assert.equal(
+            changed.writes(),
+            0,
+            mutation + " must reject stale cache writes"
+        );
+        assert.equal(
+            changedCatalog.items.length,
+            1,
+            "optional cache refusal does not fail the live scan"
+        );
+        if (mutation === "reconnect") {
+            assert.equal(changed.saved()[0].handle, replacementRoot);
+            assert.equal(changed.saved()[0].cacheEpoch, "new-root-generation");
+            assert.deepEqual(changed.saved()[0].bootstrap, []);
+        } else assert.deepEqual(changed.saved(), []);
+    }
+
+    const priorityWaits = {};
+    const priorityRoot = fixture(1, "mp4", -1, undefined, priorityWaits);
+    const directOperationalRoot = priorityRoot.saved()[0].handle;
+    await settle(priorityRoot.api.list((catalog) => !catalog.sources.length));
+    priorityWaits.readback = (record) => ({
+        ...record,
+        handle: { ...record.handle },
+    });
+    const priorityResult = await settle(
+        priorityRoot.api.bootstrapFile("source-movies", "movie-0.mp4")
+    );
+    assert.equal(priorityRoot.permissionQueries(), 0);
+    assert.equal(priorityRoot.iteratorReads(), 0);
+    assert.equal(
+        priorityRoot.reads(),
+        1,
+        "priority selection completed a native file read"
+    );
+    assert.equal(priorityRoot.saved()[0].handle, directOperationalRoot);
+    assert.equal(priorityRoot.saved()[0].bootstrap[0].path, "movie-0.mp4");
+    assert.equal(priorityResult.items[0].id, "source-movies:movie-0.mp4");
+    console.log(
+        "PASS cache root reuse: distinct readback, current metadata, reconnect/remove refusal, priority selection"
+    );
 
     const cachedWaits = {};
     const cachedSource = fixture(12, "mp4", -1, undefined, cachedWaits);

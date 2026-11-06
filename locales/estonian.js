@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "Sinine",
     "Bookmark age (days): %1": "Järjehoidja vanus (päevades): %1",
     "Bookmark age: %1 days": "Järjehoidja vanus: %1 päeva",
+    Brightness: "Heledus",
     "Browse folders": "Sirvige kaustu",
     "Buffer Size, s": "Puhvri suurus, s",
     "Buffering...": "Puhverdamine...",
@@ -703,6 +704,7 @@ var keyStrings = {
     "not set": "pole seatud",
     Off: "Väljas",
     Ok: "OK",
+    On: "Sees",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Ainult see teler saab teie sõnumi vastu võtta. Link aegub 10 minuti pärast.",
     Open: "Ava",

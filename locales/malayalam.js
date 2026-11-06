@@ -116,6 +116,7 @@ var keyStrings = {
     Blue: "നീല",
     "Bookmark age (days): %1": "ബുക്ക്‌മാർക്കിൻ്റെ പ്രായം (ദിവസങ്ങൾ): %1",
     "Bookmark age: %1 days": "ബുക്ക്മാർക്ക് പ്രായം: %1 ദിവസം",
+    Brightness: "തെളിച്ചം",
     "Browse folders": "ഫോൾഡറുകൾ ബ്രൗസ് ചെയ്യുക",
     "Buffer Size, s": "ബഫർ വലുപ്പം, എസ്",
     "Buffering...": "ബഫറിലേക്ക് ലോഡ് ചെയ്യുന്നു...",
@@ -694,6 +695,7 @@ var keyStrings = {
     "not set": "സജ്ജീകരിച്ചിട്ടില്ല",
     Off: "ഓഫ്",
     Ok: "ശരി",
+    On: "ഓൺ",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "ഈ ടിവിക്ക് മാത്രമേ നിങ്ങളുടെ സന്ദേശം സ്വീകരിക്കാൻ കഴിയൂ. 10 മിനിറ്റിന് ശേഷം ലിങ്ക് കാലഹരണപ്പെടും.",
     Open: "തുറക്കുക",

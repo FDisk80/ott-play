@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "آبی",
     "Bookmark age (days): %1": "سن نشانک (روز): %1",
     "Bookmark age: %1 days": "سن نشانک: روز %1",
+    Brightness: "روشنایی",
     "Browse folders": "پوشه ها را مرور کنید",
     "Buffer Size, s": "اندازه بافر، s",
     "Buffering...": "در حال بافر کردن...",
@@ -700,6 +701,7 @@ var keyStrings = {
     "not set": "تنظیم نشده است",
     Off: "خاموش",
     Ok: "تأیید",
+    On: "روشن",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "فقط این تلویزیون می تواند پیام شما را بپذیرد. لینک بعد از 10 دقیقه منقضی می شود.",
     Open: "باز کردن",

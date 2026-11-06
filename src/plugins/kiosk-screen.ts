@@ -27,6 +27,8 @@ export function bindKioskScreen(w: any): void {
             return;
         revision = state.revision;
         w.__ottScreenAwake = state.awake;
+        if (!state.awake && w.__ottNotificationBanners)
+            w.__ottNotificationBanners.suspend();
         if (!state.awake && w.__ottRemoteNotifications)
             w.__ottRemoteNotifications.suspend();
         kiosk.setScreenAwake(state.awake);

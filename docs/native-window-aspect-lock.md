@@ -1,6 +1,6 @@
 # Native window aspect constraint
 
-The optional main-window constraint requests 16:9 **content dimensions during interactive resizing**. It is independent of video aspect/zoom, topmost state, and the separate PiP window. The preference defaults off and is saved in the instance data directory as `window-aspect-lock`; window position/size restoration keeps its existing owner.
+The main-window constraint requests 16:9 **content dimensions during interactive resizing**. It is independent of video aspect/zoom, topmost state, and the separate PiP window. The preference defaults on for a new instance and is saved in the instance data directory as `window-aspect-lock`; an explicitly saved off value remains off. Window position/size restoration keeps its existing owner.
 
 In Classic and Modern, use **Settings → Interface → Lock window to 16:9** in the Tauri main window. The adjacent **Always on top** action is independent; **Full screen** stays in Menu. These are immediate native actions rather than draft preferences: Save Settings is not required, the Interface page remains open, and Cancel does not undo a confirmed native change. Browser, TV, mobile and PiP players do not expose these main-window actions.
 
@@ -18,7 +18,7 @@ This is consistent with [GDK's geometry-hint contract](https://docs.gtk.org/gdk3
 
 The existing `window_controls_smoke` executable and `scripts/check-window-controls.py` exercise production handlers through WebView2 JavaScript IPC. They use only owned main/PiP fixture HWNDs, isolated data directories, the Windows 60-second startup and 30-second exercise/cleanup budgets with a 100-second parent deadline, and PID-scoped cleanup. No installed player, user profile, or network endpoint is used.
 
-The fixture starts with non-16:9 geometry and checks default-off state; repeated true/true/false/false SET; unchanged geometry; production versus missing permissions; denied PiP GET/SET; six native fullscreen/restore transitions; and three fresh-process preference phases. The runner requires exact confirmed replies and saved preference bytes, so incomplete native evidence cannot be reported as a pass.
+The fixture starts with non-16:9 geometry and checks default-on state without resizing that geometry; repeated true/true/false/false SET; unchanged geometry; production versus missing permissions; denied PiP GET/SET; six native fullscreen/restore transitions; and three fresh-process preference phases, including restoration of explicitly saved off. The runner requires exact confirmed replies and saved preference bytes, so incomplete native evidence cannot be reported as a pass.
 
 The sizing probe observes real OS `WM_GETMINMAXINFO` traffic from a bounded owned-window size/restore, then dispatches `WM_SIZING` to the actual subclass for all eight edges. It verifies ratio, current bounds, opposite anchors, and disabled passthrough. This is an **owned-HWND native message probe**, not a human drag gesture or multi-monitor/DPI acceptance. The observer is removed before fixture completion; removal failure fails the probe.
 

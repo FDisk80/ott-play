@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "အပြာရောင်",
     "Bookmark age (days): %1": "စာညှပ်အသက် (ရက်)- %1",
     "Bookmark age: %1 days": "စာညှပ်အသက်- %1 ရက်များ",
+    Brightness: "တောက်ပမှု",
     "Browse folders": "ဖိုင်တွဲများကို ရှာဖွေပါ။",
     "Buffer Size, s": "ကြိုတင်သိမ်းဆည်းမှု အရွယ်အစား၊ စက္ကန့်",
     "Buffering...": "ယာယီမှတ်ဉာဏ်ထဲသို့ တင်နေသည်...",
@@ -687,6 +688,7 @@ var keyStrings = {
     "not set": "မသတ်မှတ်ထားဘူး။",
     Off: "ပိတ်",
     Ok: "အိုကေ",
+    On: "ဖွင့်",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "ဤ TV သာလျှင် သင့်မက်ဆေ့ဂျ်ကို လက်ခံနိုင်သည်။ လင့်ခ်သည် 10 မိနစ်အကြာတွင်သက်တမ်းကုန်ဆုံးသည်။",
     Open: "ဖွင့်ပါ",

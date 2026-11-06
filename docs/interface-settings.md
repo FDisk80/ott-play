@@ -15,6 +15,14 @@ cancelling the draft preserves both the previous theme and colours.
 The shared spectrum picker treats a full-turn hue (360°) as 0° in both previews
 and saved theme/EPG colors; stored hue values are not rewritten.
 
+The three Classic colour rows show a colour swatch and hexadecimal value.
+Their editors provide clickable arrow buttons and the same keyboard/remote
+controls: Left/Right changes hue; Up/Down changes saturation for text and the
+selected-item background, or brightness for the main background. The displayed
+preview uses the same conversion as the saved theme. Yellow/Green/Blue choose
+presets. **Set** returns the chosen colour to the settings draft; **Close**
+discards the picker edit. **Save Settings** applies the draft.
+
 The presentation was developed for OTT-play FOSS in September 2026. It uses
 original HTML/CSS, existing player fonts and the established two-panel layout.
 [Interface history](interface-history.md) preserves the separate PLi-HD credits,
@@ -65,6 +73,16 @@ upstream links and the earlier OTT-play lineage in English.
   saved setting. Info timing, slide/switch/change/rewind behaviour, PiP, timezone,
   editor choice, remote mappings and hidden-menu IDs keep their existing owners.
   The theme adds no playback, provider or remote-action mapping.
+- **Desktop window controls:** in the Tauri main window, **Always on top** and
+  **Lock window to 16:9** show their confirmed native state using the same
+  graphical indicators as other switches, or localized text when graphical
+  indicators are disabled. Changes apply immediately and leave Interface open.
+  A new instance enables the 16:9 resizing constraint by default; an explicitly
+  saved off value remains off. It does not resize the window when enabled or
+  change the video's aspect ratio. Unsupported backends display **Unavailable**.
+  See [native window constraints](native-window-aspect-lock.md).
+- **Sleep timer:** the disabled value is the localized word **Off**, including
+  when graphical indicators are enabled.
 
 Studio uses graphite `#0e1114`, primary text `#f0f3f1`, secondary text `#a3afa9`
 and mint `#8bddb8`. The focused list row uses `#e7f1eb` with dark text `#112119`

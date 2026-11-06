@@ -252,6 +252,7 @@ const loaderSource = ast.statements
         (node) =>
             (ts.isFunctionDeclaration(node) &&
                 [
+                    "classicColorRgb",
                     "loadSubtitleAppearance",
                     "openSubtitleAppearance",
                     "notifySubtitleAppearanceReady",
@@ -272,6 +273,19 @@ const loaderSource = ast.statements
                     .match(/\.(applySubtitleAppearance|__ottAppearanceHost)/))
     )
     .map((node) => node.getText(ast))
+    .join("\n");
+const colorAst = ts.createSourceFile(
+    "ui.ts",
+    fs.readFileSync("src/ui/index.ts", "utf8"),
+    ts.ScriptTarget.Latest,
+    true
+);
+const colorSource = colorAst.statements
+    .filter(
+        (node) =>
+            ts.isFunctionDeclaration(node) && node.name?.text === "hsvToRgb"
+    )
+    .map((node) => node.getText(colorAst))
     .join("\n");
 function loaderFixture() {
     const calls = [],
@@ -314,9 +328,14 @@ function loaderFixture() {
     f.window = f;
     vm.createContext(f);
     vm.runInContext(
-        ts.transpileModule(loaderSource, {
-            compilerOptions: { target: ts.ScriptTarget.ES5 },
-        }).outputText,
+        ts
+            .transpileModule(colorSource + "\n" + loaderSource, {
+                compilerOptions: {
+                    module: ts.ModuleKind.ES2015,
+                    target: ts.ScriptTarget.ES5,
+                },
+            })
+            .outputText.replace(/^export /gm, ""),
         f
     );
     f.ready = () => {
@@ -330,6 +349,10 @@ function loaderFixture() {
 }
 {
     const { f, calls } = loaderFixture();
+    assert.equal(f.__ottAppearanceHost.color("50,85", 100), "255,219,38");
+    assert.equal(f.__ottAppearanceHost.color("240,25", 50), "96,96,128");
+    assert.equal(f.__ottAppearanceHost.color("255,0"), "0,0,0");
+    assert.equal(f.__ottAppearanceHost.color("120,50"), "0,128,0");
     f.applySubtitleAppearance();
     assert.equal(
         calls.length,

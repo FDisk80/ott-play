@@ -187,7 +187,7 @@ Run on **macOS / Windows / Linux** desktop window. Skip rows that need credentia
 - [ ] Window title / size / position behave normally
 - [ ] In both Classic and Modern, Menu → Full screen enters/exits native window fullscreen; the confirmation reports the resulting on/off state
 - [ ] In both Classic and Modern, Settings → Interface → Always on top keeps the main window above other applications; selecting it again disables this behavior without changing PiP
-- [ ] Settings → Interface → Lock window to 16:9 reports the confirmed preference on supported hosts; enabling it does not immediately resize the window or change video aspect/zoom. An unsupported backend reports Unavailable without saving a new preference
+- [ ] Settings → Interface → Lock window to 16:9 reports the confirmed preference on supported hosts; both window switches use graphical indicators instead of “select”. A fresh instance defaults to enabled while a saved off value remains off. Enabling it does not immediately resize the window or change video aspect/zoom. An unsupported backend reports Unavailable without saving a new preference
 - [ ] These two actions no longer appear in Menu; Full screen remains in Menu
 - [ ] Enable Always on top, close and reopen the same app instance: the main window remains on top. Disable it, close and reopen: the main window returns to normal
 - [ ] Two separately configured app instances retain independent Always on top preferences

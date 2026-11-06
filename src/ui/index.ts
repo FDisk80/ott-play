@@ -5,6 +5,7 @@ import {
     metadataHtml,
     metadataText,
 } from "../utils/helpers";
+import { createNotificationBanners } from "./notification-banners";
 /**
  * UI management — info bar, dialogs, lists, volume, color, time display.
  */
@@ -368,7 +369,15 @@ export function uiInit(): void {
                 var owner = listButtons
                     ? port.listOwner()
                     : port.owner(overlay);
-                var key = Number(button.getAttribute("data-ott-key"));
+                // In the spectrum picker Enter accepts the preview; clicks and
+                // Space still activate an individual arrow or preset.
+                var key =
+                    id === "listAbout" &&
+                    event.type === "keydown" &&
+                    (event as KeyboardEvent).keyCode === 13 &&
+                    $(button).closest("[data-ott-color-picker]").length
+                        ? w.keys.ENTER
+                        : Number(button.getAttribute("data-ott-key"));
                 if (
                     owner &&
                     owner.foreground() &&
@@ -1484,23 +1493,9 @@ export function localizedTextHtml(message: string, centered?: boolean): string {
     );
 }
 
-/**
- * Show a temporary notification/message at the bottom of the screen (the `#info` element).
- * Auto-hides after 3 seconds.
- *
- * @param message - HTML string to display.
- * @returns void
- * @sideeffect Replaces the per-element timer and hides `#info` after 3000ms.
- */
+/** Show a short plain-text notice, replacing the previous local notice. */
 export function showShift(message: string): void {
-    var info: any = document.getElementById("info");
-    if (!info) return;
-    clearTimeout(info.__ottShiftTimer);
-    info.innerHTML = localizedTextHtml(message);
-    info.style.display = "block";
-    info.__ottShiftTimer = setTimeout(function () {
-        info.style.display = "none";
-    }, 3000);
+    createNotificationBanners(window).showLocal(message, 3000);
 }
 
 /**
@@ -3019,14 +3014,21 @@ function bindColorDialogInput(
     value: number,
     cssProperty: string,
     settingKey: string,
-    allowDefault = false
+    allowDefault = false,
+    brightness = false
 ): void {
     function preview(): void {
-        var rgb = hsvToRgb(hue, saturation, value);
+        var rgb = hsvToRgb(
+            hue,
+            brightness ? 100 : saturation,
+            brightness ? saturation : value
+        );
         $("#step").css(
             cssProperty,
             "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")"
         );
+        $("#colorHueValue").text(hue + "°");
+        $("#colorLevelValue").text(saturation + "%");
     }
     (window as any).__ottClassicScreenPort.setOwnedCallback(
         "about",
@@ -3065,8 +3067,19 @@ function bindColorDialogInput(
                 case keys.ENTER:
                     (window as any)[settingKey] = hue + "," + saturation;
                 case keys.RETURN:
-                    $("#listAbout").text("").hide();
+                    // Let the existing modal hide observer restore its saved
+                    // parent even when an explicit footer action owned focus.
+                    var panel = document.getElementById("listAbout");
+                    if (
+                        panel &&
+                        listFooterElement &&
+                        listFooterElement.contains(document.activeElement)
+                    )
+                        panel.focus();
+                    $("#listAbout").hide().text("");
                     restoreListPanelState();
+                    if (typeof (window as any).showPage === "function")
+                        (window as any).showPage();
                     return true;
                 default:
                     return false;
@@ -3085,7 +3098,8 @@ function showColorDialog(
     caption: string,
     value: number,
     foreground = false,
-    allowDefault = false
+    allowDefault = false,
+    brightness = false
 ): void {
     var setting = (window as any)[settingKey] || fallback;
     var hue = Number.parseInt(setting.split(",")[0]);
@@ -3116,29 +3130,30 @@ function showColorDialog(
             "</div>"
         );
     }
-    var controls = foreground
-        ? "<br/><br>" +
-          arrow(keys.LEFT, strLEFT) +
-          "&nbsp;" +
-          arrow(keys.RIGHT, strRIGHT) +
-          "&nbsp;" +
-          _("Color") +
-          "<br>" +
-          arrow(keys.UP, strUP) +
-          "&nbsp;" +
-          arrow(keys.DOWN, strDOWN) +
-          "&nbsp;" +
-          _("Saturation") +
-          "<br>" +
-          renderButtonHint(keys.YELLOW, "", "Yellow") +
-          "<br>" +
-          renderButtonHint(keys.GREEN, "", "Green") +
-          "<br>" +
-          renderButtonHint(keys.BLUE, "", "Blue")
-        : "";
+    var controls =
+        "<br/><br>" +
+        arrow(keys.LEFT, strLEFT) +
+        "&nbsp;" +
+        arrow(keys.RIGHT, strRIGHT) +
+        "&nbsp;" +
+        _("Color") +
+        ' <span id="colorHueValue"></span>' +
+        "<br>" +
+        arrow(keys.UP, strUP) +
+        "&nbsp;" +
+        arrow(keys.DOWN, strDOWN) +
+        "&nbsp;" +
+        (brightness ? _("Brightness") : _("Saturation")) +
+        ' <span id="colorLevelValue"></span>' +
+        "<br>" +
+        renderButtonHint(keys.YELLOW, "", "Yellow") +
+        "<br>" +
+        renderButtonHint(keys.GREEN, "", "Green") +
+        "<br>" +
+        renderButtonHint(keys.BLUE, "", "Blue");
     $("#listAbout")
         .html(
-            '<div style="font-size:larger;">' +
+            '<div data-ott-color-picker style="font-size:larger;">' +
                 _("Color") +
                 ":<br/><br/>&nbsp;" +
                 preview +
@@ -3153,7 +3168,8 @@ function showColorDialog(
         value,
         foreground ? "color" : "background-color",
         settingKey,
-        allowDefault
+        allowDefault,
+        brightness
     );
 }
 
@@ -3179,9 +3195,17 @@ export function selColorDialog(): void {
     showColorDialog("eSHLcolSel", "50,85", _("Select color"), 50);
 }
 
-/** Adjust the list background at HSV value 100, stored in eSHLcolorB. */
+/** Adjust the list background's hue/brightness at saturation 100. */
 export function backColorDialog(): void {
-    showColorDialog("eSHLcolorB", "255,0", _("Background color"), 100);
+    showColorDialog(
+        "eSHLcolorB",
+        "255,0",
+        _("Background color"),
+        100,
+        false,
+        false,
+        true
+    );
 }
 
 /* ---------------------------------------------------------------------------

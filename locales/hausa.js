@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Shuɗi",
     "Bookmark age (days): %1": "Shekarun alamar (kwanaki): %1",
     "Bookmark age: %1 days": "Tsawon lokacin alama: kwanaki %1",
+    Brightness: "Haske",
     "Browse folders": "Duba manyan fayiloli",
     "Buffer Size, s": "Girman ma'ajiyar wucin gadi, sakan",
     "Buffering...": "Ana loda bayanai...",
@@ -709,6 +710,7 @@ var keyStrings = {
     "not set": "ba a saita ba",
     Off: "A kashe",
     Ok: "To",
+    On: "A kunne",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Wannan TV ɗin ne kawai zai iya karɓar saƙonku. Hanyar haɗi zai ƙare bayan minti 10.",
     Open: "Buɗe",

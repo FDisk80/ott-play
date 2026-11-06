@@ -2284,9 +2284,11 @@ async function testScreenBridge() {
     });
     const states = [];
     let clearedNotifications = 0;
+    let clearedLocalNotices = 0;
     let listener, reply;
     const w = {
         __ottKiosk: { setScreenAwake: (v) => states.push(v) },
+        __ottNotificationBanners: { suspend: () => clearedLocalNotices++ },
         __ottRemoteNotifications: { suspend: () => clearedNotifications++ },
         Capacitor: {
             getPlatform: () => "android",
@@ -2325,6 +2327,14 @@ async function testScreenBridge() {
     );
     assert.equal(states.at(-1), true);
     assert.equal(w.__ottScreenAwake, true);
+    assert.equal(clearedLocalNotices, 1);
+    delete w.__ottRemoteNotifications;
+    listener({ awake: false, ok: true, revision: 4 });
+    assert.equal(
+        clearedLocalNotices,
+        2,
+        "screen-off also clears local notices without remote reception"
+    );
     states.length = 0;
     w.Capacitor.Plugins.MobileNativeMedia.getScreenState = () =>
         Promise.reject(Error("old APK"));

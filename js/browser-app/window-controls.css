@@ -38,7 +38,6 @@
 
     /* Runtime styles set pixel positions on these OSD elements. The override
        protects them from native buttons without changing their horizontal side. */
-    html.ott-window-controls:not(:fullscreen) #info,
     html.ott-window-controls:not(:fullscreen) #numprog,
     html.ott-window-controls:not(:fullscreen) #permanentTime,
     html.ott-window-controls:not(:fullscreen) #buffering,

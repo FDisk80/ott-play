@@ -89,6 +89,130 @@ function fixture(onAbort, extraGlobals = {}) {
     };
 }
 
+// Local feedback shares one renderer but does not depend on remote configuration.
+{
+    const h = fixture();
+    const display = h.w.__ottNotificationBanners;
+    h.w.document.body.classList.add("booting");
+    h.w.__ottStandby = {}; // Older hosts need not expose blocked().
+    Object.defineProperty(h.w, "performance", { value: {} });
+    const first = display.showLocal("<b>Seek +10</b>");
+    assert.equal(first.element.textContent, "<b>Seek +10</b>");
+    assert.equal(first.element.querySelector("b"), null);
+    assert.equal(first.element.querySelector(".remote-notify-title"), null);
+    assert.equal(first.element.querySelector(".remote-notify-label"), null);
+    assert.equal(h.requests.length, 0);
+    h.configure();
+    h.client.setEnabled(false);
+    h.client.stop();
+    assert.equal(
+        first.element.isConnected,
+        true,
+        "remote policy does not own local feedback"
+    );
+    const second = display.showLocal("Seek +20", 1000);
+    assert.equal(first.element.isConnected, false);
+    assert.equal(h.w.document.querySelectorAll(".remote-notify").length, 1);
+    assert.equal(
+        h.jobs.size,
+        2,
+        "replacement clears the first notice's expiry and exit"
+    );
+    h.advance(1000, true);
+    assert.equal(second.element.isConnected, false);
+    assert.equal(h.jobs.size, 0);
+    Object.defineProperty(h.w.performance, "now", {
+        value() {
+            throw Error("host clock unavailable");
+        },
+    });
+    assert.doesNotThrow(() => display.showLocal("Fallback clock"));
+    display.clearLocal();
+    h.w.__ottStandby = { blocked: () => true };
+    assert.equal(display.showLocal("Hidden"), null);
+}
+
+// A rapid local volume/seek notice never evicts a critical remote alert.
+{
+    const h = fixture();
+    h.configure();
+    h.poll();
+    h.reply(
+        [0, 1, 2].map((i) =>
+            h.item({ id: String(i).repeat(32), severity: "critical" })
+        )
+    );
+    assert.equal(h.w.__ottNotificationBanners.showLocal("Volume 20"), null);
+    assert.equal(
+        h.w.document.querySelectorAll(".remote-notify-critical").length,
+        3
+    );
+    h.client.stop();
+    assert.equal(h.jobs.size, 0);
+}
+
+// The heading is one measured clip, keeping message and glyph heights stable.
+{
+    const h = fixture();
+    let height = 42.5;
+    const box = h.w.HTMLElement.prototype.getBoundingClientRect;
+    h.w.HTMLElement.prototype.getBoundingClientRect = function () {
+        return this.classList.contains("remote-notify-heading-body")
+            ? { height }
+            : box.call(this);
+    };
+    Object.defineProperty(h.w.navigator, "deviceMemory", { value: 2 });
+    h.configure();
+    h.poll();
+    h.reply([h.item()]);
+    const banner = h.w.document.querySelector(".remote-notify");
+    const heading = banner.querySelector(".remote-notify-heading");
+    assert.equal(heading.style.height, "42.5px");
+    assert.equal(heading.classList.contains("remote-notify-foldable"), true);
+    assert.equal(
+        heading.querySelectorAll(".remote-notify-heading-body > div").length,
+        2
+    );
+    assert.equal(
+        heading.contains(banner.querySelector(".remote-notify-message")),
+        false
+    );
+    assert.equal(banner.classList.contains("remote-notify-lite"), true);
+    height = 60;
+    h.w.dispatchEvent(new h.w.Event("resize"));
+    assert.equal(heading.style.height, "60px");
+    h.w.__ottNotificationBanners.showLocal("Local feedback");
+    h.client.suspend();
+    assert.equal(
+        h.w.document.querySelectorAll(".remote-notify-local").length,
+        1,
+        "remote session changes cannot remove local feedback"
+    );
+    h.w.__ottNotificationBanners.suspend();
+    assert.equal(h.w.document.querySelectorAll(".remote-notify").length, 0);
+    assert.equal(h.jobs.size, 0);
+    height = 80;
+    h.w.dispatchEvent(new h.w.Event("resize"));
+    assert.equal(
+        heading.style.height,
+        "60px",
+        "expiry/suspend removes geometry listeners"
+    );
+}
+
+{
+    const h = fixture();
+    h.w.__ottNotificationBanners.showLocal("Ready");
+    Object.defineProperty(h.w.document, "hidden", { value: true });
+    h.w.document.dispatchEvent(new h.w.Event("visibilitychange"));
+    assert.equal(h.w.document.querySelectorAll(".remote-notify").length, 0);
+    assert.equal(
+        h.jobs.size,
+        0,
+        "hidden local feedback expires without a remote transport"
+    );
+}
+
 {
     const h = fixture();
     h.configure();

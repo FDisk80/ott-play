@@ -1067,7 +1067,6 @@ function setFontSize(): void {
         : "Helvetica, Arial, sans-serif";
     $("body").css("font-family", fontFamilyList[settings.fontSize] + s);
 
-    $("#info").css("padding", 20 * e + "px");
     $("#numprog").css({
         left: 20 * e + "px",
         padding: 10 * e + "px",
@@ -3544,7 +3543,7 @@ if (typeof window.__TAURI__ !== "undefined") {
         // WKWebView video often sits above HTML; whole-surface drag must reach them.
         const NO_DRAG_SEL =
             "#list,#listCaption,#listIn,#listAbout,#listEdit,#listPopUp,#listDetail,#listPodval," +
-            "#list_osd,#list_window,.osd,#info,#info1,#numprog,#dialogbox,#volume_div,#mute," +
+            "#list_osd,#list_window,.osd,#info1,#numprog,#dialogbox,#volume_div,#mute," +
             "#permanentTime,#notifications,#buffering,#pip_buffering,#videopip," +
             "#progress_div,#progress,#progress_r,#progress_span,#descr,#channel,#data," +
             '#ott-tauri-loading-logs,.item,[id^="it"],.list-scroll,' +
@@ -4731,6 +4730,7 @@ window.settingsInterface = function settingsInterface(): void {
     openSubtitleAppearance("open");
 };
 (window as any).__ottAppearanceHost = {
+    color: classicColorRgb,
     languages: languageNames,
     list: setListArrays,
     page: createSettingsPage,

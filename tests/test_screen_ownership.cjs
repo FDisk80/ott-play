@@ -144,6 +144,11 @@ function fixture() {
     );
     w.eval(localizationRuntime());
     w.eval(
+        functions("src/ui/notification-banners.ts", [
+            "createNotificationBanners",
+        ])
+    );
+    w.eval(
         functions("src/ui/index.ts", [
             "_changeEdit",
             "infoBox",
@@ -1903,45 +1908,49 @@ test("explicit picker decoration preserves its owner, input dispatch and stale g
     assert.equal(calls, 2);
     assert.deepEqual(chosen, [1]);
 });
-test("notification replacement cancels the earlier hide timer", ({
+test("notification replacement cancels the earlier animation and expiry timers", ({
     w,
     jobs,
 }) => {
-    const info = w.document.createElement("div");
-    info.id = "info";
-    w.document.body.appendChild(info);
+    Object.defineProperty(w.document, "hidden", { value: false });
+    Object.defineProperty(w.document, "visibilityState", { value: "visible" });
+    const container = w.document.createElement("div");
+    container.id = "notifications";
+    w.document.body.appendChild(container);
     w.showShift("First");
+    const firstJobs = jobs.slice();
     w.showShift("Settings saved");
-    assert.equal(jobs.filter((job) => job.active).length, 1);
-    assert.equal(jobs[0].active, false);
-    assert.equal(info.style.display, "block");
-    assert.equal(info.textContent, "Settings saved");
-    jobs[1].callback();
-    assert.equal(info.style.display, "none");
+    assert(firstJobs.every((job) => !job.active));
+    assert.equal(jobs.filter((job) => job.active).length, 2);
+    assert.equal(container.children.length, 1);
+    assert.equal(container.textContent, "Settings saved");
+    jobs.find((job) => job.active && job.delay === 3000).callback();
+    assert.equal(container.children.length, 0);
 });
 test("notification delay belongs to its node after replacement", ({
     w,
     jobs,
 }) => {
+    Object.defineProperty(w.document, "hidden", { value: false });
+    Object.defineProperty(w.document, "visibilityState", { value: "visible" });
     w.showShift("Missing node");
     assert.equal(jobs.length, 0);
-    const oldInfo = w.document.createElement("div");
-    oldInfo.id = "info";
-    w.document.body.appendChild(oldInfo);
+    const oldContainer = w.document.createElement("div");
+    oldContainer.id = "notifications";
+    w.document.body.appendChild(oldContainer);
     w.showShift("Old node");
-    oldInfo.remove();
-    const info = w.document.createElement("div");
-    info.id = "info";
-    info.style.display = "inline";
-    w.document.body.appendChild(info);
+    const oldExpiry = jobs.find((job) => job.delay === 3000);
+    oldContainer.remove();
+    const container = w.document.createElement("div");
+    container.id = "notifications";
+    w.document.body.appendChild(container);
     w.showShift("Replacement node");
-    assert.equal(info.style.display, "block");
-    jobs[0].callback();
-    assert.equal(oldInfo.style.display, "none");
-    assert.equal(info.style.display, "block");
-    assert.equal(info.textContent, "Replacement node");
-    jobs[1].callback();
-    assert.equal(info.style.display, "none");
+    oldExpiry.callback();
+    assert.equal(oldContainer.children.length, 0);
+    assert.equal(container.children.length, 1);
+    assert.equal(container.textContent, "Replacement node");
+    jobs.find((job) => job.active && job.delay === 3000).callback();
+    assert.equal(container.children.length, 0);
 });
 test("settings value clicks honor filtered indices and the current overlay", ({
     w,
@@ -2139,7 +2148,65 @@ function colorSnapshot(w, setting) {
         visible: w.$("#listAbout").is(":visible"),
     };
 }
+// Historical captures used saturation for the background. Production stores H,V;
+// retain every other captured field while correcting these specific preview RGBs.
+const backgroundPreviews = [
+    [
+        [0, 0, 0],
+        [0, 0, 0],
+        [5, 0, 13],
+    ],
+    [
+        [255, 0, 0],
+        [255, 0, 0],
+        [255, 0, 0],
+        [242, 0, 0],
+        [242, 0, 0],
+    ],
+    [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [13, 0, 0],
+    ],
+    [
+        [0, 115, 29],
+        [217, 181, 0],
+        [108, 217, 0],
+        [0, 217, 217],
+    ],
+    [
+        [0, 115, 29],
+        [0, 115, 48],
+        [0, 128, 53],
+    ],
+    [
+        [217, 181, 0],
+        [217, 181, 0],
+        [217, 181, 0],
+    ],
+    [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [108, 217, 0],
+    ],
+    [
+        [217, 181, 0],
+        [230, 191, 0],
+    ],
+    [
+        [217, 181, 0],
+        [230, 191, 0],
+    ],
+];
+let backgroundCase = 0;
 for (const scenario of colorCases.records) {
+    const background =
+        scenario.name === "backColorDialog"
+            ? backgroundPreviews[backgroundCase++]
+            : null;
     test(
         "captured color input " +
             scenario.name +
@@ -2166,7 +2233,14 @@ for (const scenario of colorCases.records) {
             // Keep the historical capture immutable. Only its two full-turn
             // previews are intentionally corrected; every other field is exact.
             let expected = scenario.states;
-            if (scenario.initial === "360,100") {
+            if (background) {
+                expected = JSON.parse(JSON.stringify(expected));
+                assert.equal(background.length, expected.length - 1);
+                background.forEach((rgb, i) => {
+                    expected[i].preview =
+                        `font-size: 150%; background-color: rgb(${rgb.join(", ")});`;
+                });
+            } else if (scenario.initial === "360,100") {
                 expected = JSON.parse(JSON.stringify(expected));
                 const color =
                     scenario.name === "colorDialog"
@@ -2198,6 +2272,225 @@ function clickColorControl(w, element) {
     w.listElement = listElement;
     assert.equal(element.getAttribute("onclick"), null);
     element.click();
+}
+for (const graphical of [0, 1]) {
+    for (const name of [
+        "colorDialog",
+        "selColorDialog",
+        "backColorDialog",
+        "epgTimeColorDialog",
+    ]) {
+        test(
+            "focused color controls accept Enter without another adjustment " +
+                name +
+                "/" +
+                graphical,
+            ({ w, key, jobs }) => {
+                const setting =
+                    name === "epgTimeColorDialog"
+                        ? "eEpgTimeColor"
+                        : colorSetting(name);
+                w._ = w.translate;
+                w.sGrapI = graphical;
+                let savedColor = "20,30",
+                    commits = 0;
+                Object.defineProperty(w, setting, {
+                    configurable: true,
+                    get: () => savedColor,
+                    set: (value) => {
+                        savedColor = value;
+                        commits++;
+                    },
+                });
+                w._doKey = w.dispatchKey;
+                const microtasks = [];
+                w.queueMicrotask = (callback) => microtasks.push(callback);
+                w.eval(
+                    functions("src/utils/helpers.ts", [
+                        "getViewportWidthScale",
+                        "getViewportHeightScale",
+                    ])
+                );
+                w.eval(
+                    ts.transpileModule(
+                        fs.readFileSync(
+                            path.join(root, "src/ui/accessibility.ts"),
+                            "utf8"
+                        ),
+                        { compilerOptions: { target: ts.ScriptTarget.ES5 } }
+                    ).outputText
+                );
+                w.eval(functions("src/ui/index.ts", ["uiInit"]));
+                const element = w.listElement;
+                w.uiInit();
+                w.listElement = element;
+                w.document.addEventListener("keydown", w.keyHandler);
+                w.listArray = ["parent", "color"];
+                w.listDataArray = w.listArray;
+                w.listKeyHandler = () =>
+                    assert.fail("A modal key must not reach the parent");
+                w.selIndex = 1;
+                const parent = w.__ottClassicScreenPort.commitList();
+                const parentFocus = w.document.createElement("button");
+                w.document.body.appendChild(parentFocus);
+                const control = (keyName, footer = false) =>
+                    w.document.querySelector(
+                        (footer ? "#listPodval" : "#listAbout") +
+                            ' [data-ott-key="' +
+                            w.keys[keyName] +
+                            '"]'
+                    );
+                const press = (target, code) => {
+                    target.focus();
+                    target.dispatchEvent(
+                        new w.KeyboardEvent("keydown", {
+                            bubbles: true,
+                            cancelable: true,
+                            keyCode: code,
+                        })
+                    );
+                };
+                for (const focus of ["LEFT", "BLUE", "Set"]) {
+                    parentFocus.focus();
+                    w[name]();
+                    for (const job of jobs.filter(
+                        (job) => job.active && job.delay === 0
+                    )) {
+                        job.active = false;
+                        job.callback();
+                    }
+                    assert.equal(
+                        w.document.activeElement,
+                        control("LEFT"),
+                        "Actual accessibility focuses the first hue control"
+                    );
+                    control("RIGHT").click();
+                    control("GREEN").click();
+                    key(w.keys.RIGHT);
+                    assert.equal(
+                        w.document.getElementById("colorHueValue").textContent,
+                        "100°"
+                    );
+                    const target =
+                        focus === "Set"
+                            ? control("ENTER", true)
+                            : control(focus);
+                    // Focus the real control before dispatching a DOM key event.
+                    const previousCommits = commits;
+                    press(target, w.keys.ENTER);
+                    assert.equal(
+                        commits,
+                        previousCommits + 1,
+                        "One physical Enter accepts exactly once"
+                    );
+                    assert.equal(
+                        w[setting],
+                        "100,85",
+                        "Enter must accept the current color, not the focused adjustment"
+                    );
+                    assert.equal(w.$("#listAbout").is(":visible"), false);
+                    while (microtasks.length) microtasks.shift()();
+                    assert.equal(
+                        w.document.activeElement,
+                        parentFocus,
+                        "Accepting from a focused color control restores parent focus"
+                    );
+                    assert(parent.foreground());
+                    assert.equal(w.selIndex, 1);
+                }
+                w[name]();
+                press(control("BLUE"), 32);
+                assert.equal(
+                    w.document.getElementById("colorHueValue").textContent,
+                    "180°",
+                    "Space retains preset activation"
+                );
+                assert.equal(w.$("#listAbout").is(":visible"), true);
+                key(w.keys.RETURN);
+                assert.equal(
+                    w[setting],
+                    "100,85",
+                    "Remote Back cancels preview"
+                );
+                parentFocus.focus();
+                w[name]();
+                control("BLUE").click();
+                press(control("RETURN", true), w.keys.ENTER);
+                assert.equal(
+                    w[setting],
+                    "100,85",
+                    "Focused Close retains its explicit footer action"
+                );
+                while (microtasks.length) microtasks.shift()();
+                assert.equal(
+                    w.document.activeElement,
+                    parentFocus,
+                    "Footer Close restores parent focus"
+                );
+                if (name === "epgTimeColorDialog") {
+                    parentFocus.focus();
+                    w[name]();
+                    press(control("RED", true), w.keys.ENTER);
+                    assert.equal(
+                        w[setting],
+                        "",
+                        "Focused default retains its explicit footer action"
+                    );
+                    while (microtasks.length) microtasks.shift()();
+                    assert.equal(
+                        w.document.activeElement,
+                        parentFocus,
+                        "Footer default restores parent focus"
+                    );
+                }
+                w[name]();
+                parentFocus.focus();
+                key(w.keys.RETURN);
+                while (microtasks.length) microtasks.shift()();
+                assert.equal(
+                    w.document.activeElement,
+                    parentFocus,
+                    "Closing does not steal focus already outside the picker and footer"
+                );
+                w[name]();
+                const coveredCallback = w.aboutKeyHandler;
+                const saved = w[setting];
+                w.confirmBox("Cover", () =>
+                    assert.fail("Covered picker cannot accept a confirmation")
+                );
+                const cover = w.document.getElementById("dialogbox");
+                cover.focus();
+                coveredCallback(w.keys.ENTER);
+                assert.equal(w[setting], saved);
+                assert.equal(
+                    w.document.activeElement,
+                    cover,
+                    "Covered picker callback cannot steal modal focus"
+                );
+                key(w.keys.RETURN);
+                key(w.keys.RETURN);
+                w.listElement.innerHTML = "";
+                w.$("#listAbout")
+                    .html(
+                        '<span tabindex="0" data-ott-key="' +
+                            w.keys.BLUE +
+                            '">Other dialog</span>'
+                    )
+                    .show();
+                const received = [];
+                w.__ottClassicScreenPort.setOwnedCallback("about", (code) => {
+                    received.push(code);
+                    return true;
+                });
+                press(control("BLUE"), w.keys.ENTER);
+                assert.deepEqual(
+                    received,
+                    [w.keys.BLUE],
+                    "Unrelated dialogs retain focused-button Enter behavior"
+                );
+            }
+        );
+    }
 }
 for (const name of ["colorDialog", "selColorDialog", "backColorDialog"]) {
     test("color remote/mouse save and parent focus " + name, ({ w, key }) => {
@@ -2416,6 +2709,73 @@ test("foreground mouse arrows and color presets dispatch the same owned input", 
     );
     assert.equal(w.eSHLcolor, "90,85");
 });
+for (const name of ["selColorDialog", "backColorDialog"]) {
+    test(
+        "background picker exposes working mouse controls and production color " +
+            name,
+        ({ w, key }) => {
+            const setting = colorSetting(name);
+            w[setting] = "120,50";
+            w._doKey = key;
+            w[name]();
+            assert.equal(
+                w.document.getElementById("colorHueValue").textContent,
+                "120°"
+            );
+            assert.equal(
+                w.document.getElementById("colorLevelValue").textContent,
+                "50%"
+            );
+            assert.match(
+                w.document.getElementById("listAbout").textContent,
+                name === "backColorDialog" ? /Brightness/ : /Saturation/
+            );
+            for (const arrow of ["LEFT", "RIGHT", "UP", "DOWN"]) {
+                clickColorControl(
+                    w,
+                    w.document.querySelector(
+                        '#listAbout [data-ott-key="' + w.keys[arrow] + '"]'
+                    )
+                );
+            }
+            assert.equal(
+                w.document.getElementById("colorHueValue").textContent,
+                "120°"
+            );
+            assert.equal(
+                w.document.getElementById("colorLevelValue").textContent,
+                "50%"
+            );
+            const preview =
+                w.document.getElementById("step").style.backgroundColor;
+            assert.equal(
+                preview,
+                name === "backColorDialog"
+                    ? "rgb(0, 128, 0)"
+                    : "rgb(64, 128, 64)"
+            );
+            clickColorControl(
+                w,
+                w.listFooterElement.querySelector('[aria-label="Set"]')
+            );
+            assert.equal(w[setting], "120,50");
+            w.eval(functions("src/index.ts", ["classicColorRgb"]));
+            assert.equal(
+                "rgb(" +
+                    w
+                        .classicColorRgb(
+                            w[setting],
+                            name === "backColorDialog" ? undefined : 50
+                        )
+                        .split(",")
+                        .join(", ") +
+                    ")",
+                preview,
+                "Accepted preview uses the same color as theme publication"
+            );
+        }
+    );
+}
 test("menu IDs survive labels, host function names and legacy hide imports", ({
     w,
 }) => {

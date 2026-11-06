@@ -40,7 +40,7 @@ def evidence(missing=False):
             "aux_unchanged": True, "initial": state(), "final": state(),
             "topmost_sequence": [state(top=top) for top in [True, True, False, False]],
             "fullscreen_sequence": [state(top, full) for top, full in [(False, True), (False, False), (True, True), (True, False)]],
-            "aspect": {"initial": aspect_state(), "final": aspect_state(),
+            "aspect": {"initial": aspect_state(True), "final": aspect_state(),
                        "set_sequence": [aspect_state(v) for v in [True, True, False, False]],
                        "set_geometry": [state() for _ in range(4)],
                        "fullscreen_sequence": [aspect_state(True, v) for v in [False, True] * 3],
@@ -58,6 +58,7 @@ class EvidenceTests(unittest.TestCase):
                      lambda r: r["aspect"]["set_geometry"][0].update(rect=[0, 0, 800, 450]),
                      lambda r: r["aspect"]["initial"].update(supported=False),
                      lambda r: r["aspect"]["initial"].update(enabled=0),
+                     lambda r: r["aspect"].update(initial=aspect_state(False)),
                      lambda r: r["aspect"]["fullscreen_sequence"][0].update(active=True),
                      lambda r: r["aspect"]["fullscreen_sequence"][0].update(enabled=False)]
         for mutate in mutations:
@@ -283,7 +284,7 @@ def restoration_evidence(phase, initial, final):
         "status": "pass", "mode": "preference-restoration", "phase": phase,
         "owned_labels": ["main", "pip"], "cleanup_errors": [], "aux_unchanged": True,
         "initial": state(initial), "final": state(final),
-        "aspect_initial": aspect_state(initial), "aspect_final": aspect_state(final),
+        "aspect_initial": aspect_state(phase != "verify-off"), "aspect_final": aspect_state(final),
         "aspect_sizing": sizing_evidence(final),
     }
 
@@ -301,7 +302,7 @@ def restoration_process(captured, *, wrong_initial=None, skip_write=None, timeou
             self.stored = self.preferences / "window-always-on-top"
             self.initial = self.stored.exists() and self.stored.read_bytes() == b"1\n"
             self.aspect_stored = self.preferences / "window-aspect-lock"
-            self.aspect_initial = self.aspect_stored.exists() and self.aspect_stored.read_bytes() == b"1\n"
+            self.aspect_initial = not self.aspect_stored.exists() or self.aspect_stored.read_bytes() == b"1\n"
 
         def wait(self, timeout):
             if self.phase == timeout_phase and timeout == runner.WINDOWS_PROCESS_TIMEOUT_SECONDS:
@@ -343,6 +344,7 @@ class RestorationTests(unittest.TestCase):
             self.assertEqual(len({item[0] for item in captured}), 3)
             self.assertEqual(len({item[1] for item in captured}), 1)
             self.assertEqual([item["native"]["initial"]["win32_topmost"] for item in result["runs"]], [False, True, False])
+            self.assertEqual([item["native"]["aspect_initial"]["enabled"] for item in result["runs"]], [True, True, False])
             for webview, preferences, _, environment in captured:
                 self.assertFalse(webview.exists())
                 self.assertFalse(preferences.exists())
@@ -433,8 +435,8 @@ def appkit_evidence(missing=False):
             "cleanup_errors": [], "mode": "missing-permission" if missing else "production-permissions",
             "denials": [{"command": command, "window": "main" if missing else "pip",
                         "error": "command not allowed"} for command in commands],
-            "aux_unchanged": True, "baseline": appkit_native(), "initial": appkit_native(),
-            "initial_state": aspect_state(), "final": appkit_native(), "final_state": aspect_state(),
+            "aux_unchanged": True, "baseline": appkit_native(), "initial": appkit_native(True),
+            "initial_state": aspect_state(True), "final": appkit_native(), "final_state": aspect_state(),
             "set_sequence": [{"state": aspect_state(v), "native": appkit_native(v)}
                              for v in [True, True, False, False]],
             "native_menu_activations": 2,
@@ -529,6 +531,7 @@ class AppKitEvidenceTests(unittest.TestCase):
             runner.validate_evidence(appkit_evidence(missing), missing, platform="macos")
         mutations = [
             lambda r: r["set_sequence"].pop(),
+            lambda r: r.update(initial=appkit_native(False), initial_state=aspect_state(False)),
             lambda r: r["set_sequence"][0]["native"].update(content_aspect=[0, 0]),
             lambda r: r["set_sequence"][0]["native"].update(frame=[40, 40, 800, 450]),
             lambda r: r["transitions"].pop(),
@@ -588,7 +591,7 @@ class AppKitEvidenceTests(unittest.TestCase):
 
     def test_appkit_restoration_is_fresh_native_evidence_not_a_requested_value(self):
         for phase in ["pin", "unpin", "verify-off"]:
-            report = appkit_restoration(phase, phase == "unpin")
+            report = appkit_restoration(phase, phase != "verify-off")
             runner.validate_restoration_evidence(report, phase, platform="macos")
             report["initial"]["content_aspect"] = [99, 1]
             with self.assertRaises(RuntimeError):
@@ -605,7 +608,7 @@ class AppKitEvidenceTests(unittest.TestCase):
                     self.phase = command[3]
                     self.preferences = Path(kwargs["env"]["OTTPLAY_DATA_DIR"])
                     self.stored = self.preferences / "window-aspect-lock"
-                    self.initial = self.stored.exists() and self.stored.read_bytes() == b"1\n"
+                    self.initial = not self.stored.exists() or self.stored.read_bytes() == b"1\n"
                     captured.append((self.directory, self.preferences, self.phase, kwargs))
                 def wait(self, timeout):
                     self.done = True

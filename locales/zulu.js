@@ -123,6 +123,7 @@ var keyStrings = {
     Blue: "Okuluhlaza okwesibhakabhaka",
     "Bookmark age (days): %1": "Ubudala bebhukhimakhi (izinsuku): %1",
     "Bookmark age: %1 days": "Ubudala bebhukhimakhi: izinsuku ezingu-%1",
+    Brightness: "Ukukhanya",
     "Browse folders": "Phequlula amafolda",
     "Buffer Size, s": "Usayizi webhafa, imizuz",
     "Buffering...": "Kulayishwa idatha...",
@@ -726,6 +727,7 @@ var keyStrings = {
     "not set": "akusethiwe",
     Off: "Kuvaliwe",
     Ok: "Kulungile",
+    On: "Kuvuliwe",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Yile TV kuphela engamukela umlayezo wakho. Isixhumanisi siphelelwa yisikhathi ngemva kwemizuzu engu-10.",
     Open: "Vula",

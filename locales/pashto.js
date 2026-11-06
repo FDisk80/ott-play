@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "نیلي",
     "Bookmark age (days): %1": "د بک مارک عمر (ورځې): %1",
     "Bookmark age: %1 days": "د نښه کولو عمر: %1 ورځې",
+    Brightness: "روښانتیا",
     "Browse folders": "فولډرې وپلټئ",
     "Buffer Size, s": "د بفر موده، ثانیې",
     "Buffering...": "لنډمهالې حافظې ته پورته کېږي...",
@@ -704,6 +705,7 @@ var keyStrings = {
     "not set": "نه دی ټاکل شوی",
     Off: "بند",
     Ok: "سمه ده",
+    On: "فعال شوی",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "یوازې دا تلویزیون کولی شي ستاسو پیغام ومني. لینک د 10 دقیقو وروسته پای ته رسیږي.",
     Open: "پرانیزئ",

@@ -31,11 +31,13 @@ module.exports = function load(globals = {}) {
     acorn.parse(mediaCode, { ecmaVersion: 5 });
     const media = { exports: {}, ...globals };
     vm.runInNewContext(mediaCode, media);
+    const banner = require("./notification-banners.cjs")(globals);
     const context = {
         exports: {},
         require(name) {
             if (name === "./notification-media")
                 return globals.notificationMedia || media.exports;
+            if (name === "../ui/notification-banners") return banner;
             throw new Error("Unexpected import " + name);
         },
         ...globals,

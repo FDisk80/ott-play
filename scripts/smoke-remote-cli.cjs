@@ -1028,7 +1028,14 @@ function moduleOf(file, requireFn, window) {
                     name === "./player-state"
                         ? moduleOf(
                               "src/plugins/" + name.slice(2) + ".ts",
-                              () => {},
+                              (dependency) =>
+                                  dependency === "../ui/notification-banners"
+                                      ? moduleOf(
+                                            "src/ui/notification-banners.ts",
+                                            () => {},
+                                            host
+                                        )
+                                      : undefined,
                               host
                           )
                         : require("../tests/load-wire.cjs")(),

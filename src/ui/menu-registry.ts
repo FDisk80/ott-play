@@ -63,8 +63,8 @@ function createDesktopWindowControls(host: any) {
                     : state === null
                       ? "ERROR!"
                       : state
-                        ? "on"
-                        : "off";
+                        ? "On"
+                        : "Off";
             var status = host._
                 ? host._(statusKey)
                 : state === null
@@ -74,6 +74,64 @@ function createDesktopWindowControls(host: any) {
                 host.showPopup(title(kind) + ": " + status);
         } catch (_) {}
     }
+    function read(
+        native: any,
+        kind: string,
+        context: any
+    ): Promise<boolean | "unsupported" | null> {
+        return Promise.resolve().then(function () {
+            if (!admitted(context)) return null;
+            if (kind === "aspectLock") {
+                return Promise.resolve(
+                    native.owner.invoke("get_window_aspect_lock")
+                ).then(function (state: any) {
+                    if (
+                        !state ||
+                        state.ok !== true ||
+                        typeof state.supported !== "boolean" ||
+                        typeof state.enabled !== "boolean" ||
+                        typeof state.active !== "boolean" ||
+                        (!state.supported && state.active)
+                    )
+                        throw new Error();
+                    return state.supported ? state.enabled : "unsupported";
+                });
+            }
+            return Promise.resolve(native.current.isAlwaysOnTop()).then(
+                function (state: any) {
+                    if (typeof state !== "boolean") throw new Error();
+                    return state;
+                }
+            );
+        });
+    }
+    function changed(context: any, kind: string, state: any): void {
+        if (!context.states || !admitted(context)) return;
+        context.states[kind] = state;
+        try {
+            if (typeof host.showPage === "function") host.showPage();
+        } catch (_) {}
+    }
+    function refresh(context: any, kinds: string[]): Promise<void> {
+        var native = api(),
+            owner = context.owner;
+        if (!native || !admitted(context)) return Promise.resolve();
+        return Promise.all(
+            kinds.map(function (kind) {
+                var revision = context.revisions[kind] || 0;
+                function accept(state: any) {
+                    if (
+                        context.owner === owner &&
+                        revision === (context.revisions[kind] || 0)
+                    )
+                        changed(context, kind, state);
+                }
+                return read(native, kind, context).then(accept, function () {
+                    accept("error");
+                });
+            })
+        ).then(function () {});
+    }
     function run(kind: string, context: any): Promise<void> {
         if (pending || !admitted(context)) return Promise.resolve();
         var native = api();
@@ -82,6 +140,8 @@ function createDesktopWindowControls(host: any) {
             return Promise.resolve();
         }
         pending = true;
+        if (context.revisions)
+            context.revisions[kind] = (context.revisions[kind] || 0) + 1;
         var fullscreenEpoch = 0;
         // One owner and one mutating call: rejected acknowledgements are never retried.
         var task = Promise.resolve().then(function (): any {
@@ -102,23 +162,12 @@ function createDesktopWindowControls(host: any) {
                 });
             }
             if (kind === "aspectLock") {
-                return Promise.resolve(
-                    native.owner.invoke("get_window_aspect_lock")
-                ).then(function (current: any) {
-                    if (
-                        !current ||
-                        current.ok !== true ||
-                        typeof current.supported !== "boolean" ||
-                        typeof current.enabled !== "boolean" ||
-                        typeof current.active !== "boolean"
-                    )
-                        throw new Error();
+                return read(native, kind, context).then(function (
+                    current: any
+                ) {
                     if (!admitted(context)) return null;
-                    if (!current.supported) {
-                        if (current.active) throw new Error();
-                        return "unsupported";
-                    }
-                    var desired = !current.enabled;
+                    if (current === "unsupported") return current;
+                    var desired = !current;
                     return Promise.resolve(
                         native.owner.invoke("set_window_aspect_lock", {
                             enabled: desired,
@@ -138,26 +187,23 @@ function createDesktopWindowControls(host: any) {
             }
             if (typeof native.current.isAlwaysOnTop !== "function")
                 throw new Error();
-            return Promise.resolve(native.current.isAlwaysOnTop()).then(
-                function (current: any) {
-                    if (typeof current !== "boolean") throw new Error();
-                    if (!admitted(context)) return null;
-                    var desired = !current;
-                    return Promise.resolve(
-                        native.owner.invoke("set_always_on_top", {
-                            alwaysOnTop: desired,
-                        })
-                    ).then(function (result: any) {
-                        if (
-                            !result ||
-                            result.ok !== true ||
-                            result.alwaysOnTop !== desired
-                        )
-                            throw new Error();
-                        return result.alwaysOnTop;
-                    });
-                }
-            );
+            return read(native, kind, context).then(function (current: any) {
+                if (!admitted(context)) return null;
+                var desired = !current;
+                return Promise.resolve(
+                    native.owner.invoke("set_always_on_top", {
+                        alwaysOnTop: desired,
+                    })
+                ).then(function (result: any) {
+                    if (
+                        !result ||
+                        result.ok !== true ||
+                        result.alwaysOnTop !== desired
+                    )
+                        throw new Error();
+                    return result.alwaysOnTop;
+                });
+            });
         });
         return task.then(
             function (state: any) {
@@ -170,6 +216,7 @@ function createDesktopWindowControls(host: any) {
                 // A reply may update known native state, but cannot close or repaint
                 // a newer screen. The row never displays an optimistic checked state.
                 if (!admitted(context)) return;
+                changed(context, kind, state);
                 notify(kind, state);
                 if (state === "unsupported") return;
                 try {
@@ -187,8 +234,10 @@ function createDesktopWindowControls(host: any) {
                     (kind !== "fullscreen" ||
                         !fullscreenEpoch ||
                         host.__ottTauriFsEpoch === fullscreenEpoch)
-                )
+                ) {
+                    changed(context, kind, "error");
                     notify(kind, null);
+                }
             }
         );
     }
@@ -202,6 +251,7 @@ function createDesktopWindowControls(host: any) {
                     typeof native.current.isAlwaysOnTop === "function")
             );
         },
+        refresh: refresh,
         run: run,
         title: title,
     };
@@ -300,12 +350,23 @@ function createScreenMenuRegistry() {
         return nativeControls[index];
     }
     function windowSettings(host: any) {
-        var context: any = { keepOpen: true, owner: null };
+        var context: any = {
+            keepOpen: true,
+            owner: null,
+            revisions: {},
+            states: {},
+        };
         var controls = desktopControls(host);
         return {
             bindOwner: function () {
                 var port = host.__ottClassicScreenPort;
                 context.owner = port && port.listOwner();
+                return controls.refresh(
+                    context,
+                    ["alwaysOnTop", "aspectLock"].filter(function (kind) {
+                        return controls.available(kind);
+                    })
+                );
             },
             rows: ["alwaysOnTop", "aspectLock"]
                 .filter(function (kind) {
@@ -313,7 +374,21 @@ function createScreenMenuRegistry() {
                 })
                 .map(function (kind) {
                     return {
-                        cur: host._ ? host._("select") : "select",
+                        get cur() {
+                            var state = context.states[kind];
+                            if (typeof state === "boolean") {
+                                return host._
+                                    ? host._(state ? "yes" : "off")
+                                    : '<span class="fontello">&#x' +
+                                          (state ? "f205" : "f204") +
+                                          ";</span>";
+                            }
+                            return state === undefined
+                                ? "…"
+                                : host._
+                                  ? host._("Unavailable")
+                                  : "Unavailable";
+                        },
                         id: "window." + kind,
                         name: controls.title(kind),
                         val: 0,

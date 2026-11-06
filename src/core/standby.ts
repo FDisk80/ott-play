@@ -70,6 +70,7 @@ export function installStandby(w: any, read: any, write: any): any {
             w.__ottGlobalFavorites?.navigation?.retire();
         });
         // Invalidate owners before abort: transports may synchronously call back.
+        invoke("__ottNotificationBanners", "suspend");
         invoke("__ottRemoteNotifications", "suspend");
         var timers = w.__ottUiTimers;
         if (timers) {

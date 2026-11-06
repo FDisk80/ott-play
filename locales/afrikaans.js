@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Blou",
     "Bookmark age (days): %1": "Boekmerkouderdom (dae): %1",
     "Bookmark age: %1 days": "Boekmerkouderdom: %1 dae",
+    Brightness: "Helderheid",
     "Browse folders": "Blaai deur vouers",
     "Buffer Size, s": "Buffergrootte, s",
     "Buffering...": "Buffer tans...",
@@ -710,6 +711,7 @@ var keyStrings = {
     "not set": "nie gestel nie",
     Off: "Af",
     Ok: "OK",
+    On: "Aan",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Net hierdie TV kan jou boodskap aanvaar. Die skakel verval na 10 minute.",
     Open: "Maak oop",

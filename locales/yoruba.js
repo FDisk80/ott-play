@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "Búlúù",
     "Bookmark age (days): %1": "Ọjọ ori bukumaaki (ọjọ): %1",
     "Bookmark age: %1 days": "Ọjọ́ orí àmì ìrántí: ọjọ́ %1",
+    Brightness: "Ìmọ́lẹ̀",
     "Browse folders": "Ṣàwárí àwọn fódà",
     "Buffer Size, s": "Ìwọ̀n ibi ìpamọ́ ṣáájú ìṣeré, ìṣẹ́jú-àáyá",
     "Buffering...": "Ń kó dátà pamọ́...",
@@ -695,6 +696,7 @@ var keyStrings = {
     "not set": "a kò tíì ṣètò",
     Off: "Pípa",
     Ok: "Ó dáa",
+    On: "Ṣíṣí",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "TV yi nikan ni o le gba ifiranṣẹ rẹ. Ọna asopọ dopin lẹhin ìṣẹ́jú 10.",
     Open: "Ṣí",

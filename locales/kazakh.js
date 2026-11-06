@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Көк",
     "Bookmark age (days): %1": "Бетбелгі жасы (күндер): %1",
     "Bookmark age: %1 days": "Бетбелгі жасы: %1 күн",
+    Brightness: "Жарықтық",
     "Browse folders": "Қалталар бойынша шолу",
     "Buffer Size, s": "Буфер өлшемі, с",
     "Buffering...": "Буферленуде...",
@@ -708,6 +709,7 @@ var keyStrings = {
     "not set": "орнатылмаған",
     Off: "Өшірулі",
     Ok: "OK",
+    On: "Қосулы",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Тек осы теледидар хабарыңызды қабылдай алады. Сілтеме 10 минуттан кейін аяқталады.",
     Open: "Ашу",

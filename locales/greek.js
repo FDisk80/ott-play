@@ -122,6 +122,7 @@ var keyStrings = {
     Blue: "Μπλε",
     "Bookmark age (days): %1": "Ηλικία σελιδοδείκτη (ημέρες): %1",
     "Bookmark age: %1 days": "Ηλικία σελιδοδείκτη: %1 ημέρες",
+    Brightness: "Φωτεινότητα",
     "Browse folders": "Περιήγηση σε φακέλους",
     "Buffer Size, s": "Μέγεθος buffer, s",
     "Buffering...": "Αποθήκευση στην προσωρινή μνήμη...",
@@ -728,6 +729,7 @@ var keyStrings = {
     "not set": "δεν έχει οριστεί",
     Off: "Ανενεργό",
     Ok: "Εντάξει",
+    On: "Ενεργός",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Μόνο αυτή η τηλεόραση μπορεί να δεχτεί το μήνυμά σας. Ο σύνδεσμος λήγει μετά από 10 λεπτά.",
     Open: "Άνοιγμα",

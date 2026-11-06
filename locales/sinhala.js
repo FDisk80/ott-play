@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "නිල්",
     "Bookmark age (days): %1": "පිටු සලකුණෙහි වයස (දින): %1",
     "Bookmark age: %1 days": "පිටු සලකුණු වයස: %1 දින",
+    Brightness: "දීප්තිය",
     "Browse folders": "ෆෝල්ඩර බ්‍රවුස් කරන්න",
     "Buffer Size, s": "බෆර ප්‍රමාණය, එස්",
     "Buffering...": "බෆරයට පූරණය වෙමින්...",
@@ -690,6 +691,7 @@ var keyStrings = {
     "not set": "සකසා නැත",
     Off: "අක්‍රිය",
     Ok: "හරි",
+    On: "සක්‍රිය",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "මෙම රූපවාහිනියට පමණක් ඔබගේ පණිවිඩය පිළිගත හැක. සබැඳිය විනාඩි 10කට පසු කල් ඉකුත් වේ.",
     Open: "විවෘත කරන්න",

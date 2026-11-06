@@ -122,6 +122,7 @@ var keyStrings = {
     Blue: "Blu",
     "Bookmark age (days): %1": "Età tal-bookmark (jiem): %1",
     "Bookmark age: %1 days": "Età tal-bookmark: %1 jiem",
+    Brightness: "Luminożità",
     "Browse folders": "Fittex fil-fowlders",
     "Buffer Size, s": "Daqs tal-buffer, s",
     "Buffering...": "Qed jimtela l-bafer...",
@@ -720,6 +721,7 @@ var keyStrings = {
     "not set": "mhux issettjat",
     Off: "mitfi",
     Ok: "Tajjeb",
+    On: "Mixgħul",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Dan it-TV biss jista' jaċċetta l-messaġġ tiegħek. Il-link tiskadi wara 10 minuti.",
     Open: "Iftaħ",

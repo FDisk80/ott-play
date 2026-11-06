@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "Сіні",
     "Bookmark age (days): %1": "Узрост закладкі (дзён): %1",
     "Bookmark age: %1 days": "Даўнасць закладкі: %1 дзён",
+    Brightness: "Яркасць",
     "Browse folders": "Прагляд па папках",
     "Buffer Size, s": "Памер буфера, с",
     "Buffering...": "Буферызацыя...",
@@ -702,6 +703,7 @@ var keyStrings = {
     "not set": "не зададзена",
     Off: "Выключана",
     Ok: "ОК",
+    On: "Уключаны",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Толькі гэты тэлевізар можа прыняць ваша паведамленне. Тэрмін дзеяння спасылкі заканчваецца праз 10 хвілін.",
     Open: "Адкрыць",

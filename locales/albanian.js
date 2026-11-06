@@ -120,6 +120,7 @@ var keyStrings = {
     Blue: "Blu",
     "Bookmark age (days): %1": "Mosha e faqeshënuesit (ditë): %1",
     "Bookmark age: %1 days": "Mosha e faqerojtësit: %1 ditë",
+    Brightness: "Ndriçimi",
     "Browse folders": "Shfletoni dosjet",
     "Buffer Size, s": "Madhësia e buferit, s",
     "Buffering...": "Duke ngarkuar në bufer...",
@@ -721,6 +722,7 @@ var keyStrings = {
     "not set": "nuk është vendosur",
     Off: "joaktiv",
     Ok: "Në rregull",
+    On: "Aktiv",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Vetëm ky televizor mund ta pranojë mesazhin tuaj. Lidhja skadon pas 10 minutash.",
     Open: "Hap",

@@ -1,3 +1,7 @@
+import {
+    createNotificationBanners,
+    type NotificationBannerHandle,
+} from "../ui/notification-banners";
 import type {
     CommandServerRequest,
     CommandServerResponse,
@@ -13,8 +17,7 @@ interface NotificationBanner {
     diagnostic?: any;
     disposeMedia?: (() => void) | null;
     element: any;
-    exitTimer?: any;
-    timer: any;
+    presentation: NotificationBannerHandle;
 }
 
 /** Optional, ephemeral banners. Failure must never interrupt remote control. */
@@ -42,6 +45,7 @@ export function createRemoteNotifications(
     var order: string[] = [];
     var banners: NotificationBanner[] = [];
     var mediaOwner: NotificationBanner | null = null;
+    var renderer = createNotificationBanners(w);
 
     function diagnostic(media: any): any {
         try {
@@ -72,14 +76,7 @@ export function createRemoteNotifications(
         if (dispose) dispose();
     }
     function clearBanner(banner: NotificationBanner, reason = "hidden"): void {
-        clearMedia(banner);
-        w.clearTimeout(banner.timer);
-        w.clearTimeout(banner.exitTimer);
-        if (banner.element.parentNode)
-            banner.element.parentNode.removeChild(banner.element);
-        var index = banners.indexOf(banner);
-        if (index !== -1) banners.splice(index, 1);
-        stage(banner.diagnostic, "hidden", reason);
+        banner.presentation.remove(reason);
     }
     function clear(): void {
         banners.slice().forEach(function (banner) {
@@ -348,89 +345,43 @@ export function createRemoteNotifications(
             stage(trace, "dropped", "hidden");
             return;
         }
-        var document = w.document;
-        var container = document.getElementById("notifications");
-        if (!container) {
-            stage(trace, "dropped", "unsupported");
-            return;
-        }
-        while (banners.length >= 3) clearBanner(banners[0], "capacity");
-        var element = document.createElement("div");
-        element.className =
-            "notify remote-notify remote-notify-" + item.severity;
-        element.dir = "auto";
-        element.style.top = Math.floor(Math.random() * 6) + "px";
-        element.setAttribute("role", "status");
-        function part(kind: string, value: string, parent: any): any {
-            var child = document.createElement("div");
-            child.className = "remote-notify-" + kind;
-            child.dir = "auto";
-            child.textContent = value;
-            parent.appendChild(child);
-            return child;
-        }
+        var lifetime = Math.min(item.duration_ms, remaining);
         var media = validNotificationMedia(item.media);
-        if (media) element.style.display = "none";
-        else {
-            part("icon", "", element).setAttribute("aria-hidden", "true");
-            var content = part("content", "", element);
-            part(
-                "label",
-                {
+        var banner: NotificationBanner;
+        var presentation = renderer.create(
+            {
+                hidden: media,
+                label: {
                     critical: "Alert",
                     info: "Home update",
                     warning: "Attention",
                 }[item.severity as "info" | "warning" | "critical"],
-                content
-            );
-            if (item.title) part("title", item.title, content);
-            part("message", item.message, content);
+                message: item.message,
+                severity: item.severity,
+                title: item.title,
+            },
+            lifetime,
+            function (reason: string) {
+                clearMedia(banner);
+                var index = banners.indexOf(banner);
+                if (index !== -1) banners.splice(index, 1);
+                stage(trace, "hidden", reason);
+            }
+        );
+        if (!presentation) {
+            stage(trace, "dropped", "unsupported");
+            return;
         }
-        container.appendChild(element);
-        var banner: NotificationBanner = {
+        banner = {
             diagnostic: trace,
-            element: element,
-            timer: null,
+            element: presentation.element,
+            presentation: presentation,
         };
         banners.push(banner);
         stage(trace, "dom_created");
-        var lifetime = Math.min(item.duration_ms, remaining);
-        var createdAt = Date.now(),
-            createdMonotonic = monotonic();
-        function animate(available: number): boolean {
-            var now = monotonic();
-            var elapsed = Math.max(
-                0,
-                Date.now() - createdAt,
-                now !== null && createdMonotonic !== null
-                    ? now - createdMonotonic
-                    : 0
-            );
-            var left = Math.min(available, lifetime - elapsed);
-            if (left <= 0) {
-                clearBanner(banner);
-                return false;
-            }
-            var fadeDuration = Math.max(1, left - 980) + "ms";
-            element.style.animationDuration = "480ms," + fadeDuration;
-            // Images start animating only once decoded. Keep both their media
-            // expiry and the original banner deadline authoritative.
-            w.clearTimeout(banner.exitTimer);
-            banner.exitTimer = w.setTimeout(
-                function () {
-                    element.style.animationDuration = "320ms," + fadeDuration;
-                    element.classList.add("remote-notify-out");
-                },
-                Math.max(0, left - 320)
-            );
-            return true;
-        }
-        banner.timer = w.setTimeout(function () {
-            clearBanner(banner, "expired");
-        }, lifetime);
-        if (media) attachImage(banner, item, lifetime, animate);
+        if (media) attachImage(banner, item, lifetime, presentation.animate);
         else {
-            animate(lifetime);
+            presentation.animate(lifetime);
             stage(trace, "shown");
         }
     }

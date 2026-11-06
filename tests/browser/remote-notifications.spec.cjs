@@ -583,3 +583,164 @@ for (const viewport of [
         expect(await page.locator("#video").getAttribute("src")).toBe(primary);
     });
 }
+
+// Drive CSS animation time directly: geometry must change within a text line,
+// independently of runner speed. HTTP/runtime integration is covered above.
+test("shared banner text fades and its heading collapses continuously between line boundaries", async ({
+    page,
+    context,
+    baseURL,
+}, testInfo) => {
+    const origin = new URL(baseURL).origin;
+    await context.route("**/*", (route) =>
+        new URL(route.request().url()).origin === origin
+            ? route.continue()
+            : route.abort("blockedbyclient")
+    );
+    await context.routeWebSocket("**/*", (socket) => socket.close());
+    await page.setViewportSize({ height: 720, width: 1280 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/f/pc/");
+    await page.waitForFunction(
+        () =>
+            !!window.__ottNotificationBanners &&
+            !document.body.classList.contains("booting")
+    );
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 100);
+    await page.evaluate(() => {
+        window.__ottNotificationBanners.suspend();
+        const banner = window.__ottNotificationBanners.create(
+            {
+                label: "Home update",
+                message: "Someone is at the door.",
+                severity: "info",
+                title: "Front door",
+            },
+            5000
+        );
+        banner.animate(5000);
+    });
+    const banner = page.locator(".remote-notify");
+    await expect(banner.locator(".remote-notify-foldable")).toHaveCount(1);
+    async function stage(time) {
+        return banner.evaluate((element, time) => {
+            for (const animation of element.getAnimations({ subtree: true })) {
+                animation.pause();
+                animation.currentTime = time;
+            }
+            const rect = (selector) =>
+                element.querySelector(selector).getBoundingClientRect();
+            const heading = rect(".remote-notify-heading");
+            const label = rect(".remote-notify-label");
+            const title = rect(".remote-notify-title");
+            const message = rect(".remote-notify-message");
+            const visible = (r) =>
+                Math.max(
+                    0,
+                    Math.min(r.bottom, heading.bottom) -
+                        Math.max(r.top, heading.top)
+                );
+            return {
+                cardHeight: element.getBoundingClientRect().height,
+                contentOpacity: Number(
+                    getComputedStyle(
+                        element.querySelector(".remote-notify-content")
+                    ).opacity
+                ),
+                headingHeight: heading.height,
+                headingY: heading.y,
+                iconOpacity: Number(
+                    getComputedStyle(
+                        element.querySelector(".remote-notify-icon")
+                    ).opacity
+                ),
+                labelHeight: label.height,
+                labelVisible: visible(label),
+                labelY: label.y,
+                messageHeight: message.height,
+                messageY: message.y,
+                surfaceOpacity: Number(
+                    getComputedStyle(element, "::before").opacity
+                ),
+                time,
+                titleHeight: title.height,
+                titleVisible: visible(title),
+                titleY: title.y,
+            };
+        }, time);
+    }
+    const shown = await stage(480);
+    const held = await stage(979);
+    expect(held.headingHeight).toBeCloseTo(shown.headingHeight, 2);
+    expect(held.contentOpacity).toBe(1);
+    expect(shown.contentOpacity).toBe(1);
+    const samples = [held];
+    for (let time = 1020; time <= 1900; time += 40)
+        samples.push(await stage(time));
+    for (let i = 1; i < samples.length; i++) {
+        const previous = samples[i - 1];
+        const sample = samples[i];
+        expect(sample.headingHeight).toBeLessThan(previous.headingHeight);
+        expect(previous.headingHeight - sample.headingHeight).toBeLessThan(
+            shown.labelHeight * 0.8
+        );
+        expect(sample.cardHeight).toBeLessThanOrEqual(
+            previous.cardHeight + 0.05
+        );
+        expect(sample.labelY).toBeLessThan(previous.labelY);
+        expect(sample.titleY).toBeLessThan(previous.titleY);
+        expect(sample.messageY).toBeLessThan(previous.messageY);
+        expect(sample.labelHeight).toBeCloseTo(shown.labelHeight, 2);
+        expect(sample.titleHeight).toBeCloseTo(shown.titleHeight, 2);
+        expect(sample.messageHeight).toBeCloseTo(shown.messageHeight, 2);
+        expect(sample.contentOpacity).toBeLessThan(previous.contentOpacity);
+        expect(sample.contentOpacity).toBeCloseTo(sample.iconOpacity, 3);
+        expect(sample.contentOpacity).toBeCloseTo(sample.surfaceOpacity, 3);
+    }
+    expect(
+        samples.filter(
+            (s) => s.labelVisible > 0 && s.labelVisible < shown.labelVisible
+        ).length
+    ).toBeGreaterThan(2);
+    expect(
+        samples.filter(
+            (s) => s.titleVisible > 0 && s.titleVisible < shown.titleVisible
+        ).length
+    ).toBeGreaterThan(2);
+    const compact = await stage(1940);
+    expect(compact.headingHeight).toBe(0);
+    expect(compact.labelVisible).toBe(0);
+    expect(compact.titleVisible).toBe(0);
+    expect(compact.messageHeight).toBeCloseTo(shown.messageHeight, 2);
+    // Re-measuring a resized window must not resurrect an already folded heading.
+    await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+    const resized = await stage(1940);
+    expect(resized.headingHeight).toBe(0);
+    expect(resized.messageY).toBeCloseTo(compact.messageY, 2);
+    const terminal = await stage(5000);
+    expect(terminal.contentOpacity).toBeCloseTo(0.18, 3);
+    expect(terminal.iconOpacity).toBeCloseTo(0.18, 3);
+    expect(terminal.surfaceOpacity).toBeCloseTo(0.18, 3);
+    await testInfo.attach("continuous-heading-samples", {
+        body: JSON.stringify(
+            { compact, resized, samples, shown, terminal },
+            null,
+            2
+        ),
+        contentType: "application/json",
+    });
+    for (const time of [979, 1220, 1540, 1940]) {
+        await stage(time);
+        await testInfo.attach(`banner-${time}ms`, {
+            // Page capture avoids a locator's RAF stability wait under a frozen clock.
+            body: await page.screenshot({
+                animations: "allow",
+                clip: await banner.boundingBox(),
+            }),
+            contentType: "image/png",
+        });
+    }
+    await page.clock.runFor(5000);
+    await expect(banner).toHaveCount(0);
+});

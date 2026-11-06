@@ -261,11 +261,11 @@ async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, St
     ] {
         denials.push(denied(&aux, command, args).await?);
     }
-    let initial = appkit_settled(&main, &baseline, false, false, Some(false), true, None).await?;
+    let initial = appkit_settled(&main, &baseline, true, false, Some(false), true, None).await?;
     if (initial.content_size[0] * 9.0 - initial.content_size[1] * 16.0).abs() <= 4.0 {
         return Err("AppKit fixture must start with non-16:9 content".into());
     }
-    let initial_state = aspect_state(&main, false, false).await?;
+    let initial_state = aspect_state(&main, true, true).await?;
     let mut sequence = Vec::new();
     for enabled in [true, true, false, false] {
         let state = aspect(&main, Some(enabled), enabled).await?;
@@ -348,7 +348,7 @@ async fn exercise_preference(
     let baseline = main.state::<AppKitBaseline>().0.clone();
     let aux = main.app_handle().get_webview_window("pip").ok_or("Auxiliary fixture missing")?;
     let aux_before = appkit_snapshot(&aux).await?;
-    let enabled = matches!(phase, PreferencePhase::Unpin);
+    let enabled = !matches!(phase, PreferencePhase::VerifyOff);
     // First observe eager initialization, before GET could perform lazy restore.
     let initial = appkit_settled(&main, &baseline, enabled, false, Some(false), true, None).await?;
     let initial_state = aspect_state(&main, enabled, enabled).await?;

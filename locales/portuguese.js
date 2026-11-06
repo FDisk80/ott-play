@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Azul",
     "Bookmark age (days): %1": "Idade do marcador (dias): %1",
     "Bookmark age: %1 days": "Idade do marcador: %1 dias",
+    Brightness: "Brilho",
     "Browse folders": "Navegar por pastas",
     "Buffer Size, s": "Tamanho do buffer, s",
     "Buffering...": "A carregar na memória intermédia...",
@@ -719,6 +720,7 @@ var keyStrings = {
     "not set": "não definido",
     Off: "Desativado",
     Ok: "OK",
+    On: "Ativado",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Somente esta TV pode aceitar sua mensagem. O link expira após 10 minutos.",
     Open: "Abrir",

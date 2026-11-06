@@ -389,9 +389,9 @@ test("PC modifier seeks accumulate across debounce flushes without reapplying th
         await page.keyboard.press(
             index % 2 ? "Control+ArrowRight" : "Alt+ArrowRight"
         );
-        await expect(page.locator("#info")).toContainText(
-            String((index + 1) * 10) + " s"
-        );
+        await expect(
+            page.locator("#notifications .remote-notify-local")
+        ).toContainText(String((index + 1) * 10) + " s");
         await expect
             .poll(() => page.evaluate(() => window.__seekPositions.length))
             .toBe(index + 1);
@@ -412,7 +412,9 @@ test("PC modifier seeks accumulate across debounce flushes without reapplying th
         110, 120, 130, 140,
     ]);
     await page.keyboard.press("Alt+ArrowLeft");
-    await expect(page.locator("#info")).toContainText("30 s");
+    await expect(
+        page.locator("#notifications .remote-notify-local")
+    ).toContainText("30 s");
     await expect
         .poll(() => page.evaluate(() => window.__seekPositions.at(-1)))
         .toBe(130);

@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "Plava",
     "Bookmark age (days): %1": "Starost oznake (dani): %1",
     "Bookmark age: %1 days": "Starost knjižne oznake: %1 dana",
+    Brightness: "Svjetlina",
     "Browse folders": "Pregledajte mape",
     "Buffer Size, s": "Veličina međuspremnika, s",
     "Buffering...": "Punjenje međuspremnika...",
@@ -712,6 +713,7 @@ var keyStrings = {
     "not set": "nije postavljeno",
     Off: "Isključeno",
     Ok: "OK",
+    On: "Uključeno",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Samo ovaj TV može prihvatiti vašu poruku. Veza ističe nakon 10 minuta.",
     Open: "Otvori",

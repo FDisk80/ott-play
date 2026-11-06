@@ -118,6 +118,7 @@ var keyStrings = {
     Blue: "Mėlyna",
     "Bookmark age (days): %1": "Žymės amžius (dienomis): %1",
     "Bookmark age: %1 days": "Žymelės amžius: %1 dien.",
+    Brightness: "Šviesumas",
     "Browse folders": "Naršyti aplankus",
     "Buffer Size, s": "Buferio dydis, s",
     "Buffering...": "Kaupiama buferyje...",
@@ -710,6 +711,7 @@ var keyStrings = {
     "not set": "nenustatyta",
     Off: "Išjungta",
     Ok: "Gerai",
+    On: "Įjungta",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Tik šis televizorius gali priimti jūsų pranešimą. Nuoroda nustoja galioti po 10 minučių.",
     Open: "Atverti",

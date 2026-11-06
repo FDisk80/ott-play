@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Buluug",
     "Bookmark age (days): %1": "Da'da bookmark (maalmo): %1",
     "Bookmark age: %1 days": "Da'da calaamadda: %1 maalmood",
+    Brightness: "Iftiinka",
     "Browse folders": "Dhex mar galalka",
     "Buffer Size, s": "Cabbirka kaydka sugitaanka, ilb",
     "Buffering...": "Xogta ayaa la kaydinayaa...",
@@ -722,6 +723,7 @@ var keyStrings = {
     "not set": "lama dejin",
     Off: "Dansan",
     Ok: "Hagaag",
+    On: "Shidan",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "TV-gan oo kaliya ayaa aqbali kara fariintaada. Xiriirku wuu dhacayaa 10 daqiiqo ka dib.",
     Open: "Fur",

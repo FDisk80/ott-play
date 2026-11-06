@@ -6,7 +6,6 @@ import {
 } from "../provider";
 import { captureFavoritesPhysicalStorage } from "../storage/index";
 import { caselessKey } from "../utils/caseless";
-import { metadataText } from "../utils/helpers";
 import {
     captureLegacyCurrentFavorite,
     executeLegacyFavoriteTarget,
@@ -56,15 +55,12 @@ export function initializeGlobalFavorites(): any {
         },
         favoriteRemoved: function (title: string) {
             if (runtime === remotePlayerInfo(w).runtime)
-                w.showShift(w._("Favorites") + ": − " + metadataText(title));
+                w.showShift(w._("Favorites") + ": − " + title);
         },
         favoriteToggled: function (title: string, added: boolean) {
             if (runtime === remotePlayerInfo(w).runtime)
                 w.showShift(
-                    w._("Favorites") +
-                        ": " +
-                        (added ? "+ " : "− ") +
-                        metadataText(title)
+                    w._("Favorites") + ": " + (added ? "+ " : "− ") + title
                 );
         },
         handleRemoteProfiles: handleRemoteProfiles,

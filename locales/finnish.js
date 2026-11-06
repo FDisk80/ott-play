@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Sininen",
     "Bookmark age (days): %1": "Kirjanmerkin ikä (päiviä): %1",
     "Bookmark age: %1 days": "Kirjanmerkin ikä: %1 päivää",
+    Brightness: "Kirkkaus",
     "Browse folders": "Selaa kansioita",
     "Buffer Size, s": "Puskurin koko, s",
     "Buffering...": "Puskuroidaan...",
@@ -708,6 +709,7 @@ var keyStrings = {
     "not set": "ei asetettu",
     Off: "Pois",
     Ok: "OK",
+    On: "Päällä",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Vain tämä televisio voi hyväksyä viestisi. Linkki vanhenee 10 minuutin kuluttua.",
     Open: "Avaa",

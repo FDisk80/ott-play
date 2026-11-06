@@ -1,4 +1,3 @@
-declare const metadataText: typeof import("../utils/helpers").metadataText;
 /** The provider/UI codec is the only media module that reads the classic host. */
 var mediaClassicInstance: any = null;
 var mediaClassicSource = "";
@@ -633,10 +632,7 @@ function classicMediaRuntime(): any {
     function favoriteFeedback(name: string, removing: boolean): void {
         if (w.showShift)
             w.showShift(
-                w._("Favorites") +
-                    ": " +
-                    (removing ? "− " : "+ ") +
-                    metadataText(name)
+                w._("Favorites") + ": " + (removing ? "− " : "+ ") + name
             );
     }
     function collections() {

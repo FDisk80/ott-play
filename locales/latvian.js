@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "Zils",
     "Bookmark age (days): %1": "Grāmatzīmes vecums (dienas): %1",
     "Bookmark age: %1 days": "Grāmatzīmes vecums: %1 dienas",
+    Brightness: "Spilgtums",
     "Browse folders": "Pārlūkot mapes",
     "Buffer Size, s": "Bufera lielums, s",
     "Buffering...": "Buferēšana...",
@@ -712,6 +713,7 @@ var keyStrings = {
     "not set": "nav iestatīts",
     Off: "Izslēgts",
     Ok: "Labi",
+    On: "Ieslēgta",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Tikai šis televizors var pieņemt jūsu ziņojumu. Saite beidzas pēc 10 minūtēm.",
     Open: "Atvērt",

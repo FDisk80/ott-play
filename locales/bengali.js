@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "নীল",
     "Bookmark age (days): %1": "বুকমার্ক বয়স (দিন): %1",
     "Bookmark age: %1 days": "বুকমার্ক বয়স: %1 দিন",
+    Brightness: "উজ্জ্বলতা",
     "Browse folders": "ফোল্ডার ব্রাউজ করুন",
     "Buffer Size, s": "বাফার সাইজ, s",
     "Buffering...": "বাফারে লোড হচ্ছে...",
@@ -688,6 +689,7 @@ var keyStrings = {
     "not set": "সেট করা হয়নি",
     Off: "বন্ধ",
     Ok: "ঠিক আছে",
+    On: "চালু",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "শুধুমাত্র এই টিভিই আপনার বার্তা গ্রহণ করতে পারে। লিঙ্ক 10 মিনিট পরে মেয়াদ শেষ হয়.",
     Open: "খুলুন",

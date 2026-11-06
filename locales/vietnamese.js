@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Xanh dương",
     "Bookmark age (days): %1": "Tuổi của dấu trang (ngày): %1",
     "Bookmark age: %1 days": "Tuổi dấu trang: %1 ngày",
+    Brightness: "Độ sáng",
     "Browse folders": "Duyệt thư mục",
     "Buffer Size, s": "Dung lượng bộ đệm, giây",
     "Buffering...": "Đang lưu vào bộ đệm...",
@@ -701,6 +702,7 @@ var keyStrings = {
     "not set": "chưa đặt",
     Off: "Tắt",
     Ok: "OK",
+    On: "Bật",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Chỉ TV này mới có thể chấp nhận tin nhắn của bạn. Liên kết hết hạn sau 10 phút.",
     Open: "Mở",

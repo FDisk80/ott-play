@@ -237,7 +237,7 @@ export function toggleKeyboardFavorite(w: any): boolean {
             w._("Favorites") +
                 ": " +
                 (removing ? "− " : "+ ") +
-                metadataText(channel.channel_name || "")
+                (channel.channel_name || "")
         );
     return true;
 }

@@ -114,6 +114,7 @@ var keyStrings = {
     Blue: "כחול",
     "Bookmark age (days): %1": "גיל הסימניה (ימים): %1",
     "Bookmark age: %1 days": "גיל הסימנייה: %1 ימים",
+    Brightness: "בהירות",
     "Browse folders": "עיון בתיקיות",
     "Buffer Size, s": "גודל חוצץ, שנ",
     "Buffering...": "אגירה במאגר...",
@@ -682,6 +683,7 @@ var keyStrings = {
     "not set": "לא הוגדר",
     Off: "כבוי",
     Ok: "אישור",
+    On: "פעיל",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "רק הטלוויזיה הזו יכולה לקבל את ההודעה שלך. הקישור יפוג לאחר 10 דקות.",
     Open: "פתח",

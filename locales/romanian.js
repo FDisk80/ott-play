@@ -122,6 +122,7 @@ var keyStrings = {
     Blue: "Albastru",
     "Bookmark age (days): %1": "Vârsta marcajului (zile): %1",
     "Bookmark age: %1 days": "Vechimea marcajului: %1 zile",
+    Brightness: "Luminozitate",
     "Browse folders": "Răsfoiește folderele",
     "Buffer Size, s": "Dimensiune buffer, s",
     "Buffering...": "Se încarcă în memoria tampon...",
@@ -723,6 +724,7 @@ var keyStrings = {
     "not set": "nesetat",
     Off: "Oprit",
     Ok: "OK",
+    On: "Activat",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Numai acest televizor vă poate accepta mesajul. Linkul expiră după 10 minute.",
     Open: "Deschide",

@@ -116,6 +116,7 @@ var keyStrings = {
     Blue: "ខៀវ",
     "Bookmark age (days): %1": "អាយុចំណាំ (ថ្ងៃ): %1",
     "Bookmark age: %1 days": "អាយុចំណាំ៖ ថ្ងៃ %1",
+    Brightness: "ពន្លឺ",
     "Browse folders": "រកមើលថត",
     "Buffer Size, s": "ទំហំទ្រនាប់, s",
     "Buffering...": "កំពុងផ្ទុកក្នុងអង្គចងចាំបណ្តោះអាសន្ន...",
@@ -690,6 +691,7 @@ var keyStrings = {
     "not set": "មិនបានកំណត់",
     Off: "បិទ",
     Ok: "យល់ព្រម",
+    On: "បើក",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "មានតែទូរទស្សន៍នេះទេដែលអាចទទួលយកសាររបស់អ្នក។ តំណផុតកំណត់បន្ទាប់ពី 10 នាទី។",
     Open: "បើក",

@@ -93,13 +93,6 @@ body {
 .osd {
     position: absolute;
 }
-#info {
-    top: 0px;
-    right: 0px;
-    display: none;
-    padding: 20px;
-    font-size: 16px;
-}
 #numprog {
     top: 20px;
     left: 20px;

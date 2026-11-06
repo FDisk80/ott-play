@@ -677,9 +677,9 @@ test("receiver with reordered profiles plays imported mixed Favorites through th
                 provider: window.__ottActiveProviderDriver.id,
             }))
         ).toEqual(playingBeforeFocusedF);
-        await expect(second.locator("#info")).toHaveText(
-            "Favorites: − " + rows[0].entry.title
-        );
+        await expect(
+            second.locator("#notifications .remote-notify-local")
+        ).toHaveText("Favorites: − " + rows[0].entry.title);
     } finally {
         await origin.close();
         await receiver.close();

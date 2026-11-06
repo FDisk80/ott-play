@@ -579,7 +579,7 @@ mod smoke {
         denials.push(denied(&aux, "set_always_on_top", json!({"alwaysOnTop": true})).await?);
         denials.push(denied(&aux, "get_window_aspect_lock", json!({})).await?);
         denials.push(denied(&aux, "set_window_aspect_lock", json!({"enabled": true})).await?);
-        let aspect_initial = aspect_state(&main, false, false).await?;
+        let aspect_initial = aspect_state(&main, true, true).await?;
         let mut aspect_sequence = Vec::new();
         let mut aspect_geometry = Vec::new();
         for enabled in [true, true, false, false] {
@@ -689,8 +689,8 @@ mod smoke {
         let initial = settled(&main, matches!(phase, PreferencePhase::Unpin), false, None).await?;
         let aspect_initial = aspect_state(
             &main,
-            matches!(phase, PreferencePhase::Unpin),
-            matches!(phase, PreferencePhase::Unpin),
+            !matches!(phase, PreferencePhase::VerifyOff),
+            !matches!(phase, PreferencePhase::VerifyOff),
         )
         .await?;
         let target = matches!(phase, PreferencePhase::Pin);

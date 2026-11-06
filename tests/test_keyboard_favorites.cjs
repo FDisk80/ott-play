@@ -816,10 +816,9 @@ for (const mode of [
         ["Избранное: + One", "Избранное: − Renamed channel"]
     );
 }
-// showShift accepts safe HTML: inserted names must be escaped exactly once.
+// showShift accepts plain text: the banner owns escaping at the DOM boundary.
 {
-    const title = "<b>A & B</b> &amp;",
-        escaped = "&lt;b&gt;A &amp; B&lt;/b&gt; &amp;amp;";
+    const title = "<b>A & B</b> &amp;";
     const c = television(),
         press = keyboard(c);
     c.channels[101].channel_name = title;
@@ -827,7 +826,7 @@ for (const mode of [
     press();
     assert.deepEqual(
         c.calls.filter((call) => call[0] === "shift").map((call) => call[1]),
-        ["Favorites: + " + escaped, "Favorites: − " + escaped],
+        ["Favorites: + " + title, "Favorites: − " + title],
         "TV name is literal text, including literal entity syntax"
     );
     const media = fixture();
@@ -846,8 +845,8 @@ for (const mode of [
         media.calls
             .filter((call) => call[0] === "shift")
             .map((call) => call[1]),
-        ["Favorites: + " + escaped, "Favorites: − " + escaped],
-        "media name is escaped once before the shared HTML notification renderer"
+        ["Favorites: + " + title, "Favorites: − " + title],
+        "media name remains literal until the shared plain-text notification renderer"
     );
 }
 // A source replaced after a successful write cannot receive the old toast.

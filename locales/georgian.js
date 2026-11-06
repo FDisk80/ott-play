@@ -119,6 +119,7 @@ var keyStrings = {
     Blue: "ლურჯი",
     "Bookmark age (days): %1": "სანიშნეების ასაკი (დღეები): %1",
     "Bookmark age: %1 days": "სანიშნეების ასაკი: %1 დღე",
+    Brightness: "სიკაშკაშე",
     "Browse folders": "საქაღალდეების დათვალიერება",
     "Buffer Size, s": "ბუფერის ზომა, წმ",
     "Buffering...": "ბუფერიზაცია...",
@@ -711,6 +712,7 @@ var keyStrings = {
     "not set": "არ არის დაყენებული",
     Off: "გამორთული",
     Ok: "კარგი",
+    On: "Ჩართული",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "მხოლოდ ამ ტელევიზორს შეუძლია თქვენი შეტყობინების მიღება. ბმული იწურება 10 წუთის შემდეგ.",
     Open: "გახსნა",

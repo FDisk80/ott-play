@@ -117,6 +117,7 @@ var keyStrings = {
     Blue: "الأزرق",
     "Bookmark age (days): %1": "عمر الإشارة المرجعية (بالأيام): %1",
     "Bookmark age: %1 days": "عمر الإشارة المرجعية: %1 أيام",
+    Brightness: "السطوع",
     "Browse folders": "تصفح المجلدات",
     "Buffer Size, s": "حجم المخزن المؤقت، ق",
     "Buffering...": "جارٍ التخزين المؤقت...",
@@ -687,6 +688,7 @@ var keyStrings = {
     "not set": "غير محدد",
     Off: "إيقاف",
     Ok: "موافق",
+    On: "تشغيل",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "هذا التلفزيون فقط يمكنه قبول رسالتك. تنتهي صلاحية الرابط بعد 10 دقائق.",
     Open: "افتح",

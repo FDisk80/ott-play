@@ -1055,18 +1055,19 @@ test("button hints reject executable key values and sanitize every badge while p
         w.close();
     }
 });
-test("notifications and stream selectors sanitize metadata while preserving fixed legacy icon markup", () => {
+test("notifications keep literal text while stream selectors preserve safe icon markup", () => {
     const w = fixture();
     try {
-        const info = w.document.createElement("div");
-        info.id = "info";
-        w.document.body.appendChild(info);
-        const style = w.document.createElement("style");
-        style.textContent = fs
-            .readFileSync(path.join(root, "styles/player.css"), "utf8")
-            .match(/#info\s*\{[^}]*\}/)[0];
-        w.document.head.appendChild(style);
-        assert.equal(w.getComputedStyle(info).display, "none");
+        const container = w.document.createElement("div");
+        container.id = "notifications";
+        w.document.body.appendChild(container);
+        Object.defineProperty(w.document, "hidden", { value: false });
+        Object.defineProperty(w.document, "visibilityState", {
+            value: "visible",
+        });
+        w.eval(
+            func("src/ui/notification-banners.ts", "createNotificationBanners")
+        );
         w.channelNumberElement = w.document.createElement("div");
         w.document.body.appendChild(w.channelNumberElement);
         w.closeList = () => {};
@@ -1075,9 +1076,10 @@ test("notifications and stream selectors sanitize metadata while preserving fixe
                 func("src/ui/index.ts", "showSelectBox")
         );
         w.showShift("<b>Notice</b>" + hostile);
-        assert.notEqual(w.getComputedStyle(info).display, "none");
-        assert(info.querySelector("b"));
-        assert.equal(info.querySelectorAll("script,[onerror]").length, 0);
+        const info = container.querySelector(".remote-notify-local");
+        assert(info);
+        assert.equal(info.textContent, "<b>Notice</b>" + hostile);
+        assert.equal(info.querySelectorAll("b,script,[onerror]").length, 0);
         const legacyIcon = '<span class="fontello">&#xe811;</span>';
         const nativeBundle =
             bundleAst && /\bsystem-icons\b/.test(bundleAst.text);

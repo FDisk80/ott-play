@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Niebieski",
     "Bookmark age (days): %1": "Wiek zakładki (dni): %1",
     "Bookmark age: %1 days": "Wiek zakładki: %1 dni",
+    Brightness: "Jasność",
     "Browse folders": "Przeglądaj foldery",
     "Buffer Size, s": "Rozmiar bufora, s",
     "Buffering...": "Buforowanie...",
@@ -717,6 +718,7 @@ var keyStrings = {
     "not set": "nie ustawiono",
     Off: "Wyłączone",
     Ok: "OK",
+    On: "Włączone",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Tylko ten telewizor może przyjąć Twoją wiadomość. Link wygasa po 10 minutach.",
     Open: "Otwórz",

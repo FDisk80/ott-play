@@ -1,4 +1,10 @@
-# Remote notification presentation
+# Notification presentation
+
+Local player feedback and remote notifications use the same card renderer.
+Window-setting confirmations, Favorites feedback and short error messages no
+longer use the older black notice with a yellow edge. Local feedback works
+without a remote-control connection and is independent of the remote receive
+switch. A new local notice replaces the previous local notice.
 
 Home Assistant events appear as temporary cards over an active player. The
 controller supplies the title and message; the player adds the English severity
@@ -14,23 +20,22 @@ lines. Long titles and messages are clipped to bounded previews so three
 simultaneous notifications fit normal small windows. This is a transient preview,
 not a complete event history; keep controller messages concise.
 
-Only the dark surface is translucent. Text and icons retain full opacity during
-entrance, folding, fading and exit.
 The default information footer has alpha 0.70 (30% transparency). Notification
 surfaces use 80% of the previous capped footer-plus-0.08 opacity, giving default
 alpha 0.624 (37.6% transparency). The value updates with the footer's opacity
 setting and never exceeds 0.8. Older WebViews without CSS custom properties use
 the same 0.624 default surface. The solid RGB base is
-22,28,39. A separate surface layer (background, outline and shadow) animates its
-opacity without dimming the text or changing this configured surface alpha.
+22,28,39. The surface, text and icon share the same opacity animation without
+changing this configured surface alpha.
 
 Cards enter from the right over 480 ms, revealing their height. The background
-starts at opacity 0.04; visible text stays opaque. After the entrance finishes,
-the background holds for 500 ms, then gradually becomes more transparent until expiry. The final
+starts at opacity 0.04. After the entrance finishes, all layers hold for 500 ms,
+then gradually become more transparent, ending at opacity 0.18 rather than the
+previous 0.04. Text and icons fade together with the surface. The final
 320 ms also slide and close the card to the right without restarting the fade.
-As fading begins, the text moves upward: the label folds away over 480 ms,
-then the title folds away over the next 480 ms. Rows are clipped as they move,
-without fading their text. The message stays visible in
+As fading begins, the label and title move upward through a clipping window
+over 960 ms. The window shrinks continuously from its measured height to zero,
+so removing a line does not abruptly change the card's height. The message stays in
 the compact card until its original expiry. Reduced-motion mode keeps all
 three text rows static. Each new card also receives a fixed random downward
 offset of 0–5 CSS pixels, independently of its entrance and exit transforms.
@@ -44,13 +49,18 @@ entrance or hold. Inactivity and explicit clearing still remove cards immediatel
 Severity has a text label, decorative badge and a uniformly thin, closed
 1 CSS pixel outline in the same accent color. Older WebViews retain fixed-font,
 word-wrap and bounded-height fallbacks. Layout does not require backdrop filters,
-flex gap, JavaScript resize handlers or external fonts. Reduced-motion settings
+flex gap or external fonts. Heading height is measured when a card appears and
+when the viewport resizes; no animation-frame polling is needed. Low-memory or
+low-core-count devices use a simpler slide without the reveal mask and shadow.
+Reduced-motion settings
 disable all card motion and fading.
 
 Presentation does not change delivery: cards never take focus or pointer input,
 never wake a sleeping player, retain the bounded three-card queue and existing
 expiry/deduplication rules, and disappear when the player becomes inactive.
-All remote text is rendered literally with `textContent`.
+All local and remote text is rendered literally with `textContent`. Settings
+confirmations use localized words such as **On** and **Off**, rather than HTML
+used to draw the settings list's graphical indicators.
 
 ## Verification
 

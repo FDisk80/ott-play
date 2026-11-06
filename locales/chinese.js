@@ -114,6 +114,7 @@ var keyStrings = {
     Blue: "蓝色",
     "Bookmark age (days): %1": "书签年龄（天）：%1",
     "Bookmark age: %1 days": "书签年龄：%1 天",
+    Brightness: "亮度",
     "Browse folders": "浏览文件夹",
     "Buffer Size, s": "缓冲区大小，s",
     "Buffering...": "正在缓冲...",
@@ -670,6 +671,7 @@ var keyStrings = {
     "not set": "未设置",
     Off: "关闭",
     Ok: "确定",
+    On: "开启",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "只有本电视可以接受您的消息。该链接将在 10 分钟后过期。",
     Open: "打开",

@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Blått",
     "Bookmark age (days): %1": "Bokmerkets alder (dager): %1",
     "Bookmark age: %1 days": "Bokmerkealder: %1 dager",
+    Brightness: "Lysstyrke",
     "Browse folders": "Bla gjennom mapper",
     "Buffer Size, s": "Bufferstørrelse, s",
     "Buffering...": "Bufrer...",
@@ -706,6 +707,7 @@ var keyStrings = {
     "not set": "ikke satt",
     Off: "Av",
     Ok: "OK",
+    On: "På",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Bare denne TV-en kan godta meldingen din. Linken utløper etter 10 minutter.",
     Open: "Åpne",

@@ -121,6 +121,7 @@ var keyStrings = {
     Blue: "Urdina",
     "Bookmark age (days): %1": "Laster-markaren adina (egunak): %1",
     "Bookmark age: %1 days": "Laster-markaren adina: %1 egun",
+    Brightness: "Distira",
     "Browse folders": "Arakatu karpetak",
     "Buffer Size, s": "Bufferraren tamaina, s",
     "Buffering...": "Bufferra betetzen...",
@@ -717,6 +718,7 @@ var keyStrings = {
     "not set": "ezarri gabe",
     Off: "desaktibatuta",
     Ok: "Ados",
+    On: "Aktibatuta",
     "Only this TV can accept your message. The link expires after 10 minutes.":
         "Telebista honek bakarrik onartu dezake zure mezua. Esteka 10 minuturen buruan iraungiko da.",
     Open: "Ireki",
