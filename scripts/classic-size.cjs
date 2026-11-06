@@ -856,8 +856,20 @@ const INTERFACE_FONT_CSP_ASSET_CORRECTION = Object.freeze({
     bytes: 35,
     gzipBytes: 86,
 });
+// The 41-choice timezone selector and progressive Local startup were added
+// after the prior feature measurements. Same-toolchain f7010d0 -> optimized
+// a9bba03 source, with a common version/revision envelope, adds at most
+// 2670 raw / 1069 gzip entry bytes and 311 / 150 appearance bytes. The entry
+// figure already credits the Local deduplication; no extra reserve is added.
+// Count entry once per aggregate and appearance only in complete payloads.
+// Evidence: docs/evidence/timezone-local-startup-size-20261106.json.
+const TIMEZONE_LOCAL_STARTUP_ALLOWANCE = Object.freeze({
+    appearance: Object.freeze({ bytes: 311, gzipBytes: 150 }),
+    entry: Object.freeze({ bytes: 2670, gzipBytes: 1069 }),
+});
 const BUDGET = Object.freeze({
     bytes:
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
@@ -897,6 +909,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
@@ -1116,6 +1129,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.bytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
@@ -1169,6 +1183,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.gzipBytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
@@ -1367,6 +1382,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
     // Keep the existing lazy editor and its original measurement headroom.
     "subtitle-appearance": Object.freeze({
         bytes:
+            TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.bytes +
             INTERFACE_FONT_CSP_ASSET_CORRECTION.bytes +
             CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.bytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.bytes +
@@ -1374,6 +1390,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
             8100 +
             MODERN_INTERFACE_RELATED_ALLOWANCES["subtitle-appearance"].bytes,
         gzipBytes:
+            TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.gzipBytes +
             INTERFACE_FONT_CSP_ASSET_CORRECTION.gzipBytes +
             CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.gzipBytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
@@ -1391,6 +1408,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.bytes +
@@ -1487,6 +1506,8 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
+        TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.gzipBytes +
@@ -1827,6 +1848,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         stbPlayerFavoritesAllowance: STB_PLAYER_FAVORITES_ALLOWANCE,
         stbPlayerStalkerAllowance: STB_PLAYER_STALKER_ALLOWANCE,
         stbPlayerXtreamAllowance: STB_PLAYER_XTREAM_ALLOWANCE,
+        timezoneLocalStartupAllowance: TIMEZONE_LOCAL_STARTUP_ALLOWANCE,
         tizenPackageBootAllowance: TIZEN_PACKAGE_BOOT_ALLOWANCE,
         toolchain: { node: process.versions.node, zlib: process.versions.zlib },
         torrentDiscoveryAllowance: TORRENT_DISCOVERY_ALLOWANCE,
@@ -2183,6 +2205,7 @@ function writeBuildBundleReport(
             stbPlayerFavoritesAllowance: STB_PLAYER_FAVORITES_ALLOWANCE,
             stbPlayerStalkerAllowance: STB_PLAYER_STALKER_ALLOWANCE,
             stbPlayerXtreamAllowance: STB_PLAYER_XTREAM_ALLOWANCE,
+            timezoneLocalStartupAllowance: TIMEZONE_LOCAL_STARTUP_ALLOWANCE,
             tizenPackageBootAllowance: TIZEN_PACKAGE_BOOT_ALLOWANCE,
             toolchain: {
                 node: process.versions.node,
@@ -2308,6 +2331,7 @@ module.exports = {
     STB_PLAYER_FAVORITES_ALLOWANCE,
     STB_PLAYER_STALKER_ALLOWANCE,
     STB_PLAYER_XTREAM_ALLOWANCE,
+    TIMEZONE_LOCAL_STARTUP_ALLOWANCE,
     TIZEN_PACKAGE_BOOT_ALLOWANCE,
     TORRENT_DISCOVERY_ALLOWANCE,
     TORRENT_PROVIDER_ALLOWANCE,

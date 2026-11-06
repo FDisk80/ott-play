@@ -6569,8 +6569,8 @@ mod tests {
             library
                 .native_sources(false, Some(folder))
                 .await
-                .unwrap_err()
-                .is::<NativeSourceUnavailable>(),
+                .err()
+                .is_some_and(|error| error.is::<NativeSourceUnavailable>()),
             "the proof cannot survive its request"
         );
         wait_for_drain(&library.background).await;
