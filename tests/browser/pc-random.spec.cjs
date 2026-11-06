@@ -336,10 +336,20 @@ test("PC R selects a media item without shuffling the displayed folder", async (
 }) => {
     const errors = await boot(page, context, baseURL, true);
     await expect(page.locator("#listIn")).toContainText("Film 1");
-    const order = await page.evaluate(() =>
-        window.__ottMedia.snapshot().frame.items.map((item) => item.title)
-    );
+    // VPortal exposes its flat films through the channel list, not a legacy
+    // MediaLibrary frame. Capture both identities and labels from that list.
+    const initial = await channelState(page);
+    const order = initial.order;
+    expect(
+        await page.evaluate(() =>
+            window.curList.map((id) => window.channels[id].channel_name)
+        )
+    ).toEqual(["Film 1", "Film 2"]);
+    expect(await page.evaluate(() => window.listArray.slice())).toEqual(order);
     await page.keyboard.press("r");
+    await expect
+        .poll(async () => (await channelState(page)).id)
+        .not.toBe(initial.id);
     await expect
         .poll(() =>
             page.evaluate(() => window.__ottClassicPlayback.programme()?.title)
@@ -349,6 +359,10 @@ test("PC R selects a media item without shuffling the displayed folder", async (
     const title = await page.evaluate(
         () => window.__ottClassicPlayback.programme().title
     );
+    expect(await channelState(page)).toMatchObject({
+        category: initial.category,
+        order,
+    });
     await page.keyboard.press("l");
     await page.waitForFunction(() => !!document.fullscreenElement);
     await page.locator("#video").focus();
@@ -358,11 +372,16 @@ test("PC R selects a media item without shuffling the displayed folder", async (
             page.evaluate(() => window.__ottClassicPlayback.programme()?.title)
         )
         .not.toBe(title);
-    expect(
-        await page.evaluate(() =>
-            window.__ottMedia.snapshot().frame.items.map((item) => item.title)
-        )
-    ).toEqual(order);
+    expect(await channelState(page)).toMatchObject({
+        category: initial.category,
+        order,
+    });
+    await page.evaluate(() =>
+        window.channelsList(window.catIndex, window.primaryIndex)
+    );
+    expect(await page.evaluate(() => window.listArray.slice())).toEqual(order);
+    await expect(page.locator("#listIn")).toContainText("Film 1");
+    await expect(page.locator("#listIn")).toContainText("Film 2");
     expect(errors).toEqual([]);
 });
 
