@@ -3535,6 +3535,17 @@ if (typeof window.__TAURI__ !== "undefined") {
     );
 }
 
+// Dynamic app styles inherit only the existing author style's CSP authority.
+function createInterfaceStyle(): HTMLStyleElement {
+    const style = document.createElement("style");
+    const source = document.getElementById(
+        "ott-interface-style"
+    ) as HTMLStyleElement | null;
+    const nonce = source && (source.nonce || source.getAttribute("nonce"));
+    if (nonce) style.setAttribute("nonce", nonce);
+    return style;
+}
+
 // Tauri Mode B: frameless window — JS whole-surface drag when overlays closed.
 // decorations:false removes the system title bar; without a drag region the
 // window cannot be moved. Gate on __TAURI__ so Chrome companion is unchanged.
@@ -3604,7 +3615,7 @@ if (typeof window.__TAURI__ !== "undefined") {
         // WKWebView delivers mousedown; our startDragging moves the window.
         // Subtle visible top chrome so the handle is discoverable.
         if (!document.getElementById(STYLE_ID)) {
-            const style = document.createElement("style");
+            const style = createInterfaceStyle();
             style.id = STYLE_ID;
             const noDragCss = NO_DRAG_SEL.split(",")
                 .map((s) => "html." + CLASS + " " + s.trim())
@@ -3663,8 +3674,11 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         const forceNoDragEl = (el: HTMLElement | null | undefined): void => {
             if (!el) return;
-            el.style.setProperty("-webkit-app-region", "no-drag", "important");
-            el.style.setProperty("app-region", "no-drag", "important");
+            // The nonced author rule owns no-drag. Do not serialize redundant
+            // inline styles into saved footer/detail HTML when overlays close.
+            el.style.removeProperty("-webkit-app-region");
+            el.style.removeProperty("app-region");
+            if (!el.style.length) el.removeAttribute("style");
             el.removeAttribute("data-tauri-drag-region");
         };
 
@@ -3755,17 +3769,7 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         const markNoDrag = (root: ParentNode) => {
             root.querySelectorAll(NO_DRAG_SEL).forEach((el) => {
-                (el as HTMLElement).style.setProperty(
-                    "-webkit-app-region",
-                    "no-drag",
-                    "important"
-                );
-                (el as HTMLElement).style.setProperty(
-                    "app-region",
-                    "no-drag",
-                    "important"
-                );
-                (el as HTMLElement).removeAttribute("data-tauri-drag-region");
+                forceNoDragEl(el as HTMLElement);
             });
         };
         markNoDrag(document);
@@ -3777,17 +3781,7 @@ if (typeof window.__TAURI__ !== "undefined") {
                         const el = n as HTMLElement;
                         if (el.id === STRIP_ID) return;
                         if (el.matches?.(NO_DRAG_SEL)) {
-                            el.style.setProperty(
-                                "-webkit-app-region",
-                                "no-drag",
-                                "important"
-                            );
-                            el.style.setProperty(
-                                "app-region",
-                                "no-drag",
-                                "important"
-                            );
-                            el.removeAttribute("data-tauri-drag-region");
+                            forceNoDragEl(el);
                         }
                         markNoDrag(el);
                     });
@@ -4210,7 +4204,7 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         function ensureStyles(): void {
             if (document.getElementById(STYLE_ID)) return;
-            const style = document.createElement("style");
+            const style = createInterfaceStyle();
             style.id = STYLE_ID;
             style.textContent =
                 "#" +

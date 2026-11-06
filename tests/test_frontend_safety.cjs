@@ -201,6 +201,180 @@ function test(name, run) {
 const hostile =
     '<img src="missing" onerror="window.__executed=true"><script>window.__executed=true</script>';
 
+test("startup document keeps initial presentation without inline style attributes", () => {
+    const dom = new JSDOM(
+        fs.readFileSync(path.join(root, "index.html"), "utf8"),
+        { runScripts: "outside-only" }
+    );
+    try {
+        const w = dom.window;
+        assert.equal(w.document.querySelector("[style]"), null);
+        const css = (id) => w.getComputedStyle(w.document.getElementById(id));
+        assert.equal(
+            w.getComputedStyle(w.document.body).backgroundColor,
+            "rgb(17, 17, 17)"
+        );
+        assert.equal(
+            w.getComputedStyle(w.document.body).color,
+            "rgb(204, 204, 204)"
+        );
+        assert.equal(css("programm_descr_clip").overflow, "hidden");
+        assert.equal(css("programm_clear").clear, "both");
+        assert.equal(css("audio_badge").display, "none");
+        w.document.getElementById("audio_badge").style.display = "inline-block";
+        assert.equal(
+            css("audio_badge").display,
+            "inline-block",
+            "runtime can reveal the audio badge"
+        );
+    } finally {
+        dom.window.close();
+    }
+});
+
+test("both native style creators preserve the author nonce without script authority", () => {
+    const a = ast("src/index.ts");
+    const functions = [];
+    function visit(node) {
+        if (
+            ts.isFunctionExpression(node) &&
+            node.body.statements.some(
+                (statement) =>
+                    ts.isVariableStatement(statement) &&
+                    statement.declarationList.declarations.some(
+                        (d) =>
+                            d.name.getText(a) === "STYLE_ID" &&
+                            /ott-tauri-(frameless-drag|loading-logs-style)/.test(
+                                d.initializer?.getText(a) || ""
+                            )
+                    )
+            )
+        )
+            functions.push(node);
+        ts.forEachChild(node, visit);
+    }
+    visit(a);
+    assert.equal(functions.length, 2);
+    for (const initialNonce of ["native-style-authority", ""]) {
+        const dom = new JSDOM(
+            '<head><style id="ott-interface-style"></style><script nonce="wrong-script-authority"></script></head><body></body>',
+            { runScripts: "outside-only" }
+        );
+        try {
+            const w = dom.window;
+            const authority = w.document.getElementById("ott-interface-style");
+            authority.nonce = initialNonce;
+            const getAttribute = authority.getAttribute.bind(authority);
+            authority.getAttribute = (name) =>
+                name === "nonce" ? "" : getAttribute(name);
+            w.eval(func("src/index.ts", "createInterfaceStyle"));
+            for (const expression of functions) {
+                const statements = expression.body.statements;
+                const needed = [
+                    "CLASS",
+                    "OVERLAY_CLASS",
+                    "STYLE_ID",
+                    "STRIP_ID",
+                    "STRIP_H",
+                    "NO_DRAG_SEL",
+                    "PANEL_ID",
+                ];
+                const declarations = statements.filter(
+                    (node) =>
+                        ts.isVariableStatement(node) &&
+                        node.declarationList.declarations.every((d) =>
+                            needed.includes(d.name.getText(a))
+                        )
+                );
+                const ensure = statements.find(
+                    (node) =>
+                        ts.isFunctionDeclaration(node) &&
+                        node.name?.text === "ensureStyles"
+                );
+                const block =
+                    ensure ||
+                    statements.find(
+                        (node) =>
+                            ts.isIfStatement(node) &&
+                            node.getText(a).includes("createInterfaceStyle()")
+                    );
+                assert(block, "execute the real native style creation path");
+                const code =
+                    declarations.map((node) => node.getText(a)).join("\n") +
+                    "\n" +
+                    block.getText(a) +
+                    (ensure
+                        ? "\nensureStyles(); ensureStyles();"
+                        : "\n" + block.getText(a));
+                w.eval(js("(function(){" + code + "})()"));
+                const force = statements
+                    .filter(ts.isVariableStatement)
+                    .flatMap((node) =>
+                        Array.from(node.declarationList.declarations)
+                    )
+                    .find((node) => node.name.getText(a) === "forceNoDragEl");
+                if (force) {
+                    w.eval(
+                        js(
+                            "window.fixtureNoDrag = " +
+                                force.initializer.getText(a)
+                        )
+                    );
+                    const footer = w.document.createElement("div");
+                    footer.innerHTML =
+                        '<button class="btn" style="app-region:no-drag!important;-webkit-app-region:no-drag!important" data-tauri-drag-region>Save</button>';
+                    const button = footer.firstElementChild;
+                    w.fixtureNoDrag(button);
+                    assert.equal(
+                        button.getAttribute("style"),
+                        null,
+                        "app-owned no-drag CSS must not re-enter saved panel HTML"
+                    );
+                    assert.equal(
+                        button.hasAttribute("data-tauri-drag-region"),
+                        false
+                    );
+                    const saved = footer.innerHTML;
+                    footer.textContent = "";
+                    footer.innerHTML = saved;
+                    assert.equal(footer.querySelector("[style]"), null);
+                    assert.equal(footer.textContent, "Save");
+                    button.style.color = "red";
+                    const removed = [];
+                    const remove = button.style.removeProperty.bind(
+                        button.style
+                    );
+                    button.style.removeProperty = (name) => {
+                        removed.push(name);
+                        return remove(name);
+                    };
+                    w.fixtureNoDrag(button);
+                    assert.deepEqual(removed, [
+                        "-webkit-app-region",
+                        "app-region",
+                    ]);
+                    assert.equal(
+                        button.style.color,
+                        "red",
+                        "unrelated styling survives"
+                    );
+                }
+            }
+            for (const id of [
+                "ott-tauri-frameless-drag",
+                "ott-tauri-loading-logs-style",
+            ]) {
+                const styles = w.document.querySelectorAll("#" + id);
+                assert.equal(styles.length, 1);
+                assert.equal(styles[0].nonce, initialNonce);
+                assert(styles[0].sheet.cssRules.length > 0);
+            }
+        } finally {
+            dom.window.close();
+        }
+    }
+});
+
 test("cloud bundle extraction selects exact closures and rejects missing dependencies", () => {
     const code = [
         'var STORAGE_FALLBACK_KEYS = "ottplayStorageFallback";',

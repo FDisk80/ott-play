@@ -43,8 +43,28 @@ function fixture() {
     const calls = [];
     const stored = {};
     const timers = [];
-    const element = (id) =>
-        (elements[id] ||= { innerHTML: "", style: {}, textContent: "" });
+    function element(id) {
+        if (!elements[id]) {
+            const classes = new Set();
+            elements[id] = {
+                classList: {
+                    add(...names) {
+                        names.forEach((name) => classes.add(name));
+                    },
+                    contains(name) {
+                        return classes.has(name);
+                    },
+                    remove(...names) {
+                        names.forEach((name) => classes.delete(name));
+                    },
+                },
+                innerHTML: "",
+                style: {},
+                textContent: "",
+            };
+        }
+        return elements[id];
+    }
     function $(selector) {
         const el = typeof selector === "string" ? element(selector) : selector;
         return {

@@ -1,0 +1,117 @@
+diff --git a/tests/test_harness.py b/tests/test_harness.py
+--- a/tests/test_harness.py
++++ b/tests/test_harness.py
+@@ -3143,8 +3143,8 @@
+     flaky direction.
+     """
+ 
+-    #: 0.128 s per throttled pull. Every timing below is a multiple of that, and the class as a
+-    #: whole is budgeted at half a second: `make check` is the command run before every other one.
++    #: 0.128 s per steady-rate pull. Rate bounds are multiples of this floor; the live-mode
++    #: test uses event ordering instead of a throughput deadline.
+     N = 32 * 1024
+     KBPS = 2048.0
+     #: The wall time a full transfer CANNOT beat at KBPS.
+@@ -3286,17 +3286,92 @@
+         self.assertEqual(len(body), self.N)
+ 
+     def test_the_mode_is_live_under_an_open_transfer(self):
+-        """One scripted run has to cover four CASE1 legs; four launches is not the same experiment,
+-        because the app's own state differs between them."""
++        """Release the SAME partially delivered request, not a timer racing its connection.
++
++        Rate arithmetic is covered above. Here an event-controlled bucket gives each relay one
++        prefix, then zero credit until the file changes. A relay that caches the old rate cannot
++        finish, however long the scheduler takes; no elapsed-time comparison decides correctness.
++        """
++        prefix_size = 1024
++        parked = threading.Event()
++        release = threading.Event()
++        stale_rate = threading.Event()
++        lock = threading.Lock()
++        calls = {}
++        workers = set()
++        reread = set()
++        both_reread = threading.Event()
++        real_read = self.mode.read
++
++        def read_mode():
++            raw = real_read()
++            worker = threading.current_thread()
++            with lock:
++                resumed = release.is_set() and worker in workers
++                if resumed:
++                    reread.add(worker)
++                    if len(reread) == 2:
++                        both_reread.set()
++            # Do not let one relay reach EOF before its peer has resumed and read.
++            if resumed and not both_reread.wait(30):
++                raise OSError("released relay did not re-read the mode")
++            return raw
++
++        def take(_kbps, _want):
++            worker = threading.current_thread()
++            with lock:
++                workers.add(worker)
++                calls[worker] = calls.get(worker, 0) + 1
++                turn = calls[worker]
++                if turn == 2 and sum(n >= 2 for n in calls.values()) == 2:
++                    parked.set()
++            if turn == 1:
++                return prefix_size
++            if turn > 2:
++                # Only a cached rate can ask for credit after both parked relays were released.
++                # Fail by closing the real transfer, rather than hanging until its I/O timeout.
++                stale_rate.set()
++                raise OSError("relay retained the released rate mode")
++            if not release.wait(30):
++                raise OSError("test did not release the parked relay")
++            return 0  # the real loop must re-read the mode before trying to move another byte
++
+         self._set(f"rate:{self.KBPS / 4:g}")
+-        t = threading.Timer(0.1, self._set, args=("pass",))
+-        t.start()
+-        self.addCleanup(t.cancel)
+-        live_s, body = self._pull()
+-        self.assertEqual(len(body), self.N)
+-        # A quarter of the rate is four times the floor; releasing it has to land well inside that.
+-        self.assertLess(live_s, self.FLOOR_S * 4,
+-                        "releasing the mode mid-transfer changed nothing")
++        with mock.patch.object(netcond.BUCKET, "take", side_effect=take), \
++                mock.patch.object(self.mode, "read", side_effect=read_mode):
++            c = socket.create_connection(("127.0.0.1", self.port), timeout=30)
++            try:
++                c.sendall(b"GET /library/parts/1/file.mkv HTTP/1.1\r\nHost: x\r\n\r\n")
++                # recv may return less than its budget; even one byte proves this request
++                # is in flight. The rest of the first grant may still be buffered in TCP.
++                body = c.recv(prefix_size)
++                self.assertTrue(body, "the rate-mode prefix was not delivered")
++                expected = (bytes(range(256)) * (self.N // 256 + 1))[:self.N]
++                self.assertEqual(body, expected[:len(body)])
++                self.assertTrue(parked.wait(30), "both relays must park on the open transfer")
++                self._set("pass")
++                # Publish the complete file update before releasing either reader. This avoids
++                # testing Mode's shared mtime cache race instead of relay's per-iteration read.
++                self.assertEqual(self.mode.read(), "pass")
++                release.set()
++                while len(body) < self.N:
++                    part = c.recv(self.N - len(body))
++                    if not part:
++                        break
++                    body += part
++                self.assertFalse(stale_rate.is_set(), "relay did not re-read the released mode")
++                self.assertEqual(body, expected, "the same open transfer must finish unchanged")
++            finally:
++                release.set()
++                both_reread.set()  # unblock observers on any assertion or I/O failure
++                c.close()
++                with lock:
++                    active_workers = list(workers)
++                for worker in active_workers:
++                    worker.join(timeout=2)
++            self.assertFalse(any(worker.is_alive() for worker in active_workers),
++                             "relay workers must stop before restoring the shared bucket")
++            self.assertEqual(reread, workers, "each released relay must call Mode.read again")
+ 
+ 
+ # ---------------------------------------------------------------------------
