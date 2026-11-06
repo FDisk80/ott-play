@@ -1,15 +1,7 @@
-/** One owned browser File reference; never persists or copies media bytes. */
+/** Owned browser File references; never persists or copies media bytes. */
 var droppedVideoSerial = 0;
 
-export function createDroppedVideo(
-    w: any,
-    file: any
-): {
-    catalog: any;
-    sourceId: string;
-    itemId: string;
-    release: () => void;
-} {
+function droppedVideoItem(w: any, file: any): any {
     var supported = false;
     try {
         supported =
@@ -48,6 +40,43 @@ export function createDroppedVideo(
     var mime = /^video\//i.test(file.type)
         ? file.type
         : fallbackMime[extension];
+    return {
+        access: "granted",
+        available: true,
+        directory: "",
+        mime: mime,
+        name: file.name,
+        relativePath: null,
+        size: file.size,
+        source: "dropped",
+    };
+}
+
+export function createDroppedVideos(
+    w: any,
+    files: any
+): {
+    catalog: any;
+    sourceId: string;
+    itemIds: string[];
+    release: () => void;
+} {
+    var count = files && files.length;
+    if (
+        typeof count !== "number" ||
+        count < 1 ||
+        count > 128 ||
+        Math.floor(count) !== count
+    )
+        throw new Error("Choose 1 to 128 supported video files");
+    // Snapshot and validate the entire gesture before allocating any URL.
+    var captured: any[] = [];
+    var items: any[] = [];
+    for (var i = 0; i < count; i++) {
+        var file = files[i];
+        captured.push(file);
+        items.push(droppedVideoItem(w, file));
+    }
     var urls = w.URL || w.webkitURL;
     if (
         !urls ||
@@ -61,36 +90,40 @@ export function createDroppedVideo(
         throw new Error("Dropped video is unavailable in this browser");
     var id = "dropped-" + (++droppedVideoSerial).toString(36);
     var sourceId = id + "-source";
-    var itemId = id + "-item";
-    var url: string;
+    var itemIds: string[] = [];
+    var ownedUrls: string[] = [];
+    var released = false;
+    function release(): void {
+        if (released) return;
+        released = true;
+        for (var i = 0; i < ownedUrls.length; i++) {
+            try {
+                urls.revokeObjectURL(ownedUrls[i]);
+            } catch (_) {}
+        }
+    }
     try {
-        url = urls.createObjectURL(file);
+        for (var i = 0; i < count; i++) {
+            var url = urls.createObjectURL(captured[i]);
+            ownedUrls.push(url);
+            var itemId = id + "-item-" + (i + 1);
+            itemIds.push(itemId);
+            items[i].id = itemId;
+            items[i].sourceId = sourceId;
+            items[i].url = url;
+        }
     } catch (_) {
+        release();
         throw new Error("Dropped video could not be opened");
     }
-    var released = false;
     return {
         catalog: {
             available: true,
-            discovered: 1,
-            items: [
-                {
-                    access: "granted",
-                    available: true,
-                    directory: "",
-                    id: itemId,
-                    mime: mime,
-                    name: file.name,
-                    relativePath: null,
-                    size: file.size,
-                    source: "dropped",
-                    sourceId: sourceId,
-                    url: url,
-                },
-            ],
+            discovered: count,
+            items: items,
             persistent: false,
             phase: "complete",
-            scanned: 1,
+            scanned: count,
             scanning: false,
             sources: [
                 {
@@ -98,19 +131,31 @@ export function createDroppedVideo(
                     available: true,
                     id: sourceId,
                     kind: "file",
-                    name: file.name,
+                    name: items[0].name,
                 },
             ],
             storage: "browser",
         },
-        itemId: itemId,
-        release: function () {
-            if (released) return;
-            released = true;
-            try {
-                urls.revokeObjectURL(url);
-            } catch (_) {}
-        },
+        itemIds: itemIds,
+        release: release,
         sourceId: sourceId,
+    };
+}
+
+export function createDroppedVideo(
+    w: any,
+    file: any
+): {
+    catalog: any;
+    sourceId: string;
+    itemId: string;
+    release: () => void;
+} {
+    var lease = createDroppedVideos(w, [file]);
+    return {
+        catalog: lease.catalog,
+        itemId: lease.itemIds[0],
+        release: lease.release,
+        sourceId: lease.sourceId,
     };
 }

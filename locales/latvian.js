@@ -1000,6 +1000,7 @@ var keyStrings = {
     "Show list of channel archive records": "Rādīt kanāla ierakstus",
     "Show list of channel archive records without duplication":
         "Rādīt kanāla ierakstus bez dublikātiem",
+    "Show list separators": "Rādīt atdalošās līnijas sarakstos",
     "Show Media Library": "Rādīt multivides bibliotēku",
     "Show picons in channel list": "Rādīt kanālu ikonas sarakstā",
     "Show player menu": "Rādīt atskaņotāja izvēlni",

@@ -1013,6 +1013,7 @@ var keyStrings = {
     "Show list of channel archive records": "Shfaq regjistrimet e kanalit",
     "Show list of channel archive records without duplication":
         "Shfaq regjistrimet e kanalit pa dublikatë",
+    "Show list separators": "Shfaq vijat ndarëse në lista",
     "Show Media Library": "Shfaq bibliotekën e mediave",
     "Show picons in channel list": "Shfaq ikonat e kanaleve në listë",
     "Show player menu": "Shfaq menynë e luajtësit të mediave",

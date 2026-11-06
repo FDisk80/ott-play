@@ -45,7 +45,11 @@ function fixture(options = {}) {
         URL: {
             createObjectURL(file) {
                 created.push(file);
-                if (options.createFailure) throw new Error("private-path");
+                if (
+                    options.createFailure ||
+                    options.createFailureAt === created.length
+                )
+                    throw new Error("private-path");
                 return "blob:fixture/" + ++serial;
             },
             revokeObjectURL(url) {
@@ -87,6 +91,7 @@ function fixture(options = {}) {
     }
     return {
         create: (file) => exports.createDroppedVideo(host, file),
+        createBatch: (files) => exports.createDroppedVideos(host, files),
         created,
         file,
         host,
@@ -251,4 +256,104 @@ test("unavailable URL support and allocation failure return safe errors", () => 
     );
     assert.equal(broken.created.length, 1);
     assert.equal(broken.revoked.length, 0);
+});
+
+test("a batch captures FileList order and keeps duplicate names as distinct items in one source", () => {
+    const f = fixture();
+    const first = f.file("z-last.mp4"),
+        second = f.file("a-first.mp4"),
+        duplicate = f.file("a-first.mp4");
+    const files = { 0: first, 1: second, 2: duplicate, length: 3 };
+    const createURL = f.host.URL.createObjectURL;
+    f.host.URL.createObjectURL = (file) => {
+        // A live FileList is no longer consulted after URL allocation starts.
+        files[1] = f.file("changed.mp4");
+        return createURL(file);
+    };
+    const lease = f.createBatch(files);
+    assert.deepEqual(f.created, [first, second, duplicate]);
+    assert.deepEqual(
+        Array.from(lease.catalog.items, (item) => item.name),
+        ["z-last.mp4", "a-first.mp4", "a-first.mp4"]
+    );
+    assert.equal(new Set(lease.itemIds).size, 3);
+    assert.deepEqual(
+        Array.from(lease.catalog.items, (item) => item.id),
+        Array.from(lease.itemIds)
+    );
+    assert.ok(
+        lease.catalog.items.every((item) => item.sourceId === lease.sourceId)
+    );
+    assert.equal(lease.catalog.sources.length, 1);
+    assert.equal(lease.catalog.sources[0].id, lease.sourceId);
+    assert.equal(lease.catalog.discovered, 3);
+    assert.equal(lease.catalog.scanned, 3);
+    assert.equal(lease.catalog.scanning, false);
+    assert.equal(lease.catalog.persistent, false);
+    assert.equal(lease.catalog.phase, "complete");
+    lease.release();
+    assert.deepEqual(f.revoked, [
+        "blob:fixture/1",
+        "blob:fixture/2",
+        "blob:fixture/3",
+    ]);
+});
+
+test("a mixed unsupported batch is rejected before allocating any URL", () => {
+    const f = fixture();
+    for (const invalid of [
+        f.file("text.txt", "text/plain"),
+        f.file("empty.mp4", "video/mp4", ""),
+        f.file("browser-unsupported.mkv", "video/x-matroska"),
+        {},
+    ]) {
+        assert.throws(
+            () => f.createBatch([f.file(), invalid]),
+            /Choose a supported video file/
+        );
+    }
+    assert.deepEqual(f.created, []);
+    assert.deepEqual(f.revoked, []);
+});
+
+test("batch admission allows exactly 128 files and rejects empty or oversized lists before allocation", () => {
+    const f = fixture();
+    const files = Array.from({ length: 129 }, () => f.file());
+    for (const invalid of [null, [], files])
+        assert.throws(
+            () => f.createBatch(invalid),
+            /Choose 1 to 128 supported video files/
+        );
+    assert.deepEqual(f.created, []);
+    const lease = f.createBatch(files.slice(0, 128));
+    assert.equal(lease.catalog.items.length, 128);
+    assert.equal(new Set(lease.itemIds).size, 128);
+    assert.equal(f.created.length, 128);
+    lease.release();
+    assert.equal(f.revoked.length, 128);
+    assert.equal(new Set(f.revoked).size, 128);
+});
+
+test("late batch allocation failure releases every previously created URL even if revocation throws", () => {
+    const f = fixture({ createFailureAt: 3, revokeFailure: true });
+    assert.throws(
+        () => f.createBatch([f.file(), f.file(), f.file(), f.file()]),
+        (error) => error.message === "Dropped video could not be opened"
+    );
+    assert.equal(f.created.length, 3);
+    assert.deepEqual(f.revoked, ["blob:fixture/1", "blob:fixture/2"]);
+});
+
+test("batch release uses the captured URLs once rather than mutable catalog entries", () => {
+    const f = fixture({ revokeFailure: true });
+    const lease = f.createBatch([f.file(), f.file(), f.file()]);
+    lease.catalog.items[0].url = "blob:foreign-owner";
+    lease.catalog.items.splice(1);
+    assert.doesNotThrow(() => lease.release());
+    assert.doesNotThrow(() => lease.release());
+    assert.deepEqual(f.revoked, [
+        "blob:fixture/1",
+        "blob:fixture/2",
+        "blob:fixture/3",
+    ]);
 });

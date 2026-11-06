@@ -1019,6 +1019,8 @@ var keyStrings = {
         "Ipakita ang mga pag-record ng channel",
     "Show list of channel archive records without duplication":
         "Ipakita ang mga pag-record ng channel nang walang mga duplicate",
+    "Show list separators":
+        "Ipakita ang mga linyang naghihiwalay sa mga listahan",
     "Show Media Library": "Ipakita ang library ng media",
     "Show picons in channel list":
         "Ipakita ang mga icon ng channel sa listahan",

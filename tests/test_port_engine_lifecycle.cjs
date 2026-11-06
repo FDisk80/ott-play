@@ -3853,6 +3853,163 @@ test("local retry budget requires ten continuous wall-clock seconds of healthy p
     }
 });
 
+// A download can resume during the delay before a local transport retry.
+// The cancelled retry must not leave its earlier loading notification latched.
+function localRetryClockFixture() {
+    const { w } = fixture();
+    w.document.getElementById = () => null;
+    const timers = new Map();
+    let now = 100000,
+        serial = 0;
+    w.Date = class extends Date {
+        static now() {
+            return now;
+        }
+    };
+    w.setTimeout = (fn, delay) => {
+        timers.set(++serial, { at: now + delay, fn });
+        return serial;
+    };
+    w.clearTimeout = (id) => timers.delete(id);
+    w.setInterval = () => 0;
+    w.clearInterval = () => {};
+    const state = {
+        generation: 1,
+        phase: "loading",
+        position: 0,
+        target: { channelId: "file", kind: "vod", sourceId: "local" },
+    };
+    const commands = [];
+    w.__ottClassicPlayback = {
+        cancel() {},
+        command(command) {
+            commands.push(command);
+            if (command.type === "position") state.position = command.position;
+            else if (command.type === "stop") {
+                state.phase = "stopped";
+                state.generation++;
+            } else state.phase = command.type;
+        },
+        context() {
+            const generation = state.generation,
+                source = state.target.sourceId;
+            const current = () =>
+                generation === state.generation &&
+                source === state.target.sourceId &&
+                state.phase !== "stopped";
+            return { isCurrentBackend: current, isCurrentSource: current };
+        },
+        importLegacy() {},
+        snapshot: () => state,
+    };
+    w.__ottLocalMedia = {
+        isPlaybackUrl: (url) => url === "https://local.invalid/movie.mp4",
+    };
+    w.playerMode = 0;
+    w.stbPlay("https://local.invalid/movie.mp4");
+    Object.assign(w.video, {
+        duration: 500,
+        ended: false,
+        paused: false,
+        playbackRate: 1,
+        readyState: 4,
+        seeking: false,
+    });
+    for (const callback of w.video.listeners.playing) callback();
+    const handle = w.__ottCoreBackend().current();
+    function advance(ms, movement = 0) {
+        now += ms;
+        w.video.currentTime += movement;
+        const due = [...timers].filter(([, job]) => job.at <= now);
+        for (const [id, job] of due) {
+            if (timers.delete(id)) job.fn();
+        }
+    }
+    advance(1000, 1);
+    for (let i = 0; i < 30; i++) advance(1000);
+    assert.equal(w.coreStreamAttempt.state().pending, true);
+    assert.equal(handle.snapshot().phase, "loading");
+    return { advance, commands, handle, state, w };
+}
+test("local progress before a queued retry restores the same decoder status", () => {
+    const f = localRetryClockFixture();
+    const attempt = f.w.coreStreamAttempt;
+    f.advance(200, 0.2);
+    f.advance(400, 0.4);
+    assert.equal(
+        attempt.state().pending,
+        false,
+        "clock change cancels stale retry intent"
+    );
+    assert.equal(f.w.__ottCoreBackend().current(), f.handle);
+    assert.equal(f.handle.diagnosticAttempt().engineStarts, 1);
+    assert.equal(f.handle.diagnosticAttempt().streamRetries, 0);
+    f.advance(400, 0.4);
+    assert.equal(
+        f.handle.snapshot().phase,
+        "playing",
+        "cancelled local retry must retire its loading notification after real progress"
+    );
+    assert(f.handle.snapshot().position >= 1.9);
+    const count = f.commands.filter((c) => c.type === "playing").length;
+    f.advance(1000, 1);
+    assert.equal(
+        f.commands.filter((c) => c.type === "playing").length,
+        count,
+        "recovery notification is emitted once"
+    );
+    f.w.stbStop();
+});
+for (const change of [
+    "pause",
+    "seek",
+    "stop",
+    "replace",
+    "standby",
+    "suspend",
+    "dispose",
+    "generation",
+    "source",
+]) {
+    test(
+        "cancelled local retry does not restore playing after " + change,
+        () => {
+            const f = localRetryClockFixture();
+            if (change === "pause") f.w.stbPause();
+            else if (change === "seek") {
+                f.w.video.seeking = true;
+                for (const callback of f.w.video.listeners.seeking || [])
+                    callback();
+                f.w.stbSetPosTime(90);
+            } else if (change === "stop") f.w.stbStop();
+            else if (change === "replace")
+                f.w.stbPlay("https://other.invalid/movie.mp4");
+            else if (change === "standby") f.w.stbSetStandby(true);
+            else if (change === "suspend") f.handle.suspend();
+            else if (change === "dispose") f.handle.dispose();
+            else if (change === "generation") f.state.generation++;
+            else f.state.target.sourceId = "replacement";
+            if (change === "replace") {
+                // The next decoder may already move; the retired watcher still has no authority.
+                Object.assign(f.w.video, {
+                    paused: false,
+                    readyState: 4,
+                    seeking: false,
+                });
+            }
+            const count = f.commands.filter((c) => c.type === "playing").length;
+            f.advance(200, 0.2);
+            f.advance(400, 0.4);
+            f.advance(400, 0.4);
+            assert.equal(
+                f.commands.filter((c) => c.type === "playing").length,
+                count
+            );
+            f.w.stbStop();
+        }
+    );
+}
+
 (async () => {
     let failures = 0;
     for (const [name, fn] of cases) {

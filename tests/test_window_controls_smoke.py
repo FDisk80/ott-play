@@ -415,15 +415,15 @@ class RestorationTests(unittest.TestCase):
 
 
 
-def appkit_native(active=False, *, full=False, zoom=False):
+def appkit_native(active=False, *, full=False, maximized=False):
     return {"label": "main", "window_number": 42, "level": 0,
-            "frame": [0.0, 0.0, 1024.0, 768.0] if full else [40.0, 40.0, 640.0, 428.0],
+            "frame": [0.0, 0.0, 1024.0, 768.0] if full else ([0.0, 60.0, 1024.0, 677.0] if maximized else [40.0, 40.0, 640.0, 400.0]),
             "screen_frame": [0.0, 0.0, 1024.0, 768.0],
-            "style_mask": 0 if full else 13, "presentation_options": 5 if full else 0,
-            "movable": not full, "content_size": [1024.0, 768.0] if full else [640.0, 400.0],
+            "style_mask": 32768 if full else 32780, "presentation_options": 5 if full else 0,
+            "movable": not full, "content_size": [1024.0, 768.0] if full else ([1024.0, 677.0] if maximized else [640.0, 400.0]),
             "content_aspect": [16.0, 9.0] if active else [0.0, 0.0],
             "resize_increments": [1.0, 1.0], "fullscreen": False,
-            "zoomed": full or zoom, "miniaturized": False}
+            "zoomed": full, "miniaturized": False}
 
 
 def appkit_evidence(missing=False):
@@ -437,11 +437,22 @@ def appkit_evidence(missing=False):
             "initial_state": aspect_state(), "final": appkit_native(), "final_state": aspect_state(),
             "set_sequence": [{"state": aspect_state(v), "native": appkit_native(v)}
                              for v in [True, True, False, False]],
+            "native_menu_activations": 2,
+            "menu_transitions": [{"kind": "native_menu_zoom", "menu_id": "ott.window.zoom",
+                                  "target": target, "event_count": index,
+                                  "state": aspect_state(True, not target),
+                                  "native": appkit_native(not target, maximized=target),
+                                  "native_after_get": appkit_native(not target, maximized=target),
+                                  "target_visible_frame": [0.0, 60.0, 1024.0, 677.0]}
+                                 for index, target in enumerate([True, False], 1)],
             "transitions": [{"kind": kind, "target": target, "state": aspect_state(True, not target),
                              "native": appkit_native(not target,
-                                                     full=kind != "zoom" and target,
-                                                     zoom=kind == "zoom" and target)}
-                            for kind in ["toggle_fullscreen", "set_fullscreen", "zoom"]
+                                                     full=kind != "maximize" and target,
+                                                     maximized=kind == "maximize" and target),
+                             **({"target_visible_frame": [0.0, 60.0, 1024.0, 677.0],
+                                 "native_after_get": appkit_native(not target, maximized=target)}
+                                if kind == "maximize" else {})}
+                            for kind in ["toggle_fullscreen", "set_fullscreen", "maximize"]
                             for target in [True, False]]}
 
 
@@ -455,6 +466,64 @@ def appkit_restoration(phase, initial):
 
 
 class AppKitEvidenceTests(unittest.TestCase):
+    def test_native_menu_requires_actual_ordered_events_and_geometry(self):
+        runner.validate_appkit_evidence(appkit_evidence())
+        mutations = [
+            lambda r: r.pop("menu_transitions"),
+            lambda r: r.update(native_menu_activations=0),
+            lambda r: r["menu_transitions"].pop(),
+            lambda r: r["menu_transitions"][0].update(menu_id="other"),
+            lambda r: r["menu_transitions"][0].update(event_count=0),
+            lambda r: r["menu_transitions"][1].update(event_count=1),
+            lambda r: r["menu_transitions"][0].update(target=False),
+            lambda r: r["menu_transitions"][0]["native"].update(frame=[0, 152, 1024, 576]),
+            lambda r: r["menu_transitions"][0]["native"].update(content_size=[640, 400]),
+            lambda r: r["menu_transitions"][1]["native"].update(content_size=[640, 360]),
+            lambda r: r["menu_transitions"][1]["state"].update(enabled=False),
+            lambda r: r["menu_transitions"][0]["native_after_get"].update(zoomed=True),
+        ]
+        for mutate in mutations:
+            report = appkit_evidence()
+            mutate(report)
+            with self.assertRaises(RuntimeError):
+                runner.validate_appkit_evidence(report)
+
+    def test_maximize_requires_actual_target_frame_and_getter_is_passive(self):
+        for raw_zoomed in [True, False]:
+            report = appkit_evidence()
+            for key in ["native", "native_after_get"]:
+                report["transitions"][4][key]["zoomed"] = raw_zoomed
+            runner.validate_evidence(report, False, platform="macos")
+        mutations = [
+            lambda row: row.update(kind="zoom"),
+            lambda row: row.pop("target_visible_frame"),
+            lambda row: row.update(target_visible_frame=[0, 60, float("nan"), 677]),
+            lambda row: row.update(target_visible_frame=[0, 60, 1024, -1]),
+            lambda row: row["native"].update(frame=[40, 40, 640, 400]),
+            lambda row: row["native"].update(frame=[30, 60, 1024, 677]),
+            lambda row: row["native"].update(content_aspect=[16, 9]),
+            lambda row: row["native"].update(resize_increments=[2, 2]),
+            lambda row: row["state"].update(active=True),
+            lambda row: row.pop("native_after_get"),
+            lambda row: row["native_after_get"].update(content_aspect=[16, 9]),
+        ]
+        for mutate in mutations:
+            report = appkit_evidence()
+            mutate(report["transitions"][4])
+            with self.subTest(mutate=mutate), self.assertRaises(RuntimeError):
+                runner.validate_evidence(report, False, platform="macos")
+        report = appkit_evidence()
+        for key in ["native", "native_after_get"]:
+            report["transitions"][4][key]["content_size"] = [640, 400]
+        with self.assertRaisesRegex(RuntimeError, "maximized content"):
+            runner.validate_evidence(report, False, platform="macos")
+        for key, value in [("frame", [40, 40, 800, 450]), ("content_size", [800, 450]),
+                           ("content_aspect", [0, 0])]:
+            report = appkit_evidence()
+            report["transitions"][5]["native"][key] = value
+            with self.subTest(restored_key=key), self.assertRaises(RuntimeError):
+                runner.validate_evidence(report, False, platform="macos")
+
     def test_appkit_native_evidence_requires_all_states_and_original_constraint(self):
         for missing in [False, True]:
             runner.validate_evidence(appkit_evidence(missing), missing, platform="macos")
@@ -465,7 +534,7 @@ class AppKitEvidenceTests(unittest.TestCase):
             lambda r: r["transitions"].pop(),
             lambda r: r["transitions"][0]["state"].update(active=True),
             lambda r: r["transitions"][0]["native"].update(fullscreen=True),
-            lambda r: r["transitions"][4]["native"].update(zoomed=False),
+            lambda r: r["transitions"][4]["native"].update(frame=[0, 152, 1024, 576]),
             lambda r: r["final"].update(resize_increments=[2, 2]),
             lambda r: r["final"].update(window_number=43),
             lambda r: r["final"].update(fullscreen=0),
@@ -505,7 +574,7 @@ class AppKitEvidenceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             runner.validate_evidence(report, False, platform="macos")
 
-    def test_simple_fullscreen_exit_and_zoom_preserve_native_window_policy(self):
+    def test_simple_fullscreen_exit_and_maximize_preserve_native_window_policy(self):
         for index in [1, 3, 4, 5]:
             for change in [{"style_mask": 0}, {"movable": False}, {"presentation_options": 5}]:
                 report = appkit_evidence()

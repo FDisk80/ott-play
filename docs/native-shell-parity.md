@@ -35,8 +35,13 @@ chrome and drag initiation are disabled during native fullscreen.
 
 ## Desktop window aspect lock
 
-The Tauri main-window Menu includes **Lock window to 16:9** in both Classic and
-Modern presentation. It defaults to off and is saved separately for each desktop
+The Tauri main window exposes **Always on top** and **Lock window to 16:9**
+under **Settings → Interface** in both Classic and Modern presentation.
+**Full screen** remains in Menu. The two Interface actions apply immediately
+after native confirmation, independently of Save Settings. They keep the page
+and its other pending edits open; Cancel does not undo a native window change.
+
+Lock window to 16:9 defaults to off and is saved separately for each desktop
 instance. It constrains the native content area during interactive resizing;
 video aspect ratio and the independent PiP window keep their existing controls.
 This feature requires native acceptance before release; see the

@@ -215,7 +215,6 @@ export async function captureGlobalFavorite(
         payload?.vportalSource &&
         w.__ottEmbeddedVPortal?.current()
     ) {
-        var embedded = w.__ottEmbeddedVPortal;
         if (payload.vportalSource !== w.__ottSourceIdentity.media(w))
             return null;
         var attested = payload.__ottFavoriteId;

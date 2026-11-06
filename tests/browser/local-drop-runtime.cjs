@@ -17,7 +17,7 @@ const { chromium } = require("@playwright/test");
 const sha = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function options(argv) {
-    const result = { engine: 1, requireAutoplay: false };
+    const result = { engine: 1, requireAutoplay: false, videos: [] };
     for (let i = 0; i < argv.length; i++) {
         if (argv[i] === "--require-autoplay") result.requireAutoplay = true;
         else if (
@@ -26,25 +26,34 @@ function options(argv) {
             const key = argv[i].slice(2),
                 value = argv[++i];
             assert.ok(value && !value.startsWith("--"), "Missing " + key);
-            result[key] =
-                key === "engine" ? Number(value) : path.resolve(value);
+            if (key === "video") result.videos.push(path.resolve(value));
+            else
+                result[key] =
+                    key === "engine" ? Number(value) : path.resolve(value);
         } else throw new Error("Unknown argument: " + argv[i]);
     }
+    result.video = result.videos[0];
+    assert.ok(
+        result.videos.length <= 8,
+        "Use at most eight short synthetic videos"
+    );
     for (const key of ["site", "video", "output"])
         assert.ok(result[key], "Required --" + key);
     assert.ok(
         [0, 1, 2, 3].includes(result.engine),
         "Engine must be 0, 1, 2 or 3"
     );
-    assert.ok(
-        /\.(mp4|m4v|webm|mov)$/i.test(result.video),
-        "Use a direct synthetic video fixture"
-    );
-    const size = fs.statSync(result.video).size;
-    assert.ok(
-        size > 0 && size <= 64 * 1024 * 1024,
-        "Synthetic video must be 1 byte..64 MiB"
-    );
+    for (const video of result.videos) {
+        assert.ok(
+            /\.(mp4|m4v|webm|mov)$/i.test(video),
+            "Use a direct synthetic video fixture"
+        );
+        const size = fs.statSync(video).size;
+        assert.ok(
+            size > 0 && size <= 64 * 1024 * 1024,
+            "Synthetic video must be 1 byte..64 MiB"
+        );
+    }
     return result;
 }
 
@@ -145,6 +154,8 @@ const snapshotExpression = `(() => {
         ready: !!window.__ottLocalDrop && !!window.__ottLocalMedia?.hasDroppedVideo,
         drop: window.__dropRuntimeObservation || null,
         revocations: window.__dropRuntimeRevocations || [],
+        created: window.__dropRuntimeCreated || [],
+        completions: window.__dropRuntimeCompletions || [],
         activation: {active:navigator.userActivation.isActive, ever:navigator.userActivation.hasBeenActive},
         retained: window.__ottLocalMedia?.hasDroppedVideo?.() || false,
         driver: window.__ottActiveProviderDriver?.id || null,
@@ -222,6 +233,11 @@ async function main() {
             name: path.basename(config.video),
             sha256: sha(fs.readFileSync(config.video)),
         },
+        fixtures: config.videos.map((video) => ({
+            bytes: fs.statSync(video).size,
+            name: path.basename(video),
+            sha256: sha(fs.readFileSync(video)),
+        })),
         requestedEngine: config.engine,
         requests: [],
         requireAutoplay: config.requireAutoplay,
@@ -299,6 +315,34 @@ async function main() {
                 // Observe the real URL API without substituting its effect. The
                 // post-replacement fetch below independently proves invalidation.
                 window.__dropRuntimeRevocations = [];
+                window.__dropRuntimeCreated = [];
+                window.__dropRuntimeCompletions = [];
+                document.addEventListener(
+                    "ended",
+                    (event) => {
+                        const media = event.target;
+                        if (!(media instanceof HTMLVideoElement)) return;
+                        window.__dropRuntimeCompletions.push({
+                            duration: media.duration,
+                            ended: media.ended,
+                            error: media.error?.code || null,
+                            source: media.currentSrc || media.src,
+                            time: media.currentTime,
+                            trusted: event.isTrusted,
+                        });
+                    },
+                    true
+                );
+                const create = URL.createObjectURL;
+                URL.createObjectURL = function (file) {
+                    const url = create.call(this, file);
+                    if (file instanceof File)
+                        window.__dropRuntimeCreated.push({
+                            name: file.name,
+                            url,
+                        });
+                    return url;
+                };
                 const revoke = URL.revokeObjectURL;
                 URL.revokeObjectURL = function (url) {
                     window.__dropRuntimeRevocations.push(String(url));
@@ -313,6 +357,10 @@ async function main() {
                             count: event.dataTransfer?.files.length,
                             ever: navigator.userActivation.hasBeenActive,
                             name: event.dataTransfer?.files[0]?.name,
+                            names: Array.from(
+                                event.dataTransfer?.files || [],
+                                (file) => file.name
+                            ),
                             trusted: event.isTrusted,
                         };
                     },
@@ -345,7 +393,7 @@ async function main() {
         );
         const data = {
             dragOperationsMask: 1,
-            files: [config.video],
+            files: config.videos,
             items: [],
         };
         for (const type of ["dragEnter", "dragOver", "drop"])
@@ -366,7 +414,7 @@ async function main() {
             true,
             "CDP must deliver a trusted browser drop"
         );
-        assert.equal(report.admitted.drop?.count, 1);
+        assert.equal(report.admitted.drop?.count, config.videos.length);
         assert.equal(report.admitted.drop?.bytes, report.fixture.bytes);
         assert.match(report.admitted.media.source, /^blob:/);
         assert.equal(
@@ -404,6 +452,56 @@ async function main() {
             report.recovery = "real_space_key_then_advancing_frames";
         }
         const firstUrl = report.playback.next.media.source;
+        const queueUrls = report.admitted.created.map((item) => item.url);
+        assert.equal(queueUrls.length, config.videos.length);
+        assert.deepEqual(
+            report.admitted.drop.names,
+            config.videos.map((video) => path.basename(video))
+        );
+        assert.deepEqual(
+            report.admitted.created.map((item) => item.name),
+            report.admitted.drop.names,
+            "Queue preserves the supplied FileList order"
+        );
+        assert.equal(
+            firstUrl,
+            queueUrls[0],
+            "The first supplied file starts first"
+        );
+        report.queuePlayback = [];
+        for (let i = 1; i < queueUrls.length; i++) {
+            // Real short fixtures reach natural EOF; no synthetic ended event
+            // or seek is used to force progression through the queue.
+            await waitFor(
+                cdp,
+                (s) => s.media?.source === queueUrls[i],
+                20000,
+                deadline
+            );
+            const playback = await advancing(cdp, deadline);
+            assert.equal(playback.next.media.source, queueUrls[i]);
+            const completions = playback.next.completions.filter(
+                (event) => event.source === queueUrls[i - 1]
+            );
+            assert.equal(
+                completions.length,
+                1,
+                "Each previous item must actually reach natural EOF once"
+            );
+            assert.equal(completions[0].trusted, true);
+            assert.equal(completions[0].ended, true);
+            assert.equal(completions[0].error, null);
+            assert.ok(
+                completions[0].duration > 0 &&
+                    completions[0].time >= completions[0].duration - 0.2
+            );
+            assert.deepEqual(
+                playback.next.revocations,
+                [],
+                "Queue transition must retain all file leases"
+            );
+            report.queuePlayback.push(playback);
+        }
         for (const type of ["dragEnter", "dragOver", "drop"])
             await cdp.send("Input.dispatchDragEvent", {
                 data,
@@ -417,7 +515,7 @@ async function main() {
                 s.retained &&
                 s.driver === "offline" &&
                 s.localUrl &&
-                s.media.source !== firstUrl,
+                !queueUrls.includes(s.media.source),
             15000,
             deadline
         );
@@ -429,6 +527,12 @@ async function main() {
             1,
             "Accepted replacement must revoke the old blob exactly once"
         );
+        for (const url of queueUrls)
+            assert.equal(
+                replacement.revocations.filter((value) => value === url).length,
+                1,
+                "Replacement retires every old queue URL exactly once"
+            );
         report.replacement = {
             admitted: replacement,
             playback: await advancing(cdp, deadline),

@@ -991,6 +991,7 @@ var keyStrings = {
     "Show list of channel archive records": "Visa kanalens inspelningar",
     "Show list of channel archive records without duplication":
         "Visa kanalens inspelningar utan dubbletter",
+    "Show list separators": "Visa skiljelinjer i listor",
     "Show Media Library": "Visa mediebibliotek",
     "Show picons in channel list": "Visa kanalikoner i listan",
     "Show player menu": "Visa spelarmeny",

@@ -282,6 +282,15 @@ jobs:
         run: bash scripts/ci-tauri-collect-artifacts.sh
         env:
           TAURI_TARGET: ${{ matrix.target }}
+      - name: Build macOS ARM64 server from frozen release inputs
+        if: matrix.platform == 'macos-latest' && matrix.target == 'aarch64-apple-darwin'
+        timeout-minutes: 30
+        env:
+          CARGO_BUILD_JOBS: "1"
+          CARGO_INCREMENTAL: "0"
+        run: |
+          cargo build --locked --release --target aarch64-apple-darwin -p ottplay-server --bin ottplay-server
+          python3 scripts/macos_server_artifact.py create --binary target/aarch64-apple-darwin/release/ottplay-server --directory tauri-artifacts --plan .release-plan.json
       - name: Verify private playback files in final Linux packages
         if: matrix.platform == 'ubuntu-24.04' || matrix.platform == 'ubuntu-24.04-arm'
         timeout-minutes: 10

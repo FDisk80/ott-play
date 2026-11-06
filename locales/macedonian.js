@@ -1010,6 +1010,7 @@ var keyStrings = {
     "Show list of channel archive records": "Прикажи снимки на каналот",
     "Show list of channel archive records without duplication":
         "Прикажи снимки на каналот без дупликати",
+    "Show list separators": "Прикажи разделни линии во списоците",
     "Show Media Library": "Прикажи медиумска библиотека",
     "Show picons in channel list": "Прикажи икони на каналите во листата",
     "Show player menu": "Прикажи мени на плеерот",

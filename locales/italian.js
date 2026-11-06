@@ -1013,6 +1013,7 @@ var keyStrings = {
     "Show list of channel archive records": "Mostra registrazioni del canale",
     "Show list of channel archive records without duplication":
         "Mostra registrazioni del canale senza duplicati",
+    "Show list separators": "Mostra i separatori negli elenchi",
     "Show Media Library": "Mostra raccolta multimediale",
     "Show picons in channel list": "Mostra icone dei canali nell'elenco",
     "Show player menu": "Mostra menu del lettore",

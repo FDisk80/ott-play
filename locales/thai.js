@@ -964,6 +964,7 @@ var keyStrings = {
     "Show list of channel archive records": "แสดงรายการทีวีที่บันทึกไว้ของช่องนี้",
     "Show list of channel archive records without duplication":
         "แสดงรายการทีวีที่บันทึกไว้ของช่องนี้โดยไม่มีรายการซ้ำ",
+    "Show list separators": "แสดงเส้นแบ่งในรายการ",
     "Show Media Library": "แสดงไลบรารีสื่อ",
     "Show picons in channel list": "แสดงไอคอนช่องในรายการ",
     "Show player menu": "แสดงเมนูเครื่องเล่น",

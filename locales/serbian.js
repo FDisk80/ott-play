@@ -997,6 +997,7 @@ var keyStrings = {
     "Show list of channel archive records": "Прикажи снимке канала",
     "Show list of channel archive records without duplication":
         "Прикажи снимке канала без дупликата",
+    "Show list separators": "Прикажи раздвојне линије у листама",
     "Show Media Library": "Прикажи библиотеку медија",
     "Show picons in channel list": "Прикажи иконе канала на листи",
     "Show player menu": "Прикажи мени медијски плејера",

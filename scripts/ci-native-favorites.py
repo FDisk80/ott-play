@@ -218,9 +218,21 @@ class Driver:
         try:
             try:
                 entry.update(pgid=os.getpgid(proc.pid), sid=os.getsid(proc.pid))
-            except ProcessLookupError:
+            except ProcessLookupError as error:
                 if observe() is None:
-                    raise
+                    # Identity can disappear before the first nonblocking reap.
+                    # Use the existing one-second reap bound and phase deadline;
+                    # an unsettled child still grants only handle cleanup.
+                    self.budget.tick()
+                    remaining = min(1, end - self.budget.clock())
+                    if remaining <= 0:
+                        raise
+                    try:
+                        reaped(proc.wait(timeout=remaining))
+                    except subprocess.TimeoutExpired:
+                        raise error from None
+                    self.budget.tick()
+                    require(self.budget.clock() < end, 'Owned command phase deadline exceeded')
                 entry.update(identity_state='exited-before-identity', expected_pgid=proc.pid)
             else:
                 require(entry['pgid'] == entry['sid'] == proc.pid, 'Owned command identity differs')

@@ -1000,6 +1000,7 @@ var keyStrings = {
     "Show list of channel archive records": "Tomarên kanalê nîşan bide",
     "Show list of channel archive records without duplication":
         "Tomarên kanalê bê dubare nîşan bide",
+    "Show list separators": "Di lîsteyan de xetên veqetandinê nîşan bide",
     "Show Media Library": "Pirtûkxaneya medyayê nîşan bide",
     "Show picons in channel list": "Di lîsteyê de îkonên kanalan nîşan bide",
     "Show player menu": "Pêşeka lêdêrê nîşan bide",

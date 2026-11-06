@@ -970,6 +970,7 @@ var keyStrings = {
     "Show list of channel archive records": "ಚಾನಲ್ ರೆಕಾರ್ಡಿಂಗ್‌ಗಳನ್ನು ತೋರಿಸಿ",
     "Show list of channel archive records without duplication":
         "ನಕಲುಗಳಿಲ್ಲದೆ ಚಾನಲ್ ರೆಕಾರ್ಡಿಂಗ್‌ಗಳನ್ನು ತೋರಿಸಿ",
+    "Show list separators": "ಪಟ್ಟಿಗಳಲ್ಲಿ ವಿಭಜಕ ರೇಖೆಗಳನ್ನು ತೋರಿಸಿ",
     "Show Media Library": "ಮಾಧ್ಯಮ ಲೈಬ್ರರಿ ತೋರಿಸಿ",
     "Show picons in channel list": "ಪಟ್ಟಿಯಲ್ಲಿ ಚಾನಲ್ ಐಕಾನ್‌ಗಳನ್ನು ತೋರಿಸಿ",
     "Show player menu": "ಪ್ಲೇಯರ್ ಮೆನು ತೋರಿಸಿ",

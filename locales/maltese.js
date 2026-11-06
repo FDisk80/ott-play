@@ -1012,6 +1012,7 @@ var keyStrings = {
         "Uri r-reġistrazzjonijiet tal-kanal",
     "Show list of channel archive records without duplication":
         "Uri r-reġistrazzjonijiet tal-kanal mingħajr duplikati",
+    "Show list separators": "Uri linji separaturi fil-listi",
     "Show Media Library": "Uri l-librerija tal-midja",
     "Show picons in channel list": "Uri l-ikoni tal-kanali fil-lista",
     "Show player menu": "Uri l-menù tal-plejer",

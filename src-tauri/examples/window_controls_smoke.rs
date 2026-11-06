@@ -14,6 +14,9 @@ mod smoke {
     use std::time::{Duration, Instant};
     use tauri::{Listener, Manager};
 
+    #[cfg(target_os = "macos")]
+    static MENU_ZOOM_EVENTS: AtomicUsize = AtomicUsize::new(0);
+
     static LOADED: AtomicUsize = AtomicUsize::new(0);
     static STARTED: AtomicBool = AtomicBool::new(false);
     static REQUEST: AtomicUsize = AtomicUsize::new(0);
@@ -771,7 +774,20 @@ mod smoke {
             tauri::generate_context!("examples/window-controls-smoke/tauri.conf.json")
         };
         let report_output = output.clone();
-        let app = tauri::Builder::default()
+        let builder = tauri::Builder::default();
+        #[cfg(target_os = "macos")]
+        let builder = builder
+            .menu(ottplay_tauri_lib::native_window_smoke_commands::build_native_menu)
+            .on_menu_event(|app, event| {
+                if event.id().as_ref() == "ott.window.zoom" {
+                    MENU_ZOOM_EVENTS.fetch_add(1, Ordering::SeqCst);
+                }
+                ottplay_tauri_lib::native_window_smoke_commands::handle_native_menu(app, event);
+            })
+            .on_window_event(
+                ottplay_tauri_lib::native_window_smoke_commands::native_menu_window_event,
+            );
+        let app = builder
             .manage(window_controls::AlwaysOnTopPersistence::default())
             .manage(window_aspect::WindowAspectLock::default())
             .invoke_handler(tauri::generate_handler![

@@ -1025,6 +1025,7 @@ var keyStrings = {
         "Afficher les enregistrements de la chaîne",
     "Show list of channel archive records without duplication":
         "Afficher les enregistrements de la chaîne sans doublons",
+    "Show list separators": "Afficher les séparateurs dans les listes",
     "Show Media Library": "Afficher la médiathèque",
     "Show picons in channel list":
         "Afficher les icônes des chaînes dans la liste",

@@ -1007,6 +1007,7 @@ var keyStrings = {
     "Show list of channel archive records": "Onyesha rekodi za kituo",
     "Show list of channel archive records without duplication":
         "Onyesha rekodi za kituo bila nakala",
+    "Show list separators": "Onyesha mistari ya kutenganisha kwenye orodha",
     "Show Media Library": "Onyesha maktaba ya midia",
     "Show picons in channel list": "Onyesha aikoni za kituo kwenye orodha",
     "Show player menu": "Onyesha menyu ya kicheza media",

@@ -92,6 +92,26 @@ pub async fn initialize(app: tauri::AppHandle, window: tauri::Window) -> Result<
     restore(&app, &window, &mut initialized).await
 }
 
+/// Reconcile only an already initialized main-window constraint after the
+/// fullscreen owner's native style/geometry barriers. Never load or save a
+/// preference here. The normal caller is the async fullscreen command thread.
+#[cfg(target_os = "macos")]
+pub(crate) fn reconcile_initialized_after_fullscreen(window: &tauri::Window) -> Result<(), String> {
+    if window.label() != "main" {
+        return Ok(());
+    }
+    if objc2::MainThreadMarker::new().is_some() {
+        return macos::reconcile_initialized(window);
+    }
+    let target = window.clone();
+    let mut result = Ok(());
+    let result_slot = &mut result;
+    dispatch2::DispatchQueue::main().exec_sync(move || {
+        *result_slot = macos::reconcile_initialized(&target);
+    });
+    result
+}
+
 #[tauri::command]
 pub async fn get_window_aspect_lock(
     app: tauri::AppHandle,

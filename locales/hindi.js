@@ -969,6 +969,7 @@ var keyStrings = {
     "Show list of channel archive records": "चैनल रिकॉर्डिंग दिखाएं",
     "Show list of channel archive records without duplication":
         "डुप्लिकेट के बिना चैनल रिकॉर्डिंग दिखाएं",
+    "Show list separators": "सूचियों में विभाजक रेखाएँ दिखाएँ",
     "Show Media Library": "मीडिया लाइब्रेरी दिखाएं",
     "Show picons in channel list": "सूची में चैनल आइकन दिखाएँ",
     "Show player menu": "प्लेयर मेनू दिखाएँ",

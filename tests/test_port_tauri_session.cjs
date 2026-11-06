@@ -12,6 +12,10 @@ function wrapper(first, last) {
         compilerOptions: { target: ts.ScriptTarget.ES5 },
     }).outputText;
 }
+const sessionOptions = wrapper(
+    "function nativeMediaSessionOptions(",
+    "// Capacitor Mode C: native media bridges"
+);
 const code = {
     capacitor: wrapper(
         "// Capacitor Mode C: native media bridges",
@@ -172,7 +176,7 @@ function fixture(
     w.stbPause = () => backend.current().pause();
     w.stbContinue = () =>
         playing ? backend.current().pause() : backend.current().resume();
-    vm.runInContext(code[platform], w);
+    vm.runInContext(sessionOptions + code[platform], w);
     return {
         calls,
         fire(kind) {

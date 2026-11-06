@@ -1008,6 +1008,7 @@ var keyStrings = {
     "Show list of channel archive records": "Zenderopnamen tonen",
     "Show list of channel archive records without duplication":
         "Zenderopnamen zonder duplicaten tonen",
+    "Show list separators": "Scheidingslijnen in lijsten tonen",
     "Show Media Library": "Mediabibliotheek tonen",
     "Show picons in channel list": "Zenderlogo's in lijst tonen",
     "Show player menu": "Spelermenu tonen",

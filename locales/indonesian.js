@@ -994,6 +994,7 @@ var keyStrings = {
     "Show list of channel archive records": "Tampilkan rekaman saluran",
     "Show list of channel archive records without duplication":
         "Tampilkan rekaman saluran tanpa duplikat",
+    "Show list separators": "Tampilkan garis pemisah dalam daftar",
     "Show Media Library": "Tampilkan pustaka media",
     "Show picons in channel list": "Tampilkan ikon saluran dalam daftar",
     "Show player menu": "Tampilkan menu pemutar",

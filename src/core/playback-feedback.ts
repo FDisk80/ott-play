@@ -5,6 +5,13 @@
     var expired = false;
     var timer: ReturnType<typeof setTimeout> | null = null;
     var armed = false;
+    var confirmedProgress = false;
+    var observation: {
+        generation: number;
+        media: HTMLVideoElement;
+        source: string;
+        timer: ReturnType<typeof setTimeout> | null;
+    } | null = null;
     var preparing = false;
     var recoveryOverlay = false;
     var lastMessage = "";
@@ -176,6 +183,8 @@
     function progressing(): boolean {
         if (!active || !media || preparing) return false;
         if (source !== sourceKey()) {
+            confirmedProgress = false;
+            cancelObservation();
             armed = true;
             sample();
             return false;
@@ -195,19 +204,68 @@
         return advanced;
     }
     function observe(): void {
-        if (progressing() && (timer || expired)) {
-            clear();
-            expired = false;
-            clearFailure();
-            render("");
+        if (progressing()) {
+            confirmedProgress = true;
+            if (timer || expired) {
+                var held = !!observation;
+                clear();
+                expired = false;
+                clearFailure();
+                // No DOM was changed during the hold; keep healthy metadata intact.
+                if (held) lastMessage = "";
+                else render("");
+            }
         }
     }
+    function cancelObservation(): void {
+        if (observation) clearTimeout(observation.timer!);
+        observation = null;
+    }
+    function observeBuffering(): void {
+        var pending = {
+            generation: generation,
+            media: media!,
+            source: sourceKey(),
+            timer: null as ReturnType<typeof setTimeout> | null,
+        };
+        observation = pending;
+        // A single short presentation window, not a renewable stall deadline.
+        pending.timer = setTimeout(function () {
+            if (observation !== pending) return;
+            if (
+                pending.generation !== generation ||
+                pending.media !== media ||
+                pending.source !== sourceKey()
+            ) {
+                confirmedProgress = false;
+                cancelObservation();
+                return;
+            }
+            // Some devices move currentTime without delivering timeupdate here.
+            observe();
+            if (observation === pending) {
+                cancelObservation();
+                render(lastMessage);
+            }
+        }, 500);
+    }
+    function resetProgress(): void {
+        confirmedProgress = false;
+        var held = !!observation;
+        cancelObservation();
+        sample();
+        // A seek cannot earn recovery or extend the existing failure deadline.
+        if (held) render(lastMessage);
+    }
     function clear(): void {
+        cancelObservation();
         clearTimeout(timer!);
         timer = null;
     }
     function render(message: string): void {
         lastMessage = message;
+        // Retain the existing metadata as well as the hidden spinner until qualified.
+        if (observation) return;
         // The live watchdog owns presentation only; retain this controller's
         // original deadline and terminal state while its OSD is visible.
         if (recoveryOverlay) message = "";
@@ -259,7 +317,12 @@
         );
         render(failure.message);
     }
-    function waiting(message: string, deadline: number): void {
+    function waiting(
+        message: string,
+        deadline: number,
+        buffering = false
+    ): void {
+        if (!buffering) cancelObservation();
         if (!active) {
             render("");
             return;
@@ -274,6 +337,18 @@
             render(host._("Connecting..."));
             return;
         }
+        if (
+            buffering &&
+            confirmedProgress &&
+            !timer &&
+            !observation &&
+            media &&
+            source === sourceKey() &&
+            !media.paused &&
+            !media.seeking &&
+            !media.ended
+        )
+            observeBuffering();
         render(message);
         // Repeated progress/waiting/retry events must not extend the deadline.
         if (!timer) {
@@ -292,6 +367,7 @@
     ): void {
         clear();
         generation++;
+        confirmedProgress = false;
         clearFailure();
         active = !paused;
         expired = false;
@@ -309,7 +385,10 @@
         begin: begin,
         bind: function (next: HTMLVideoElement, refresh?: () => void): void {
             if (media === next) return;
+            confirmedProgress = false;
+            cancelObservation();
             media = next;
+            sample();
             refreshInfo = refresh;
             function on(name: string, action: () => void): void {
                 next.addEventListener(name, function () {
@@ -317,17 +396,19 @@
                 });
             }
             on("loadstart", function () {
+                confirmedProgress = false;
                 armed = true;
                 sample();
                 waiting(host._("Connecting..."), 30000);
             });
             function buffering(): void {
-                waiting(host._("Buffering..."), 45000);
+                waiting(host._("Buffering..."), 45000, true);
             }
             on("waiting", buffering);
             on("stalled", buffering);
             on("timeupdate", observe);
-            on("seeked", sample);
+            on("seeking", resetProgress);
+            on("seeked", resetProgress);
             on("pause", function () {
                 // Engine preparation also pauses media: only explicit pause intent
                 // cancels feedback. A late preparation event cannot cancel startup.
@@ -344,6 +425,9 @@
         },
         inactive: function (): boolean {
             return !active;
+        },
+        ownsMedia: function (next: HTMLVideoElement): boolean {
+            return media === next;
         },
         prepare: function (paused?: boolean): void {
             begin(paused, false, undefined, true);

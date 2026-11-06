@@ -984,6 +984,7 @@ var keyStrings = {
     "Show list of channel archive records": "Zobrazit nahrávky kanálu",
     "Show list of channel archive records without duplication":
         "Zobrazit nahrávky kanálu bez duplicit",
+    "Show list separators": "Zobrazit oddělovací čáry v seznamech",
     "Show Media Library": "Zobrazit knihovnu médií",
     "Show picons in channel list": "Zobrazovat ikony kanálů v seznamu",
     "Show player menu": "Zobrazit nabídku přehrávače",

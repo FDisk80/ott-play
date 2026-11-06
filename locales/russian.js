@@ -988,6 +988,7 @@ var keyStrings = {
     "Show list of channel archive records": "Показать записи канала",
     "Show list of channel archive records without duplication":
         "Показать записи канала без повторений",
+    "Show list separators": "Показывать разделители в списках",
     "Show Media Library": "Показать медиатеку",
     "Show picons in channel list": "Показывать значки каналов в списке",
     "Show player menu": "Показать меню плеера",

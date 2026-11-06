@@ -186,17 +186,22 @@ Run on **macOS / Windows / Linux** desktop window. Skip rows that need credentia
 - [ ] Settings open (F2 / equivalent)
 - [ ] Window title / size / position behave normally
 - [ ] In both Classic and Modern, Menu → Full screen enters/exits native window fullscreen; the confirmation reports the resulting on/off state
-- [ ] Menu → Always on top keeps the main window above other applications; selecting it again disables this behavior without changing PiP
+- [ ] In both Classic and Modern, Settings → Interface → Always on top keeps the main window above other applications; selecting it again disables this behavior without changing PiP
+- [ ] Settings → Interface → Lock window to 16:9 reports the confirmed preference on supported hosts; enabling it does not immediately resize the window or change video aspect/zoom. An unsupported backend reports Unavailable without saving a new preference
+- [ ] These two actions no longer appear in Menu; Full screen remains in Menu
 - [ ] Enable Always on top, close and reopen the same app instance: the main window remains on top. Disable it, close and reopen: the main window returns to normal
 - [ ] Two separately configured app instances retain independent Always on top preferences
-- [ ] Repeated clicks during a pending window change do not cause extra toggles; closing or replacing Menu before a reply does not reopen or close another screen
+- [ ] Repeated clicks during a pending window change do not cause extra toggles; closing or replacing the originating Menu or Interface page before a reply does not reopen or close another screen
+- [ ] Change an ordinary Interface setting without saving, then toggle a native window action: the Interface page, selection and draft remain. Cancel discards the ordinary draft but does not undo the confirmed native action
 - [ ] With menus closed, press `L` to enter fullscreen, then `L` again to restore the original window size without clicking or opening Menu
 - [ ] Repeat `L` → `Escape` several times; Escape exits fullscreen without opening the app-exit dialog, and the next key still reaches the player
 - [ ] Repeat after clicking the video and after opening/closing Menu; keyboard behavior must not depend on the overlay
 - [ ] On macOS Tahoe, enter fullscreen with dark video or black letterboxing: all four outer screen edges must be free of a gray 1px window rim, including after switching focus away and back
 - [ ] Exit fullscreen: the normal window shadow returns; repeat `L` → `L` and `L` → `Escape` without losing the original size or keyboard focus
 
-The two Menu actions belong to the main Tauri desktop window. They are not shown in browser, mobile or PiP players. A failed native request reports an error instead of confirming an unverified state. After a confirmed native change, Always on top is saved in the current app instance's data directory and restored on its next launch. Missing or invalid preferences use the normal window default. A save failure reports an error; the current window may already have changed, but persistence is not claimed. These controls do not change a provider or restart playback.
+Full screen in Menu and the two window actions in Settings → Interface belong to the main Tauri desktop window. They are not shown in browser, TV, mobile or PiP players. A failed native request reports an error instead of confirming an unverified state. After a confirmed native change, Always on top is saved in the current app instance's data directory and restored on its next launch. Missing or invalid preferences use the normal window default. A save failure reports an error; the current window may already have changed, but persistence is not claimed. These controls do not change a provider or restart playback.
+
+Always on top and Lock window to 16:9 apply immediately through the native host; they do not wait for Save Settings. Their successful confirmation leaves Interface open with its other pending edits intact. Cancel does not undo a native window action. Other editable Interface preferences retain their normal Save/Cancel draft behavior. Hiding an old Menu entry does not hide either action in Interface. See [native aspect constraint limits](native-window-aspect-lock.md) for backend support.
 
 On macOS, this checks native WebView focus as well as fullscreen geometry.
 Tao changes the window style when entering/exiting simple fullscreen and can

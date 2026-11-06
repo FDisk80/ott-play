@@ -989,6 +989,7 @@ var keyStrings = {
     "Show list of channel archive records": "د چینل ریکارډونه ښکاره کړئ",
     "Show list of channel archive records without duplication":
         "د نقلونو پرته د چینل ریکارډونه ښکاره کړئ",
+    "Show list separators": "په لېستونو کې بېلوونکې کرښې ښکاره کړئ",
     "Show Media Library": "د رسنیو کتابتون وښایاست",
     "Show picons in channel list": "په لیست کې د چینل شبیه ښکاره کړئ",
     "Show player menu": "د میډیا پلیر مینو وښایاست",

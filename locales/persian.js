@@ -991,6 +991,7 @@ var keyStrings = {
         "نمایش برنامه های تلویزیونی ضبط شده این کانال",
     "Show list of channel archive records without duplication":
         "برنامه های تلویزیونی ضبط شده این کانال را بدون تکرار نمایش دهید",
+    "Show list separators": "نمایش خطوط جداکننده در فهرست‌ها",
     "Show Media Library": "نمایش کتابخانه رسانه",
     "Show picons in channel list": "نمایش نمادهای کانال در لیست",
     "Show player menu": "نمایش منوی پخش کننده",

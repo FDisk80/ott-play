@@ -993,6 +993,7 @@ var keyStrings = {
         "Арнаның мұрағат жазбаларын көрсету",
     "Show list of channel archive records without duplication":
         "Арнаның мұрағат жазбаларын қайталаусыз көрсету",
+    "Show list separators": "Тізімдерде бөлгіш сызықтарды көрсету",
     "Show Media Library": "Медиа кітапханасын көрсету",
     "Show picons in channel list": "Арналар тізімінде белгішелерді көрсету",
     "Show player menu": "Ойнатқыш мәзірін көрсету",

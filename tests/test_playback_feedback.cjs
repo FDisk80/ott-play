@@ -108,8 +108,14 @@ function fixture() {
     f.event("timeupdate");
     assert.equal(f.text(), "");
     f.event("waiting");
+    assert.equal(
+        f.busy(),
+        false,
+        "confirmed playback gets a bounded presentation hold"
+    );
+    f.advance(500);
     assert.equal(f.busy(), true);
-    f.advance(45000);
+    f.advance(44500);
     assert.equal(f.busy(), false);
     f.w.close();
 }
@@ -272,10 +278,16 @@ function fixture() {
     f.event("timeupdate");
     assert.equal(
         f.busy(),
+        false,
+        "the existing presentation hold is not bypassed by a jump"
+    );
+    f.advance(500);
+    assert.equal(
+        f.busy(),
         true,
         "implausible time jump is not decoded playback"
     );
-    f.advance(45000);
+    f.advance(44500);
     assert.match(f.text(), /timed out/);
     f.w.close();
 }

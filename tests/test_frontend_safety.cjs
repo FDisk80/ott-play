@@ -418,8 +418,7 @@ test("EPG list titles are escaped without losing current-programme highlighting"
         };
         w.listEpgArray = [programme];
         w.eval(
-            variable("src/settings/index.ts", "epgTimeColors") +
-                func("src/channels/index.ts", "formatEpgTime") +
+            func("src/channels/index.ts", "formatEpgTime") +
                 func("src/channels/index.ts", "formatEpgDate") +
                 func("src/channels/index.ts", "itemEPG")
         );
@@ -587,6 +586,8 @@ test("Capacitor hides unavailable TMDb; web and Tauri retain the functional acti
                 )
             ) +
                 variable("src/index.ts", "TMDb") +
+                func("src/ui/index.ts", "infoSearchFooter") +
+                func("src/ui/index.ts", "searchInfoTmdb") +
                 func("src/ui/index.ts", "showProgramInfo")
         );
         let calls = [];
@@ -614,6 +615,118 @@ test("Capacitor hides unavailable TMDb; web and Tauri retain the functional acti
         assert.equal(calls.length, 2);
     } finally {
         w.close();
+    }
+});
+test("programme and media info keep distinct search shortcuts and late service state", () => {
+    for (const screen of ["programme", "media"]) {
+        for (const enabled of [false, true]) {
+            const w = fixture();
+            try {
+                let handler;
+                let restored = 0;
+                let service = enabled;
+                const searches = [];
+                const hints = [];
+                const title = "A title <unchanged>";
+                Object.assign(w, {
+                    __ottClassicScreenPort: {
+                        savedPanel: () => ({ ld: "Programme description" }),
+                        setOwnedCallback: (_owner, next) => {
+                            handler = next;
+                        },
+                    },
+                    getMediaDescr: () => "Media description",
+                    hasTmdbService: () => service,
+                    listArray: [{ title }],
+                    renderButtonHint: (...args) => {
+                        hints.push(args);
+                        return args[2];
+                    },
+                    restoreListPanelState: () => restored++,
+                    sArrowFun: 2,
+                    selIndex: 0,
+                    sPNFun: 1,
+                    sRewFun: 1,
+                    TMDb: { search: (value) => searches.push(value) },
+                });
+                w.eval(
+                    [
+                        "infoSearchFooter",
+                        "searchInfoTmdb",
+                        "showProgramInfo",
+                        "infoMedia",
+                    ]
+                        .map((name) => func("src/ui/index.ts", name))
+                        .join("\n")
+                );
+                function open() {
+                    if (screen === "programme") w.showProgramInfo(title);
+                    else w.infoMedia();
+                }
+                for (const key of [
+                    "N2",
+                    "INFO",
+                    "RIGHT",
+                    "FF",
+                    "NEXT",
+                    "RETURN",
+                ]) {
+                    restored = 0;
+                    searches.length = 0;
+                    hints.length = 0;
+                    open();
+                    assert.equal(w.listCaptionElement.textContent, title);
+                    assert.equal(
+                        hints.some((hint) => hint[2] === "TMDb"),
+                        enabled
+                    );
+                    if (enabled)
+                        assert.equal(
+                            hints.find((hint) => hint[2] === "TMDb")[4],
+                            w.strRIGHT
+                        );
+                    assert.equal(handler(w.keys[key]), true);
+                    const admitted =
+                        key !== "RETURN" &&
+                        (screen === "programme" ||
+                            (key !== "FF" && key !== "NEXT"));
+                    assert.deepEqual(
+                        searches,
+                        admitted && enabled ? [title] : []
+                    );
+                    assert.equal(restored, admitted ? 0 : 1);
+                }
+                for (const [key, setting] of [
+                    ["RIGHT", "sArrowFun"],
+                    ["FF", "sRewFun"],
+                    ["NEXT", "sPNFun"],
+                ]) {
+                    restored = 0;
+                    searches.length = 0;
+                    w[setting] = 0;
+                    open();
+                    handler(w.keys[key]);
+                    assert.deepEqual(searches, []);
+                    assert.equal(
+                        restored,
+                        1,
+                        "Unmapped shortcuts retain their close behavior"
+                    );
+                    w[setting] = setting === "sArrowFun" ? 2 : 1;
+                }
+                searches.length = 0;
+                open();
+                service = !enabled;
+                handler(w.keys.N2);
+                assert.deepEqual(
+                    searches,
+                    service ? [title] : [],
+                    "Search samples current service availability"
+                );
+            } finally {
+                w.close();
+            }
+        }
     }
 });
 const startupFailure = new Error(hostile + ' & "message"');
@@ -1025,6 +1138,322 @@ test("Play URL policy explains remote HTTP rejection without changing Full or lo
         w.close();
     }
 });
+test("EPG color updates an already-rendered time row across default, custom and legacy", () => {
+    const w = fixture();
+    try {
+        w.eval(
+            fs.readFileSync(path.join(root, "vendor/ottplay-core.js"), "utf8")
+        );
+        const programme = {
+            name: "Programme",
+            programmeId: "color-row",
+            time: 100,
+            time_to: 200,
+        };
+        Object.assign(w, {
+            $tooltipSpan: null,
+            channels: { fixture: { rec: false } },
+            epg_ch_id: "fixture",
+            listEpgArray: [programme],
+            settings: {
+                epgTimeColor: 0,
+                highlightColor: "50,85",
+                highlightColorB: "255,0",
+                highlightColorSel: "50,85",
+                interfaceTheme: 0,
+                osdOpacity: 7,
+                showListSeparators: 0,
+            },
+            stbSetOsdOpacity() {},
+            tooltip: null,
+        });
+        w.eval(
+            variable("src/settings/index.ts", "epgTimeColors") +
+                func("src/settings/index.ts", "epgTimeColorPair") +
+                func("src/ui/index.ts", "hsvToRgb") +
+                func("src/ui/index.ts", "epgTimeCssColor") +
+                func("src/index.ts", "classicColorRgb") +
+                func("src/index.ts", "setColor") +
+                func("src/channels/index.ts", "formatEpgTime") +
+                func("src/channels/index.ts", "formatEpgDate") +
+                func("src/channels/index.ts", "itemEPG")
+        );
+        const list = w.document.getElementById("listIn");
+        list.innerHTML = w.itemEPG(programme, 0);
+        const time = list.querySelector(".ott-epg-time"),
+            original = list.innerHTML;
+        const structure = () => {
+            const copy = list.cloneNode(true);
+            copy.querySelector(".ott-epg-time").removeAttribute("style");
+            return copy.innerHTML;
+        };
+        assert(time);
+        for (const [value, color] of [
+            [0, "inherit"],
+            [6 + 211 * 101 + 65, "rgb(89,169,255)"],
+            [106, "rgb(255,0,0)"],
+            [36466, "rgb(255,0,0)"],
+            [1, "#FFFFFF"],
+            [2, "#FFFF00"],
+            [3, "#00FFFF"],
+            [4, "#00FF00"],
+            [5, "#FFB3FF"],
+            [0, "inherit"],
+        ]) {
+            w.settings.epgTimeColor = value;
+            w.setColor();
+            assert.equal(
+                w.document.documentElement.style.getPropertyValue(
+                    "--ott-epg-time-color"
+                ),
+                color
+            );
+            assert.equal(
+                list.querySelector(".ott-epg-time"),
+                time,
+                "No row replacement"
+            );
+            assert.equal(structure(), original);
+            assert.equal(
+                time.style.length,
+                1,
+                "Only the time color is changed"
+            );
+            assert.equal(time.style.item(0), "color");
+            assert.equal(w.settings.showListSeparators, 0);
+            assert.equal(
+                w.document.body.classList.contains("hide-list-separators"),
+                true
+            );
+        }
+        for (const hue of [0, 360]) {
+            w.settings.highlightColor = hue + ",100";
+            w.settings.highlightColorSel = hue + ",100";
+            w.setColor();
+            assert.equal(w.curColor, "rgb(255,0,0)");
+            assert.equal(w.curColorB, "rgb(128,0,0)");
+        }
+        for (const value of [
+            undefined,
+            -1,
+            36467,
+            6.5,
+            NaN,
+            Infinity,
+            "1",
+            "red;display:none",
+            "__proto__",
+        ]) {
+            w.settings.epgTimeColor = value;
+            w.setColor();
+            assert.equal(
+                w.document.documentElement.style.getPropertyValue(
+                    "--ott-epg-time-color"
+                ),
+                "inherit"
+            );
+        }
+        // The shared colour update must keep the two preferences independent.
+        w.settings.epgTimeColor = 6 + 211 * 101 + 65;
+        w.setColor();
+        assert.equal(
+            w.document.body.classList.contains("hide-list-separators"),
+            true
+        );
+        w.settings.showListSeparators = 1;
+        w.setColor();
+        assert.equal(
+            w.document.body.classList.contains("hide-list-separators"),
+            false
+        );
+        assert.equal(w.settings.epgTimeColor, 6 + 211 * 101 + 65);
+        assert.equal(
+            w.document.documentElement.style.getPropertyValue(
+                "--ott-epg-time-color"
+            ),
+            "rgb(89,169,255)"
+        );
+    } finally {
+        w.close();
+    }
+});
+
+test("EPG color paints current and future rows without CSS variables", () => {
+    const w = fixture();
+    try {
+        w.eval(
+            fs.readFileSync(path.join(root, "vendor/ottplay-core.js"), "utf8")
+        );
+        w.Date.now = () => 150000;
+        // Model a legacy engine that ignores custom properties. Begin with no
+        // stylesheet: the real boot loader does not await player.css.
+        const rootStyle = w.document.documentElement.style;
+        const setProperty = rootStyle.setProperty.bind(rootStyle);
+        rootStyle.setProperty = (name, value, priority) => {
+            if (!name.startsWith("--")) setProperty(name, value, priority);
+        };
+        const programme = {
+            name: "Programme <unchanged>",
+            programmeId: "legacy-color",
+            time: 100,
+            time_to: 200,
+        };
+        Object.assign(w, {
+            $infoBar: w.$("<div>"),
+            $tooltipSpan: null,
+            channels: { fixture: { rec: false } },
+            epg_ch_id: "fixture",
+            getViewportWidthScale: () => 1,
+            listArray: [programme],
+            listDataArray: [programme],
+            listElement: null,
+            listEpgArray: [programme],
+            listFitPageSize: (wanted) => wanted,
+            listInElement: w.document.getElementById("listIn"),
+            listRowHeight: () => 28,
+            packListRowBoxes: () => 28,
+            requestAnimationFrame: () => 1,
+            scheduleListDetailUpdate() {},
+            selIndex: 0,
+            settings: {
+                epgTimeColor: 0,
+                highlightColor: "50,85",
+                highlightColorB: "255,0",
+                highlightColorSel: "50,85",
+                interfaceTheme: 0,
+                noSmall: 1,
+                osdOpacity: 7,
+                pageSize: 25,
+                showListSeparators: 0,
+                showScroll: 0,
+            },
+            stbSetOsdOpacity() {},
+            tooltip: null,
+        });
+        w.eval(
+            variable("src/settings/index.ts", "epgTimeColors") +
+                func("src/settings/index.ts", "epgTimeColorPair") +
+                func("src/ui/index.ts", "hsvToRgb") +
+                func("src/ui/index.ts", "epgTimeCssColor") +
+                func("src/index.ts", "classicColorRgb") +
+                func("src/index.ts", "setColor") +
+                func("src/channels/index.ts", "formatEpgTime") +
+                func("src/channels/index.ts", "formatEpgDate") +
+                func("src/channels/index.ts", "itemEPG") +
+                func("src/ui/index.ts", "showPage")
+        );
+        w.getListItemFn = w.itemEPG;
+        const list = w.document.getElementById("listIn");
+        assert(
+            !w.itemEPG(programme, 0).includes("style="),
+            "No inline markup is introduced"
+        );
+        w.settings.epgTimeColor = 2;
+        w.setColor();
+        w.showPage();
+        assert.equal(
+            w.getComputedStyle(list.querySelector(".ott-epg-time")).color,
+            "rgb(255, 255, 0)",
+            "First render does not depend on stylesheet readiness"
+        );
+        assert.equal(
+            list.querySelector(".ott-epg-time").getAttribute("dir"),
+            "auto"
+        );
+        assert.equal(list.querySelector("unchanged"), null);
+        const style = w.document.createElement("style");
+        const css = fs.readFileSync(
+            path.join(root, "styles/player.css"),
+            "utf8"
+        );
+        const shippedRule = css.match(/\.ott-epg-time\s*\{[^}]*\}/);
+        assert(shippedRule);
+        style.textContent = shippedRule[0];
+        w.document.head.appendChild(style);
+        style.sheet.cssRules[0].style.removeProperty("color");
+        for (const [value, expected] of [
+            [1, "rgb(255, 255, 255)"],
+            [2, "rgb(255, 255, 0)"],
+            [3, "rgb(0, 255, 255)"],
+            [4, "rgb(0, 255, 0)"],
+            [5, "rgb(255, 179, 255)"],
+            [6 + 211 * 101 + 65, "rgb(89, 169, 255)"],
+            [36466, "rgb(255, 0, 0)"],
+        ]) {
+            const current = list.querySelector(".ott-epg-time");
+            const title = list.querySelector(".ott-epg-current-title");
+            const titleColor = title.style.color;
+            w.settings.epgTimeColor = value;
+            w.setColor();
+            assert.equal(w.getComputedStyle(current).color, expected);
+            assert.equal(
+                list.querySelector(".ott-epg-time"),
+                current,
+                "Recolor must not replace the row"
+            );
+            assert.equal(
+                title.style.color,
+                titleColor,
+                "Programme highlighting is unchanged"
+            );
+            assert.equal(title.textContent, programme.name);
+            w.showPage();
+            const future = list.querySelector(".ott-epg-time");
+            assert.notEqual(
+                future,
+                current,
+                "Exercise an actual subsequent render"
+            );
+            assert.equal(w.getComputedStyle(future).color, expected);
+            assert.equal(
+                rootStyle.getPropertyValue("--ott-epg-time-color"),
+                ""
+            );
+        }
+        for (const value of [0, undefined, -1, 36467, 6.5, NaN, "1"]) {
+            w.settings.epgTimeColor = value;
+            w.setColor();
+            assert.equal(
+                list.querySelector(".ott-epg-time").style.color,
+                "inherit",
+                "Default or invalid value clears the current color"
+            );
+            w.showPage();
+            assert.equal(
+                list.querySelector(".ott-epg-time").style.color,
+                "inherit",
+                "Inherited color also survives a later render"
+            );
+        }
+        const originalPair = w.epgTimeColorPair;
+        let colorReads = 0;
+        w.epgTimeColorPair = (value) => {
+            colorReads++;
+            return originalPair(value);
+        };
+        w.listArray = w.listDataArray = [
+            programme,
+            { ...programme, programmeId: "second" },
+        ];
+        w.settings.epgTimeColor = 36466;
+        w.showPage();
+        assert.equal(list.querySelectorAll(".ott-epg-time").length, 2);
+        assert.equal(
+            colorReads,
+            1,
+            "Resolve the shared color once per painted page"
+        );
+        assert(
+            [...list.querySelectorAll(".ott-epg-time")].every(
+                (node) => node.style.color === "rgb(255, 0, 0)"
+            )
+        );
+        assert.equal(w.settings.showListSeparators, 0);
+    } finally {
+        w.close();
+    }
+});
+
 (async function () {
     const w = fixture();
     try {

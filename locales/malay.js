@@ -990,6 +990,7 @@ var keyStrings = {
     "Show list of channel archive records": "Tunjukkan rakaman saluran",
     "Show list of channel archive records without duplication":
         "Tunjukkan rakaman saluran tanpa pendua",
+    "Show list separators": "Tunjukkan garis pemisah dalam senarai",
     "Show Media Library": "Tunjukkan pustaka media",
     "Show picons in channel list": "Tunjukkan ikon saluran dalam senarai",
     "Show player menu": "Tunjukkan menu pemain",

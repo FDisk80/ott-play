@@ -993,6 +993,7 @@ var keyStrings = {
     "Show list of channel archive records": "Näytä kanavan tallenteet",
     "Show list of channel archive records without duplication":
         "Näytä kanavatallenteet ilman kaksoiskappaleita",
+    "Show list separators": "Näytä erotinviivat luetteloissa",
     "Show Media Library": "Näytä mediakirjasto",
     "Show picons in channel list": "Näytä kanavakuvakkeet luettelossa",
     "Show player menu": "Näytä mediasoittimen valikko",

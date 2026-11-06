@@ -267,6 +267,178 @@ class DriverTests(unittest.TestCase):
         self.assertTrue(proc.stdout.closed)
         return error, self.driver.commands[-1], state
 
+    def identity_transition(self, *, lookup='getpgid', exit_code=0, outcome='exit',
+                            group_state='absent', limit=1, start=0):
+        """Model ESRCH before waitpid can reap, without launching or signalling a child."""
+        self.clock.now = start
+        read_fd, write_fd = os.pipe()
+        os.write(write_fd, b'identity-transition\n')
+        os.close(write_fd)
+        state = {'events': [], 'waits': [], 'probes': [], 'signals': [], 'reaped': False}
+        failure = ProcessLookupError('identity vanished before reap')
+        wait_failure = PermissionError('wait status unavailable')
+        fixture = self
+        class Process:
+            pid = 424242
+            stdout = os.fdopen(read_fd, 'rb')
+            returncode = None
+            polls = 0
+            def poll(proc):
+                proc.polls += 1
+                # The baseline reaches its second poll only in cleanup. It must
+                # still fail even though that later poll finds a successful exit.
+                if proc.polls > 1 and outcome in ('exit', 'late'):
+                    proc.returncode = exit_code
+                if proc.returncode is not None:
+                    state['reaped'] = True
+                state['events'].append(('poll', proc.returncode))
+                return proc.returncode
+            def wait(proc, timeout):
+                fixture.assertGreater(timeout, 0)
+                if proc.returncode is None:
+                    state['waits'].append(timeout)
+                    state['events'].append(('wait', timeout))
+                    if outcome == 'error':
+                        raise wait_failure
+                    if outcome == 'timeout':
+                        fixture.clock.now += timeout
+                        raise m.subprocess.TimeoutExpired('identity-transition', timeout)
+                    fixture.clock.now += timeout if outcome == 'late' else min(.01, timeout / 2)
+                    proc.returncode = exit_code
+                state['reaped'] = True
+                return proc.returncode
+            def send_signal(proc, sig):
+                fixture.assertFalse(state['reaped'], 'handle signal after reap')
+                state['signals'].append(sig)
+                proc.returncode = -sig
+        proc = Process()
+        def spawn(_argv, **kwargs):
+            self.assertTrue(kwargs['start_new_session'])
+            return proc
+        def missing(pid):
+            self.assertEqual(pid, proc.pid)
+            raise failure
+        def probe(pgid, sig):
+            self.assertEqual(pgid, proc.pid)
+            self.assertEqual(sig, 0, 'unverified group must never be signalled')
+            self.assertTrue(state['reaped'], 'group absence is checked only after reap')
+            state['probes'].append(sig)
+            if group_state == 'denied':
+                raise PermissionError('group status unavailable')
+            if group_state == 'absent' or (group_state == 'reappears' and len(state['probes']) == 1):
+                raise ProcessLookupError()
+        name = 'identity-transition-' + str(len(self.driver.commands))
+        error = None
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(m.subprocess, 'Popen', side_effect=spawn))
+            stack.enter_context(mock.patch.object(m.os, 'getpgid', side_effect=missing if lookup == 'getpgid' else lambda pid: pid))
+            stack.enter_context(mock.patch.object(m.os, 'getsid', side_effect=missing if lookup == 'getsid' else lambda pid: pid))
+            stack.enter_context(mock.patch.object(m.os, 'killpg', side_effect=probe))
+            stack.enter_context(mock.patch.object(self.driver, 'sample'))
+            try:
+                self.driver.run(name, ['identity-transition-fixture'], limit=limit)
+            except BaseException as caught:
+                error = caught
+        self.assertTrue(proc.stdout.closed)
+        self.assertEqual(state['events'][0], ('poll', None))
+        return error, self.driver.commands[-1], state, failure, wait_failure
+
+    def test_identity_esrch_then_pending_poll_then_exit_zero_is_collected(self):
+        for lookup in ('getpgid', 'getsid'):
+            with self.subTest(lookup=lookup):
+                error, entry, state, _failure, _wait_failure = self.identity_transition(lookup=lookup)
+                self.assertIsNone(error, 'ESRCH-to-reap transition must succeed')
+                self.assertEqual(state['events'][:2], [('poll', None), ('wait', 1)])
+                self.assertEqual(state['waits'], [1])
+                self.assertEqual(state['signals'], [])
+                self.assertEqual(state['probes'], [0, 0])
+                self.assertEqual(entry['exit_code'], 0)
+                self.assertTrue(entry['reaped'])
+                self.assertTrue(entry['group_gone'])
+                self.assertTrue(entry['cleanup_confirmed'])
+                self.assertFalse(entry['ownership_verified'])
+                self.assertEqual(entry['identity_state'], 'exited-before-identity')
+                self.assertEqual(entry['expected_pgid'], entry['pid'])
+                self.assertIsNone(entry['pgid'])
+                self.assertIsNone(entry['sid'])
+                log = self.driver.evidence / 'logs' / (entry['name'] + '.log')
+                self.assertEqual(log.read_bytes(), b'identity-transition\n')
+
+    def test_identity_transition_nonzero_exit_stays_failed(self):
+        error, entry, state, _failure, _wait_failure = self.identity_transition(exit_code=7)
+        self.assertIsInstance(error, RuntimeError)
+        self.assertIn('Owned command failed', str(error))
+        self.assertEqual(entry['exit_code'], 7)
+        self.assertTrue(entry['cleanup_confirmed'])
+        self.assertFalse(entry['ownership_verified'])
+        self.assertEqual(state['signals'], [])
+
+    def test_identity_transition_unsettled_child_keeps_original_error_and_handle_cleanup(self):
+        for lookup in ('getpgid', 'getsid'):
+            with self.subTest(lookup=lookup):
+                error, entry, state, failure, _wait_failure = self.identity_transition(lookup=lookup, outcome='timeout')
+                self.assertIs(error, failure)
+                self.assertEqual(state['waits'], [1])
+                self.assertEqual(state['signals'], [m.signal.SIGTERM])
+                self.assertEqual(state['probes'], [])
+                self.assertNotIn('identity_state', entry)
+                self.assertTrue(entry['reaped'])
+                self.assertFalse(entry['ownership_verified'])
+                self.assertFalse(entry['cleanup_confirmed'])
+
+    def test_identity_transition_wait_error_cannot_establish_identity(self):
+        error, entry, state, _failure, wait_failure = self.identity_transition(outcome='error')
+        self.assertIs(error, wait_failure)
+        self.assertEqual(state['signals'], [m.signal.SIGTERM])
+        self.assertEqual(state['probes'], [])
+        self.assertNotIn('identity_state', entry)
+        self.assertFalse(entry['ownership_verified'])
+        self.assertFalse(entry['cleanup_confirmed'])
+
+    def test_identity_transition_requires_absent_group_even_after_exit_zero(self):
+        for group_state in ('present', 'reappears', 'denied'):
+            with self.subTest(group_state=group_state):
+                error, entry, state, _failure, _wait_failure = self.identity_transition(group_state=group_state)
+                self.assertIsInstance(error, PermissionError if group_state == 'denied' else RuntimeError)
+                self.assertTrue(entry['reaped'])
+                self.assertEqual(entry['exit_code'], 0)
+                self.assertFalse(entry['ownership_verified'])
+                self.assertFalse(entry['group_gone'])
+                self.assertFalse(entry['cleanup_confirmed'])
+                self.assertEqual(state['signals'], [])
+                self.assertGreaterEqual(len(state['probes']), 2)
+
+    def test_identity_transition_wait_uses_remaining_phase_and_work_deadline(self):
+        for options in ({'limit': .025}, {'start': self.budget.work_deadline - .025}):
+            with self.subTest(options=options):
+                error, entry, state, failure, _wait_failure = self.identity_transition(outcome='timeout', **options)
+                self.assertIs(error, failure)
+                self.assertEqual(len(state['waits']), 1)
+                self.assertAlmostEqual(state['waits'][0], .025)
+                self.assertNotIn('identity_state', entry)
+                self.assertFalse(entry['cleanup_confirmed'])
+
+    def test_identity_transition_exit_at_deadline_cannot_pass(self):
+        for options, expected in (({}, RuntimeError),
+                                  ({'start': self.budget.work_deadline - .025}, m.DeadlineError)):
+            with self.subTest(options=options):
+                error, entry, state, _failure, _wait_failure = self.identity_transition(outcome='late', **options)
+                self.assertIsInstance(error, expected)
+                self.assertIn('deadline', str(error))
+                self.assertTrue(entry['reaped'])
+                self.assertNotIn('identity_state', entry)
+                self.assertEqual(state['signals'], [])
+                self.assertFalse(entry['cleanup_confirmed'])
+
+    def test_identity_transition_expired_phase_does_not_wait(self):
+        error, entry, state, failure, _wait_failure = self.identity_transition(limit=0)
+        self.assertIs(error, failure)
+        self.assertEqual(state['waits'], [])
+        self.assertEqual(state['signals'], [])
+        self.assertTrue(entry['reaped'])
+        self.assertNotIn('identity_state', entry)
+        self.assertFalse(entry['cleanup_confirmed'])
+
     def early_command(self, *, lookup='getpgid', exit_code=0, identity_error=None,
                       group_state='absent', expire=False, log_cap=None):
         """Return a genuinely reaped child, keeping its real stdout pipe unread."""

@@ -173,7 +173,11 @@ function createDesktopWindowControls(host: any) {
                 notify(kind, state);
                 if (state === "unsupported") return;
                 try {
-                    if (typeof host.closeList === "function") host.closeList();
+                    if (
+                        !context.keepOpen &&
+                        typeof host.closeList === "function"
+                    )
+                        host.closeList();
                 } catch (_) {}
             },
             function () {
@@ -294,6 +298,31 @@ function createScreenMenuRegistry() {
             nativeControls.push(createDesktopWindowControls(host));
         }
         return nativeControls[index];
+    }
+    function windowSettings(host: any) {
+        var context: any = { keepOpen: true, owner: null };
+        var controls = desktopControls(host);
+        return {
+            bindOwner: function () {
+                var port = host.__ottClassicScreenPort;
+                context.owner = port && port.listOwner();
+            },
+            rows: ["alwaysOnTop", "aspectLock"]
+                .filter(function (kind) {
+                    return controls.available(kind);
+                })
+                .map(function (kind) {
+                    return {
+                        cur: host._ ? host._("select") : "select",
+                        id: "window." + kind,
+                        name: controls.title(kind),
+                        val: 0,
+                        values: function () {
+                            return controls.run(kind, context);
+                        },
+                    };
+                }),
+        };
     }
     var bindings: Array<[string, string]> = [
         ["ZOOM", "video.zoom"],
@@ -440,22 +469,20 @@ function createScreenMenuRegistry() {
         var records = importClassic(host);
         var context: any = { owner: null };
         var controls = desktopControls(host);
-        ["fullscreen", "alwaysOnTop", "aspectLock"].forEach(
-            function (kind, index) {
-                if (!controls.available(kind)) return;
-                records.push({
-                    action: function () {
-                        return controls.run(kind, context);
-                    },
-                    detail: controls.title(kind),
-                    hint: kind === "fullscreen" ? "L" : undefined,
-                    id: "window." + kind,
-                    legacyId: "window." + kind,
-                    sourceIndex: -2 - index,
-                    title: controls.title(kind),
-                });
-            }
-        );
+        ["fullscreen"].forEach(function (kind, index) {
+            if (!controls.available(kind)) return;
+            records.push({
+                action: function () {
+                    return controls.run(kind, context);
+                },
+                detail: controls.title(kind),
+                hint: kind === "fullscreen" ? "L" : undefined,
+                id: "window." + kind,
+                legacyId: "window." + kind,
+                sourceIndex: -2 - index,
+                title: controls.title(kind),
+            });
+        });
         var hidden = host.sHideMenus || [];
         var focus = 0;
         var rows = records
@@ -528,6 +555,11 @@ function createScreenMenuRegistry() {
             rows: rows,
         };
     }
-    return { defaults: defaults, importClassic: importClassic, open: open };
+    return {
+        defaults: defaults,
+        importClassic: importClassic,
+        open: open,
+        windowSettings: windowSettings,
+    };
 }
 (window as any).__ottMenuRegistry = createScreenMenuRegistry();

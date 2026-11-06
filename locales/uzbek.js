@@ -1005,6 +1005,7 @@ var keyStrings = {
     "Show list of channel archive records": "Kanal yozuvlarini koʻrsatish",
     "Show list of channel archive records without duplication":
         "Kanal yozuvlarini takrorlarsiz koʻrsatish",
+    "Show list separators": "Roʻyxatlarda ajratuvchi chiziqlarni koʻrsatish",
     "Show Media Library": "Media kutubxonasini koʻrsatish",
     "Show picons in channel list": "Roʻyxatda kanal belgilarini koʻrsatish",
     "Show player menu": "Pleyer menyusini koʻrsatish",

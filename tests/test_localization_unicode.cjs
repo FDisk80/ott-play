@@ -463,7 +463,7 @@ for (const legacy of [false, true]) {
         const date = new Date(2026, 9, 6, 14, 5);
         assert.equal(
             host.formatLocaleDateTime(date.getTime() / 1000),
-            "Tue\u00a006.10\u00a014:05"
+            "Tue\u00a006/10\u00a014:05"
         );
     } else {
         host.__ottInterfaceLanguage = "_ara";
@@ -484,6 +484,66 @@ for (const legacy of [false, true]) {
             }).format(date)
         );
     }
+    // #1054: the shared EPG/archive formatter has one English day-first policy.
+    // Calendar boundaries must not be confused with a month-first rendering.
+    host.__ottInterfaceLanguage = "_eng";
+    host.keyStrings = {
+        "Su Mo Tu We Th Fr Sa": "Sun Mon Tue Wed Thu Fri Sat",
+    };
+    for (const [year, month, day, expected] of [
+        [2026, 10, 5, "05/11"],
+        [2026, 0, 13, "13/01"],
+        [2028, 1, 29, "29/02"],
+        [2026, 11, 31, "31/12"],
+    ]) {
+        for (const hour of [0, 14]) {
+            const seconds =
+                new Date(year, month, day, hour, 5).getTime() / 1000;
+            assert(host.formatLocaleDateTime(seconds, true).includes(expected));
+            const full = host.formatLocaleDateTime(seconds);
+            assert(full.includes(expected));
+            if (legacy) {
+                assert(full.endsWith((hour === 0 ? "00" : "14") + ":05"));
+            } else {
+                // Exact original clock, including midnight and day-period spelling.
+                const clock = new Intl.DateTimeFormat("en", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                }).format(new Date(seconds * 1000));
+                assert.equal(
+                    full,
+                    host.formatLocaleDateTime(seconds, true) + ", " + clock
+                );
+            }
+        }
+    }
+    // Locale, digits and calendar policy elsewhere remain the existing Intl behavior.
+    if (!legacy) {
+        for (const [language, locale] of [
+            ["_ger", "de"],
+            ["_fra", "fr"],
+            ["_rus", "ru"],
+            ["_jpn", "ja"],
+            ["_ara", "ar"],
+            ["_per", "fa"],
+        ]) {
+            host.__ottInterfaceLanguage = language;
+            const date = new Date(2026, 10, 5, 14, 5);
+            for (const dateOnly of [false, true])
+                assert.equal(
+                    host.formatLocaleDateTime(date.getTime() / 1000, dateOnly),
+                    new Intl.DateTimeFormat(locale, {
+                        day: "2-digit",
+                        hour: dateOnly ? undefined : "2-digit",
+                        minute: dateOnly ? undefined : "2-digit",
+                        month: "2-digit",
+                        weekday: "short",
+                    }).format(date),
+                    language + "/" + dateOnly
+                );
+        }
+    }
+    host.__ottInterfaceLanguage = "_eng";
     // Exercise the actual optional channel/history filters, not a mirror predicate.
     const search = ts.transpileModule(
         read("src/channels/search.ts")

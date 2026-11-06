@@ -1000,6 +1000,7 @@ var keyStrings = {
     "Show list of channel archive records": "Сабтҳои каналро нишон диҳед",
     "Show list of channel archive records without duplication":
         "Сабтҳои каналро бе такрор нишон диҳед",
+    "Show list separators": "Намоиши хатҳои ҷудокунанда дар рӯйхатҳо",
     "Show Media Library": "Китобхонаи медиаро нишон диҳед",
     "Show picons in channel list": "Нишонаҳои каналҳоро дар рӯйхат нишон диҳед",
     "Show player menu": "Менюи плеерро нишон диҳед",

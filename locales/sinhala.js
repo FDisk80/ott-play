@@ -972,6 +972,7 @@ var keyStrings = {
         "මෙම නාලිකාවේ පටිගත කළ රූපවාහිනී වැඩසටහන් පෙන්වන්න",
     "Show list of channel archive records without duplication":
         "මෙම නාලිකාවේ පටිගත කළ රූපවාහිනී වැඩසටහන් අනුපිටපත් නොමැතිව පෙන්වන්න",
+    "Show list separators": "ලැයිස්තුවල වෙන් කිරීමේ රේඛා පෙන්වන්න",
     "Show Media Library": "මාධ්‍ය පුස්තකාලය පෙන්වන්න",
     "Show picons in channel list": "ලැයිස්තුවේ නාලිකා අයිකන පෙන්වන්න",
     "Show player menu": "ප්ලේයර් මෙනුව පෙන්වන්න",

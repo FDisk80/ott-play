@@ -1006,6 +1006,7 @@ var keyStrings = {
     "Show list of channel archive records": "Erakutsi kanalaren grabazioak",
     "Show list of channel archive records without duplication":
         "Erakutsi kanalaren grabazioak bikoizturik gabe",
+    "Show list separators": "Erakutsi bereizketa-marrak zerrendetan",
     "Show Media Library": "Erakutsi multimedia-liburutegia",
     "Show picons in channel list": "Erakutsi kanalen ikonoak zerrendan",
     "Show player menu": "Erakutsi erreproduzitzailearen menua",

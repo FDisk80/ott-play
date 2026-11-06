@@ -981,6 +981,7 @@ var keyStrings = {
     "Show list of channel archive records": "چينل جون رڪارڊنگون ڏيکاريو",
     "Show list of channel archive records without duplication":
         "چينل جون رڪارڊنگون ورجاءَ کان سواءِ ڏيکاريو",
+    "Show list separators": "فهرستن ۾ ڌار ڪندڙ ليڪون ڏيکاريو",
     "Show Media Library": "ميڊيا لائبريري ڏيکاريو",
     "Show picons in channel list": "فهرست ۾ چينل آئڪن ڏيکاريو",
     "Show player menu": "پليئر مينيو ڏيکاريو",

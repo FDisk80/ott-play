@@ -979,6 +979,7 @@ var keyStrings = {
     "Show list of channel archive records": "Fi àwọn ìgbàsílẹ̀ ìkànnì hàn",
     "Show list of channel archive records without duplication":
         "Fi àwọn ìgbàsílẹ̀ ìkànnì hàn láìsí àdàkọ",
+    "Show list separators": "Fi àwọn ìlà ìyapa hàn nínú àkójọ",
     "Show Media Library": "Fi ilé-ìkàwé mídíà hàn",
     "Show picons in channel list": "Fi àwọn àmì ìkànnì hàn nínú àkójọ",
     "Show player menu": "Fi àkójọ aṣàyàn ẹ̀rọ ìṣeré hàn",

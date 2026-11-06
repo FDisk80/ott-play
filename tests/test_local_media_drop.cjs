@@ -61,6 +61,15 @@ function catalog(name = "one") {
         ],
     };
 }
+function queue(names) {
+    const value = catalog(names[0]);
+    value.items = names.map((name, i) => ({
+        ...catalog(name).items[0],
+        id: "queue-item-" + i,
+        sourceId: value.sources[0].id,
+    }));
+    return value;
+}
 function fixture() {
     const saved = new Map([
         ["ottplayprov", "m3u"],
@@ -215,6 +224,112 @@ test("accepted drop uses Local handoff and repeated reads retain only its in-mem
     assert.equal(f.w.stbGetItem("ottplayprov"), "offline");
     assert.deepEqual(f.saved, f.before);
     assert.deepEqual(f.releases, []);
+});
+
+test("a dropped queue preserves supplied order and every file without scanning or saving", async () => {
+    const f = fixture();
+    const input = queue([
+        "z-last-alphabetically",
+        "a-first-alphabetically",
+        "z-last-alphabetically",
+    ]);
+    f.api.playDroppedVideo(
+        input,
+        () => true,
+        () => f.releases.push("queue")
+    );
+    const value = await f.api.playbackList();
+    assert.deepEqual(clone(value.items), input.items);
+    assert.deepEqual(clone(f.api.playbackOrder()), [
+        "local-queue-item-0",
+        "local-queue-item-1",
+        "local-queue-item-2",
+    ]);
+    assert.equal(f.api.playbackFilter(value), value);
+    for (const item of value.items) {
+        assert.equal(f.api.isPlaybackUrl(item.url), true);
+        assert.equal(f.api.playbackMime(item.url), "video/mp4");
+    }
+    input.items.splice(0);
+    assert.equal((await f.api.playbackList()).items.length, 3);
+    assert.deepEqual(f.calls, [["load", "offline"]]);
+    assert.deepEqual(f.saved, f.before);
+    f.api.playbackOrdered();
+    assert.equal(f.api.playbackOrder(), null);
+    assert.equal((await f.api.playbackList()).items.length, 3);
+    f.api.cancelDroppedVideo();
+    f.api.cancelDroppedVideo();
+    assert.deepEqual(f.releases, ["queue"]);
+    assert.deepEqual(f.saved, f.before);
+});
+
+test("invalid later queue entries reject the whole replacement and retain the previous video", async () => {
+    for (const invalidate of [
+        (v) => {
+            v.items[1].sourceId = "another-source";
+        },
+        (v) => {
+            v.items[1].id = v.items[0].id;
+        },
+        (v) => {
+            v.items[1].url = "";
+        },
+        (v) => {
+            v.items[1].available = false;
+        },
+        (v) => {
+            v.items[1].playback = { mode: "unsupported" };
+        },
+        (v) => {
+            v.items[1] = null;
+        },
+        (v) => {
+            delete v.items[1];
+        },
+        (v) => {
+            v.items = [];
+        },
+        (v) => {
+            v.items = queue(Array(129).fill("video")).items;
+        },
+    ]) {
+        const f = fixture();
+        f.drop("old");
+        const value = queue(["first", "second"]);
+        invalidate(value);
+        assert.throws(() =>
+            f.api.playDroppedVideo(
+                value,
+                () => true,
+                () => f.releases.push("rejected")
+            )
+        );
+        assert.deepEqual(f.calls, [["load", "offline"]]);
+        assert.equal((await f.api.playbackList()).items[0].id, "old");
+        assert.deepEqual(f.releases, ["rejected"]);
+        assert.deepEqual(f.saved, f.before);
+    }
+});
+
+test("an entire dropped queue survives standby and releases once on replacement", async () => {
+    const f = fixture();
+    f.api.playDroppedVideo(
+        queue(["one", "two", "three"]),
+        () => true,
+        () => f.releases.push("queue")
+    );
+    f.setBlocked(true);
+    f.w.__ottActiveProviderDriver.dispose();
+    f.w.__ottActiveProviderDriver = null;
+    f.api.suspend();
+    assert.deepEqual(f.releases, []);
+    f.setBlocked(false);
+    f.w.loadProv();
+    assert.equal((await f.api.playbackList()).items.length, 3);
+    f.drop("replacement");
+    assert.deepEqual(f.releases, ["queue"]);
+    assert.equal((await f.api.playbackList()).items[0].id, "replacement");
+    assert.deepEqual(f.saved, f.before);
 });
 
 test("drop fully shadows library metadata, cursor and deletion; persist request discards them", async () => {

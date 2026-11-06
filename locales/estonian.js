@@ -990,6 +990,7 @@ var keyStrings = {
     "Show list of channel archive records": "Kuva kanali salvestised",
     "Show list of channel archive records without duplication":
         "Kuva kanali salvestised ilma duplikaatideta",
+    "Show list separators": "Kuva loendites eraldusjooned",
     "Show Media Library": "Kuva meediumiteek",
     "Show picons in channel list": "Kuva kanalite ikoonid loendis",
     "Show player menu": "Kuva meediumipleieri menüü",

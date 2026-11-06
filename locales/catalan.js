@@ -1027,6 +1027,7 @@ var keyStrings = {
         "Mostra els enregistraments del canal",
     "Show list of channel archive records without duplication":
         "Mostra els enregistraments del canal sense duplicats",
+    "Show list separators": "Mostra les línies separadores a les llistes",
     "Show Media Library": "Mostra la biblioteca multimèdia",
     "Show picons in channel list": "Mostra les icones dels canals a la llista",
     "Show player menu": "Mostra el menú del reproductor",

@@ -997,6 +997,7 @@ var keyStrings = {
     "Show list of channel archive records": "არხის ჩანაწერების ჩვენება",
     "Show list of channel archive records without duplication":
         "არხის ჩანაწერების ჩვენება დუბლიკატების გარეშე",
+    "Show list separators": "სიებში გამყოფი ხაზების ჩვენება",
     "Show Media Library": "მედია ბიბლიოთეკის ჩვენება",
     "Show picons in channel list": "არხის ხატულების ჩვენება სიაში",
     "Show player menu": "მედია ფლეერის მენიუს ჩვენება",

@@ -998,6 +998,7 @@ var keyStrings = {
     "Show list of channel archive records": "چینل کی ریکارڈنگ دکھائیں۔",
     "Show list of channel archive records without duplication":
         "ڈپلیکیٹس کے بغیر چینل کی ریکارڈنگ دکھائیں۔",
+    "Show list separators": "فہرستوں میں جدا کرنے والی لکیریں دکھائیں",
     "Show Media Library": "میڈیا لائبریری دکھائیں۔",
     "Show picons in channel list": "فہرست میں چینل کے آئیکنز دکھائیں۔",
     "Show player menu": "پلیئر مینو دکھائیں۔",

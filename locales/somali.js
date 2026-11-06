@@ -1012,6 +1012,7 @@ var keyStrings = {
     "Show list of channel archive records": "Muuji duubista kanaalka",
     "Show list of channel archive records without duplication":
         "Muuji duubista kanaalka adigoon ku celcelin",
+    "Show list separators": "Muuji xariiqyada kala sooca liisaska",
     "Show Media Library": "Muuji maktabadda warbaahinta",
     "Show picons in channel list": "Liiska ku muuji astaamaha kanaallada",
     "Show player menu": "Muuji liiska xulashooyinka daaraha",

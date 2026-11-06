@@ -491,6 +491,11 @@ static MACOS_SIMPLE_FS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
 #[cfg(target_os = "macos")]
+pub(crate) fn macos_simple_fullscreen_active() -> bool {
+    MACOS_SIMPLE_FS.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[cfg(target_os = "macos")]
 #[derive(Clone, Copy, Debug)]
 struct SavedOuter {
     x: i32,
@@ -522,7 +527,7 @@ fn is_effectively_fullscreen(window: &tauri::Window) -> Result<bool, String> {
     let native = window.is_fullscreen().map_err(|e| e.to_string())?;
     #[cfg(target_os = "macos")]
     {
-        return Ok(native || MACOS_SIMPLE_FS.load(std::sync::atomic::Ordering::SeqCst));
+        return Ok(native || macos_simple_fullscreen_active());
     }
     #[cfg(not(target_os = "macos"))]
     Ok(native)
@@ -614,6 +619,9 @@ pub fn apply_fullscreen(
         // and restore the main window's normal shadow when returning windowed.
         window.set_shadow(!fullscreen).map_err(|e| e.to_string())?;
         sync_window_queue(window)?;
+        // Generic resize events can precede Tao's deferred style restoration.
+        // Confirm the owned constraint after that transaction, before ACK.
+        crate::window_aspect::reconcile_initialized_after_fullscreen(window)?;
         return Ok(());
     }
     #[cfg(not(target_os = "macos"))]

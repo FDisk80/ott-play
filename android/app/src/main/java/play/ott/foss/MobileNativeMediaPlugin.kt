@@ -28,7 +28,6 @@ class MobileNativeMediaPlugin : Plugin() {
         private const val TAG = "MobileNativeMedia"
     }
 
-    private var isFullscreen = false
     @Volatile private var backgroundAudioActive = false
 
     // WebView visibility is unreliable on older Fire OS. Use the OS power state
@@ -195,7 +194,6 @@ class MobileNativeMediaPlugin : Plugin() {
     @PluginMethod
     fun setFullscreen(call: PluginCall) {
         val fullscreen = call.getBoolean("fullscreen") ?: false
-        isFullscreen = fullscreen
         val activity = bridge.activity
 
         activity.runOnUiThread {

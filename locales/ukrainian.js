@@ -990,6 +990,7 @@ var keyStrings = {
     "Show list of channel archive records": "Показати записи каналу",
     "Show list of channel archive records without duplication":
         "Показати записи каналу без повторів",
+    "Show list separators": "Показувати роздільники у списках",
     "Show Media Library": "Показати медіатеку",
     "Show picons in channel list": "Показувати значки каналів у списку",
     "Show player menu": "Показати меню програвача",

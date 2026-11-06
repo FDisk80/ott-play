@@ -948,6 +948,7 @@ var keyStrings = {
     "Show list of channel archive records": "ສະແດງບັນທຶກລາຍການຂອງຊ່ອງ",
     "Show list of channel archive records without duplication":
         "ສະແດງບັນທຶກລາຍການຂອງຊ່ອງໂດຍບໍ່ຊ້ຳ",
+    "Show list separators": "ສະແດງເສັ້ນແບ່ງໃນລາຍການ",
     "Show Media Library": "ສະແດງຄັງສື່",
     "Show picons in channel list": "ສະແດງໄອຄອນຊ່ອງໃນລາຍການ",
     "Show player menu": "ສະແດງເມນູເຄື່ອງຫຼິ້ນ",

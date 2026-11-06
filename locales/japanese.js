@@ -997,6 +997,7 @@ var keyStrings = {
         "このチャンネルの録画番組を表示します",
     "Show list of channel archive records without duplication":
         "このチャンネルの録画済みテレビ番組を重複せずに表示します",
+    "Show list separators": "リストの区切り線を表示",
     "Show Media Library": "メディアライブラリーを表示",
     "Show picons in channel list": "チャンネルアイコンを一覧で表示",
     "Show player menu": "プレーヤーメニューを表示",

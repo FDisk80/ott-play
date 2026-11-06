@@ -975,6 +975,7 @@ var keyStrings = {
         "បង្ហាញកម្មវិធីទូរទស្សន៍ដែលបានថតទុករបស់ប៉ុស្តិ៍នេះ។",
     "Show list of channel archive records without duplication":
         "បង្ហាញកម្មវិធីទូរទស្សន៍ដែលបានថតទុករបស់ប៉ុស្តិ៍នេះដោយមិនចម្លង",
+    "Show list separators": "បង្ហាញបន្ទាត់បំបែកក្នុងបញ្ជី",
     "Show Media Library": "បង្ហាញបណ្ណាល័យប្រព័ន្ធផ្សព្វផ្សាយ",
     "Show picons in channel list": "បង្ហាញរូបតំណាងឆានែលក្នុងបញ្ជី",
     "Show player menu": "បង្ហាញម៉ឺនុយកម្មវិធីចាក់",

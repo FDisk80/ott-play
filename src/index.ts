@@ -169,7 +169,6 @@ import {
     applyTimezoneSetting,
     beginSettingsDraft,
     defaultSettings,
-    epgTimeColors,
     exportSettings,
     importSettings,
     installSettingsFacade,
@@ -277,6 +276,8 @@ import {
     confirmBox,
     editKey1,
     editKey2,
+    epgTimeColorDialog,
+    epgTimeCssColor,
     exitPortal,
     formatSeekOffset,
     hideInfoBarWhenReady,
@@ -1306,6 +1307,10 @@ function setColor(): void {
     var studio = settings.interfaceTheme === 2;
     $("body").toggleClass("theme-pli-hd", pliHd);
     $("body").toggleClass("theme-studio", studio);
+    $("body").toggleClass(
+        "hide-list-separators",
+        settings.showListSeparators === 0
+    );
     bodyColor = studio ? "#f0f3f1" : "#f0f0f0";
     $("body").css("color", bodyColor);
     // PLi-HD's selectedFG / selectedBG. Keep the saved Classic palette intact.
@@ -1323,6 +1328,13 @@ function setColor(): void {
     window.curColor = curColor;
     // EPG nodes may already be visible when the theme changes.
     $(".ott-epg-current-title, .ott-epg-detail-title").css("color", curColor);
+    var epgTextColor = epgTimeCssColor(settings.epgTimeColor);
+    document.documentElement.style.setProperty(
+        "--ott-epg-time-color",
+        epgTextColor
+    );
+    // DOM properties remain usable when Classic has no CSS-variable support.
+    $(".ott-epg-time").css("color", epgTextColor);
     window.curColorB = curColorB;
     window.bodyColor = bodyColor;
 
@@ -3355,6 +3367,29 @@ function nativeMediaMetadata(): {
     return out;
 }
 
+/** Keep native media-session timer receivers and metadata identical across hosts. */
+function nativeMediaSessionOptions(
+    send: (action: string, metadata: any) => void
+): any {
+    return {
+        backend: (window as any).__ottCoreBackend(),
+        clearInterval: function (id: number) {
+            window.clearInterval(id);
+        },
+        clearTimeout: function (id: number) {
+            window.clearTimeout(id);
+        },
+        metadata: nativeMediaMetadata,
+        send: send,
+        setInterval: function (callback: () => void, delay: number) {
+            return window.setInterval(callback, delay);
+        },
+        setTimeout: function (callback: () => void, delay: number) {
+            return window.setTimeout(callback, delay);
+        },
+    };
+}
+
 // Capacitor Mode C: native media bridges (volume, PiP, fullscreen, standby).
 // Mirrors Tauri Mode B shims below; gates on window.Capacitor so Mode A stays untouched.
 if (typeof (window as any).Capacitor !== "undefined" && MobileNativeMedia) {
@@ -3438,16 +3473,8 @@ if (typeof (window as any).Capacitor !== "undefined" && MobileNativeMedia) {
         });
 
         // WKWebView timers require Window as their receiver, not the ports object.
-        (window as any).__ottOsMediaSession.create({
-            backend: (window as any).__ottCoreBackend(),
-            clearInterval: function (id: number) {
-                window.clearInterval(id);
-            },
-            clearTimeout: function (id: number) {
-                window.clearTimeout(id);
-            },
-            metadata: nativeMediaMetadata,
-            send: function (action: string, metadata: any) {
+        (window as any).__ottOsMediaSession.create(
+            nativeMediaSessionOptions(function (action: string, metadata: any) {
                 var method = {
                     pause: "pauseBackgroundAudio",
                     resume: "resumeBackgroundAudio",
@@ -3458,30 +3485,16 @@ if (typeof (window as any).Capacitor !== "undefined" && MobileNativeMedia) {
                 (cap as any)[method!](metadata).catch(function (error: any) {
                     console.warn("[Capacitor] media session failed:", error);
                 });
-            },
-            setInterval: function (callback: () => void, delay: number) {
-                return window.setInterval(callback, delay);
-            },
-            setTimeout: function (callback: () => void, delay: number) {
-                return window.setTimeout(callback, delay);
-            },
-        });
+            })
+        );
     })();
 }
 
 // Tauri Mode B: OS MediaSession / MPRIS / Now Playing (souvlaki) — lock-screen style
 // transport + artwork/seek when souvlaki + duration allow. Cap path unchanged; Mode A unchanged.
 if (typeof window.__TAURI__ !== "undefined") {
-    (window as any).__ottOsMediaSession.create({
-        backend: (window as any).__ottCoreBackend(),
-        clearInterval: function (id: number) {
-            window.clearInterval(id);
-        },
-        clearTimeout: function (id: number) {
-            window.clearTimeout(id);
-        },
-        metadata: nativeMediaMetadata,
-        send: function (action: string, metadata: any) {
+    (window as any).__ottOsMediaSession.create(
+        nativeMediaSessionOptions(function (action: string, metadata: any) {
             var method = {
                 pause: "pause_media_session",
                 resume: "resume_media_session",
@@ -3492,14 +3505,8 @@ if (typeof window.__TAURI__ !== "undefined") {
             tauriInvoke<any>(method!, metadata).catch(function (error: any) {
                 console.warn("[Tauri] media session failed:", error);
             });
-        },
-        setInterval: function (callback: () => void, delay: number) {
-            return window.setInterval(callback, delay);
-        },
-        setTimeout: function (callback: () => void, delay: number) {
-            return window.setTimeout(callback, delay);
-        },
-    });
+        })
+    );
 }
 
 // Tauri Mode B: frameless window — JS whole-surface drag when overlays closed.
@@ -4628,7 +4635,8 @@ function createSettingsPage(
  * resume-after-pause behaviour, previous channels count, media history,
  * editor type, player type, and buffer size.
  *
- * Save commits the draft; cancelling discards it without persistence or effects.
+ * Save commits editable preferences; cancelling discards their draft. Native
+ * window actions apply immediately and keep the current page and draft open.
  *
  * Side effects: Calls setTimezone(), setFontSize(), setListPos(),
  * setColor(), setEditor(), setPipPosBuf(), setPlayer(), setAutorun(),
@@ -4903,6 +4911,12 @@ window.settingsLists = function (): void {
                 w.sShowScroll,
                 noyes
             ),
+            choice(
+                label("Show list separators") + " (" + label("Classic") + ")",
+                "showListSeparators",
+                w.sShowListSeparators,
+                noyes
+            ),
         ])
     );
     page.attach();
@@ -4978,12 +4992,12 @@ window.settingsChannels = function (): void {
                 w.sEpgArchiveLabel,
                 noyes
             ),
-            choice(
-                label("EPG") + ": " + label("Text color") + " (00:00)",
-                "epgTimeColor",
-                w.sEpgTimeColor,
-                [label("Player default")].concat(epgTimeColors.slice(1))
-            ),
+            {
+                cur: label("select"),
+                name: label("EPG") + ": " + label("Text color") + " (00:00)",
+                settingId: "epgTimeColor",
+                values: epgTimeColorDialog,
+            },
             choice(
                 label("Show description"),
                 "showDescription",

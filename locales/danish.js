@@ -993,6 +993,7 @@ var keyStrings = {
     "Show list of channel archive records": "Vis kanaloptagelser",
     "Show list of channel archive records without duplication":
         "Vis kanaloptagelser uden dubletter",
+    "Show list separators": "Vis skillelinjer i lister",
     "Show Media Library": "Vis mediebibliotek",
     "Show picons in channel list": "Vis kanalikoner på listen",
     "Show player menu": "Vis medieafspillermenu",

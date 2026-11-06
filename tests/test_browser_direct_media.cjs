@@ -3,6 +3,9 @@ const fs = require("node:fs");
 const http = require("node:http");
 const ts = require("typescript");
 const { chromium } = require("@playwright/test");
+const {
+    installTimeoutProbes,
+} = require("./helpers/permission-timeout-probes.cjs");
 const source = ts.transpileModule(
     fs
         .readFileSync(
@@ -250,11 +253,15 @@ deadline.unref();
         // Conditional diagnostics: keep the original sequence and native calls.
         profileContext.on("console", (message) => {
             const text = message.text();
-            if (text.startsWith("[direct-media-native] ")) console.log(text);
+            if (
+                text.startsWith("[direct-media-native] ") ||
+                text.startsWith("[direct-media-probe] ")
+            )
+                console.log(text);
         });
         // Keep real OPFS handles, IndexedDB, and page closure. Only model the
         // external-folder permission policy, as in the built-UI fixture.
-        await profileContext.addInitScript(() => {
+        const profileInit = (installTimeoutProbes) => {
             const pendingTransactions = new Set();
             let transactionId = 0;
             function diagnostic(event, detail = {}) {
@@ -309,6 +316,7 @@ deadline.unref();
             };
             const nativeQueryPermission =
                 FileSystemHandle.prototype.queryPermission;
+            installTimeoutProbes(window, nativeQueryPermission);
             window.__directMediaProfilePermission = permission;
             FileSystemHandle.prototype.queryPermission = function (options) {
                 if (!options || options.mode !== "read")
@@ -347,6 +355,16 @@ deadline.unref();
                 permission.state = "granted";
                 return Promise.resolve(permission.state);
             };
+        };
+        // One init script keeps the native capture and probe installation ordered.
+        // Installation performs no storage calls; probes run only after failure.
+        await profileContext.addInitScript({
+            content:
+                "(" +
+                profileInit.toString() +
+                ")(" +
+                installTimeoutProbes.toString() +
+                ");",
         });
         let profilePage = await profileContext.newPage();
         const address = "http://127.0.0.1:" + server.address().port;
@@ -610,7 +628,7 @@ deadline.unref();
                     rawCatalog.readErrorName === "TimeoutError"
                         ? "timed out"
                         : "failed";
-                throw new Error(
+                const originalPermissionFailure = new Error(
                     "Profile catalog " +
                         phase +
                         " " +
@@ -622,6 +640,17 @@ deadline.unref();
                         ", rejected=" +
                         permission.queriesRejected
                 );
+                if (
+                    rawCatalog.readErrorName === "TimeoutError" &&
+                    rawCatalog.readErrorPhase === "permission"
+                ) {
+                    try {
+                        await window.__directMediaTimeoutProbes(rawCatalog);
+                    } catch (_) {
+                        // Diagnostic failure cannot replace the original error.
+                    }
+                }
+                throw originalPermissionFailure;
             }
             if (
                 !Array.isArray(rawCatalog.sources) ||

@@ -1016,6 +1016,7 @@ var keyStrings = {
     "Show list of channel archive records": "Afișează înregistrările canalului",
     "Show list of channel archive records without duplication":
         "Afișează înregistrările canalului fără duplicate",
+    "Show list separators": "Afișează liniile de separare în liste",
     "Show Media Library": "Afișează biblioteca media",
     "Show picons in channel list": "Afișează pictogramele canalelor în listă",
     "Show player menu": "Afișează meniul playerului",

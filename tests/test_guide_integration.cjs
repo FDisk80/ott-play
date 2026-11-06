@@ -1280,6 +1280,91 @@ function installFooterUi(f) {
     return h;
 }
 check(
+    "expanded live information keeps one channel logo and distinct programme art",
+    () => {
+        const logo = "https://images.invalid/channel.png";
+        const alternate = "https://images.invalid/provider-picon.png";
+        const poster = "https://images.invalid/programme.jpg";
+        for (const scenario of [
+            { name: "logo fallback", picon: logo },
+            { icon: logo, name: "same programme icon", picon: logo },
+            {
+                icon: "  " + logo + "  ",
+                name: "normalized same icon",
+                picon: logo,
+            },
+            {
+                baseIcon: logo,
+                name: "inherited channel icon",
+                picon: alternate,
+            },
+            {
+                icon: poster,
+                name: "distinct programme art",
+                picon: logo,
+                visible: true,
+            },
+            {
+                disabled: true,
+                icon: poster,
+                name: "thumbnail preference off",
+                picon: logo,
+            },
+        ]) {
+            const f = fixture(),
+                h = installFooterUi(f);
+            h.channels[1].logo = logo;
+            if (scenario.baseIcon) h.channels[1].icon = scenario.baseIcon;
+            h.getChannelPicon = () => scenario.picon;
+            h.sThumbnail = scenario.disabled ? 0 : 1;
+            h.getViewportWidthScale = h.getViewportHeightScale = () => 1;
+            vm.runInContext(
+                require("./test_port_vod.cjs").sourceFunctions(
+                    "src/utils/helpers.ts",
+                    ["metadataImageUrl", "metadataCssUrl", "getThumbnail"]
+                ),
+                h
+            );
+            h.updateChannelInfo(1);
+            f.tick();
+            const row = f.row();
+            if (scenario.icon) row.icon = scenario.icon;
+            f.complete([row]);
+            const description =
+                h.document.getElementById("programm_descr").innerHTML;
+            assert.equal(
+                (description.match(/class="img"/g) || []).length,
+                scenario.visible ? 1 : 0,
+                scenario.name
+            );
+            assert(description.includes("Description"), scenario.name);
+            assert.equal(
+                h.document.getElementById("picon").style.backgroundImage,
+                'url("' + scenario.picon + '")',
+                scenario.name
+            );
+            assert(!description.includes(logo), scenario.name);
+            if (scenario.visible) assert(description.includes(poster));
+            assert.equal(
+                h.document.getElementById("programm_name").textContent,
+                "Programme"
+            );
+            assert.equal(
+                h.document.getElementById("begin_time").textContent,
+                String(row.time)
+            );
+            const before = description;
+            h.primaryIndex = 1;
+            h.updateChannelInfo(1);
+            assert.equal(
+                h.document.getElementById("programm_descr").innerHTML,
+                before,
+                "A stale channel callback cannot replace the current footer"
+            );
+        }
+    }
+);
+check(
     "closing the list retires hidden guide rows and restores the playing footer",
     () => {
         const f = fixture(),
@@ -1587,10 +1672,10 @@ check(
                 1
             );
             assert.notEqual(a, b);
-            assert.match(a, /Mon, 11\/02/);
-            assert.match(b, /Tue, 11\/03/);
+            assert.match(a, /Mon 02\/11/);
+            assert.match(b, /Tue 03\/11/);
             assert.match(a, /10:00 - 11:00/);
-            assert.equal((a.match(/11\/02/g) || []).length, 1);
+            assert.equal((a.match(/02\/11/g) || []).length, 1);
             assert(!a.includes('style="color:'));
         } finally {
             if (oldZone === undefined) delete process.env.TZ;
@@ -1615,7 +1700,7 @@ check(
                 ),
                 0
             );
-            assert.match(overnight, /Mon, 11\/02 23:30 - Tue, 11\/03 00:30/);
+            assert.match(overnight, /Mon 02\/11 23:30 - Tue 03\/11 00:30/);
             const fallback = h.itemEPG(
                 f.row(
                     Date.UTC(2026, 10, 1, 8, 30) / 1000,
@@ -1623,8 +1708,8 @@ check(
                 ),
                 0
             );
-            assert.match(fallback, /Sun, 11\/01 01:30 - 01:30/);
-            assert.equal((fallback.match(/11\/01/g) || []).length, 1);
+            assert.match(fallback, /Sun 01\/11 01:30 - 01:30/);
+            assert.equal((fallback.match(/01\/11/g) || []).length, 1);
         } finally {
             if (oldZone === undefined) delete process.env.TZ;
             else process.env.TZ = oldZone;
@@ -1642,7 +1727,7 @@ check(
         for (const invalid of [NaN, Infinity, -Infinity, undefined, "bad"])
             assert.equal(h.formatEpgDate(invalid), "");
         h.Intl = undefined;
-        assert.match(h.formatEpgDate(start), /Mo\u00a002\.11/);
+        assert.match(h.formatEpgDate(start), /Mo\u00a002\/11/);
         assert(!h.formatEpgDate(start).includes(":"));
         assert(
             h.formatLocaleDateTime(start).includes(":"),
@@ -1663,7 +1748,7 @@ check("EPG dates remain escaped and isolated for long and RTL labels", () => {
     assert.equal(row.name, "<img src=x>" + "طويل".repeat(100));
 });
 check(
-    "EPG palette accepts only closed numeric choices and preserves title emphasis",
+    "EPG time keeps one styling hook across palette changes and title emphasis",
     () => {
         const f = fixture(),
             h = f.host;
@@ -1672,48 +1757,30 @@ check(
         row.programmeId = "current";
         h.listEpgArray = [row];
         h.curColor = "gold";
-        for (const [value, color] of [
-            [1, "#FFFFFF"],
-            [2, "#FFFF00"],
-            [3, "#00FFFF"],
-            [4, "#00FF00"],
-            [5, "#FFB3FF"],
-        ]) {
+        let first;
+        for (const value of [0, 1, 2, 3, 4, 5, 6, 6 + 211 * 101 + 65, 36466]) {
             h.sEpgTimeColor = value;
             const html = h.itemEPG(row, 0);
-            assert(html.includes('class="ott-epg-time-color-' + value + '"'));
+            assert(html.includes('class="ott-epg-time"'));
             assert(html.includes('class="ott-epg-current-title"'));
             assert(!html.includes("style="));
-            const css = fs.readFileSync(
-                path.resolve(__dirname, "../styles/player.css"),
-                "utf8"
-            );
-            assert(
-                css.includes(
-                    ".ott-epg-time-color-" +
-                        value +
-                        " {\n    color: " +
-                        color.toLowerCase() +
-                        ";\n}"
-                )
-            );
+            if (first === undefined) first = html;
+            else
+                assert.equal(
+                    html,
+                    first,
+                    "Changing time color never requires rebuilding the row"
+                );
         }
-        for (const invalid of [
-            0,
-            undefined,
-            -1,
-            6,
-            1.5,
-            NaN,
-            "1",
-            "__proto__",
-            "red;display:none",
-        ]) {
-            h.sEpgTimeColor = invalid;
-            assert(
-                !h.itemEPG(f.row(8000, 8100), 0).includes("ott-epg-time-color-")
-            );
-        }
+        const css = fs.readFileSync(
+            path.resolve(__dirname, "../styles/player.css"),
+            "utf8"
+        );
+        assert(
+            css.includes(
+                ".ott-epg-time {\n    color: var(--ott-epg-time-color, inherit);\n}"
+            )
+        );
     }
 );
 check(
@@ -1775,8 +1842,8 @@ check("EPG calendar matches the actual player timezone override", () => {
     installPlayerTimezone(h);
     const time = Date.UTC(2026, 10, 4, 23, 30) / 1000;
     for (const [offset, date, clock] of [
-        [-180, "Thu, 11/05", "02:30"],
-        [720, "Wed, 11/04", "11:30"],
+        [-180, "Thu 05/11", "02:30"],
+        [720, "Wed 04/11", "11:30"],
     ]) {
         h.Date.setTimezoneOffset(offset);
         assert.equal(h.formatEpgTime(time), clock);
@@ -1794,7 +1861,7 @@ check(
             weekdays[date.getDay()] +
             "\u00a0" +
             two(date.getDate()) +
-            "." +
+            "/" +
             two(date.getMonth() + 1) +
             (dateOnly
                 ? ""
@@ -1802,13 +1869,23 @@ check(
                   two(date.getHours()) +
                   ":" +
                   two(date.getMinutes()));
-        const options = (dateOnly) => ({
-            day: "2-digit",
-            hour: dateOnly ? undefined : "2-digit",
-            minute: dateOnly ? undefined : "2-digit",
-            month: "2-digit",
-            weekday: "short",
-        });
+        const intlExpected = (date, dateOnly, timeZone) => {
+            const calendar = new Intl.DateTimeFormat("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+                timeZone,
+                weekday: "short",
+            }).format(date);
+            return dateOnly
+                ? calendar
+                : calendar +
+                      ", " +
+                      new Intl.DateTimeFormat("en", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone,
+                      }).format(date);
+        };
         try {
             for (const timezone of [
                 "UTC",
@@ -1844,10 +1921,7 @@ check(
                                 ),
                                 legacy
                                     ? fallback(date, dateOnly)
-                                    : new Intl.DateTimeFormat(
-                                          "en",
-                                          options(dateOnly)
-                                      ).format(date),
+                                    : intlExpected(date, dateOnly),
                                 `${timezone}/${text}/legacy=${legacy}/dateOnly=${dateOnly}`
                             );
                         }
@@ -1875,10 +1949,7 @@ check(
                         for (const dateOnly of [false, true]) {
                             const expected = legacy
                                 ? fallback(localFields, dateOnly)
-                                : new Intl.DateTimeFormat("en", {
-                                      ...options(dateOnly),
-                                      timeZone: "UTC",
-                                  }).format(
+                                : intlExpected(
                                       new Date(
                                           Date.UTC(
                                               year,
@@ -1887,7 +1958,9 @@ check(
                                               hour,
                                               minute
                                           )
-                                      )
+                                      ),
+                                      dateOnly,
+                                      "UTC"
                                   );
                             assert.equal(
                                 h.formatLocaleDateTime(timestamp, dateOnly),

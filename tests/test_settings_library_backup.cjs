@@ -129,6 +129,30 @@ function fixture() {
     };
     return f;
 }
+check(
+    "EPG custom and legacy colors survive numeric backup export and import",
+    () => {
+        for (const value of [0, 1, 2, 3, 4, 5, 6, 6 + 211 * 101 + 65, 36466]) {
+            const from = fixture();
+            from.data.set("sEpgTimeColor", String(value));
+            from.w.loadSettings();
+            const exported = from.export();
+            assert.equal(exported.settings.epgTimeColor, value);
+            assert.equal(typeof exported.settings.epgTimeColor, "number");
+            const to = fixture();
+            to.import(exported);
+            assert.equal(
+                to.data.has("sEpgTimeColor"),
+                false,
+                "Import waits for confirmation"
+            );
+            assert.equal(to.accept(), true);
+            to.w.loadSettings();
+            assert.equal(to.w.settings.epgTimeColor, value);
+            assert.equal(to.data.get("sEpgTimeColor"), String(value));
+        }
+    }
+);
 check("JSON backups cannot export, replace or enable stream addons", () => {
     const copied = '["https://copied.invalid/PRIVATE/manifest.json"]';
     for (const own of [

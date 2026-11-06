@@ -225,6 +225,10 @@
     }
     function interfaceSettings(): void {
         var ui = host.__ottAppearanceHost;
+        var windowSettings =
+            host.__ottMenuRegistry &&
+            typeof host.__ottMenuRegistry.windowSettings === "function" &&
+            host.__ottMenuRegistry.windowSettings(host);
         var showPlayerChoice =
             host.ott_device !== "lg/webos" &&
             !(host.ott_device === "pc2" && typeof host.videojs === "function");
@@ -516,7 +520,13 @@
                 return true;
             })
         );
+        // Native actions apply immediately and never enter the settings draft.
+        if (windowSettings)
+            windowSettings.rows.forEach(function (row: any, index: number) {
+                host.listArray.splice(2 + index, 0, row);
+            });
         page.attach();
+        if (windowSettings) windowSettings.bindOwner();
     }
     host.__ottSubtitleAppearance = {
         apply: apply,

@@ -1,4 +1,4 @@
-import { createDroppedVideo } from "../offline/dropped-video";
+import { createDroppedVideos } from "../offline/dropped-video";
 
 /** Desktop file gestures use the same temporary Local playback as remote commands. */
 export function installLocalDrop(w: any): any {
@@ -118,18 +118,10 @@ export function installLocalDrop(w: any): any {
         event.stopPropagation();
         if (native || !allowed()) return;
         var files = event.dataTransfer.files;
-        if (!files || files.length !== 1) {
-            message(
-                w._
-                    ? w._("Drop one video file at a time")
-                    : "Drop one video file at a time"
-            );
-            return;
-        }
         var lease: any;
         try {
-            // Capture the File synchronously while the gesture owns DataTransfer.
-            lease = createDroppedVideo(w, files[0]);
+            // Capture every File synchronously while the gesture owns DataTransfer.
+            lease = createDroppedVideos(w, files);
         } catch (_) {
             message(w._ ? w._("Unsupported source") : "Unsupported source");
             return;

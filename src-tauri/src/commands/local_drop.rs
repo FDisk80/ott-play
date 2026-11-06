@@ -1,6 +1,6 @@
-//! OS-owned single-file drop capabilities. No command accepts a filesystem path.
+//! OS-owned ordered video-batch capabilities. No command accepts a filesystem path.
 use super::offline_media::{self, OfflineMediaState};
-use ottplay_core::offline_media::{Catalog, TransientVideo};
+use ottplay_core::offline_media::{Catalog, TransientVideos, MAX_DROPPED_VIDEOS};
 use serde::Serialize;
 #[cfg(any(target_os = "windows", target_os = "linux", test))]
 use std::ffi::OsString;
@@ -17,7 +17,7 @@ const STALE: &str = "Local drop expired or was already consumed";
 
 struct Pending {
     grant: String,
-    path: PathBuf,
+    paths: Vec<PathBuf>,
     page: u64,
     expires: Instant,
     ready: bool,
@@ -25,7 +25,7 @@ struct Pending {
 struct Slots<T> {
     page: u64,
     page_ready: bool,
-    queued: Option<PathBuf>,
+    queued: Option<Vec<PathBuf>>,
     pending: Option<Pending>,
     issued: HashMap<String, T>,
     // A cancelled page/released pending grant cannot start more filesystem work
@@ -46,10 +46,7 @@ impl<T> Default for Slots<T> {
 }
 impl<T> Slots<T> {
     fn accept(&mut self, paths: &[PathBuf], now: Instant) -> Option<String> {
-        let [path] = paths else {
-            return None;
-        };
-        if !supported_path(path)
+        if !supported_paths(paths)
             || self.page == 0
             || self.flight.is_some()
             || self.issued.len() >= 2
@@ -60,12 +57,12 @@ impl<T> Slots<T> {
             // Keep the latest valid OS intent across initial navigation. No
             // filesystem probe starts until the page listener and its startup
             // provider generation are ready; malformed input cannot replace it.
-            self.queued = Some(path.clone());
+            self.queued = Some(paths.to_vec());
             return None;
         }
         self.reserve(paths, now)
     }
-    fn page_ready(&mut self) -> Option<PathBuf> {
+    fn page_ready(&mut self) -> Option<Vec<PathBuf>> {
         if self.page == 0 {
             return None;
         }
@@ -73,13 +70,10 @@ impl<T> Slots<T> {
         self.queued.take()
     }
     fn reserve(&mut self, paths: &[PathBuf], now: Instant) -> Option<String> {
-        let [path] = paths else {
-            return None;
-        };
         if self.page == 0
             || self.flight.is_some()
             || self.issued.len() >= 2
-            || !supported_path(path)
+            || !supported_paths(paths)
             || self.pending.as_ref().is_some_and(|p| now < p.expires)
         {
             return None;
@@ -91,7 +85,7 @@ impl<T> Slots<T> {
         );
         self.pending = Some(Pending {
             grant: grant.clone(),
-            path: path.clone(),
+            paths: paths.to_vec(),
             page: self.page,
             expires: now + DROP_LIFETIME,
             ready: false,
@@ -113,7 +107,7 @@ impl<T> Slots<T> {
         self.reject(grant);
         false
     }
-    fn start(&mut self, grant: &str, now: Instant) -> Result<PathBuf, &'static str> {
+    fn start(&mut self, grant: &str, now: Instant) -> Result<Vec<PathBuf>, &'static str> {
         if self.flight.is_some() {
             return Err(STALE);
         }
@@ -122,7 +116,7 @@ impl<T> Slots<T> {
             return Err(STALE);
         }
         self.flight = Some(grant.into());
-        Ok(p.path.clone())
+        Ok(p.paths.clone())
     }
     fn finish(&mut self, grant: &str, value: T, now: Instant) -> Result<(), &'static str> {
         let valid = self.flight.as_deref() == Some(grant)
@@ -161,7 +155,7 @@ impl<T> Slots<T> {
     }
 }
 #[derive(Default)]
-pub struct LocalDropState(Mutex<Slots<TransientVideo>>);
+pub struct LocalDropState(Mutex<Slots<TransientVideos>>);
 impl LocalDropState {
     pub fn advance_page(&self) {
         let old = self
@@ -209,6 +203,11 @@ struct DropEvent {
     grant: String,
 }
 
+fn supported_paths(paths: &[PathBuf]) -> bool {
+    !paths.is_empty()
+        && paths.len() <= MAX_DROPPED_VIDEOS
+        && paths.iter().all(|path| supported_path(path))
+}
 fn supported_path(path: &std::path::Path) -> bool {
     path.is_absolute()
         && path.as_os_str().len() <= 4096
@@ -223,54 +222,63 @@ fn supported_path(path: &std::path::Path) -> bool {
         })
 }
 #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux", test))]
-fn opened_path(urls: &[url::Url]) -> Option<PathBuf> {
-    let [url] = urls else {
-        return None;
-    };
-    if url.scheme() != "file"
-        || url.query().is_some()
-        || url.fragment().is_some()
-        || url.host_str().is_some_and(|host| host != "localhost")
-    {
+fn opened_paths(urls: &[url::Url]) -> Option<Vec<PathBuf>> {
+    if urls.is_empty() || urls.len() > MAX_DROPPED_VIDEOS {
         return None;
     }
-    let path = url.to_file_path().ok()?;
-    supported_path(&path).then_some(path)
+    urls.iter()
+        .map(|url| {
+            if url.scheme() != "file"
+                || url.query().is_some()
+                || url.fragment().is_some()
+                || url.host_str().is_some_and(|host| host != "localhost")
+            {
+                return None;
+            }
+            let path = url.to_file_path().ok()?;
+            supported_path(&path).then_some(path)
+        })
+        .collect()
 }
 #[cfg(any(target_os = "windows", target_os = "linux", test))]
-fn argument_path(args: &[OsString], cwd: &std::path::Path) -> Option<PathBuf> {
-    let (raw, literal) = match args {
-        [one] => (one, false),
-        [separator, one] if separator == "--" => (one, true),
-        _ => return None,
-    };
-    let text = raw.to_str()?;
-    if !literal && text.starts_with('-') {
-        return None;
-    }
-    let path = PathBuf::from(raw);
-    // Desktop launchers may supply local file URLs (%U). They share the same
-    // local-only validation as macOS Opened; other schemes are not paths.
-    // Absolute native paths (including Windows drive paths) retain host syntax.
-    if !path.is_absolute() && text.contains(':') {
-        return opened_path(&[url::Url::parse(text).ok()?]);
-    }
-    if !path.is_absolute() && !cwd.is_absolute() {
-        return None;
-    }
-    let path = if path.is_absolute() {
-        path
+fn argument_paths(args: &[OsString], cwd: &std::path::Path) -> Option<Vec<PathBuf>> {
+    let (args, literal) = if args.first().is_some_and(|arg| arg == "--") {
+        (&args[1..], true)
     } else {
-        cwd.join(path)
+        (args, false)
     };
-    supported_path(&path).then_some(path)
+    if args.is_empty() || args.len() > MAX_DROPPED_VIDEOS {
+        return None;
+    }
+    args.iter()
+        .map(|raw| {
+            let text = raw.to_str()?;
+            if !literal && text.starts_with('-') {
+                return None;
+            }
+            let path = PathBuf::from(raw);
+            // Launcher file URLs and native paths use the same local-only checks.
+            if !path.is_absolute() && text.contains(':') {
+                return opened_paths(&[url::Url::parse(text).ok()?])?.pop();
+            }
+            if !path.is_absolute() && !cwd.is_absolute() {
+                return None;
+            }
+            let path = if path.is_absolute() {
+                path
+            } else {
+                cwd.join(path)
+            };
+            supported_path(&path).then_some(path)
+        })
+        .collect()
 }
 
 /// Finder/Open With delivers local file URLs on both cold and warm macOS opens.
 #[cfg(target_os = "macos")]
 pub fn opened(app: &AppHandle, urls: &[url::Url]) {
-    if let Some(path) = opened_path(urls) {
-        offer(app, "main", &[path]);
+    if let Some(paths) = opened_paths(urls) {
+        offer(app, "main", &paths);
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.show();
             let _ = window.unminimize();
@@ -281,10 +289,13 @@ pub fn opened(app: &AppHandle, urls: &[url::Url]) {
 /// This is process argv, never renderer IPC. No singleton/global lock is added.
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 pub fn initial_arguments(app: &AppHandle) {
-    let args: Vec<_> = std::env::args_os().skip(1).take(3).collect();
+    let args: Vec<_> = std::env::args_os()
+        .skip(1)
+        .take(MAX_DROPPED_VIDEOS + 2)
+        .collect();
     if let Ok(cwd) = std::env::current_dir() {
-        if let Some(path) = argument_path(&args, &cwd) {
-            offer(app, "main", &[path]);
+        if let Some(paths) = argument_paths(&args, &cwd) {
+            offer(app, "main", &paths);
         }
     }
 }
@@ -319,14 +330,14 @@ pub fn offer(app: &AppHandle, label: &str, paths: &[PathBuf]) {
     let Some(grant) = grant else {
         return;
     };
-    let path = paths[0].clone();
+    let paths = paths.to_vec();
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let state = app.state::<LocalDropState>();
         let mut flight = Flight::new(&state, &grant);
         // Do not synchronously probe a potentially slow filesystem on the UI
         // event thread, and do not expose directories/symlinks as video grants.
-        if ottplay_core::offline_media::validate_dropped_file(path, &work)
+        if ottplay_core::offline_media::validate_dropped_files(paths, &work)
             .await
             .is_err()
         {
@@ -369,8 +380,8 @@ pub fn local_media_drop_ready(
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .page_ready();
-    if let Some(path) = queued {
-        offer(&app, "main", &[path]);
+    if let Some(paths) = queued {
+        offer(&app, "main", &paths);
     }
     Ok(())
 }
@@ -387,7 +398,7 @@ pub async fn local_media_take_drop(
     if !valid_grant(&grant) {
         return Err(STALE.into());
     }
-    let path = state
+    let paths = state
         .0
         .lock()
         .unwrap_or_else(|e| e.into_inner())
@@ -400,7 +411,7 @@ pub async fn local_media_take_drop(
     let runtime = offline_media::runtime(&app, &media, None, false, false).await?;
     let video = runtime
         .library
-        .transient_video(path)
+        .transient_videos(paths)
         .await
         .map_err(str::to_string)?;
     let catalog = video.catalog(&runtime.endpoint).map_err(str::to_string)?;
@@ -463,7 +474,10 @@ mod tests {
         let grant = state.0.lock().unwrap().reserve(&[path()], now).unwrap();
         let mut validation = Flight::new(&state, &grant);
         assert!(validation.publish_ready(now));
-        assert_eq!(state.0.lock().unwrap().start(&grant, now).unwrap(), path());
+        assert_eq!(
+            state.0.lock().unwrap().start(&grant, now).unwrap(),
+            vec![path()]
+        );
         let taking = Flight::new(&state, &grant);
         // The event consumer starts before the publishing task returns.
         drop(validation);
@@ -489,7 +503,9 @@ mod tests {
         s.start(&a, now).unwrap();
         s.finish(&a, 1, now).unwrap();
         assert!(s.start(&a, now).is_err());
-        assert!(s.reserve(&[path(), path()], now).is_none());
+        assert!(s
+            .reserve(&vec![path(); MAX_DROPPED_VIDEOS + 1], now)
+            .is_none());
         assert!(s
             .reserve(&[PathBuf::from("https://example.invalid/video.mp4")], now)
             .is_none());
@@ -563,12 +579,14 @@ mod tests {
         assert!(s.accept(&[first.clone()], now).is_none());
         assert!(s.flight.is_none() && s.pending.is_none());
         assert!(s.accept(&[second.clone()], now).is_none());
-        assert!(s.accept(&[first.clone(), second.clone()], now).is_none());
+        assert!(s
+            .accept(&vec![first.clone(); MAX_DROPPED_VIDEOS + 1], now)
+            .is_none());
         assert!(s.accept(&[first.with_extension("txt")], now).is_none());
         assert!(s.flight.is_none() && s.pending.is_none());
         s.advance_page();
         s.advance_page();
-        assert_eq!(s.page_ready(), Some(second.clone()));
+        assert_eq!(s.page_ready(), Some(vec![second.clone()]));
         assert_eq!(s.page_ready(), None);
         let grant = s.accept(&[second], now).unwrap();
         assert!(s.ready(&grant, now));
@@ -576,11 +594,18 @@ mod tests {
         assert!(s.start(&grant, now).is_err());
     }
     #[test]
-    fn system_open_accepts_only_one_local_video_url() {
+    fn system_open_accepts_ordered_local_video_urls_only() {
         let source = path().with_file_name("movie with space ü.MP4");
         let url = url::Url::from_file_path(&source).unwrap();
-        assert_eq!(opened_path(&[url.clone()]), Some(source));
-        assert!(opened_path(&[url.clone(), url]).is_none());
+        assert_eq!(opened_paths(&[url.clone()]), Some(vec![source.clone()]));
+        let second = source.with_file_name("second.webm");
+        let second_url = url::Url::from_file_path(&second).unwrap();
+        assert_eq!(
+            opened_paths(&[url.clone(), second_url]),
+            Some(vec![source, second])
+        );
+        assert!(opened_paths(&vec![url.clone(); MAX_DROPPED_VIDEOS + 1]).is_none());
+        assert!(opened_paths(&[]).is_none());
         for raw in [
             "https://example.invalid/movie.mp4",
             "file://remote/movie.mp4",
@@ -588,36 +613,71 @@ mod tests {
             "file:///movie.mp4#x",
             "file:///movie.txt",
         ] {
-            assert!(opened_path(&[url::Url::parse(raw).unwrap()]).is_none());
+            assert!(opened_paths(&[url.clone(), url::Url::parse(raw).unwrap()]).is_none());
         }
     }
     #[test]
-    fn system_argv_keeps_native_paths_and_rejects_urls_and_extra_operands() {
+    fn system_argv_keeps_order_and_rejects_invalid_batch_members() {
         let cwd = std::env::temp_dir();
         assert_eq!(
-            argument_path(&["movie ü.mp4".into()], &cwd),
-            Some(cwd.join("movie ü.mp4"))
+            argument_paths(&["movie ü.mp4".into()], &cwd),
+            Some(vec![cwd.join("movie ü.mp4")])
         );
         assert_eq!(
-            argument_path(&["--".into(), "-movie.mp4".into()], &cwd),
-            Some(cwd.join("-movie.mp4"))
+            argument_paths(&["--".into(), "-movie.mp4".into()], &cwd),
+            Some(vec![cwd.join("-movie.mp4")])
         );
         let source = cwd.join("movie with space ü.mp4");
         let local_url = url::Url::from_file_path(&source).unwrap();
         assert_eq!(
-            argument_path(&[local_url.as_str().into()], &cwd),
-            Some(source)
+            argument_paths(&[local_url.as_str().into()], &cwd),
+            Some(vec![source])
         );
+        assert_eq!(
+            argument_paths(&["b.mp4".into(), "a.mp4".into()], &cwd),
+            Some(vec![cwd.join("b.mp4"), cwd.join("a.mp4")])
+        );
+        assert!(argument_paths(&vec!["a.mp4".into(); MAX_DROPPED_VIDEOS + 1], &cwd).is_none());
+        assert!(argument_paths(&[], &cwd).is_none());
         for args in [
             vec!["https://example.invalid/movie.mp4".into()],
             vec!["file://remote/movie.mp4".into()],
             vec!["file:///movie.mp4?x=1".into()],
             vec!["file:///movie.mp4#x".into()],
             vec!["-movie.mp4".into()],
-            vec!["a.mp4".into(), "b.mp4".into()],
+            vec!["a.mp4".into(), "b.txt".into()],
         ] {
-            assert!(argument_path(&args, &cwd).is_none());
+            assert!(argument_paths(&args, &cwd).is_none());
         }
+    }
+    #[test]
+    fn batch_reservation_preserves_order_and_rejects_partial_or_oversized_intents() {
+        let mut s: Slots<Vec<PathBuf>> = Slots::default();
+        let now = Instant::now();
+        let paths = vec![path().with_file_name("second.webm"), path()];
+        assert!(s.accept(&paths, now).is_none());
+        assert!(s
+            .accept(&[path(), path().with_extension("txt")], now)
+            .is_none());
+        assert!(s.accept(&[], now).is_none());
+        assert!(s
+            .accept(&vec![path(); MAX_DROPPED_VIDEOS + 1], now)
+            .is_none());
+        assert_eq!(s.page_ready(), Some(paths.clone()));
+        let grant = s.accept(&paths, now).unwrap();
+        assert!(s.ready(&grant, now));
+        let taken = s.start(&grant, now).unwrap();
+        assert_eq!(taken, paths);
+        s.finish(&grant, taken, now).unwrap();
+        assert_eq!(s.release(&grant), Some(paths));
+        assert!(s.release(&grant).is_none());
+        let limit = vec![path(); MAX_DROPPED_VIDEOS];
+        let grant = s.accept(&limit, now).unwrap();
+        assert!(s.ready(&grant, now));
+        assert_eq!(s.start(&grant, now).unwrap(), limit);
+        s.advance_page();
+        assert!(s.finish(&grant, limit, now).is_err());
+        assert!(s.issued.is_empty());
     }
     #[test]
     fn commands_are_main_only_and_event_has_only_grant() {

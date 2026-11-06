@@ -996,6 +996,7 @@ var keyStrings = {
     "Show list of channel archive records": "Wys kanaalopnames",
     "Show list of channel archive records without duplication":
         "Wys kanaalopnames sonder duplikate",
+    "Show list separators": "Wys skeidingslyne in lyste",
     "Show Media Library": "Wys mediabiblioteek",
     "Show picons in channel list": "Wys kanaalikone in lys",
     "Show player menu": "Wys spelerkieslys",

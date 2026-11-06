@@ -1423,7 +1423,8 @@ export function installLocalMedia(w: any): any {
                     catalog.cancelled ||
                     catalog.available === false ||
                     !Array.isArray(catalog.items) ||
-                    catalog.items.length !== 1 ||
+                    !catalog.items.length ||
+                    catalog.items.length > 128 ||
                     !Array.isArray(catalog.sources) ||
                     catalog.sources.length !== 1 ||
                     typeof release !== "function" ||
@@ -1434,23 +1435,33 @@ export function installLocalMedia(w: any): any {
                     w.__ottStandby?.blocked?.()
                 )
                     throw new Error("Dropped video is unavailable");
-                var item = catalog.items[0],
-                    source = catalog.sources[0];
+                var source = catalog.sources[0];
                 if (
-                    !item ||
                     !source ||
-                    typeof item.id !== "string" ||
-                    !item.id ||
                     typeof source.id !== "string" ||
                     !source.id ||
-                    item.sourceId !== source.id ||
-                    typeof item.url !== "string" ||
-                    !item.url ||
-                    item.available === false ||
-                    source.available === false ||
-                    item.playback?.mode === "unsupported"
+                    source.available === false
                 )
                     throw new Error("Dropped video is unavailable");
+                var seen: any = Object.create(null);
+                var ids: string[] = [];
+                for (var i = 0; i < catalog.items.length; i++) {
+                    var item = catalog.items[i];
+                    if (
+                        !item ||
+                        typeof item.id !== "string" ||
+                        !item.id ||
+                        seen[item.id] ||
+                        item.sourceId !== source.id ||
+                        typeof item.url !== "string" ||
+                        !item.url ||
+                        item.available === false ||
+                        item.playback?.mode === "unsupported"
+                    )
+                        throw new Error("Dropped video is unavailable");
+                    seen[item.id] = true;
+                    ids.push(item.id);
+                }
                 drop.catalog = JSON.parse(JSON.stringify(catalog));
                 drop.catalog.persistent = false;
                 var previous = droppedPlayback;
@@ -1460,7 +1471,7 @@ export function installLocalMedia(w: any): any {
                 try {
                     api.remoteActivate(
                         source.id,
-                        [item.id],
+                        ids,
                         drop.catalog,
                         function () {
                             return !drop.released && admitted();

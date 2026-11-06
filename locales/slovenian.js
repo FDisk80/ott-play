@@ -1004,6 +1004,7 @@ var keyStrings = {
     "Show list of channel archive records": "Pokaži posnetke kanala",
     "Show list of channel archive records without duplication":
         "Pokaži posnetke kanala brez dvojnikov",
+    "Show list separators": "Prikaži ločilne črte na seznamih",
     "Show Media Library": "Prikaži medijsko knjižnico",
     "Show picons in channel list": "Pokaži ikone kanalov na seznamu",
     "Show player menu": "Prikaži meni predstavnostnega predvajalnika",

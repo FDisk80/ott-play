@@ -221,6 +221,9 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
+      - name: Check declared test inventory
+        run: npm run check:test-inventory
+
       - name: Biome lint
         run: npm run lint
 
@@ -230,7 +233,7 @@ jobs:
     outputs:
       browser-artifact-id: ${{ steps.browser-artifact.outputs.artifact-id }}
     runs-on: ubuntu-26.04
-    needs: typecheck
+    needs: [ typecheck, lint ]
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -275,12 +278,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Host output is not a Docker input: generated build/dist directories are
-      # ignored, and the Dockerfile copies only its declared source paths.
-      - name: Build container frontend from declared inputs
-        timeout-minutes: 10
-        run: docker build --target build --progress=plain .
-
       - name: Check classic bundle size budgets
         run: npm run check:size
 
@@ -302,6 +299,12 @@ jobs:
 
       - name: Check emitted ES5 grammar
         run: npm run check:es5
+
+      # Host output is not a Docker input: generated build/dist directories are
+      # ignored, and the Dockerfile copies only its declared source paths.
+      - name: Build container frontend from declared inputs
+        timeout-minutes: 10
+        run: docker build --target build --progress=plain .
 
       - name: Install browsers for device and native UI checks
         run: |
@@ -494,13 +497,22 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Verify published GLib source and security backport
+        run: node scripts/check-glib-backport.cjs
+      - name: Verify native drag pasteboard dependency guards
+        run: node scripts/check-macos-drag-backport.cjs
+      - name: Verify updater source
+        run: python3 scripts/check-updater-backport.py
+      - name: Verify bounded torrent metadata source
+        run: node scripts/check-librqbit-backport.cjs
+      - name: Check fuzz formatting
+        run: cargo fmt --manifest-path fuzz/Cargo.toml -- --check
       - name: Test isolated container workspace and lockfile inputs
         run: python3 tests/test_container_workspace.py
       - name: Test core and server including shared XMLTV differential contracts
         run: cargo test --locked -p ottplay-core -p ottplay-server -p ottplay-companion
       - name: Verify bounded torrent metadata acquisition
         run: |
-          node scripts/check-librqbit-backport.cjs
           cargo test --locked --manifest-path tests/librqbit-resource-regression/Cargo.toml --no-default-features --features rust-tls --lib resource_bounds_tests
       - name: Install media tools for isolated normalization checks
         run: |
@@ -527,7 +539,6 @@ jobs:
           python3 tests/test_linux_playback_packaging.py
       - name: Replay fixed fuzz regression corpus (no fuzz campaign)
         run: |
-          cargo fmt --manifest-path fuzz/Cargo.toml -- --check
           cargo clippy --locked --manifest-path fuzz/Cargo.toml --lib -- -D warnings
           cargo test --locked --manifest-path fuzz/Cargo.toml --lib
       - name: Enforce release server EPG performance budgets
@@ -546,13 +557,8 @@ jobs:
           path: reports/epg/performance.json
           if-no-files-found: ignore
           retention-days: 14
-      - name: Verify published GLib source and security backport
-        run: node scripts/check-glib-backport.cjs
-      - name: Verify native drag pasteboard dependency guards
-        run: node scripts/check-macos-drag-backport.cjs
       - name: Verify updater source and ZIP compatibility
         run: |
-          python3 scripts/check-updater-backport.py
           cargo test --locked --manifest-path tests/updater-zip-regression/Cargo.toml
       - name: Install GLib for optimized iterator regression
         run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev pkg-config

@@ -1001,6 +1001,7 @@ var keyStrings = {
     "Show list of channel archive records": "Ցուցադրել ալիքի տեսագրությունները",
     "Show list of channel archive records without duplication":
         "Ցուցադրել ալիքի տեսագրությունները՝ առանց կրկնությունների",
+    "Show list separators": "Ցուցադրել բաժանարար գծերը ցանկերում",
     "Show Media Library": "Ցուցադրել մեդիա գրադարանը",
     "Show picons in channel list": "Ցուցադրել ալիքների պատկերակները ցուցակում",
     "Show player menu": "Ցուցադրել նվագարկչի մենյուն",

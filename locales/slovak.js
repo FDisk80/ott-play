@@ -1006,6 +1006,7 @@ var keyStrings = {
     "Show list of channel archive records": "Zobraziť nahrávky kanála",
     "Show list of channel archive records without duplication":
         "Zobraziť nahrávky kanála bez duplikátov",
+    "Show list separators": "Zobraziť oddeľovacie čiary v zoznamoch",
     "Show Media Library": "Zobraziť knižnicu médií",
     "Show picons in channel list": "Zobraziť ikony kanálov v zozname",
     "Show player menu": "Zobraziť ponuku prehrávača médií",

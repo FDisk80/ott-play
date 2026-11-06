@@ -1,4 +1,5 @@
 // Repeated boot uses real DOM events and the actual classic initializer.
+require("./test_buffering_flash.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");

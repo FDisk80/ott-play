@@ -983,6 +983,7 @@ var keyStrings = {
     "Show list of channel archive records": "Gosi ndekọ ọwa",
     "Show list of channel archive records without duplication":
         "Gosi ndekọ ọwa na-enweghị oyiri",
+    "Show list separators": "Gosi ahịrị nkewa na ndepụta",
     "Show Media Library": "Gosi ọba mgbasa ozi",
     "Show picons in channel list": "Gosi akara ọwa na ndepụta",
     "Show player menu": "Gosi ndepụta nhọrọ ihe ọkpụkpọ",

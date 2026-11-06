@@ -132,6 +132,12 @@
     "build_number_floor": 10153,
     "artifacts": [
       {
+        "path": "ottplay-server_aarch64-apple-darwin.build.json",
+        "format": "json",
+        "value": "package",
+        "field": "packageVersion"
+      },
+      {
         "path": "ottplay-foss-modea.tar.gz",
         "format": "tar-json",
         "value": "package",

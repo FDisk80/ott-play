@@ -1002,6 +1002,7 @@ var keyStrings = {
     "Show list of channel archive records": "Pokaż nagrania kanału",
     "Show list of channel archive records without duplication":
         "Pokaż nagrania kanału bez powtórzeń",
+    "Show list separators": "Pokaż linie oddzielające na listach",
     "Show Media Library": "Pokaż bibliotekę multimediów",
     "Show picons in channel list": "Pokazuj ikony kanałów na liście",
     "Show player menu": "Pokaż menu odtwarzacza",

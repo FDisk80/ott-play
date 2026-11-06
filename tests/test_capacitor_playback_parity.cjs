@@ -44,7 +44,15 @@ const metadataDeclaration = entryAst.statements.find(
         node.name?.text === "nativeMediaMetadata"
 );
 assert(metadataDeclaration, "Exercise the actual shared metadata collector");
-const metadata = compile(metadataDeclaration.getText(entryAst));
+const optionsDeclaration = entryAst.statements.find(
+    (node) =>
+        ts.isFunctionDeclaration(node) &&
+        node.name?.text === "nativeMediaSessionOptions"
+);
+assert(optionsDeclaration, "Exercise the actual native session options");
+const metadata = compile(
+    metadataDeclaration.getText(entryAst) + optionsDeclaration.getText(entryAst)
+);
 const wrapper =
     compile(read("src/plugins/access-media.ts")) +
     metadata +

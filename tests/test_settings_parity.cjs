@@ -124,6 +124,7 @@ function fixture(
                 return elements.get(id);
             },
         },
+        epgTimeColorDialog() {},
         findOptionIndex() {
             return 0;
         },
@@ -2202,3 +2203,466 @@ for (const profile of ["server", "tauri", "capacitor-android"]) {
     }
 }
 console.log("PASS EPG presentation settings save/cancel/reload and defaults");
+
+for (const profile of [
+    "server",
+    "tauri",
+    "capacitor-android",
+    "capacitor-ios",
+]) {
+    const { w, typed, stored } = fixture(profile);
+    vm.runInContext(
+        compile(
+            fs.readFileSync(
+                path.join(root, "src/plugins/remote-settings.ts"),
+                "utf8"
+            )
+        ),
+        w
+    );
+    const remote = w.__ottPlayerSettingsFactory.create(
+        w,
+        () => "epg-color-test"
+    );
+    const request = (params) => {
+        let response;
+        remote.request(
+            {
+                action: "player_settings",
+                params: {
+                    runtime: "epg-color-test",
+                    ...params,
+                },
+            },
+            (result) => {
+                response = result;
+            }
+        );
+        return response;
+    };
+    const remoteSet = (value) => {
+        const current = request({ id: "epgTimeColor", op: "get" });
+        return request({
+            context: current.data.context.token,
+            id: "epgTimeColor",
+            op: "set",
+            revision: current.data.setting.revision,
+            value,
+        });
+    };
+    const descriptor = request({ id: "epgTimeColor", op: "get" }).data
+        .descriptor;
+    assert.equal(descriptor.type, "integer");
+    assert.equal(descriptor.default_value, 0);
+    assert.equal(descriptor.constraints.minimum, 0);
+    assert.equal(descriptor.constraints.maximum, 36466);
+    const theme = typed().interfaceTheme;
+    const foreground = typed().highlightColor;
+    const custom = 6 + 211 * 101 + 65;
+    w.settingsChannels();
+    assert.equal(
+        w.listArray.find((row) => row.settingId === "epgTimeColor").values,
+        w.epgTimeColorDialog,
+        "EPG time opens the shared spectrum picker"
+    );
+    assert.equal(w.eEpgTimeColor, "");
+    w.eEpgTimeColor = "211,65";
+    assert.equal(typed().epgTimeColor, 0, "Picker acceptance remains a draft");
+    assert.equal(stored.has("sEpgTimeColor"), false);
+    w.listKeyHandlerFn(w.keys.RETURN);
+    assert.equal(
+        typed().epgTimeColor,
+        0,
+        "Page Cancel discards the picker draft"
+    );
+    w.settingsChannels();
+    w.eEpgTimeColor = "211,65";
+    save(w);
+    vm.runInContext("loadSettings();", w);
+    assert.equal(typed().epgTimeColor, custom);
+    assert.equal(
+        stored.get("sEpgTimeColor"),
+        String(custom),
+        "Storage stays numeric"
+    );
+    assert.equal(
+        typed().interfaceTheme,
+        theme,
+        "EPG color does not select Classic theme"
+    );
+    assert.equal(
+        typed().highlightColor,
+        foreground,
+        "Other text colors are untouched"
+    );
+    w.settingsChannels();
+    assert.equal(
+        w.eEpgTimeColor,
+        "211,65",
+        "Reopen restores the exact hue/saturation"
+    );
+    for (const invalid of [
+        "361,50",
+        "30,101",
+        "-1,40",
+        "20,NaN",
+        "20,30;color:red",
+        20,
+    ]) {
+        w.eEpgTimeColor = invalid;
+        assert.equal(
+            w.eEpgTimeColor,
+            "211,65",
+            "Malformed picker values cannot change draft"
+        );
+    }
+    w.eEpgTimeColor = "";
+    w.listKeyHandlerFn(w.keys.RETURN);
+    assert.equal(typed().epgTimeColor, custom, "Reset is also cancelable");
+    w.settingsChannels();
+    w.eEpgTimeColor = "";
+    save(w);
+    vm.runInContext("loadSettings();", w);
+    assert.equal(typed().epgTimeColor, 0);
+    assert.equal(stored.get("sEpgTimeColor"), "0");
+    for (const legacy of [1, 2, 3, 4, 5]) {
+        stored.set("sEpgTimeColor", String(legacy));
+        vm.runInContext("loadSettings();", w);
+        w.settingsChannels();
+        assert.equal(typed().epgTimeColor, legacy);
+        save(w);
+        assert.equal(
+            stored.get("sEpgTimeColor"),
+            String(legacy),
+            "Unedited legacy colors survive Save"
+        );
+    }
+    w.settingsChannels();
+    for (const invalid of [-1, 36467, 6.5, NaN, "6"])
+        assert.equal(w.__ottSettingsEditor.set("epgTimeColor", invalid), false);
+    w.listKeyHandlerFn(w.keys.RETURN);
+    for (const value of [6, custom, 36466, 0]) {
+        const result = remoteSet(value);
+        assert.equal(result.status, "ok");
+        assert.equal(result.data.setting.persisted_value, value);
+        assert.equal(stored.get("sEpgTimeColor"), String(value));
+        vm.runInContext("loadSettings();", w);
+        assert.equal(typed().epgTimeColor, value);
+        assert.equal(
+            request({ id: "epgTimeColor", op: "get" }).data.setting.value,
+            value
+        );
+    }
+    for (const value of [-1, 36467, 6.5, "6"])
+        assert.equal(remoteSet(value).status, "rejected");
+}
+console.log("PASS EPG spectrum draft, numeric compatibility, reset and reload");
+
+{
+    const { w, typed } = fixture("server");
+    const properties = new Map();
+    const query = w.$;
+    w.$ = (selector) => {
+        const chain = query(selector);
+        chain.css = chain.toggleClass = () => chain;
+        return chain;
+    };
+    w.document.documentElement = {
+        style: {
+            setProperty: (name, value) => properties.set(name, value),
+        },
+    };
+    w.$tooltipSpan = null;
+    w.tooltip = null;
+    vm.runInContext(
+        compile(
+            selectedSource("src/ui/index.ts", ["hsvToRgb", "epgTimeCssColor"])
+        ),
+        w
+    );
+    vm.runInContext(
+        compile(
+            selectedSource("src/index.ts", ["classicColorRgb", "setColor"])
+        ),
+        w
+    );
+    w.settingsChannels();
+    w.eEpgTimeColor = "211,65";
+    save(w);
+    assert.equal(
+        properties.get("--ott-epg-time-color"),
+        "rgb(89,169,255)",
+        "Saving runs the real theme publication for already-visible EPG rows"
+    );
+    w.settingsChannels();
+    w.eEpgTimeColor = "";
+    save(w);
+    assert.equal(properties.get("--ott-epg-time-color"), "inherit");
+    assert.equal(typed().epgTimeColor, 0);
+}
+console.log(
+    "PASS EPG spectrum publishes and clears the shared CSS color on Save"
+);
+
+// Focused native-window integration uses the real SettingsEditor and ScreenPort.
+for (const registry of [undefined, {}]) {
+    const { w, typed } = fixture("tauri");
+    w.__ottMenuRegistry = registry;
+    w.settingsInterface();
+    assert(w.listArray.some((row) => row.settingId === "uiFontScale"));
+    assert(!w.listArray.some((row) => /^window\./.test(row.id || "")));
+    assert(w.__ottSettingsEditor.active());
+    w.listArray.find((row) => row.settingId === "stopPlay").val = 1;
+    w.listKeyHandlerFn(w.keys.RETURN);
+    assert.equal(typed().stopPlay, 0);
+}
+
+require("node:test").test(
+    "Interface window actions preserve the real settings draft, owner and selection",
+    async () => {
+        const settle = () => new Promise((resolve) => setImmediate(resolve));
+        for (const mode of [0, 1]) {
+            for (const finish of ["save", "cancel"]) {
+                for (const kind of ["alwaysOnTop", "aspectLock"]) {
+                    const { w, stored, typed } = fixture("tauri");
+                    w.sInterfaceMode = mode;
+                    const ipc = [],
+                        messages = [];
+                    let acknowledge,
+                        enabled = false,
+                        paints = 0,
+                        closed = 0;
+                    w.navigator = { userAgent: "desktop" };
+                    w.__TAURI__ = {
+                        core: {
+                            invoke(command, args) {
+                                ipc.push([
+                                    command,
+                                    args && JSON.parse(JSON.stringify(args)),
+                                ]);
+                                if (command === "get_window_aspect_lock")
+                                    return Promise.resolve({
+                                        active: false,
+                                        enabled,
+                                        ok: true,
+                                        supported: true,
+                                    });
+                                return new Promise((resolve) => {
+                                    acknowledge = () => {
+                                        enabled =
+                                            kind === "alwaysOnTop"
+                                                ? args.alwaysOnTop
+                                                : args.enabled;
+                                        resolve(
+                                            kind === "alwaysOnTop"
+                                                ? {
+                                                      alwaysOnTop: enabled,
+                                                      ok: true,
+                                                  }
+                                                : {
+                                                      active: enabled,
+                                                      enabled,
+                                                      ok: true,
+                                                      supported: true,
+                                                  }
+                                        );
+                                    };
+                                });
+                            },
+                        },
+                        window: {
+                            getCurrentWindow: () => ({
+                                isAlwaysOnTop: () => Promise.resolve(enabled),
+                                label: "main",
+                            }),
+                        },
+                    };
+                    w.showPage = () => {
+                        paints++;
+                        w.__ottClassicScreenPort.commitList();
+                    };
+                    w.showPopup = (message) => messages.push(message);
+                    w.closeList = () => {
+                        closed++;
+                        w.__ottClassicScreenPort.closeList();
+                    };
+                    w.settingsInterface();
+                    const rows = w.listArray,
+                        editor = w.__ottSettingsEditor;
+                    const owner = w.__ottClassicScreenPort.listOwner();
+                    assert(
+                        owner.foreground(),
+                        "The actual Interface page owns input"
+                    );
+                    assert.deepEqual(
+                        Array.from(rows.slice(2, 4), (row) => row.id),
+                        ["window.alwaysOnTop", "window.aspectLock"]
+                    );
+                    assert(
+                        rows
+                            .slice(2, 4)
+                            .every(
+                                (row) => !row.settingId && row.cur === "select"
+                            )
+                    );
+                    assert.deepEqual(
+                        ipc,
+                        [],
+                        "Opening Interface never queries or changes native state"
+                    );
+                    const font = rows.find(
+                        (row) => row.settingId === "uiFontScale"
+                    );
+                    font.val = font.settingValues.indexOf(130);
+                    const index = rows.findIndex(
+                        (row) => row.id === "window." + kind
+                    );
+                    w.selIndex = index;
+                    const before = [...stored],
+                        paintCount = paints;
+                    assert.equal(w.listKeyHandlerFn(w.keys.ENTER), true);
+                    await settle();
+                    assert.equal(
+                        typeof acknowledge,
+                        "function",
+                        "Selected action reaches its native setter"
+                    );
+                    assert.deepEqual(
+                        ipc,
+                        kind === "alwaysOnTop"
+                            ? [["set_always_on_top", { alwaysOnTop: true }]]
+                            : [
+                                  ["get_window_aspect_lock", undefined],
+                                  ["set_window_aspect_lock", { enabled: true }],
+                              ]
+                    );
+                    assert.deepEqual(
+                        messages,
+                        [],
+                        "No success before native acknowledgement"
+                    );
+                    acknowledge();
+                    await settle();
+                    assert.deepEqual(messages, [
+                        (kind === "alwaysOnTop"
+                            ? "Always on top"
+                            : "Lock window to 16:9") + ": on",
+                    ]);
+                    assert.equal(w.listArray, rows);
+                    assert.equal(w.__ottSettingsEditor, editor);
+                    assert.equal(w.__ottClassicScreenPort.listOwner(), owner);
+                    assert.equal(w.selIndex, index);
+                    assert.equal(
+                        paints,
+                        paintCount,
+                        "A native acknowledgement does not repaint settings"
+                    );
+                    assert.equal(closed, 0);
+                    assert(editor.active());
+                    assert.equal(editor.get("uiFontScale"), 130);
+                    assert.equal(
+                        typed().uiFontScale,
+                        100,
+                        "Other preferences remain uncommitted"
+                    );
+                    assert.deepEqual(
+                        [...stored],
+                        before,
+                        "Native actions never write SettingsStore"
+                    );
+                    w.listKeyHandlerFn(
+                        finish === "save" ? w.keys.GREEN : w.keys.RETURN
+                    );
+                    assert.equal(
+                        typed().uiFontScale,
+                        finish === "save" ? 130 : 100
+                    );
+                    assert.equal(
+                        enabled,
+                        true,
+                        "Save/Cancel never replays or reverses a native action"
+                    );
+                    assert.equal(ipc.length, kind === "alwaysOnTop" ? 1 : 2);
+                }
+            }
+        }
+    }
+);
+
+require("node:test").test(
+    "an old Interface acknowledgement cannot alter a replacement page or draft",
+    async () => {
+        const settle = () => new Promise((resolve) => setImmediate(resolve));
+        for (const mode of [0, 1]) {
+            for (const reject of [false, true]) {
+                const { w, typed } = fixture("tauri");
+                w.sInterfaceMode = mode;
+                const messages = [];
+                let finish,
+                    paints = 0;
+                w.navigator = { userAgent: "desktop" };
+                w.__TAURI__ = {
+                    core: {
+                        invoke: () =>
+                            new Promise((resolve, fail) => {
+                                finish = () =>
+                                    reject
+                                        ? fail(Error("denied"))
+                                        : resolve({
+                                              alwaysOnTop: true,
+                                              ok: true,
+                                          });
+                            }),
+                    },
+                    window: {
+                        getCurrentWindow: () => ({
+                            isAlwaysOnTop: () => Promise.resolve(false),
+                            label: "main",
+                        }),
+                    },
+                };
+                w.showPage = () => {
+                    paints++;
+                    w.__ottClassicScreenPort.commitList();
+                };
+                w.showPopup = (message) => messages.push(message);
+                w.closeList = () =>
+                    assert.fail(
+                        "An old acknowledgement must not close the replacement"
+                    );
+                w.settingsInterface();
+                const oldEditor = w.__ottSettingsEditor;
+                const oldAction = w.listArray.find(
+                    (row) => row.id === "window.alwaysOnTop"
+                );
+                const pending = oldAction.values();
+                await settle();
+                assert.equal(typeof finish, "function");
+                w.listKeyHandlerFn(w.keys.RETURN);
+                assert.equal(oldEditor.active(), false);
+                w.settingsInterface();
+                const rows = w.listArray,
+                    editor = w.__ottSettingsEditor,
+                    owner = w.__ottClassicScreenPort.listOwner();
+                const font = rows.find(
+                    (row) => row.settingId === "uiFontScale"
+                );
+                font.val = font.settingValues.indexOf(140);
+                w.selIndex = 7;
+                const before = paints;
+                finish();
+                await pending;
+                assert.deepEqual(messages, []);
+                assert.equal(w.listArray, rows);
+                assert.equal(w.__ottSettingsEditor, editor);
+                assert.equal(w.__ottClassicScreenPort.listOwner(), owner);
+                assert.equal(w.selIndex, 7);
+                assert.equal(paints, before);
+                assert(editor.active());
+                assert.equal(editor.get("uiFontScale"), 140);
+                assert.equal(typed().uiFontScale, 100);
+                w.listKeyHandlerFn(w.keys.RETURN);
+            }
+        }
+    }
+);

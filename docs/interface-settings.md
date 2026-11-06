@@ -12,6 +12,8 @@ Explicitly saved Classic (`0`), PLi-HD (`1`) and Studio (`2`) selections survive
 restart. Selecting a theme does not reset any other preference. Custom colour
 pickers are labelled **Classic** and select that theme in the same settings draft;
 cancelling the draft preserves both the previous theme and colours.
+The shared spectrum picker treats a full-turn hue (360°) as 0° in both previews
+and saved theme/EPG colors; stored hue values are not rewritten.
 
 The presentation was developed for OTT-play FOSS in September 2026. It uses
 original HTML/CSS, existing player fonts and the established two-panel layout.
@@ -41,6 +43,15 @@ upstream links and the earlier OTT-play lineage in English.
   independent of the theme. The preview and its opaque mask use one shared
   rectangle. Resizing recalculates both row and logo/progress geometry.
   Classic details also stay below the header when reduced video is disabled.
+- **Row separators:** **Lists settings → Show list separators (Classic)**
+  hides or restores the thin lines between rows in Category selection, Channel
+  list, EPG and archive. The default is **yes**, preserving the current theme's
+  appearance; themes without these lines remain unchanged. The setting does not
+  change Modern mode, settings rows, dialogs, focus indicators, or outer borders.
+  It is saved for the client, applies immediately after Save, and survives
+  provider changes and restarts. Cancel keeps the previous value. Backups and
+  remote settings use `showListSeparators` (`1` = yes, `0` = no); resetting this
+  setting restores `1`.
 - **Channel information:** number, logo (hidden/square/wide), channel name,
   programme name, progress, archive indication, description, thumbnail and
   upcoming programme count retain their existing controls and provider scope.
@@ -134,9 +145,16 @@ label. It defaults to **yes**. Choosing **no** keeps the green availability mark
 and archive playback; the marker retains its accessible label. The separate
 channel-list archive setting keeps its existing purpose.
 
-**EPG: Text color (00:00)** changes only the date and time range. **Player default**
-inherits the theme; optional fixed colors are white (`#FFFFFF`), yellow
-(`#FFFF00`), cyan (`#00FFFF`), green (`#00FF00`) and light magenta (`#FFB3FF`).
-Programme-title highlighting is unchanged. Both settings are saved for the
-application through the normal Save/Cancel flow and apply to the shared EPG in
-Classic and Modern interfaces.
+**EPG: Text color (00:00)** opens the same color spectrum picker as the Classic
+interface colors. Left/Right changes hue and Up/Down changes saturation; **Set**
+accepts the preview into the settings draft. **Player default** restores the
+inherited theme color. Save the parent settings page to keep either change;
+Cancel discards it. Only the date and time range changes, not programme-title
+highlighting or the interface theme. Existing saved colors remain unchanged.
+Both EPG settings apply to the shared EPG in Classic and Modern interfaces.
+
+The `epgTimeColor` setting keeps the numeric `sEpgTimeColor` storage key: `0`
+inherits the theme, and `1`–`5` retain white, yellow, cyan, green and light magenta.
+Custom colors use `6 + hue * 101 + saturation`, with integer hue `0`–`360` and
+saturation `0`–`100` (HSV brightness is `100`). The accepted numeric range is
+`0`–`36466`; remote settings and profile imports use the same validation.

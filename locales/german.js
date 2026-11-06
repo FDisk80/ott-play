@@ -1015,6 +1015,7 @@ var keyStrings = {
     "Show list of channel archive records": "Senderaufnahmen anzeigen",
     "Show list of channel archive records without duplication":
         "Senderaufnahmen ohne Duplikate anzeigen",
+    "Show list separators": "Trennlinien in Listen anzeigen",
     "Show Media Library": "Mediathek anzeigen",
     "Show picons in channel list": "Senderlogos in der Liste anzeigen",
     "Show player menu": "Playermenü anzeigen",

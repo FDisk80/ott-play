@@ -6,10 +6,27 @@ mod commands;
 pub mod native_window_smoke_commands {
     pub use crate::commands::{tauri_commands, window_controls};
     pub use crate::window_aspect;
+
+    #[cfg(target_os = "macos")]
+    pub fn build_native_menu(
+        app: &tauri::AppHandle,
+    ) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+        crate::native_menu::build(app)
+    }
+    #[cfg(target_os = "macos")]
+    pub fn handle_native_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
+        crate::native_menu::handle(app, event);
+    }
+    #[cfg(target_os = "macos")]
+    pub fn native_menu_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+        crate::native_menu::on_window_event(window, event);
+    }
 }
 mod instance;
 #[cfg(target_os = "linux")]
 mod linux_media_compat;
+#[cfg(target_os = "macos")]
+mod native_menu;
 mod preferred_languages;
 #[doc(hidden)]
 pub mod window_aspect;
@@ -43,6 +60,10 @@ pub fn run() {
     let background = ottplay_core::background_work::BackgroundWork::default();
     // No listener starts at launch; settings explicitly configure optional HTTP.
     let builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .menu(native_menu::build)
+        .on_menu_event(native_menu::handle);
     // Managed local copies have a distinct bundle identity and WebKit store.
     // Installing the canonical updater archive over one would erase that
     // identity. Update the main app, then refresh the instance copies instead.
@@ -153,6 +174,8 @@ pub fn run() {
             commands::stalker::stalker_portal_fetch,
         ])
         .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            native_menu::on_window_event(window, event);
             if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
                 commands::local_drop::offer(window.app_handle(), window.label(), paths);
             }
@@ -231,6 +254,8 @@ pub fn run() {
                 builder = instance::apply_isolation(builder, &data_dir);
             }
             builder.build()?;
+            #[cfg(target_os = "macos")]
+            native_menu::refresh(app.handle());
             #[cfg(any(target_os = "windows", target_os = "linux"))]
             commands::local_drop::initial_arguments(app.handle());
             if let Some(webview) = app.get_webview_window("main") {

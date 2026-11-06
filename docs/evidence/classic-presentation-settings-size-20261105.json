@@ -1,0 +1,1289 @@
+{
+  "schema": 1,
+  "status": "PAIRED_MEASUREMENT_NOT_BUILD_QUALIFICATION",
+  "scope": "Net Classic presentation, playback recovery and Menu-to-Interface settings changes between the exact sources; not an allowance for only two window buttons.",
+  "policy": "Add the measured maximum per variant once; preserve old headroom. No arbitrary reserve, no additional per-source or per-platform allowance. The complete total inherits entry plus appearance through BASE_TOTAL_BUDGET.",
+  "gzip_method": "Reported Node/zlib level-9 sizes; sums of separate streams, never Python recompression",
+  "measurement_root": "/Users/vmedvedev/.codex/artifacts/ott-desktop-pr-owner3-20261105/paired-measurement-20261105",
+  "receipts": {
+    "FINAL-REPORT.json": {
+      "path": "FINAL-REPORT.json",
+      "sha256": "be61b06e688b271d3e6e01663fafbf98176f9b1e3156f293e166feb439743ec4"
+    },
+    "MEASUREMENTS.json": {
+      "path": "MEASUREMENTS.json",
+      "sha256": "266162e44c51725ed592045e8d9415f22b2ceeada47fc01627ee5604690a0e75"
+    },
+    "DELTAS.json": {
+      "path": "DELTAS.json",
+      "sha256": "431ee09bde80f53f9a89cb693739e23d97aefe302bc4700b8e35f5ac5f54ba64"
+    }
+  },
+  "phases": [
+    {
+      "name": "baseline590",
+      "source": "590148711d00c15623e69ec28ff32a68064b9aae",
+      "tree": "a54e817c36a2811f696f68b93484665d85162d9a",
+      "report": "baseline590/source/build/reports/classic-bundle.json",
+      "preserved_report": "baseline590/evidence/classic-bundle.json",
+      "report_sha256": "bb95b1dd6fcf4d43613d047f7978cdd72adf5c7face84fad5b929658a31c5e07",
+      "toolchain": {
+        "node": "22.23.4",
+        "zlib": "1.3.1-e00f703"
+      },
+      "compilers": {
+        "esbuild": "0.28.2",
+        "terser": "5.51.2",
+        "typescript": "5.9.3",
+        "vite": "8.3.5"
+      }
+    },
+    {
+      "name": "combined6b06",
+      "source": "6b06f4287f7896bc66820af7bfba9000d8df013c",
+      "tree": "5604b7bdc9231c7c694c72a9fced270a878244da",
+      "report": "combined6b06/source/build/reports/classic-size-diagnostics.json",
+      "preserved_report": "combined6b06/evidence/classic-size-diagnostics.json",
+      "report_sha256": "8ea4f0aaa381d4b2a443e7534dfbdb3e505f317842069af3c355bf4e75357edb",
+      "toolchain": {
+        "node": "22.23.4",
+        "zlib": "1.3.1-e00f703"
+      },
+      "compilers": {
+        "esbuild": "0.28.2",
+        "terser": "5.51.2",
+        "typescript": "5.9.3",
+        "vite": "8.3.5"
+      }
+    }
+  ],
+  "unchanged_tooling_sha256": {
+    "scripts/classic-size.cjs": "ea7f8bb5796565b1b3be3490900bac24c5819a1479919de05a80bce2d801d990",
+    "scripts/classic-optimizer.cjs": "16185eb595e23a4c08fee1a3df564f229269807988cf45cc54f99f2ca0a9c291",
+    "scripts/classic-function-names.cjs": "1287a0866d904dd7794de87a110ce9e12ffb2a196cfa51df06f7b93d7c34c05f",
+    "vite.config.ts": "7089cad56b5fdd50198c61e1610cbf45586ba1879f0cdfaff430cdb3d85adcaf",
+    "package-lock.json": "f7690bc202290eedd90944194b8fdfc19986fd4ad29a71be9d0dd403fd65c1f2",
+    ".release-policy.json": "7aa8cccd988bf8381ec9dae98802a4e99eda436fbd12be3381c638e9e7b82c31",
+    "scripts/player-build-identity.cjs": "f0599831aea76abba1f1087a070e8b5e5607aba7e90a785e8b4ca429b689e9cf"
+  },
+  "measured_allowance": {
+    "entry": {
+      "bytes": 2281,
+      "gzipBytes": 1049
+    },
+    "appearance": {
+      "bytes": 195,
+      "gzipBytes": 74
+    }
+  },
+  "caps_before": {
+    "BUDGET": {
+      "bytes": 1197990,
+      "gzipBytes": 366323
+    },
+    "BASE_TOTAL_BUDGET": {
+      "bytes": 1873911,
+      "gzipBytes": 577814
+    },
+    "LEGACY_TOTAL_BUDGET": {
+      "bytes": 1443046,
+      "gzipBytes": 450578
+    },
+    "TOTAL_BUDGET": {
+      "bytes": 1884191,
+      "gzipBytes": 581842
+    },
+    "appearance": {
+      "bytes": 8196,
+      "gzipBytes": 3432
+    }
+  },
+  "caps_after": {
+    "BUDGET": {
+      "bytes": 1200271,
+      "gzipBytes": 367372
+    },
+    "BASE_TOTAL_BUDGET": {
+      "bytes": 1876387,
+      "gzipBytes": 578937
+    },
+    "LEGACY_TOTAL_BUDGET": {
+      "bytes": 1445327,
+      "gzipBytes": 451627
+    },
+    "TOTAL_BUDGET": {
+      "bytes": 1886667,
+      "gzipBytes": 582965
+    },
+    "appearance": {
+      "bytes": 8391,
+      "gzipBytes": 3506
+    }
+  },
+  "assets": [
+    {
+      "path": "dist-mobile/dist/control-transport.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 3011,
+        "gzipBytes": 1354,
+        "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+      },
+      "candidate": {
+        "bytes": 3011,
+        "gzipBytes": 1354,
+        "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/favorites-transfer.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 257688,
+        "gzipBytes": 66258,
+        "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+      },
+      "candidate": {
+        "bytes": 257688,
+        "gzipBytes": 66258,
+        "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/local-compatibility.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 9238,
+        "gzipBytes": 3446,
+        "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+      },
+      "candidate": {
+        "bytes": 9238,
+        "gzipBytes": 3446,
+        "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/local-drop.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 5356,
+        "gzipBytes": 2104,
+        "sha256": "743a21aa270e883a5925245810440088c9b26112437ca2378b490839ea543826"
+      },
+      "candidate": {
+        "bytes": 5356,
+        "gzipBytes": 2104,
+        "sha256": "743a21aa270e883a5925245810440088c9b26112437ca2378b490839ea543826"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/local-media-ui.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 8455,
+        "gzipBytes": 3336,
+        "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+      },
+      "candidate": {
+        "bytes": 8455,
+        "gzipBytes": 3336,
+        "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/media-companion.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 11635,
+        "gzipBytes": 4019,
+        "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+      },
+      "candidate": {
+        "bytes": 11635,
+        "gzipBytes": 4019,
+        "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/modern-interface.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 38329,
+        "gzipBytes": 12229,
+        "sha256": "065b145dc62764c3bdf974c24e78ee82c82f4ed3f9980767e841c21ef4845e61"
+      },
+      "candidate": {
+        "bytes": 38329,
+        "gzipBytes": 12229,
+        "sha256": "065b145dc62764c3bdf974c24e78ee82c82f4ed3f9980767e841c21ef4845e61"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/perf-capture.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 21591,
+        "gzipBytes": 8051,
+        "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+      },
+      "candidate": {
+        "bytes": 21591,
+        "gzipBytes": 8051,
+        "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/player.js",
+      "kind": "entry",
+      "baseline": {
+        "bytes": 1197505,
+        "gzipBytes": 366125,
+        "sha256": "fbdab9e33e730e82cd65ceecbd3fdb1f57aba6aed49398ae1f12b657e8818114"
+      },
+      "candidate": {
+        "bytes": 1199786,
+        "gzipBytes": 367174,
+        "sha256": "d48bcbc39c047636656d6ea073e9fba4294ee6b388da39f6c7a3d3e8776da635"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-catalog.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 9463,
+        "gzipBytes": 3591,
+        "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+      },
+      "candidate": {
+        "bytes": 9463,
+        "gzipBytes": 3591,
+        "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-edem.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 15709,
+        "gzipBytes": 6139,
+        "sha256": "b87e5e577f86577eb95ab0fa0286bba94c81c0797e937ce7e1598323584393fe"
+      },
+      "candidate": {
+        "bytes": 15709,
+        "gzipBytes": 6139,
+        "sha256": "b87e5e577f86577eb95ab0fa0286bba94c81c0797e937ce7e1598323584393fe"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-m3u.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 19349,
+        "gzipBytes": 7077,
+        "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+      },
+      "candidate": {
+        "bytes": 19349,
+        "gzipBytes": 7077,
+        "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-playlist.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 11808,
+        "gzipBytes": 4395,
+        "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+      },
+      "candidate": {
+        "bytes": 11808,
+        "gzipBytes": 4395,
+        "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-plex.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 62592,
+        "gzipBytes": 21439,
+        "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+      },
+      "candidate": {
+        "bytes": 62592,
+        "gzipBytes": 21439,
+        "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-stalker.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 18737,
+        "gzipBytes": 6878,
+        "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+      },
+      "candidate": {
+        "bytes": 18737,
+        "gzipBytes": 6878,
+        "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-torrent.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 91666,
+        "gzipBytes": 28700,
+        "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+      },
+      "candidate": {
+        "bytes": 91666,
+        "gzipBytes": 28700,
+        "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-vportal.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 11391,
+        "gzipBytes": 4360,
+        "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+      },
+      "candidate": {
+        "bytes": 11391,
+        "gzipBytes": 4360,
+        "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/provider-xtream.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 4158,
+        "gzipBytes": 1748,
+        "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+      },
+      "candidate": {
+        "bytes": 4158,
+        "gzipBytes": 1748,
+        "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/remote-local-runner.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 2560,
+        "gzipBytes": 1203,
+        "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+      },
+      "candidate": {
+        "bytes": 2560,
+        "gzipBytes": 1203,
+        "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/remote-provider-fields.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 15788,
+        "gzipBytes": 5518,
+        "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+      },
+      "candidate": {
+        "bytes": 15788,
+        "gzipBytes": 5518,
+        "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/remote-settings-extras.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 6603,
+        "gzipBytes": 2503,
+        "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+      },
+      "candidate": {
+        "bytes": 6603,
+        "gzipBytes": 2503,
+        "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/remote-settings-lifecycle.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 32551,
+        "gzipBytes": 10273,
+        "sha256": "07f58615db14ab171e2f7111184b1f01c29dc0c2aca74b13ca50a8d224a52d2b"
+      },
+      "candidate": {
+        "bytes": 32551,
+        "gzipBytes": 10273,
+        "sha256": "07f58615db14ab171e2f7111184b1f01c29dc0c2aca74b13ca50a8d224a52d2b"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/remote-settings.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 15851,
+        "gzipBytes": 5205,
+        "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+      },
+      "candidate": {
+        "bytes": 15851,
+        "gzipBytes": 5205,
+        "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/runtime-debug-details.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 3342,
+        "gzipBytes": 1558,
+        "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+      },
+      "candidate": {
+        "bytes": 3342,
+        "gzipBytes": 1558,
+        "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/shaka-tracks.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 1144,
+        "gzipBytes": 599,
+        "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+      },
+      "candidate": {
+        "bytes": 1144,
+        "gzipBytes": 599,
+        "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+      }
+    },
+    {
+      "path": "dist-mobile/dist/subtitle-appearance.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 7798,
+        "gzipBytes": 3383,
+        "sha256": "3a033f70433a5abf2e3d55e9be15eb80bcc37ed49ccd993efa2b4d503522dcdf"
+      },
+      "candidate": {
+        "bytes": 7993,
+        "gzipBytes": 3457,
+        "sha256": "657d4854f0cac5b9fcd03111779d5ae429526b549f5373a145ac1daa1c3a4a20"
+      }
+    },
+    {
+      "path": "dist/control-transport.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 3011,
+        "gzipBytes": 1354,
+        "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+      },
+      "candidate": {
+        "bytes": 3011,
+        "gzipBytes": 1354,
+        "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+      }
+    },
+    {
+      "path": "dist/favorites-transfer.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 257688,
+        "gzipBytes": 66258,
+        "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+      },
+      "candidate": {
+        "bytes": 257688,
+        "gzipBytes": 66258,
+        "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+      }
+    },
+    {
+      "path": "dist/local-compatibility.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 9238,
+        "gzipBytes": 3446,
+        "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+      },
+      "candidate": {
+        "bytes": 9238,
+        "gzipBytes": 3446,
+        "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+      }
+    },
+    {
+      "path": "dist/local-drop.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 5356,
+        "gzipBytes": 2104,
+        "sha256": "743a21aa270e883a5925245810440088c9b26112437ca2378b490839ea543826"
+      },
+      "candidate": {
+        "bytes": 5356,
+        "gzipBytes": 2104,
+        "sha256": "743a21aa270e883a5925245810440088c9b26112437ca2378b490839ea543826"
+      }
+    },
+    {
+      "path": "dist/local-media-ui.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 8455,
+        "gzipBytes": 3336,
+        "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+      },
+      "candidate": {
+        "bytes": 8455,
+        "gzipBytes": 3336,
+        "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+      }
+    },
+    {
+      "path": "dist/media-companion.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 11635,
+        "gzipBytes": 4019,
+        "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+      },
+      "candidate": {
+        "bytes": 11635,
+        "gzipBytes": 4019,
+        "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+      }
+    },
+    {
+      "path": "dist/modern-interface.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 38329,
+        "gzipBytes": 12229,
+        "sha256": "065b145dc62764c3bdf974c24e78ee82c82f4ed3f9980767e841c21ef4845e61"
+      },
+      "candidate": {
+        "bytes": 38329,
+        "gzipBytes": 12229,
+        "sha256": "065b145dc62764c3bdf974c24e78ee82c82f4ed3f9980767e841c21ef4845e61"
+      }
+    },
+    {
+      "path": "dist/perf-capture.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 21591,
+        "gzipBytes": 8051,
+        "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+      },
+      "candidate": {
+        "bytes": 21591,
+        "gzipBytes": 8051,
+        "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+      }
+    },
+    {
+      "path": "dist/player.js",
+      "kind": "entry",
+      "baseline": {
+        "bytes": 1197547,
+        "gzipBytes": 366071,
+        "sha256": "e0590112ca76a8b66a64139aedc354653684910038993334662145fdcdc916f1"
+      },
+      "candidate": {
+        "bytes": 1199828,
+        "gzipBytes": 367119,
+        "sha256": "79d558816bba271032e3964374b286efc81eb488aeec57f9cb596e4200d04b08"
+      }
+    },
+    {
+      "path": "dist/provider-catalog.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 9463,
+        "gzipBytes": 3591,
+        "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+      },
+      "candidate": {
+        "bytes": 9463,
+        "gzipBytes": 3591,
+        "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+      }
+    },
+    {
+      "path": "dist/provider-edem.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 15709,
+        "gzipBytes": 6139,
+        "sha256": "b87e5e577f86577eb95ab0fa0286bba94c81c0797e937ce7e1598323584393fe"
+      },
+      "candidate": {
+        "bytes": 15709,
+        "gzipBytes": 6139,
+        "sha256": "b87e5e577f86577eb95ab0fa0286bba94c81c0797e937ce7e1598323584393fe"
+      }
+    },
+    {
+      "path": "dist/provider-m3u.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 19349,
+        "gzipBytes": 7077,
+        "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+      },
+      "candidate": {
+        "bytes": 19349,
+        "gzipBytes": 7077,
+        "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+      }
+    },
+    {
+      "path": "dist/provider-playlist.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 11808,
+        "gzipBytes": 4395,
+        "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+      },
+      "candidate": {
+        "bytes": 11808,
+        "gzipBytes": 4395,
+        "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+      }
+    },
+    {
+      "path": "dist/provider-plex.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 62592,
+        "gzipBytes": 21439,
+        "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+      },
+      "candidate": {
+        "bytes": 62592,
+        "gzipBytes": 21439,
+        "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+      }
+    },
+    {
+      "path": "dist/provider-stalker.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 18737,
+        "gzipBytes": 6878,
+        "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+      },
+      "candidate": {
+        "bytes": 18737,
+        "gzipBytes": 6878,
+        "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+      }
+    },
+    {
+      "path": "dist/provider-torrent.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 91666,
+        "gzipBytes": 28700,
+        "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+      },
+      "candidate": {
+        "bytes": 91666,
+        "gzipBytes": 28700,
+        "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+      }
+    },
+    {
+      "path": "dist/provider-vportal.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 11391,
+        "gzipBytes": 4360,
+        "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+      },
+      "candidate": {
+        "bytes": 11391,
+        "gzipBytes": 4360,
+        "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+      }
+    },
+    {
+      "path": "dist/provider-xtream.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 4158,
+        "gzipBytes": 1748,
+        "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+      },
+      "candidate": {
+        "bytes": 4158,
+        "gzipBytes": 1748,
+        "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+      }
+    },
+    {
+      "path": "dist/remote-local-runner.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 2560,
+        "gzipBytes": 1203,
+        "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+      },
+      "candidate": {
+        "bytes": 2560,
+        "gzipBytes": 1203,
+        "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+      }
+    },
+    {
+      "path": "dist/remote-provider-fields.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 15788,
+        "gzipBytes": 5518,
+        "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+      },
+      "candidate": {
+        "bytes": 15788,
+        "gzipBytes": 5518,
+        "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+      }
+    },
+    {
+      "path": "dist/remote-settings-extras.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 6603,
+        "gzipBytes": 2503,
+        "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+      },
+      "candidate": {
+        "bytes": 6603,
+        "gzipBytes": 2503,
+        "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+      }
+    },
+    {
+      "path": "dist/remote-settings-lifecycle.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 32551,
+        "gzipBytes": 10273,
+        "sha256": "07f58615db14ab171e2f7111184b1f01c29dc0c2aca74b13ca50a8d224a52d2b"
+      },
+      "candidate": {
+        "bytes": 32551,
+        "gzipBytes": 10273,
+        "sha256": "07f58615db14ab171e2f7111184b1f01c29dc0c2aca74b13ca50a8d224a52d2b"
+      }
+    },
+    {
+      "path": "dist/remote-settings.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 15851,
+        "gzipBytes": 5205,
+        "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+      },
+      "candidate": {
+        "bytes": 15851,
+        "gzipBytes": 5205,
+        "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+      }
+    },
+    {
+      "path": "dist/runtime-debug-details.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 3342,
+        "gzipBytes": 1558,
+        "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+      },
+      "candidate": {
+        "bytes": 3342,
+        "gzipBytes": 1558,
+        "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+      }
+    },
+    {
+      "path": "dist/shaka-tracks.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 1144,
+        "gzipBytes": 599,
+        "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+      },
+      "candidate": {
+        "bytes": 1144,
+        "gzipBytes": 599,
+        "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+      }
+    },
+    {
+      "path": "dist/subtitle-appearance.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 7798,
+        "gzipBytes": 3383,
+        "sha256": "3a033f70433a5abf2e3d55e9be15eb80bcc37ed49ccd993efa2b4d503522dcdf"
+      },
+      "candidate": {
+        "bytes": 7993,
+        "gzipBytes": 3457,
+        "sha256": "657d4854f0cac5b9fcd03111779d5ae429526b549f5373a145ac1daa1c3a4a20"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/control-transport.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 3011,
+        "gzipBytes": 1354,
+        "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+      },
+      "candidate": {
+        "bytes": 3011,
+        "gzipBytes": 1354,
+        "sha256": "16ec458031cf82a1b7f46548062b68579d63f9e461df15713bb01fb9b29f43b2"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/favorites-transfer.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 257688,
+        "gzipBytes": 66258,
+        "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+      },
+      "candidate": {
+        "bytes": 257688,
+        "gzipBytes": 66258,
+        "sha256": "93aad81d769d099fbb0ef117226dd5e74dce01fd38cbc10649b3abc03c0c3737"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/local-compatibility.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 9238,
+        "gzipBytes": 3446,
+        "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+      },
+      "candidate": {
+        "bytes": 9238,
+        "gzipBytes": 3446,
+        "sha256": "ed350cd16898a789919fb2ab3956dbc6f7e0851bef536ef424f3ed1efe301148"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/local-drop.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 5356,
+        "gzipBytes": 2104,
+        "sha256": "743a21aa270e883a5925245810440088c9b26112437ca2378b490839ea543826"
+      },
+      "candidate": {
+        "bytes": 5356,
+        "gzipBytes": 2104,
+        "sha256": "743a21aa270e883a5925245810440088c9b26112437ca2378b490839ea543826"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/local-media-ui.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 8455,
+        "gzipBytes": 3336,
+        "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+      },
+      "candidate": {
+        "bytes": 8455,
+        "gzipBytes": 3336,
+        "sha256": "d85090f057655f4b0c7f581a675daf7977f7a6aa7a05096cda00f1e6aa30d6a6"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/media-companion.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 11635,
+        "gzipBytes": 4019,
+        "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+      },
+      "candidate": {
+        "bytes": 11635,
+        "gzipBytes": 4019,
+        "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/modern-interface.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 38329,
+        "gzipBytes": 12229,
+        "sha256": "065b145dc62764c3bdf974c24e78ee82c82f4ed3f9980767e841c21ef4845e61"
+      },
+      "candidate": {
+        "bytes": 38329,
+        "gzipBytes": 12229,
+        "sha256": "065b145dc62764c3bdf974c24e78ee82c82f4ed3f9980767e841c21ef4845e61"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/perf-capture.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 21591,
+        "gzipBytes": 8051,
+        "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+      },
+      "candidate": {
+        "bytes": 21591,
+        "gzipBytes": 8051,
+        "sha256": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/player.js",
+      "kind": "entry",
+      "baseline": {
+        "bytes": 1197505,
+        "gzipBytes": 366125,
+        "sha256": "fbdab9e33e730e82cd65ceecbd3fdb1f57aba6aed49398ae1f12b657e8818114"
+      },
+      "candidate": {
+        "bytes": 1199786,
+        "gzipBytes": 367174,
+        "sha256": "d48bcbc39c047636656d6ea073e9fba4294ee6b388da39f6c7a3d3e8776da635"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-catalog.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 9463,
+        "gzipBytes": 3591,
+        "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+      },
+      "candidate": {
+        "bytes": 9463,
+        "gzipBytes": 3591,
+        "sha256": "5012077163c1a5ae7f2b13950a32f89983a14367dcf242aa8c7ed211ceabd91d"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-edem.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 15709,
+        "gzipBytes": 6139,
+        "sha256": "b87e5e577f86577eb95ab0fa0286bba94c81c0797e937ce7e1598323584393fe"
+      },
+      "candidate": {
+        "bytes": 15709,
+        "gzipBytes": 6139,
+        "sha256": "b87e5e577f86577eb95ab0fa0286bba94c81c0797e937ce7e1598323584393fe"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-m3u.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 19349,
+        "gzipBytes": 7077,
+        "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+      },
+      "candidate": {
+        "bytes": 19349,
+        "gzipBytes": 7077,
+        "sha256": "2f97ccc12eebd6f91f8e367fb12cf359823cae8e78988c9ded237bb8677ac227"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-playlist.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 11808,
+        "gzipBytes": 4395,
+        "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+      },
+      "candidate": {
+        "bytes": 11808,
+        "gzipBytes": 4395,
+        "sha256": "5c2ecfb02025d42aeb5bea9e490b943e0e03ef190778cf257a5b44433eafba2c"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-plex.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 62592,
+        "gzipBytes": 21439,
+        "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+      },
+      "candidate": {
+        "bytes": 62592,
+        "gzipBytes": 21439,
+        "sha256": "4be9aab833d2ff9e252ad37cf32b87fd5b1c9e72153d4e90f956d2b491941e3d"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-stalker.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 18737,
+        "gzipBytes": 6878,
+        "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+      },
+      "candidate": {
+        "bytes": 18737,
+        "gzipBytes": 6878,
+        "sha256": "25b0780e974eecb11b79fd9d523d6fc65422eb31b0a68f1bc27463355db2f298"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-torrent.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 91666,
+        "gzipBytes": 28700,
+        "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+      },
+      "candidate": {
+        "bytes": 91666,
+        "gzipBytes": 28700,
+        "sha256": "661a39c982f5ebeabde0edcf85e079dc4c07996611d70f6e68aaef3107f3c920"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-vportal.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 11391,
+        "gzipBytes": 4360,
+        "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+      },
+      "candidate": {
+        "bytes": 11391,
+        "gzipBytes": 4360,
+        "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/provider-xtream.js",
+      "kind": "provider",
+      "baseline": {
+        "bytes": 4158,
+        "gzipBytes": 1748,
+        "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+      },
+      "candidate": {
+        "bytes": 4158,
+        "gzipBytes": 1748,
+        "sha256": "6a2976cb23d56eb03469f7a8e40223d75b8aac7292258cd8523af88460fe2a02"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/remote-local-runner.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 2560,
+        "gzipBytes": 1203,
+        "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+      },
+      "candidate": {
+        "bytes": 2560,
+        "gzipBytes": 1203,
+        "sha256": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/remote-provider-fields.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 15788,
+        "gzipBytes": 5518,
+        "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+      },
+      "candidate": {
+        "bytes": 15788,
+        "gzipBytes": 5518,
+        "sha256": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/remote-settings-extras.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 6603,
+        "gzipBytes": 2503,
+        "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+      },
+      "candidate": {
+        "bytes": 6603,
+        "gzipBytes": 2503,
+        "sha256": "5c52bae088d0205cc562abdb58f0e618bfe3297b44ee5e4ab47c2f95ed48f02e"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/remote-settings-lifecycle.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 32551,
+        "gzipBytes": 10273,
+        "sha256": "07f58615db14ab171e2f7111184b1f01c29dc0c2aca74b13ca50a8d224a52d2b"
+      },
+      "candidate": {
+        "bytes": 32551,
+        "gzipBytes": 10273,
+        "sha256": "07f58615db14ab171e2f7111184b1f01c29dc0c2aca74b13ca50a8d224a52d2b"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/remote-settings.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 15851,
+        "gzipBytes": 5205,
+        "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+      },
+      "candidate": {
+        "bytes": 15851,
+        "gzipBytes": 5205,
+        "sha256": "6caf45f7044b361660448277090e7354da860969cf0e48509859495391c9e251"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/runtime-debug-details.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 3342,
+        "gzipBytes": 1558,
+        "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+      },
+      "candidate": {
+        "bytes": 3342,
+        "gzipBytes": 1558,
+        "sha256": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/shaka-tracks.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 1144,
+        "gzipBytes": 599,
+        "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+      },
+      "candidate": {
+        "bytes": 1144,
+        "gzipBytes": 599,
+        "sha256": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29"
+      }
+    },
+    {
+      "path": "src-tauri/frontend/dist/subtitle-appearance.js",
+      "kind": "optional",
+      "baseline": {
+        "bytes": 7798,
+        "gzipBytes": 3383,
+        "sha256": "3a033f70433a5abf2e3d55e9be15eb80bcc37ed49ccd993efa2b4d503522dcdf"
+      },
+      "candidate": {
+        "bytes": 7993,
+        "gzipBytes": 3457,
+        "sha256": "657d4854f0cac5b9fcd03111779d5ae429526b549f5373a145ac1daa1c3a4a20"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "entry": "dist/player.js",
+      "baseline": {
+        "legacyTotal": {
+          "bytes": 1442420,
+          "gzipBytes": 450398
+        },
+        "total": {
+          "bytes": 1883360,
+          "gzipBytes": 581437
+        }
+      },
+      "candidate": {
+        "legacyTotal": {
+          "bytes": 1444701,
+          "gzipBytes": 451446
+        },
+        "total": {
+          "bytes": 1885836,
+          "gzipBytes": 582559
+        }
+      }
+    },
+    {
+      "entry": "src-tauri/frontend/dist/player.js",
+      "baseline": {
+        "legacyTotal": {
+          "bytes": 1442378,
+          "gzipBytes": 450452
+        },
+        "total": {
+          "bytes": 1883318,
+          "gzipBytes": 581491
+        }
+      },
+      "candidate": {
+        "legacyTotal": {
+          "bytes": 1444659,
+          "gzipBytes": 451501
+        },
+        "total": {
+          "bytes": 1885794,
+          "gzipBytes": 582614
+        }
+      }
+    },
+    {
+      "entry": "dist-mobile/dist/player.js",
+      "baseline": {
+        "legacyTotal": {
+          "bytes": 1442378,
+          "gzipBytes": 450452
+        },
+        "total": {
+          "bytes": 1883318,
+          "gzipBytes": 581491
+        }
+      },
+      "candidate": {
+        "legacyTotal": {
+          "bytes": 1444659,
+          "gzipBytes": 451501
+        },
+        "total": {
+          "bytes": 1885794,
+          "gzipBytes": 582614
+        }
+      }
+    }
+  ],
+  "qualification": "The original baseline build passed; the candidate build failed the existing size budget. This accounting proposal does not relabel that failure or claim a later build passed."
+}

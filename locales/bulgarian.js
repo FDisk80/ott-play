@@ -1004,6 +1004,7 @@ var keyStrings = {
     "Show list of channel archive records": "Показване на записите на канала",
     "Show list of channel archive records without duplication":
         "Показване на записите на канала без повторения",
+    "Show list separators": "Показване на разделителни линии в списъците",
     "Show Media Library": "Показване на медийната библиотека",
     "Show picons in channel list": "Показване на иконите на каналите в списъка",
     "Show player menu": "Показване на менюто на плейъра",

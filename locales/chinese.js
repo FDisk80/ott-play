@@ -942,6 +942,7 @@ var keyStrings = {
     "Show list of channel archive records": "显示该频道录制的电视节目",
     "Show list of channel archive records without duplication":
         "显示该频道录制的电视节目，不重复",
+    "Show list separators": "显示列表分隔线",
     "Show Media Library": "显示媒体库",
     "Show picons in channel list": "在列表中显示频道图标",
     "Show player menu": "显示播放器菜单",

@@ -1007,6 +1007,7 @@ var keyStrings = {
     "Show list of channel archive records": "Каналдын жаздырууларын көрсөтүү",
     "Show list of channel archive records without duplication":
         "Каналдын жаздырууларын кайталанбастан көрсөтүү",
+    "Show list separators": "Тизмелерде бөлүүчү сызыктарды көрсөтүү",
     "Show Media Library": "Медиатеканы көрсөтүү",
     "Show picons in channel list": "Тизмеде каналдардын сүрөтчөлөрүн көрсөтүү",
     "Show player menu": "Плеердин менюсун көрсөтүү",

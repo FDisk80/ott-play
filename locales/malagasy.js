@@ -1035,6 +1035,7 @@ var keyStrings = {
     "Show list of channel archive records": "Asehoy ny rakitsarin'ny fantsona",
     "Show list of channel archive records without duplication":
         "Asehoy ny rakitsarin'ny fantsona tsy misy miverimberina",
+    "Show list separators": "Asehoy ny tsipika mpanasaraka ao amin'ny lisitra",
     "Show Media Library": "Asehoy ny tranombokin'ny haino aman-jery",
     "Show picons in channel list":
         "Asehoy amin'ny lisitra ny kisarin'ny fantsona",

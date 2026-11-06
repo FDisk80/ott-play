@@ -1011,6 +1011,7 @@ var keyStrings = {
     "Show list of channel archive records": "Mostrar gravações do canal",
     "Show list of channel archive records without duplication":
         "Mostrar gravações do canal sem duplicados",
+    "Show list separators": "Mostrar separadores nas listas",
     "Show Media Library": "Mostrar mediateca",
     "Show picons in channel list": "Mostrar ícones dos canais na lista",
     "Show player menu": "Mostrar menu do leitor",

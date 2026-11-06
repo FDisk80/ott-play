@@ -3203,7 +3203,7 @@ test("server and Tauri retain rich channel formatting under the native CSP", asy
 
 for (const profile of ["server", "tauri"]) {
     test(
-        profile + ": category picker arrows page without opening or leaving",
+        profile + ": category picker arrows respect paging, Dune and volume",
         async ({ browser }) => {
             test.setTimeout(90000);
             const fixture = await fixturePage(browser, profile, {});
@@ -3298,7 +3298,7 @@ for (const profile of ["server", "tauri"]) {
                             page.locator("#listIn .ott-channel-label")
                         ).toHaveCount(0);
                     };
-                    for (const arrowFun of [0, 2]) {
+                    for (const arrowFun of [0, 3]) {
                         expect(
                             await page.evaluate(
                                 (input) => {
@@ -3357,6 +3357,44 @@ for (const profile of ["server", "tauri"]) {
                             )
                         ).toEqual([]);
                     }
+                    expect(
+                        await page.evaluate((size) => {
+                            const saved = saveSettings({
+                                arrowFun: 2,
+                                pageSize: size,
+                                volumeStep: 7,
+                            });
+                            bucketsList(3);
+                            document.activeElement.blur();
+                            return saved;
+                        }, pageSize)
+                    ).toBe(true);
+                    await assertCategory(3);
+                    await page.keyboard.press("ArrowRight");
+                    await expect(page.locator("#listCaption")).toHaveText(
+                        "Channel list. Category: Paging category 3"
+                    );
+                    await expect(
+                        page.locator("#listIn .ott-channel-label")
+                    ).toHaveAttribute("data-channel-id", "paging-member-3");
+                    await expect(
+                        page.locator("#listIn .ott-channel-label")
+                    ).toContainText("Member of category 3");
+                    await page.keyboard.press("ArrowLeft");
+                    await assertCategory(3);
+                    await page.keyboard.press("ArrowLeft");
+                    await expect(page.locator("#list")).toBeVisible();
+                    await expect(page.locator("#listCaption")).toHaveText(
+                        "Menu"
+                    );
+                    await page.keyboard.press("Backspace");
+                    await expect(page.locator("#list")).toBeHidden();
+                    expect(
+                        await page.evaluate(() => window.isListVisible)
+                    ).toBe(false);
+                    expect(
+                        await page.evaluate(() => window.__categoryVolumeCalls)
+                    ).toEqual([]);
                     expect(
                         await page.evaluate((size) => {
                             window.__categoryVolumeCalls = [];

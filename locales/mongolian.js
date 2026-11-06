@@ -1001,6 +1001,7 @@ var keyStrings = {
     "Show list of channel archive records": "Сувгийн бичлэгүүдийг харуулах",
     "Show list of channel archive records without duplication":
         "Сувгийн бичлэгүүдийг давхардалгүй харуулах",
+    "Show list separators": "Жагсаалтад тусгаарлах зураас харуулах",
     "Show Media Library": "Медиа сан харуулах",
     "Show picons in channel list": "Жагсаалтад сувгийн дүрс харуулах",
     "Show player menu": "Тоглуулагчийн цэс харуулах",

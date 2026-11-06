@@ -2030,8 +2030,39 @@ test("healthy HLS playback clears stalled feedback without growing or pinning th
         frames: media.getVideoPlaybackQuality().totalVideoFrames,
         updates: window.__healthyFeedbackUpdates,
     }));
-    await page.evaluate(() => {
+    const pending = await page.evaluate(() => {
         const media = document.querySelector("#video");
+        const label = document.querySelector("#video_res");
+        const frames = media.getVideoPlaybackQuality().totalVideoFrames;
+        let flashed = false;
+        const record = (mutations) => {
+            if (
+                label.classList.contains("playback-feedback") ||
+                mutations.some((mutation) =>
+                    /(^|\s)playback-feedback(\s|$)/.test(
+                        mutation.oldValue || ""
+                    )
+                )
+            )
+                flashed = true;
+        };
+        // Retain old class values so a flash cleared before the next browser
+        // assertion cannot pass unnoticed.
+        const observer = new MutationObserver(record);
+        observer.observe(label, {
+            attributeFilter: ["class"],
+            attributeOldValue: true,
+            attributes: true,
+        });
+        window.__healthyFeedbackProbe = () => {
+            record(observer.takeRecords());
+            observer.disconnect();
+            return {
+                flashed,
+                framesAdvanced:
+                    media.getVideoPlaybackQuality().totalVideoFrames > frames,
+            };
+        };
         // Model transports which keep rendering after `stalled` without a new
         // `playing` event. Suppress loop-generated delivery to the controller;
         // the actual decoder, media clock and timeupdate events stay untouched.
@@ -2041,13 +2072,19 @@ test("healthy HLS playback clears stalled feedback without growing or pinning th
             true
         );
         media.dispatchEvent(new Event("stalled"));
+        record([]);
+        return window.__ottPlaybackFeedback.visible();
     });
-    await expect(label).toContainText("Buffering");
+    expect(pending).toBe(true);
     await expect(page.locator("#playback_status")).toHaveCount(0);
     expect((await footer.boundingBox()).height).toBeLessThanOrEqual(height + 1);
     await expect
         .poll(() => page.evaluate(() => window.__ottPlaybackFeedback.visible()))
         .toBe(false);
+    expect(await page.evaluate(() => window.__healthyFeedbackProbe())).toEqual({
+        flashed: false,
+        framesAdvanced: true,
+    });
     await expect(label).not.toHaveClass(/playback-feedback/);
     await expect(page.locator("#buffering")).toBeHidden();
     await expect(footer).toBeHidden();

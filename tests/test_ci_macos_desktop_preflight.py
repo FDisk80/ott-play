@@ -15,10 +15,6 @@ SPEC.loader.exec_module(MODULE)
 
 class DesktopPreflightContracts(unittest.TestCase):
     def test_only_explicit_manual_request_can_suppress_existing_native_jobs(self):
-        for event in ("workflow_dispatch", "pull_request", "merge_group", "push", "workflow_call"):
-            for requested in (False, True):
-                self.assertEqual(MODULE.manual_preflight(event, requested),
-                                 event == "workflow_dispatch" and requested is True)
         workflow = (ROOT / ".github/workflows/native-parity.yml").read_text()
         guard = "if: \u0024{{ !(github.event_name == 'workflow_dispatch' && (inputs.desktop_preflight_only == true || inputs.desktop_acceptance == true)) }}"
         for job in ("shared-guide", "windows-installers", "android", "apple", "favorites-native"):

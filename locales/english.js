@@ -979,6 +979,7 @@ var keyStrings = {
     "Show list of channel archive records": "Show channel recordings",
     "Show list of channel archive records without duplication":
         "Show channel recordings without duplicates",
+    "Show list separators": "Show list separators",
     "Show Media Library": "Show media library",
     "Show picons in channel list": "Show channel icons in list",
     "Show player menu": "Show player menu",

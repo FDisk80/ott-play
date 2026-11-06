@@ -165,6 +165,7 @@ function fixture() {
             "bindColorDialogInput",
             "showColorDialog",
             "colorDialog",
+            "epgTimeColorDialog",
             "selColorDialog",
             "backColorDialog",
         ])
@@ -2098,6 +2099,28 @@ test("color picker old callback cannot commit to a new settings draft", ({
     old(13);
     assert.equal(w.eSHLcolor, "90,90");
 });
+test("actual HSV helper keeps all six sectors and treats a full turn as zero", ({
+    w,
+}) => {
+    for (const [hue, expected] of [
+        [0, [255, 0, 0]],
+        [60, [255, 255, 0]],
+        [120, [0, 255, 0]],
+        [180, [0, 255, 255]],
+        [240, [0, 0, 255]],
+        [300, [255, 0, 255]],
+        [360, [255, 0, 0]],
+    ])
+        assert.deepEqual(Array.from(w.hsvToRgb(hue, 100, 100)), expected);
+    for (const saturation of [0, 35, 100]) {
+        for (const brightness of [0, 50, 100]) {
+            assert.deepEqual(
+                Array.from(w.hsvToRgb(360, saturation, brightness)),
+                Array.from(w.hsvToRgb(0, saturation, brightness))
+            );
+        }
+    }
+});
 const colorCases = require("./fixtures/ui/color-dialogs-before-shared.json");
 function colorSetting(name) {
     return name === "colorDialog"
@@ -2140,7 +2163,30 @@ for (const scenario of colorCases.records) {
                 const handled = w.aboutKeyHandler(w.keys[keyName]);
                 states.push({ handled, ...colorSnapshot(w, setting) });
             }
-            assert.deepEqual(states, scenario.states);
+            // Keep the historical capture immutable. Only its two full-turn
+            // previews are intentionally corrected; every other field is exact.
+            let expected = scenario.states;
+            if (scenario.initial === "360,100") {
+                expected = JSON.parse(JSON.stringify(expected));
+                const color =
+                    scenario.name === "colorDialog"
+                        ? "color"
+                        : "background-color";
+                const high = scenario.name === "selColorDialog" ? 128 : 255;
+                const low = scenario.name === "selColorDialog" ? 6 : 13;
+                for (const [index, green] of [
+                    [0, 0],
+                    [4, low],
+                ]) {
+                    assert.equal(
+                        expected[index].preview,
+                        `font-size: 150%; ${color}: rgb(${high}, ${green}, ${high});`
+                    );
+                    expected[index].preview =
+                        `font-size: 150%; ${color}: rgb(${high}, ${green}, ${green});`;
+                }
+            }
+            assert.deepEqual(states, expected);
         }
     );
 }
@@ -2229,6 +2275,111 @@ for (const name of ["colorDialog", "selColorDialog", "backColorDialog"]) {
                 preview
             );
             assert.equal(w.$("#listAbout").is(":visible"), true);
+        }
+    );
+}
+test("EPG spectrum uses owned mouse/key input and has a cancelable default action", ({
+    w,
+    key,
+}) => {
+    const writes = [];
+    let value = "211,65";
+    Object.defineProperty(w, "eEpgTimeColor", {
+        configurable: true,
+        get: () => value,
+        set: (next) => {
+            value = next;
+            writes.push(next);
+        },
+    });
+    w.listArray = ["first", "EPG color"];
+    w.listDataArray = w.listArray;
+    w.selIndex = 1;
+    w.listKeyHandler = () => false;
+    const parent = w.__ottClassicScreenPort.commitList();
+    w._doKey = key;
+    w.epgTimeColorDialog();
+    key(w.keys.RIGHT);
+    key(w.keys.UP);
+    assert.deepEqual(writes, []);
+    clickColorControl(
+        w,
+        w.listFooterElement.querySelector('[aria-label="Close"]')
+    );
+    assert.equal(value, "211,65");
+    assert(parent.active());
+    assert.equal(w.selIndex, 1);
+    w.epgTimeColorDialog();
+    key(w.keys.RIGHT);
+    key(w.keys.UP);
+    clickColorControl(
+        w,
+        w.listFooterElement.querySelector('[aria-label="Set"]')
+    );
+    assert.equal(value, "221,70");
+    w.epgTimeColorDialog();
+    clickColorControl(
+        w,
+        w.listFooterElement.querySelector('[aria-label="Player default"]')
+    );
+    assert.equal(value, "");
+    assert.deepEqual(writes, ["221,70", ""]);
+    assert(parent.active());
+    assert.equal(w.$("#listAbout").is(":visible"), false);
+    w.epgTimeColorDialog();
+    const retired = w.aboutKeyHandler;
+    w.__ottClassicScreenPort.invalidate();
+    w.epgTimeColorDialog();
+    retired(w.keys.RED);
+    retired(w.keys.ENTER);
+    assert.deepEqual(
+        writes,
+        ["221,70", ""],
+        "Retired color input cannot reset a replacement"
+    );
+});
+for (const name of [
+    "colorDialog",
+    "selColorDialog",
+    "backColorDialog",
+    "epgTimeColorDialog",
+]) {
+    test(
+        "full-turn preview matches zero and saves the original hue in " + name,
+        ({ w, key }) => {
+            const setting =
+                name === "epgTimeColorDialog"
+                    ? "eEpgTimeColor"
+                    : colorSetting(name);
+            const property =
+                name === "colorDialog" || name === "epgTimeColorDialog"
+                    ? "color"
+                    : "backgroundColor";
+            const red =
+                name === "selColorDialog" ? "rgb(128, 0, 0)" : "rgb(255, 0, 0)";
+            w.listArray = ["color"];
+            w.listDataArray = w.listArray;
+            w.listKeyHandler = () => false;
+            w.__ottClassicScreenPort.commitList();
+            w[setting] = "0,100";
+            w[name]();
+            assert.equal(
+                w.document.getElementById("step").style[property],
+                red
+            );
+            key(w.keys.RETURN);
+            w[setting] = "360,100";
+            w[name]();
+            assert.equal(
+                w.document.getElementById("step").style[property],
+                red
+            );
+            key(w.keys.ENTER);
+            assert.equal(
+                w[setting],
+                "360,100",
+                "Conversion must not rewrite the stored hue"
+            );
         }
     );
 }

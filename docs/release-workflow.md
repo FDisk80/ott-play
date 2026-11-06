@@ -46,10 +46,39 @@ Callable validation workflows:
 - `.github/workflows/dependency-review.yml`
 - `.github/workflows/container-validation.yml`
 
-Beta releases explicitly select `beta-checks.yml` through `release-quality-gate.yml`. PRs, merge queues, nightlies, RCs and final builds keep the complete default validation set. All platform packages and artifact checks remain required. A beta cannot be promoted to stable; it needs a fully validated RC.
+The validation paths have different coverage:
+
+- PRs and merge queues run the five workflows above after `scope` and
+  `workflow-contracts`. Nightlies, RCs and final builds select the same default
+  set through `release-quality-gate.yml`.
+- Beta releases select `beta-checks.yml` instead of those five workflows. After
+  `scope` and `workflow-contracts`, its existing job runs `npm ci`, the declared
+  test inventory check, lint, typecheck and `test:unified`, in that order. The
+  inventory check fails before the remaining steps if test declarations are
+  incomplete; it does not execute the declared tests or replace full CI.
+- Both gates also require release tooling contracts after `scope`, including
+  the Python contracts, download retry regression and committed version check.
+  The release build depends on successful preparation and the validation gate,
+  so an inventory failure prevents platform builds without adding another job.
+
+Beta lint, typecheck and `test:unified` overlap with full CI (`npm test` includes
+`test:unified` through `test:port`). They do not cover the full frontend, Python,
+Rust, native, remote integration or browser suites. In particular, a beta built
+from a parent commit cannot validate changes to `ci.yml` in a later PR; matching
+command names are not evidence for another source or workflow revision.
+
+Release packaging applies the frozen version plan before compilation and checks
+the resulting versioned artifacts. Release browser checks consume that build's
+artifact ID and channel, with extended coverage for RC/stable; CI browser checks
+consume the CI artifact. These artifact checks remain required even when source
+checks overlap. A beta cannot be promoted to stable; it needs a fully validated RC.
 
 The [release strategy](../RELEASING.md) defines versioning, channels, acceptance,
 ownership, hotfixes and rollback. This document is the operational runbook.
+
+The standalone macOS ARM64 server has a separate
+[build, acceptance and preparation path](macos-server-release.md). Its executable
+is not replaced by updating the web archive or the Tauri application.
 
 ## Nightly, beta and RC
 

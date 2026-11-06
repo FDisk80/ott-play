@@ -962,6 +962,7 @@ var keyStrings = {
     "Show list of channel archive records": "ఛానెల్ రికార్డింగ్‌లను చూపించు",
     "Show list of channel archive records without duplication":
         "నకిలీలు లేకుండా ఛానెల్ రికార్డింగ్‌లను చూపండి",
+    "Show list separators": "జాబితాల్లో విభజన గీతలను చూపించు",
     "Show Media Library": "మీడియా లైబ్రరీని చూపించు",
     "Show picons in channel list": "జాబితాలో ఛానెల్ చిహ్నాలను చూపండి",
     "Show player menu": "ప్లేయర్ మెనుని చూపించు",

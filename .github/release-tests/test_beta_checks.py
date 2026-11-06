@@ -78,10 +78,19 @@ class BetaChecksTests(unittest.TestCase):
             [step["run"] for step in steps if "run" in step],
             [
                 "npm ci --ignore-scripts",
+                "npm run check:test-inventory",
                 "npm run lint",
                 "npm run typecheck",
                 "npm run test:unified",
             ],
+        )
+        install_index = next(
+            index
+            for index, step in enumerate(steps)
+            if step.get("run") == "npm ci --ignore-scripts"
+        )
+        self.assertEqual(
+            steps[install_index + 1].get("run"), "npm run check:test-inventory"
         )
         for step in steps:
             self.assertNotIn("if", step)

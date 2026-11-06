@@ -1018,6 +1018,7 @@ var keyStrings = {
         "Bonisa ushicilelo lweenkqubo zejelo",
     "Show list of channel archive records without duplication":
         "Bonisa ushicilelo lweenkqubo zejelo ngaphandle kokuphinda",
+    "Show list separators": "Bonisa imigca yokwahlula kuluhlu",
     "Show Media Library": "Bonisa ithala lemidhiya",
     "Show picons in channel list": "Bonisa ii-ayikhoni zamajelo kuluhlu",
     "Show player menu": "Bonisa imenyu yesidlali",

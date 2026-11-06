@@ -988,6 +988,7 @@ var keyStrings = {
     "Show list of channel archive records": "Kanalyň ýazgylaryny görkez",
     "Show list of channel archive records without duplication":
         "Kanalyň ýazgylaryny gaýtalanman görkez",
+    "Show list separators": "Sanawlarda bölüji çyzyklary görkez",
     "Show Media Library": "Media kitaphanasyny görkez",
     "Show picons in channel list": "Sanawda kanallaryň nyşanlaryny görkez",
     "Show player menu": "Pleýeriň menýusyny görkez",

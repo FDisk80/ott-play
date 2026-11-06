@@ -982,6 +982,7 @@ var keyStrings = {
     "Show list of channel archive records": "Sýna upptökur rásar",
     "Show list of channel archive records without duplication":
         "Sýna upptökur rásar án tvítekninga",
+    "Show list separators": "Sýna skilalínur í listum",
     "Show Media Library": "Sýna miðlasafn",
     "Show picons in channel list": "Sýna rásartákn í lista",
     "Show player menu": "Sýna valmynd spilara",

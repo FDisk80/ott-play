@@ -1,0 +1,14 @@
+--- a/ci/test_build_gc.py
++++ b/ci/test_build_gc.py
+@@ -112,6 +112,11 @@
+         for key in ("PLX_GC_TEST_NOW", "PLX_GC_TEST_FREE_KIB", "PLX_GC_IDLE_MIN", "PLX_GC_MIN_FREE_GIB"):
+             env.pop(key, None)
+         subprocess.run(["git", "init", "-q", str(repo)], env=env, check=True)
++        # Automatic maintenance may outlive `git commit` and change .git while a
++        # read-only GC assertion snapshots it. Run it synchronously in fixtures;
++        # maintenance.autoDetach uses gc.autoDetach as its documented fallback.
++        subprocess.run(["git", "-C", str(repo), "config", "gc.autoDetach", "false"],
++                       env=env, check=True)
+         # Suppress unrelated compiler-named processes only. PGID checks use real pgrep;
+         # PID checks remain the script's actual shell kill -0 builtin.
+         pgrep = tools / "pgrep"

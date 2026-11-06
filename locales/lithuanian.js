@@ -993,6 +993,7 @@ var keyStrings = {
     "Show list of channel archive records": "Rodyti kanalo įrašus",
     "Show list of channel archive records without duplication":
         "Rodyti kanalo įrašus be dublikatų",
+    "Show list separators": "Rodyti skiriamąsias linijas sąrašuose",
     "Show Media Library": "Rodyti medijos biblioteką",
     "Show picons in channel list": "Rodyti kanalų piktogramas sąraše",
     "Show player menu": "Rodyti grotuvo meniu",

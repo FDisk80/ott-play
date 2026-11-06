@@ -987,6 +987,7 @@ var keyStrings = {
     "Show list of channel archive records": "சேனல் பதிவுகளைக் காட்டு",
     "Show list of channel archive records without duplication":
         "சேனல் பதிவுகளை நகல் இல்லாமல் காட்டு",
+    "Show list separators": "பட்டியல்களில் பிரிப்புக் கோடுகளைக் காட்டு",
     "Show Media Library": "மீடியா லைப்ரரியைக் காட்டு",
     "Show picons in channel list": "பட்டியலில் சேனல் ஐகான்களைக் காட்டு",
     "Show player menu": "பிளேயர் மெனுவைக் காட்டு",

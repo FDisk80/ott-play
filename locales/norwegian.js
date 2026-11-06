@@ -991,6 +991,7 @@ var keyStrings = {
     "Show list of channel archive records": "Vis kanalopptak",
     "Show list of channel archive records without duplication":
         "Vis kanalopptak uten duplikater",
+    "Show list separators": "Vis skillelinjer i lister",
     "Show Media Library": "Vis mediebibliotek",
     "Show picons in channel list": "Vis kanalikoner i listen",
     "Show player menu": "Vis mediespillermenyen",

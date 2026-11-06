@@ -1025,6 +1025,7 @@ var keyStrings = {
     "Show list of channel archive records": "Εμφάνιση εγγραφών καναλιού",
     "Show list of channel archive records without duplication":
         "Εμφάνιση εγγραφών καναλιού χωρίς διπλότυπα",
+    "Show list separators": "Εμφάνιση διαχωριστικών γραμμών στις λίστες",
     "Show Media Library": "Εμφάνιση βιβλιοθήκης πολυμέσων",
     "Show picons in channel list": "Εμφάνιση εικονιδίων καναλιών στη λίστα",
     "Show player menu": "Εμφάνιση μενού αναπαραγωγής",

@@ -1,4 +1,4 @@
-import { beginSettingsDraft, settingsSchema } from "./index";
+import { beginSettingsDraft, epgTimeColorPair, settingsSchema } from "./index";
 
 /** Stable row IDs are independent of filtering, position and translated labels. */
 export function createSettingsEditor(host: any, rows: any[]) {
@@ -144,6 +144,28 @@ export function createSettingsEditor(host: any, rows: any[]) {
                 if (set(pair[1], value)) set("interfaceTheme", 0);
             },
         });
+    });
+    Object.defineProperty(host, "eEpgTimeColor", {
+        configurable: true,
+        get: function () {
+            var value = get("epgTimeColor"),
+                pair = epgTimeColorPair(value);
+            return pair
+                ? pair.join(",")
+                : ["", "0,0", "60,100", "180,100", "120,100", "300,30"][value];
+        },
+        set: function (value) {
+            if (value === "") {
+                set("epgTimeColor", 0);
+            } else if (
+                typeof value === "string" &&
+                /^\d{1,3},\d{1,3}$/.test(value)
+            ) {
+                var pair = value.split(",").map(Number);
+                if (pair[0] <= 360 && pair[1] <= 100)
+                    set("epgTimeColor", 6 + pair[0] * 101 + pair[1]);
+            }
+        },
     });
     return editor;
 }

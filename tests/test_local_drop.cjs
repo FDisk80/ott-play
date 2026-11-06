@@ -171,20 +171,40 @@ test("file gesture plays the exact File via Local and prevents browser navigatio
     assert.equal(f.revoked.length, 0);
     assert.equal(f.event("drop", [], ["text/plain"]).prevented, false);
 });
-test("invalid and multiple drops preserve current playback; valid replacement releases old once", () => {
+test("ordered batch drops replace the prior queue while invalid batches preserve it", () => {
     const f = fixture();
-    f.event("drop", [file("first.mp4")]);
+    f.event("drop", [file("z-first.mp4"), file("a-second.mp4")]);
     const first = f.played[0];
-    f.event("drop", [file(), file()]);
-    f.event("drop", [file("no.txt")]);
+    const firstURLs = Array.from(first.catalog.items, (item) => item.url);
+    assert.deepEqual(
+        Array.from(first.catalog.items, (item) => item.name),
+        ["z-first.mp4", "a-second.mp4"]
+    );
+    assert.equal(first.catalog.sources.length, 1);
+    f.event("drop", [file(), file("no.txt")]);
+    f.event(
+        "drop",
+        Array.from({ length: 129 }, () => file())
+    );
     assert.equal(f.played.length, 1);
     assert.equal(first.admitted(), true);
     assert.equal(f.revoked.length, 0);
-    f.event("drop", [file("second.mp4")]);
+    f.event("drop", [file("next.mp4"), file("next.mp4")]);
     assert.equal(f.played.length, 2);
-    assert.equal(f.revoked.length, 1);
+    const next = f.played[1];
+    assert.equal(next.catalog.items.length, 2);
+    assert.notEqual(next.catalog.items[0].id, next.catalog.items[1].id);
+    assert.notEqual(first.catalog.sources[0].id, next.catalog.sources[0].id);
+    assert.equal(first.admitted(), false);
+    assert.equal(next.admitted(), true);
+    assert.deepEqual(f.revoked, firstURLs);
     first.release();
-    assert.equal(f.revoked.length, 1);
+    assert.deepEqual(f.revoked, firstURLs);
+    f.api.dispose();
+    assert.deepEqual(f.revoked, [
+        ...firstURLs,
+        ...Array.from(next.catalog.items, (item) => item.url),
+    ]);
 });
 test("kiosk, standby and parental gates stop drop before reading or allocation", () => {
     for (const [key, value] of [
@@ -200,17 +220,33 @@ test("kiosk, standby and parental gates stop drop before reading or allocation",
         assert.equal(f.played.length, 0);
     }
 });
-test("rejected Local handoff releases new file and retains previous admission", () => {
+test("rejected Local handoff releases the whole new batch and retains previous admission", () => {
     const f = fixture();
-    f.event("drop", [file()]);
+    f.event("drop", [file(), file()]);
     f.w.refuse = true;
-    f.event("drop", [file("next.mp4")]);
+    f.event("drop", [file("next.mp4"), file("last.mp4")]);
     assert.equal(f.played.length, 1);
     assert.equal(f.played[0].admitted(), true);
-    assert.equal(f.revoked.length, 1);
+    assert.deepEqual(f.revoked, ["blob:3", "blob:4"]);
     assert.equal(f.messages.at(-1), "Local source unavailable");
 });
-test("drop errors use audited translated keys for failure, unsupported type and multiple files", () => {
+test("late URL allocation failure releases partial batch without replacing current playback", () => {
+    const f = fixture();
+    f.event("drop", [file("current.mp4")]);
+    const createURL = f.w.URL.createObjectURL;
+    let attempts = 0;
+    f.w.URL.createObjectURL = (value) => {
+        if (++attempts === 3) throw new Error("private-path");
+        return createURL(value);
+    };
+    f.event("drop", [file(), file(), file()]);
+    assert.equal(attempts, 3);
+    assert.equal(f.played.length, 1);
+    assert.equal(f.played[0].admitted(), true);
+    assert.deepEqual(f.revoked, ["blob:2", "blob:3"]);
+    assert.equal(f.messages.at(-1), "Unsupported source");
+});
+test("drop errors use audited translated keys for failure, unsupported type and oversized batches", () => {
     const context = {};
     vm.runInNewContext(fs.readFileSync("locales/russian.js", "utf8"), context);
     const f = fixture();
@@ -223,12 +259,15 @@ test("drop errors use audited translated keys for failure, unsupported type and 
         translated.push(key);
         return context.keyStrings[key];
     };
-    f.event("drop", [file(), file()]);
+    f.event(
+        "drop",
+        Array.from({ length: 129 }, () => file())
+    );
     f.event("drop", [file("unsupported.txt")]);
     f.w.refuse = true;
     f.event("drop", [file()]);
     assert.deepEqual(translated, [
-        "Drop one video file at a time",
+        "Unsupported source",
         "Unsupported source",
         "Local source unavailable",
     ]);

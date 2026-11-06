@@ -952,6 +952,7 @@ var keyStrings = {
     "Show list of channel archive records": "የሰርጥ ቀረጻዎችን አሳይ",
     "Show list of channel archive records without duplication":
         "የሰርጥ ቀረጻዎችን ያለ ድግግሞሽ አሳይ",
+    "Show list separators": "በዝርዝሮች ውስጥ መለያ መስመሮችን አሳይ",
     "Show Media Library": "የሚዲያ ቤተ መጻሕፍት አሳይ",
     "Show picons in channel list": "በዝርዝር ውስጥ የሰርጥ አዶዎችን አሳይ",
     "Show player menu": "የማጫወቻ ምናሌ አሳይ",

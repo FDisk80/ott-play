@@ -25,10 +25,6 @@ def write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def manual_preflight(event, requested):
-    return event == "workflow_dispatch" and requested is True
-
-
 def swift_target(machine):
     require(machine in ("arm64", "x86_64"), "unsupported hosted architecture")
     return machine + "-apple-macosx14.0"

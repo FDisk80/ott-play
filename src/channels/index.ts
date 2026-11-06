@@ -17,7 +17,7 @@ import {
     formatLocaleNumber,
 } from "../localization";
 import { preferredTrackIndex } from "../localization/media";
-import { epgTimeColors, settings } from "../settings/index";
+import { settings } from "../settings/index";
 import { providerSetItem } from "../storage/index";
 import { getThumbnail, time2time } from "../utils/helpers";
 import {
@@ -1763,16 +1763,11 @@ export function itemEPG(item: EPGEntry, index: number): string {
     if (isCurrent) prefix += '<div class="btn red">&nbsp;</div> ';
 
     var date = formatEpgDate(item.time),
-        endDate = formatEpgDate(item.time_to),
-        color = Number.isInteger(w.sEpgTimeColor)
-            ? epgTimeColors[w.sEpgTimeColor] || ""
-            : "";
+        endDate = formatEpgDate(item.time_to);
     return (
         "&nbsp;&nbsp;" +
         prefix +
-        '<span dir="auto"' +
-        (color ? ' class="ott-epg-time-color-' + w.sEpgTimeColor + '"' : "") +
-        ">" +
+        '<span dir="auto" class="ott-epg-time">' +
         (date ? date + " " : "") +
         formatEpgTime(item.time) +
         " - " +
@@ -1852,6 +1847,7 @@ export function renderGuideView(
                   return "&nbsp;&nbsp;" + metadataText(row.name);
               }
             : itemEPG;
+    w.getListItemFn.__ottContentRows = true;
     w.detailListAction = w.detailListActionFn = function () {
         detailEPG(channelId);
     };
@@ -2934,6 +2930,7 @@ export function bucketsList(
         );
     };
 
+    w.getListItemFn.__ottContentRows = true;
     var detailEl = document.getElementById("listDetail");
     if (detailEl) detailEl.innerHTML = "";
 
@@ -2987,9 +2984,9 @@ export function bucketsList(
  * Key handler for the category list (buckets) view.
  * Supports:
  * - Number keys 1-9 for direct category jump.
- * - LEFT/RIGHT → shared list paging (one visible page).
- * - RW/PREV → popup list or close.
- * - ENTER → open channels list for selected category.
+ * - LEFT/RIGHT → configured Dune navigation or shared list paging.
+ * - LEFT in Dune mode, RW/PREV → popup list or close.
+ * - RIGHT in Dune mode, ENTER → open channels list for selected category.
  * - FF/NEXT → next category.
  * - RED/PLAY/PAUSE/PRECH → records list for category.
  * - RETURN → close.
@@ -3139,6 +3136,9 @@ export function bucketsKeyHandler(keyCode: number): boolean {
             return true;
         }
 
+        case keys.LEFT:
+            if (w.sArrowFun !== 2) return false;
+        // fallthrough
         case keys.RW:
         case keys.PREV:
             if (typeof w.popupList === "function") {
@@ -3148,6 +3148,9 @@ export function bucketsKeyHandler(keyCode: number): boolean {
             }
             return true;
 
+        case keys.RIGHT:
+            if (w.sArrowFun !== 2) return false;
+        // fallthrough
         case keys.ENTER:
             if (selectedCategory < 0) return true;
             if (

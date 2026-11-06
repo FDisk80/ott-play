@@ -1006,6 +1006,7 @@ var keyStrings = {
         "Csatorna felvételeinek megjelenítése",
     "Show list of channel archive records without duplication":
         "Csatorna felvételeinek megjelenítése ismétlődések nélkül",
+    "Show list separators": "Elválasztóvonalak megjelenítése a listákban",
     "Show Media Library": "Médiatár megjelenítése",
     "Show picons in channel list": "Csatornaikonok megjelenítése a listában",
     "Show player menu": "Lejátszó menüjének megjelenítése",

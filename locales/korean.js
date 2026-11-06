@@ -985,6 +985,7 @@ var keyStrings = {
         "이 채널의 녹화된 TV 프로그램을 표시합니다.",
     "Show list of channel archive records without duplication":
         "이 채널의 녹화된 TV 프로그램을 중복 없이 표시합니다.",
+    "Show list separators": "목록 구분선 표시",
     "Show Media Library": "미디어 라이브러리 표시",
     "Show picons in channel list": "목록에 채널 아이콘 표시",
     "Show player menu": "플레이어 메뉴 표시",

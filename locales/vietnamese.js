@@ -985,6 +985,7 @@ var keyStrings = {
     "Show list of channel archive records": "Hiển thị bản ghi của kênh",
     "Show list of channel archive records without duplication":
         "Hiển thị bản ghi của kênh không trùng lặp",
+    "Show list separators": "Hiển thị đường phân cách trong danh sách",
     "Show Media Library": "Hiển thị thư viện đa phương tiện",
     "Show picons in channel list": "Hiển thị biểu tượng kênh trong danh sách",
     "Show player menu": "Hiển thị menu trình phát",

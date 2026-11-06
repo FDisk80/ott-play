@@ -1208,6 +1208,110 @@ for (const mode of ["all", "one", "off"]) {
 console.log(
     "PASS Local finite-channel completion, repeat, kiosk and stale guards"
 );
+// Exercise the Local completion policy with a batch's ordered identities, not names.
+for (const mode of ["off", "all", "one"]) {
+    const { c, end } = setup("offline");
+    c.parentalArray = [];
+    c.__ottParental = { needs: () => false };
+    const ids = ["local-z", "local-a", "local-m"];
+    c.cats.All = ids.slice();
+    c.curList = c.cList = c.cats.All;
+    c.channels = Object.fromEntries(
+        ids.map((id) => [id, { channel_name: "Same filename.mp4" }])
+    );
+    c.getChannelUrl = (id) => "file-" + id + ".mp4";
+    c.checkMedia = () => {};
+    while (c.__ottMedia.repeatMode() !== mode) c.__ottMedia.cycleRepeat();
+    c._playChannel(0, 0);
+    const played = () =>
+        c.calls.filter(([kind]) => kind === "play").map((call) => call[1]);
+    const expected = ["file-local-z.mp4"];
+    for (let index = 0; index < ids.length; index++) {
+        const generation = c.__ottClassicPlayback.snapshot().generation;
+        end();
+        if (mode === "one") expected.push("file-local-z.mp4");
+        else if (index + 1 < ids.length || mode === "all")
+            expected.push("file-" + ids[(index + 1) % ids.length] + ".mp4");
+        assert.deepEqual(
+            played(),
+            expected,
+            mode + " follows batch identity order"
+        );
+        c.__ottMedia.ended(generation);
+        assert.deepEqual(
+            played(),
+            expected,
+            "duplicate completion cannot skip a file"
+        );
+    }
+    const state = c.__ottClassicPlayback.snapshot();
+    assert.equal(state.phase, mode === "off" ? "stopped" : "playing");
+    assert.equal(
+        state.historyTarget.channelId,
+        mode === "off" ? ids[2] : ids[0],
+        "final stop, wrap and repeat retain the expected identity despite equal names"
+    );
+}
+{
+    const { c, end } = setup("offline");
+    c.parentalArray = [];
+    c.__ottParental = { needs: () => false };
+    c.checkMedia = () => {};
+    c.getChannelUrl = (id) => "file-" + id + ".mp4";
+    c.channels = Object.fromEntries(
+        c.cats.All.map((id) => [id, { channel_name: "Same filename.mp4" }])
+    );
+    c._playChannel(0, 0);
+    const generation = c.__ottClassicPlayback.snapshot().generation;
+    const pending = [];
+    c.playChannel = (...args) => pending.push(args);
+    end();
+    assert.equal(pending.length, 1);
+    assert.equal(pending[0][1], 1);
+    assert.equal(pending[0][3](), true);
+
+    // A replacement batch is a new playing generation even within Local.
+    c.cats.All = ["local-new-z", "local-new-a", "local-new-m"];
+    c.curList = c.cList = c.cats.All;
+    c.channels = Object.fromEntries(
+        c.cats.All.map((id) => [id, { channel_name: "Same filename.mp4" }])
+    );
+    c._playChannel(0, 0);
+    const replacement = c.__ottClassicPlayback.snapshot();
+    const plays = c.calls.filter(([kind]) => kind === "play").length;
+    assert.notEqual(replacement.generation, generation);
+    assert.equal(replacement.historyTarget.channelId, "local-new-z");
+    assert.equal(
+        pending[0][3](),
+        false,
+        "old delayed admission cannot enter a new batch"
+    );
+    for (let repeat = 0; repeat < 2; repeat++) c.__ottMedia.ended(generation);
+    assert.equal(
+        pending.length,
+        1,
+        "stale and duplicate EOF cannot enqueue into replacement"
+    );
+    assert.equal(c.calls.filter(([kind]) => kind === "play").length, plays);
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().generation,
+        replacement.generation
+    );
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().historyTarget.channelId,
+        "local-new-z"
+    );
+    c.playChannel = c._playChannel;
+    end();
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().historyTarget.channelId,
+        "local-new-a",
+        "the replacement batch still advances on its own completion"
+    );
+}
+console.log(
+    "PASS Local batch identity order, repeat policy and replacement EOF isolation"
+);
 // Use the real library: numeric category positions can move during playback.
 for (const action of [
     "move",

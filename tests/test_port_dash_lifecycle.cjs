@@ -10,12 +10,24 @@ const begin = source.indexOf(
 );
 const end = source.indexOf("    })();\n}", begin);
 assert.ok(begin > 0 && end > begin, "actual Capacitor playback wrapper exists");
-const code = ts.transpileModule(source.slice(begin, end), {
-    compilerOptions: {
-        module: ts.ModuleKind.None,
-        target: ts.ScriptTarget.ES5,
-    },
-}).outputText;
+const optionsBegin = source.indexOf("function nativeMediaSessionOptions(");
+const optionsEnd = source.indexOf(
+    "// Capacitor Mode C: native media bridges",
+    optionsBegin
+);
+assert(
+    optionsBegin > 0 && optionsEnd > optionsBegin,
+    "Actual native session options exist"
+);
+const code = ts.transpileModule(
+    source.slice(optionsBegin, optionsEnd) + source.slice(begin, end),
+    {
+        compilerOptions: {
+            module: ts.ModuleKind.None,
+            target: ts.ScriptTarget.ES5,
+        },
+    }
+).outputText;
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 function deferred() {
     let resolve, reject;

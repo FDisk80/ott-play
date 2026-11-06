@@ -959,6 +959,7 @@ var keyStrings = {
     "Show list of channel archive records": "הצג הקלטות ערוץ",
     "Show list of channel archive records without duplication":
         "הצג הקלטות ערוץ ללא כפילויות",
+    "Show list separators": "הצגת קווים מפרידים ברשימות",
     "Show Media Library": "הצג ספריית מדיה",
     "Show picons in channel list": "הצג סמלי ערוצים ברשימה",
     "Show player menu": "הצג את תפריט הנגן",

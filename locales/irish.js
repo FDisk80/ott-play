@@ -1008,6 +1008,7 @@ var keyStrings = {
     "Show list of channel archive records": "Taispeáin taifeadtaí an chainéil",
     "Show list of channel archive records without duplication":
         "Taispeáin taifeadtaí an chainéil gan dúblaigh",
+    "Show list separators": "Taispeáin línte deighilte i liostaí",
     "Show Media Library": "Taispeáin an leabharlann meán",
     "Show picons in channel list": "Taispeáin deilbhíní na gcainéal sa liosta",
     "Show player menu": "Taispeáin roghchlár an tseinnteora",

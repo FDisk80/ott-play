@@ -133,21 +133,44 @@ export function formatLocaleDateTime(
     dateOnly = false
 ): string {
     var date = new Date(seconds * 1000);
+    var locale = currentLocaleTag();
     try {
         if (
             typeof Intl !== "undefined" &&
             typeof Intl.DateTimeFormat === "function"
-        )
-            return new Intl.DateTimeFormat(currentLocaleTag(), {
+        ) {
+            // Keep the accepted local wall time, including the player's fixed offset.
+            var localDate = new Date(
+                date.getTime() - date.getTimezoneOffset() * 60000
+            );
+            if (locale === "en") {
+                // EPG/archive dates are day-first; the original locale still owns
+                // the clock so this does not also change its 12/24-hour cycle.
+                var label = new Intl.DateTimeFormat("en-GB", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    timeZone: "UTC",
+                    weekday: "short",
+                }).format(localDate);
+                return dateOnly
+                    ? label
+                    : label +
+                          ", " +
+                          new Intl.DateTimeFormat(locale, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              timeZone: "UTC",
+                          }).format(localDate);
+            }
+            return new Intl.DateTimeFormat(locale, {
                 day: "2-digit",
                 hour: dateOnly ? undefined : "2-digit",
                 minute: dateOnly ? undefined : "2-digit",
                 month: "2-digit",
                 timeZone: "UTC",
                 weekday: "short",
-            }).format(
-                new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-            );
+            }).format(localDate);
+        }
     } catch (_error) {}
     function two(value: number): string {
         return ("0" + value).slice(-2);
@@ -156,7 +179,7 @@ export function formatLocaleDateTime(
         translate("Su Mo Tu We Th Fr Sa").split(" ")[date.getDay()] +
         "\u00a0" +
         two(date.getDate()) +
-        "." +
+        (locale === "en" ? "/" : ".") +
         two(date.getMonth() + 1) +
         (dateOnly
             ? ""

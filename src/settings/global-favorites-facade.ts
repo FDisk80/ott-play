@@ -1,7 +1,4 @@
-import {
-    parseFavoritesDocumentJson,
-    utf8Encode,
-} from "../commands/favorites-document-json";
+import { utf8Encode } from "../commands/favorites-document-json";
 
 export interface GlobalFavoritesFacadePorts {
     /** Explicit current-item addition may require installation-private evidence. */

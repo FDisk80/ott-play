@@ -994,6 +994,7 @@ var keyStrings = {
     "Show list of channel archive records": "Nuna rikodin tasha",
     "Show list of channel archive records without duplication":
         "Nuna rikodin tasha ba tare da maimaitawa ba",
+    "Show list separators": "Nuna layukan raba abubuwa a jerin",
     "Show Media Library": "Nuna ɗakin kafofin watsa labarai",
     "Show picons in channel list": "Nuna alamomin tashoshi a jeri",
     "Show player menu": "Nuna zaɓuɓɓukan manhajar kunnawa",

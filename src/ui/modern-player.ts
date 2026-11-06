@@ -124,7 +124,7 @@ function createModernPlayer(w: any) {
     function video(): HTMLVideoElement | null {
         return w.document.getElementById("video") as HTMLVideoElement | null;
     }
-    function createButton(id: string, icon: string, label: string): any {
+    function createButton(id: string, label: string): any {
         var button = w.document.createElement("button");
         button.type = "button";
         button.className = "modern-player-action";
@@ -158,7 +158,6 @@ function createModernPlayer(w: any) {
     }
     function actionSpecs(): any[] {
         var isPlaying = playing();
-        var kind = playbackKind();
         var volume = video();
         var muted = !!(volume && (volume.muted || !volume.volume));
         var tracks = !!(w.stbAudioTracksExists && w.stbAudioTracksExists());
@@ -386,7 +385,7 @@ function createModernPlayer(w: any) {
         });
         actions = actionSpecs();
         actions.forEach(function (action: any): void {
-            var entry = createButton(action.id, action.icon, action.label);
+            var entry = createButton(action.id, action.label);
             action.entry = entry;
             if (action.primary)
                 entry.button.classList.add("modern-player-primary");

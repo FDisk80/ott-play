@@ -995,6 +995,7 @@ var keyStrings = {
     "Show list of channel archive records": "Kanal kayıtlarını göster",
     "Show list of channel archive records without duplication":
         "Kanal kayıtlarını yinelemesiz göster",
+    "Show list separators": "Listelerde ayırıcı çizgileri göster",
     "Show Media Library": "Medya kitaplığını göster",
     "Show picons in channel list": "Listede kanal simgelerini göster",
     "Show player menu": "Oynatıcı menüsünü göster",

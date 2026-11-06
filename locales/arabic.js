@@ -970,6 +970,7 @@ var keyStrings = {
         "عرض البرامج التليفزيونية المسجلة لهذه القناة",
     "Show list of channel archive records without duplication":
         "عرض البرامج التليفزيونية المسجلة لهذه القناة بدون تكرار",
+    "Show list separators": "إظهار الخطوط الفاصلة في القوائم",
     "Show Media Library": "إظهار مكتبة الوسائط",
     "Show picons in channel list": "إظهار أيقونات القنوات في القائمة",
     "Show player menu": "إظهار قائمة المشغل",

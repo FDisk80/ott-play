@@ -548,7 +548,137 @@ async function categoryNavigation() {
         "PASS real empty/populated Favorites renderer and router: desktop/TV Category keys, configured navigation, Enter, Back, modal ownership and cancellation"
     );
 }
+async function duneCategoryNavigation() {
+    for (const device of ["pc", "pc2", "lg/webos"]) {
+        for (const mode of [0, 1, 2, 3]) {
+            for (const name of ["RIGHT", "LEFT", "ENTER"]) {
+                const f = await categoryFixture(1, device);
+                f.w.sArrowFun = mode;
+                f.w.listPageSize = 10;
+                f.w.popupList = () => f.events.push(["popup"]);
+                f.w.bucketsList(1);
+                f.press(f.w.keys[name]);
+                const direction = name === "LEFT" ? -1 : 1;
+                const expected =
+                    name === "ENTER" || (mode === 2 && name === "RIGHT")
+                        ? ["channels", 1, 0]
+                        : mode === 2
+                          ? ["popup"]
+                          : [
+                                mode === 1 ? "volume" : "page",
+                                direction * (mode === 1 ? 5 : 10),
+                            ];
+                assert.deepEqual(
+                    f.events,
+                    [expected],
+                    `${device} category ${name} preserves arrow mode ${mode}`
+                );
+            }
+        }
+        const projected = await categoryFixture(1, device);
+        projected.w.sArrowFun = 2;
+        projected.w.sShowAllCategory = projected.w.sShowFavoritesCategory = 0;
+        projected.w.bucketsList(1);
+        assert.equal(projected.w.selIndex, 0);
+        assert.deepEqual(Array.from(projected.w.listArray), ["News"]);
+        projected.press(projected.w.keys.RIGHT);
+        assert.deepEqual(
+            projected.events,
+            [["channels", 1, 0]],
+            "Dune Right uses projected category identity, not visible row zero"
+        );
+
+        const favorites = await categoryFixture(1, device);
+        favorites.w.sArrowFun = 2;
+        favorites.w.sShowAllCategory = 0;
+        favorites.w.openGlobalFavorites = () => {
+            favorites.events.push(["favorites"]);
+            return true;
+        };
+        favorites.w.bucketsList(2);
+        assert.equal(favorites.w.selIndex, 1);
+        favorites.press(favorites.w.keys.RIGHT);
+        assert.deepEqual(
+            favorites.events,
+            [["favorites"]],
+            "Dune Right retains the global Favorites route"
+        );
+
+        const stale = await categoryFixture(1, device);
+        stale.w.sArrowFun = 2;
+        stale.w.bucketsList(1);
+        stale.w.selIndex = 99;
+        stale.press(stale.w.keys.RIGHT);
+        assert.deepEqual(
+            stale.events,
+            [],
+            "invalid category never pages or opens"
+        );
+
+        const fallback = await categoryFixture(1, device);
+        fallback.w.sArrowFun = 2;
+        fallback.w.bucketsList(1);
+        fallback.press(fallback.w.keys.LEFT);
+        assert.equal(fallback.w.__ottClassicScreenPort.listOwner(), null);
+        assert.deepEqual(
+            fallback.events,
+            [],
+            "Dune Left retains close fallback"
+        );
+
+        const modal = await categoryFixture(1, device);
+        modal.w.sArrowFun = 2;
+        modal.w.bucketsList(1);
+        modal.w.__ottClassicScreenPort.screens.open({
+            handle: (command) => modal.events.push(["modal", command.id]),
+            kind: "dialog",
+            priority: 10,
+        });
+        modal.press(modal.w.keys.LEFT);
+        modal.press(modal.w.keys.RIGHT);
+        assert.deepEqual(modal.events, [
+            ["modal", "left"],
+            ["modal", "right"],
+        ]);
+
+        const popup = await categoryFixture(1, device);
+        popup.w.sArrowFun = 2;
+        popup.w.bucketsList(1);
+        popup.w.popupList = () => popup.events.push(["popup"]);
+        const query = popup.w.$;
+        popup.w.$ = (selector) =>
+            selector === "#listPopUp" ? { is: () => true } : query(selector);
+        popup.press(popup.w.keys.LEFT);
+        popup.press(popup.w.keys.RIGHT);
+        assert.deepEqual(
+            popup.events,
+            [],
+            "category management popup consumes arrows before Dune navigation"
+        );
+        assert(popup.w.__ottClassicScreenPort.listOwner());
+
+        const provider = await categoryFixture(1, device);
+        provider.w.sArrowFun = 2;
+        provider.w.bucketsList(0, undefined, {
+            key: (code) => {
+                provider.events.push(["provider", code]);
+                return true;
+            },
+            labels: ["Provider category"],
+        });
+        provider.press(provider.w.keys.LEFT);
+        provider.press(provider.w.keys.RIGHT);
+        assert.deepEqual(provider.events, [
+            ["provider", provider.w.keys.LEFT],
+            ["provider", provider.w.keys.RIGHT],
+        ]);
+    }
+    console.log(
+        "PASS Dune category arrows: focused/projected/Favorites routes, other modes, Enter, Back, popup, modal and provider ownership"
+    );
+}
 async function main() {
+    await duneCategoryNavigation();
     await categoryNavigation();
     notificationBoundary();
     const good = await setup();

@@ -975,6 +975,7 @@ var keyStrings = {
         "ဤချန်နယ်၏ အသံသွင်းထားသော တီဗီအစီအစဉ်များကို ပြသပါ။",
     "Show list of channel archive records without duplication":
         "ဤချန်နယ်၏ အသံသွင်းထားသော တီဗီအစီအစဉ်များကို ထပ်တူများမပါဘဲ ပြသပါ။",
+    "Show list separators": "စာရင်းများတွင် ပိုင်းခြားမျဉ်းများ ပြပါ",
     "Show Media Library": "မီဒီယာစာကြည့်တိုက်ကို ပြပါ။",
     "Show picons in channel list": "စာရင်းထဲတွင် ချန်နယ်အိုင်ကွန်များကို ပြပါ။",
     "Show player menu": "ပလေယာမီနူးကို ပြပါ။",

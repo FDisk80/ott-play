@@ -968,6 +968,7 @@ var keyStrings = {
     "Show list of channel archive records": "চেনেলৰ ৰেকৰ্ডিং দেখুৱাওক",
     "Show list of channel archive records without duplication":
         "পুনৰাবৃত্তি নোহোৱাকৈ চেনেলৰ ৰেকৰ্ডিং দেখুৱাওক",
+    "Show list separators": "তালিকাত বিভাজক ৰেখা দেখুৱাওক",
     "Show Media Library": "মিডিয়া লাইব্ৰেৰী দেখুৱাওক",
     "Show picons in channel list": "তালিকাত চেনেলৰ আইকন দেখুৱাওক",
     "Show player menu": "প্লেয়াৰৰ মেনু দেখুৱাওক",

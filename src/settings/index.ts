@@ -18,7 +18,7 @@ import {
     type SettingsDraft,
 } from "./store";
 
-/** Closed palette: index zero inherits the active interface theme. */
+/** Legacy palette: zero inherits the theme; keep existing numeric values stable. */
 export const epgTimeColors = [
     "",
     "#FFFFFF",
@@ -27,6 +27,12 @@ export const epgTimeColors = [
     "#00FF00",
     "#FFB3FF",
 ];
+
+/** Custom colors retain numeric storage: 6 + hue * 101 + saturation. */
+export function epgTimeColorPair(value: number): number[] | null {
+    if (!Number.isInteger(value) || value < 6 || value > 36466) return null;
+    return [Math.floor((value - 6) / 101), (value - 6) % 101];
+}
 
 // The polyfill preserves this getter so "system" also restores native DST rules.
 const systemTimezoneOffset =
@@ -99,8 +105,9 @@ export function applyTimezoneSetting(index: number): number {
  * @property showProgress      - Show progress bar (0/1).
  * @property showArchive       - Show archive indicator (0/1).
  * @property epgArchiveLabel   - Show the Archive word beside the EPG marker (0/1).
- * @property epgTimeColor      - EPG time palette index (0 inherits the theme).
+ * @property epgTimeColor      - EPG time color (0 inherits theme, 1–5 legacy, 6–36466 custom HSV).
  * @property showScroll        - Show scrollbar (0/1).
+ * @property showListSeparators - Show Classic content-list row separators (0/1).
  * @property showDescription   - Show programme description (0/1).
  * @property showProgram       - Show programme title (0/1).
  * @property preview           - Preview window mode (0/1/2).
@@ -207,6 +214,7 @@ export interface PlayerSettings {
     showArchive: number;
     showDescription: number;
     showFavoritesCategory: number;
+    showListSeparators: number;
     showName: number;
     showNumber: number;
     showProgram: number;
@@ -326,6 +334,7 @@ export function defaultSettings(): PlayerSettings {
         showArchive: 1,
         showDescription: 1,
         showFavoritesCategory: 1,
+        showListSeparators: 1,
         showName: 1,
         showNumber: 1,
         showProgram: 1,
@@ -834,6 +843,12 @@ export const settingsSchema: SettingDefinition[] = [
     ),
     defineSetting("showScroll", "sShowScroll"),
     defineSetting(
+        "showListSeparators",
+        "sShowListSeparators",
+        { range: [0, 1] },
+        ["setColor"]
+    ),
+    defineSetting(
         "showDescription",
         "sShowDescr",
         {
@@ -916,7 +931,9 @@ export const settingsSchema: SettingDefinition[] = [
     defineSetting("hideMenus", "sHideMenus", { list: true }),
     defineSetting("showAllCategory", "sShowAllCategory", { range: [0, 1] }),
     defineSetting("epgArchiveLabel", "sEpgArchiveLabel", { range: [0, 1] }),
-    defineSetting("epgTimeColor", "sEpgTimeColor", { range: [0, 5] }),
+    defineSetting("epgTimeColor", "sEpgTimeColor", { range: [0, 36466] }, [
+        "setColor",
+    ]),
     defineSetting("showFavoritesCategory", "sShowFavoritesCategory", {
         range: [0, 1],
     }),

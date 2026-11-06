@@ -977,6 +977,7 @@ var keyStrings = {
         "यस च्यानलका रेकर्ड गरिएका TV कार्यक्रमहरू देखाउनुहोस्",
     "Show list of channel archive records without duplication":
         "यस च्यानलका रेकर्ड गरिएका टिभी कार्यक्रमहरू नक्कलहरू बिना देखाउनुहोस्",
+    "Show list separators": "सूचीहरूमा विभाजक रेखाहरू देखाउनुहोस्",
     "Show Media Library": "मिडिया लाइब्रेरी देखाउनुहोस्",
     "Show picons in channel list": "सूचीमा च्यानल आइकनहरू देखाउनुहोस्",
     "Show player menu": "प्लेयर मेनु देखाउनुहोस्",

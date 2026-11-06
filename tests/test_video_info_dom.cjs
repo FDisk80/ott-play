@@ -156,6 +156,70 @@ test("animated and strict footer openings immediately show current metadata", ()
     }
 });
 
+test("info completions retain late method lookup for both surfaces and animation modes", () => {
+    for (const animated of [false, true]) {
+        for (const surface of ["info1", "descr"]) {
+            const f = fixture();
+            try {
+                const pending = [];
+                const calls = [];
+                f.w.sInfoSlide = animated;
+                f.w.$.fn.show = function (duration, complete) {
+                    this.css("display", "block");
+                    if (complete)
+                        pending.push({
+                            complete,
+                            duration,
+                            id: this[0].id,
+                            mode: "show",
+                        });
+                    return this;
+                };
+                f.w.$.fn.slideDown = function (duration, complete) {
+                    this.css("display", "block");
+                    pending.push({
+                        complete,
+                        duration,
+                        id: this[0].id,
+                        mode: "slideDown",
+                    });
+                    return this;
+                };
+                f.w.document.getElementById("programm_descr").textContent =
+                    "Programme details";
+                f.w.document.getElementById("descr").style.display = "none";
+                f.w.document.getElementById("info1").style.display =
+                    surface === "descr" ? "block" : "none";
+                f.w.scrollUpDescr = () => calls.push("old");
+                f.w.showChannelInfo(0);
+                assert.equal(pending.length, 1);
+                assert.equal(pending[0].id, surface);
+                assert.equal(pending[0].mode, animated ? "slideDown" : "show");
+                assert.equal(pending[0].duration, animated ? 400 : 0);
+                assert.deepEqual(
+                    calls,
+                    [],
+                    "The method runs only on completion"
+                );
+                f.w.scrollUpDescr = function () {
+                    assert.equal(this, f.w);
+                    calls.push("new");
+                };
+                pending[0].complete.call(f.w.document.getElementById(surface));
+                assert.deepEqual(
+                    calls,
+                    ["new"],
+                    "Completion reads the current Window method"
+                );
+                delete f.w.scrollUpDescr;
+                assert.doesNotThrow(() => pending[0].complete());
+            } finally {
+                f.close();
+            }
+        }
+    }
+});
+
 test("strict gesture keepalive preserves metadata until the normal refresh", () => {
     const f = fixture();
     try {

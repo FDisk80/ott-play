@@ -593,6 +593,12 @@ body {
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
 }
+/* Only Classic content rows: keep frames, controls and Modern focus styling. */
+body.hide-list-separators:not(.interface-modern)
+    #listIn.content-list-rows
+    > .item {
+    box-shadow: none;
+}
 .progress_div {
     /* Flex row child inside .item — never float (WKWebView/Tauri). */
     float: none;
@@ -1306,20 +1312,8 @@ body {
 }
 
 /* EPG styles must also work with the native nonce-based style-src policy. */
-.ott-epg-time-color-1 {
-    color: #ffffff;
-}
-.ott-epg-time-color-2 {
-    color: #ffff00;
-}
-.ott-epg-time-color-3 {
-    color: #00ffff;
-}
-.ott-epg-time-color-4 {
-    color: #00ff00;
-}
-.ott-epg-time-color-5 {
-    color: #ffb3ff;
+.ott-epg-time {
+    color: var(--ott-epg-time-color, inherit);
 }
 .ott-epg-detail-time,
 .ott-epg-description {

@@ -1018,6 +1018,7 @@ var keyStrings = {
     "Show list of channel archive records": "Erekana ibyafashwe kuri shene",
     "Show list of channel archive records without duplication":
         "Erekana ibyafashwe kuri shene nta byisubiramo",
+    "Show list separators": "Erekana imirongo itandukanya ibiri ku rutonde",
     "Show Media Library": "Erekana isomero ry'ibitangazamakuru",
     "Show picons in channel list":
         "Erekana amashushondanga ya shene mu rutonde",

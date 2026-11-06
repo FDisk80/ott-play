@@ -978,6 +978,7 @@ var keyStrings = {
     "Show list of channel archive records": "ചാനൽ റെക്കോർഡിംഗുകൾ കാണിക്കുക",
     "Show list of channel archive records without duplication":
         "ഡ്യൂപ്ലിക്കേറ്റുകളില്ലാതെ ചാനൽ റെക്കോർഡിംഗുകൾ കാണിക്കുക",
+    "Show list separators": "പട്ടികകളിൽ വേർതിരിക്കൽ വരകൾ കാണിക്കുക",
     "Show Media Library": "മീഡിയ ലൈബ്രറി കാണിക്കുക",
     "Show picons in channel list": "ലിസ്റ്റിൽ ചാനൽ ഐക്കണുകൾ കാണിക്കുക",
     "Show player menu": "പ്ലേയർ മെനു കാണിക്കുക",
