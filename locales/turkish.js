@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Oynatıcı bir komutu reddetti. Sağlayıcısını ve ayarlarını kontrol edin.",
     About: "Hakkında",
+    "Accent color": "Vurgu rengi",
     "Access code": "Erişim kodu",
     "Access denied. Check the server access code.":
         "Erişim reddedildi. Sunucunun erişim kodunu kontrol edin.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API başarısız, M3U deneniyor…",
     "API Server": "API sunucusu",
     "API server URL": "API sunucusu URL'si",
+    Apply: "Uygula",
+    "Apply changes to this draft, then use Save Settings.":
+        "Değişiklikleri bu taslağa uygulayın, ardından Ayarları kaydet'i seçin.",
     "Applying HTTP remote settings...":
         "HTTP uzaktan kumanda ayarları uygulanıyor...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -120,6 +124,7 @@ var keyStrings = {
     Blue: "Mavi",
     "Bookmark age (days): %1": "Yer iminin yaşı (gün): %1",
     "Bookmark age: %1 days": "Yer işareti yaşı: %1 gün",
+    "Border color": "Kenarlık rengi",
     Brightness: "Parlaklık",
     "Browse folders": "Klasörlere göz at",
     "Buffer Size, s": "Arabellek boyutu, s",
@@ -195,6 +200,7 @@ var keyStrings = {
     "Cloud transfer failed": "Bulut aktarımı başarısız oldu",
     Code: "Erişim kodu",
     Color: "Renk",
+    "Color schemes": "Renk düzenleri",
     "Color spectrum": "Renk spektrumu",
     "Command server": "Komut sunucusu",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -334,6 +340,7 @@ var keyStrings = {
         "HTTP uzaktan kumanda ayarları güncellenemedi.",
     Country: "Ülke",
     "Create category": "Kategori oluştur",
+    Custom: "Özel",
     current: "geçerli",
     "Debug enabled. Restart to apply.":
         "Hata ayıklama etkinleştirildi. Uygulamak için oynatıcıyı yeniden başlatın.",
@@ -496,6 +503,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG kaynağı döndürdü HTTP %1",
     "EPG source: %1": "EPG kaynak: %1",
     "EPG stopped during: %1": "EPG şu aşamada durdu: %1",
+    "EPG time color": "EPG saat rengi",
     "EPG unavailable on this browser": "EPG bu tarayıcıda kullanılamıyor",
     "EPG unavailable: %1": "EPG kullanılamıyor: %1",
     "EPG update failed; using saved programme guide":
@@ -566,6 +574,7 @@ var keyStrings = {
     "Hide / Return": "Gizle / göster",
     "Hide provider settings?": "Sağlayıcı ayarları gizlensin mi?",
     "Hide providers?": "Sağlayıcılar gizlensin mi?",
+    "High contrast": "Yüksek karşıtlık",
     "History in Media Library": "Medya kitaplığında geçmiş",
     "History of watched movies": "İzleme geçmişi",
     Home: "Ana sayfa",
@@ -573,6 +582,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP uzaktan kumandası bu cihazda kullanılamıyor.",
     "HTTPS support": "HTTPS desteği",
+    Hue: "Ton",
     ID: "Kimlik",
     "Import settings": "Ayarları içe aktar",
     "In live mode: <br/>": "Canlı modda:<br/>",
@@ -580,6 +590,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Bilgi çubuğu gösterim süresi, sn",
     "Infobar settings": "Bilgi çubuğu ayarları",
     Information: "Bilgi",
+    Inherited: "Devralınan",
+    "Interface colors": "Arayüz renkleri",
     "Interface credits": "Arayüzü hazırlayanlar",
     "Interface mode": "Arayüz modu",
     "Interface settings": "Arayüz ayarları",
@@ -588,6 +600,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Geçersiz kanal bağlantısı! Hesabınızdaki akış URL'sinde olduğu gibi tam ana bilgisayar adını girin (ör. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Geçersiz bulut ayarları yanıtı",
+    "Invalid color value": "Geçersiz renk değeri",
     "Invalid protected source configuration":
         "Korumalı kaynak yapılandırması geçersiz",
     "Invalid range: %1-%2": "Geçersiz aralık: %1-%2",
@@ -600,6 +613,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ayarları",
     "Label (optional)": "Etiket (isteğe bağlı)",
+    Light: "Açık",
     "List created": "Liste oluşturuldu",
     "List deleted": "Liste silindi",
     "List location": "Listenin konumu",
@@ -662,6 +676,7 @@ var keyStrings = {
     "Media Library URL": "Medya kütüphanesi URL'si",
     Menu: "Menü",
     "Menu items settings": "Menü öğesi ayarları",
+    Midnight: "Gece yarısı",
     Modern: "Modern",
     "Modern interface is unavailable. Classic remains active.":
         "Modern arayüz kullanılamıyor. Klasik etkin kalır.",
@@ -708,6 +723,7 @@ var keyStrings = {
     no: "hayır",
     "no epg at current time": "Şu anda EPG yok",
     "not set": "ayarlanmamış",
+    Ocean: "Okyanus",
     Off: "Kapalı",
     Ok: "Tamam",
     On: "Açık",
@@ -743,6 +759,7 @@ var keyStrings = {
         "Eşleştirme sunucusuna ulaşılamıyor. Yeniden denemek için sunucuyu tekrar bulun.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Eşleştirme reddedildi veya geçersiz bir onay döndürüldü. Yeniden denemek için sunucuyu tekrar bulun.",
+    Palette: "Palet",
     "Parental control": "Ebeveyn denetimi",
     Password: "Parola",
     "Paste settings JSON": "JSON biçimindeki ayarları yapıştırın",
@@ -788,6 +805,7 @@ var keyStrings = {
     Prepaid: "Ön ödemeli",
     "Preparing secure remote input...": "Güvenli uzaktan giriş hazırlanıyor...",
     Prev: "Önceki",
+    Preview: "Önizleme",
     "Preview in channel list": "Kanal listesinde önizleme",
     Previous: "Önceki",
     "Privacy policy": "Gizlilik politikası",
@@ -921,6 +939,7 @@ var keyStrings = {
     Search: "Ara",
     "Search languages": "Dilleri ara",
     "Search programme": "Program ara",
+    "Secondary text color": "İkincil metin rengi",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Güvenli uzaktan giriş başlatılamadı. Lütfen tekrar deneyin veya ekran klavyesini kullanın.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -941,6 +960,8 @@ var keyStrings = {
         "Tarayıcıda ekran görüntüsü kaynağını seçin",
     "Select the player tab or window in the browser sharing dialog.":
         "Tarayıcı paylaşım iletişim kutusunda oynatıcı sekmesini veya penceresini seçin.",
+    "Selected item": "Seçili öğe",
+    "Selected text color": "Seçili metin rengi",
     "Send request": "İstek gönder",
     "Send settings": "Ayarları gönder",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1055,6 +1076,7 @@ var keyStrings = {
     "Subscription information": "Abonelik bilgileri",
     Subtitle: "Altyazılar",
     "Subtitle appearance": "Altyazı görünümü",
+    "Surface color": "Yüzey rengi",
     Switch: "Değiştir",
     "Switch sound track": "Ses parçasını değiştir",
     "Switch subtitle": "Altyazıları değiştir",
@@ -1159,6 +1181,7 @@ var keyStrings = {
         "Uzaktan tanılama için bir HTTPS komut sunucusu kullanın.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Adreste kullanıcı adı veya parola olmadan HTTP veya HTTPS kullanın.",
+    "Use inherited color": "Devralınan rengi kullan",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Bir denetim seçmek için SOL/SAĞ, etkinleştirmek için OK ve kaydırmak için YUKARI/AŞAĞI düğmelerini kullanın.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1182,6 +1205,7 @@ var keyStrings = {
         "VPortal yüklenemedi. Bağlantıyı, erişim anahtarını ve portalın kullanılabilirliğini kontrol edin.",
     volume: "ses düzeyi",
     "Waiting for sign-in…": "Oturum açma bekleniyor…",
+    "Warm graphite": "Sıcak grafit",
     "Wrong parental code !!!": "Yanlış ebeveyn kodu!!!",
     "Xtream Codes Provider": "Xtream Codes sağlayıcısı",
     "Xtream Codes settings": "Xtream Codes ayarları",

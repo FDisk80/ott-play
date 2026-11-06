@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Trình phát đã từ chối một lệnh. Kiểm tra nhà cung cấp và cài đặt.",
     About: "Giới thiệu",
+    "Accent color": "Màu nhấn",
     "Access code": "Mã truy cập",
     "Access denied. Check the server access code.":
         "Truy cập bị từ chối. Kiểm tra mã truy cập máy chủ.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API thất bại, đang thử M3U…",
     "API Server": "Máy chủ API",
     "API server URL": "URL máy chủ API",
+    Apply: "Áp dụng",
+    "Apply changes to this draft, then use Save Settings.":
+        "Áp dụng thay đổi cho bản nháp này, rồi chọn Lưu cài đặt.",
     "Applying HTTP remote settings...":
         "Đang áp dụng cài đặt điều khiển từ xa HTTP…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Xanh dương",
     "Bookmark age (days): %1": "Tuổi của dấu trang (ngày): %1",
     "Bookmark age: %1 days": "Tuổi dấu trang: %1 ngày",
+    "Border color": "Màu viền",
     Brightness: "Độ sáng",
     "Browse folders": "Duyệt thư mục",
     "Buffer Size, s": "Dung lượng bộ đệm, giây",
@@ -194,6 +199,7 @@ var keyStrings = {
     "Cloud transfer failed": "Chuyển sang đám mây không thành công",
     Code: "Mã truy cập",
     Color: "Màu",
+    "Color schemes": "Phối màu",
     "Color spectrum": "Phổ màu",
     "Command server": "Máy chủ lệnh",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -329,6 +335,7 @@ var keyStrings = {
         "Không thể cập nhật điều khiển từ xa HTTP.",
     Country: "Quốc gia",
     "Create category": "Tạo danh mục",
+    Custom: "Tùy chỉnh",
     current: "hiện tại",
     "Debug enabled. Restart to apply.":
         "Đã bật gỡ lỗi. Khởi động lại trình phát để áp dụng.",
@@ -488,6 +495,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Nguồn EPG trả về HTTP %1",
     "EPG source: %1": "Nguồn EPG: %1",
     "EPG stopped during: %1": "EPG dừng trong: %1",
+    "EPG time color": "Màu thời gian EPG",
     "EPG unavailable on this browser": "EPG không có trên trình duyệt này",
     "EPG unavailable: %1": "EPG không có sẵn: %1",
     "EPG update failed; using saved programme guide":
@@ -558,6 +566,7 @@ var keyStrings = {
     "Hide / Return": "Ẩn / hiện",
     "Hide provider settings?": "Ẩn cài đặt nhà cung cấp?",
     "Hide providers?": "Ẩn nhà cung cấp?",
+    "High contrast": "Tương phản cao",
     "History in Media Library": "Lịch sử trong thư viện đa phương tiện",
     "History of watched movies": "Lịch sử xem",
     Home: "Trang chủ",
@@ -565,6 +574,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Điều khiển từ xa HTTP không khả dụng trên thiết bị này.",
     "HTTPS support": "Hỗ trợ HTTPS",
+    Hue: "Sắc độ",
     ID: "ID",
     "Import settings": "Nhập cài đặt",
     "In live mode: <br/>": "Trong chế độ trực tiếp:<br/>",
@@ -572,6 +582,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Thời gian hiển thị thanh thông tin, giây",
     "Infobar settings": "Cài đặt thanh thông tin",
     Information: "Thông tin",
+    Inherited: "Kế thừa",
+    "Interface colors": "Màu giao diện",
     "Interface credits": "Ghi công giao diện",
     "Interface mode": "Chế độ giao diện",
     "Interface settings": "Cài đặt giao diện",
@@ -580,6 +592,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Liên kết kênh không hợp lệ! Nhập tên máy chủ đầy đủ như trong URL luồng ở trang tài khoản (ví dụ: subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Phản hồi cài đặt đám mây không hợp lệ",
+    "Invalid color value": "Giá trị màu không hợp lệ",
     "Invalid protected source configuration":
         "Cấu hình nguồn được bảo vệ không hợp lệ",
     "Invalid range: %1-%2": "Phạm vi không hợp lệ: %1-%2",
@@ -592,6 +605,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Cài đặt KORONA TV",
     "Label (optional)": "Nhãn (không bắt buộc)",
+    Light: "Sáng",
     "List created": "Đã tạo danh sách",
     "List deleted": "Đã xóa danh sách",
     "List location": "Vị trí danh sách",
@@ -654,6 +668,7 @@ var keyStrings = {
     "Media Library URL": "URL thư viện đa phương tiện",
     Menu: "Trình đơn",
     "Menu items settings": "Cài đặt mục menu",
+    Midnight: "Nửa đêm",
     Modern: "Hiện đại",
     "Modern interface is unavailable. Classic remains active.":
         "Giao diện hiện đại không khả dụng. Giao diện cổ điển vẫn hoạt động.",
@@ -700,6 +715,7 @@ var keyStrings = {
     no: "không",
     "no epg at current time": "Không có EPG tại thời điểm hiện tại",
     "not set": "chưa đặt",
+    Ocean: "Đại dương",
     Off: "Tắt",
     Ok: "OK",
     On: "Bật",
@@ -735,6 +751,7 @@ var keyStrings = {
         "Máy chủ ghép nối không khả dụng. Hãy tìm lại máy chủ để thử lại.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Ghép nối bị từ chối hoặc nhận được phê duyệt không hợp lệ. Hãy tìm lại máy chủ để thử lại.",
+    Palette: "Bảng màu",
     "Parental control": "Kiểm soát của phụ huynh",
     Password: "Mật khẩu",
     "Paste settings JSON": "Dán cài đặt ở định dạng JSON",
@@ -781,6 +798,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Đang chuẩn bị đầu vào từ xa an toàn...",
     Prev: "Trước",
+    Preview: "Xem trước",
     "Preview in channel list": "Xem trước trong danh sách kênh",
     Previous: "Trước",
     "Privacy policy": "Chính sách quyền riêng tư",
@@ -912,6 +930,7 @@ var keyStrings = {
     Search: "Tìm kiếm",
     "Search languages": "Tìm kiếm ngôn ngữ",
     "Search programme": "Tìm chương trình",
+    "Secondary text color": "Màu chữ phụ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Không thể khởi động đầu vào từ xa an toàn. Vui lòng thử lại hoặc sử dụng bàn phím trên màn hình.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -932,6 +951,8 @@ var keyStrings = {
         "Chọn nguồn ảnh chụp màn hình trong trình duyệt",
     "Select the player tab or window in the browser sharing dialog.":
         "Chọn tab hoặc cửa sổ trình phát trong hộp thoại chia sẻ trình duyệt.",
+    "Selected item": "Mục được chọn",
+    "Selected text color": "Màu chữ được chọn",
     "Send request": "Gửi yêu cầu",
     "Send settings": "Gửi cài đặt",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1044,6 +1065,7 @@ var keyStrings = {
     "Subscription information": "Thông tin đăng ký",
     Subtitle: "Phụ đề",
     "Subtitle appearance": "Giao diện phụ đề",
+    "Surface color": "Màu bề mặt",
     Switch: "Chuyển",
     "Switch sound track": "Đổi luồng âm thanh",
     "Switch subtitle": "Đổi phụ đề",
@@ -1148,6 +1170,7 @@ var keyStrings = {
         "Sử dụng máy chủ lệnh HTTPS để chẩn đoán từ xa.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Dùng HTTP hoặc HTTPS mà không có tên người dùng hay mật khẩu trong địa chỉ.",
+    "Use inherited color": "Dùng màu kế thừa",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Dùng TRÁI/PHẢI để chọn điều khiển, OK để kích hoạt và LÊN/XUỐNG để cuộn.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1171,6 +1194,7 @@ var keyStrings = {
         "Không thể tải VPortal. Kiểm tra liên kết, khóa truy cập và tình trạng hoạt động của cổng.",
     volume: "âm lượng",
     "Waiting for sign-in…": "Đang chờ đăng nhập…",
+    "Warm graphite": "Than chì ấm",
     "Wrong parental code !!!": "Mã phụ huynh không đúng!",
     "Xtream Codes Provider": "Nhà cung cấp Xtream Codes",
     "Xtream Codes settings": "Cài đặt Xtream Codes",

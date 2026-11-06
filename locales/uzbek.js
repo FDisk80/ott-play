@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Pleyer buyruqni rad etdi. Uning provayderi va sozlamalarini tekshiring.",
     About: "Dastur haqida",
+    "Accent color": "Urg‘u rangi",
     "Access code": "Kirish kodi",
     "Access denied. Check the server access code.":
         "Kirish rad etildi. Serverning kirish kodini tekshiring.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ishlamadi, M3U sinab koʻrilmoqda…",
     "API Server": "API serveri",
     "API server URL": "API serveri URL manzili",
+    Apply: "Qo‘llash",
+    "Apply changes to this draft, then use Save Settings.":
+        "O‘zgarishlarni ushbu qoralamaga qo‘llang, so‘ng Sozlamalarni saqlash bandini tanlang.",
     "Applying HTTP remote settings...":
         "HTTP pulti sozlamalari qo‘llanmoqda...",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Koʻk",
     "Bookmark age (days): %1": "Xatcho'pning yoshi (kunlar): %1",
     "Bookmark age: %1 days": "Xatchoʻp yoshi: %1 kun",
+    "Border color": "Chegara rangi",
     Brightness: "Yorqinlik",
     "Browse folders": "Jildlar boʻyicha koʻrish",
     "Buffer Size, s": "Bufer hajmi, s",
@@ -195,6 +200,7 @@ var keyStrings = {
     "Cloud transfer failed": "Bulutli uzatish amalga oshmadi",
     Code: "Kirish kodi",
     Color: "Rang",
+    "Color schemes": "Rang sxemalari",
     "Color spectrum": "Rang spektri",
     "Command server": "Buyruqlar serveri",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -335,6 +341,7 @@ var keyStrings = {
         "HTTP pulti sozlamalarini yangilab bo‘lmadi.",
     Country: "Mamlakat",
     "Create category": "Turkum yaratish",
+    Custom: "Maxsus",
     current: "joriy",
     "Debug enabled. Restart to apply.":
         "Nosozliklarni tuzatish yoqildi. Qoʻllash uchun pleyerni qayta ishga tushiring.",
@@ -499,6 +506,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG manbasi qaytarildi HTTP %1",
     "EPG source: %1": "EPG manba: %1",
     "EPG stopped during: %1": "EPG quyidagi vaqtda to'xtadi: %1",
+    "EPG time color": "EPG vaqti rangi",
     "EPG unavailable on this browser": "EPG ushbu brauzerda mavjud emas",
     "EPG unavailable: %1": "EPG mavjud emas: %1",
     "EPG update failed; using saved programme guide":
@@ -572,6 +580,7 @@ var keyStrings = {
     "Hide / Return": "Yashirish / koʻrsatish",
     "Hide provider settings?": "Provayder sozlamalari yashirilsinmi?",
     "Hide providers?": "Provayderlar yashirilsinmi?",
+    "High contrast": "Yuqori kontrast",
     "History in Media Library": "Media kutubxonasidagi tarix",
     "History of watched movies": "Tomosha tarixi",
     Home: "Bosh sahifa",
@@ -579,6 +588,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Bu qurilmada HTTP pulti mavjud emas.",
     "HTTPS support": "HTTPS qo‘llab-quvvatlashi",
+    Hue: "Rang tusi",
     ID: "ID",
     "Import settings": "Sozlamalarni import qilish",
     "In live mode: <br/>": "Jonli efir rejimida:<br/>",
@@ -587,6 +597,8 @@ var keyStrings = {
         "Axborot panelini koʻrsatish davomiyligi, son",
     "Infobar settings": "Axborot paneli sozlamalari",
     Information: "Maʼlumot",
+    Inherited: "Meros olingan",
+    "Interface colors": "Interfeys ranglari",
     "Interface credits": "Interfeys mualliflari",
     "Interface mode": "Interfeys rejimi",
     "Interface settings": "Interfeys sozlamalari",
@@ -595,6 +607,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Kanal havolasi notoʻgʻri! Shaxsiy kabinetdagi oqim URL manzilidagi kabi xostning toʻliq nomini kiriting (masalan, subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Yaroqsiz bulut sozlamalari javobi",
+    "Invalid color value": "Rang qiymati noto‘g‘ri",
     "Invalid protected source configuration":
         "Himoyalangan manba sozlamalari noto‘g‘ri",
     "Invalid range: %1-%2": "Noto‘g‘ri oraliq: %1-%2",
@@ -607,6 +620,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV sozlamalari",
     "Label (optional)": "Nomi (ixtiyoriy)",
+    Light: "Och",
     "List created": "Roʻyxat yaratildi",
     "List deleted": "Roʻyxat oʻchirildi",
     "List location": "Roʻyxat joylashuvi",
@@ -669,6 +683,7 @@ var keyStrings = {
     "Media Library URL": "Media kutubxonasi URL",
     Menu: "Menyu",
     "Menu items settings": "Menyu elementlari sozlamalari",
+    Midnight: "Yarim tun",
     Modern: "Zamonaviy",
     "Modern interface is unavailable. Classic remains active.":
         "Zamonaviy interfeys mavjud emas. Klassik faol qoladi.",
@@ -715,6 +730,7 @@ var keyStrings = {
     no: "yo'q",
     "no epg at current time": "Hozirgi vaqt uchun EPG yoʻq",
     "not set": "belgilanmagan",
+    Ocean: "Okean",
     Off: "Oʻchirilgan",
     Ok: "OK",
     On: "Yoqilgan",
@@ -750,6 +766,7 @@ var keyStrings = {
         "Juftlash serveri mavjud emas. Qayta urinish uchun serverni yana toping.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Juftlash rad etildi yoki yaroqsiz tasdiq olindi. Qayta urinish uchun serverni yana toping.",
+    Palette: "Ranglar palitrasi",
     "Parental control": "Ota-ona nazorati",
     Password: "Parol",
     "Paste settings JSON": "JSON formatidagi sozlamalarni joylashtiring",
@@ -796,6 +813,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Xavfsiz masofaviy kiritish tayyorlanmoqda...",
     Prev: "Oldingi",
+    Preview: "Oldindan ko‘rish",
     "Preview in channel list": "Kanallar roʻyxatida oldindan koʻrish",
     Previous: "Oldingi",
     "Privacy policy": "Maxfiylik siyosati",
@@ -930,6 +948,7 @@ var keyStrings = {
     Search: "Qidirish",
     "Search languages": "Tillarni qidirish",
     "Search programme": "Koʻrsatuv qidirish",
+    "Secondary text color": "Ikkilamchi matn rangi",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Xavfsiz masofaviy kiritishni ishga tushirib bo'lmadi. Qaytadan urining yoki ekran klaviaturasidan foydalaning.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -951,6 +970,8 @@ var keyStrings = {
         "Brauzerda skrinshot manbasini tanlang",
     "Select the player tab or window in the browser sharing dialog.":
         "Brauzer almashish dialogida pleer yorlig'ini yoki oynasini tanlang.",
+    "Selected item": "Tanlangan element",
+    "Selected text color": "Tanlangan matn rangi",
     "Send request": "Soʻrov yuborish",
     "Send settings": "Sozlamalarni yuborish",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1066,6 +1087,7 @@ var keyStrings = {
     "Subscription information": "Obuna ma’lumotlari",
     Subtitle: "Subtitrlar",
     "Subtitle appearance": "Subtitrlar ko‘rinishi",
+    "Surface color": "Sirt rangi",
     Switch: "Almashtirish",
     "Switch sound track": "Ovoz yoʻlagini almashtirish",
     "Switch subtitle": "Subtitrlarni almashtirish",
@@ -1174,6 +1196,7 @@ var keyStrings = {
         "Masofaviy diagnostika uchun HTTPS buyruq serveridan foydalaning.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Manzilda foydalanuvchi nomi yoki parolsiz HTTP yoki HTTPS dan foydalaning.",
+    "Use inherited color": "Meros olingan rangdan foydalanish",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Boshqaruv elementini tanlash uchun CHAP/OʻNG, faollashtirish uchun OK, aylantirish uchun YUQORI/PAST tugmalaridan foydalaning.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1199,6 +1222,7 @@ var keyStrings = {
         "VPortalʼni yuklab boʻlmadi. Havola, kirish kaliti va portalning mavjudligini tekshiring.",
     volume: "ovoz balandligi",
     "Waiting for sign-in…": "Tizimga kirish kutilmoqda…",
+    "Warm graphite": "Iliq grafit",
     "Wrong parental code !!!": "Noto'g'ri ota-ona kodi!!!",
     "Xtream Codes Provider": "Xtream Codes provayderi",
     "Xtream Codes settings": "Xtream Codes sozlamalari",
