@@ -1118,8 +1118,6 @@ Setiap pemutar dapat terhubung ke akun Plex atau Plex Media Server melalui penye
 
 [Tinjauan keandalan bergambar](docs/plex-provider.md#reliability-review-process-and-results) menjelaskan aturan pemuatan dan pembatalan, perbaikan katalog lengkap dan pergantian berkas, serta hasil validasi Chromium/WebKit terukur.
 
-Integrasi server OTT opsional juga mengekspos katalog server Plex yang ada dan pemutaran kompatibel melalui entri pustaka NAS terpisah serta ekspor M3U. Lihat [konfigurasi pustaka sisi server dan akses klien](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## Repositori terkait

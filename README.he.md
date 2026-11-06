@@ -1390,8 +1390,6 @@ Studio 2026 הוא מראה ברירת המחדל. Classic ו־PLi-HD נשארי
 
 [סקירת האמינות המאוירת](docs/plex-provider.md#reliability-review-process-and-results) מסבירה כללי טעינה וביטול, תיקונים לקטלוגים מלאים ולהחלפת קבצים, ותוצאות האימות המדודות ב־Chromium/WebKit.
 
-שילוב שרת OTT אופציונלי חושף גם קטלוג של שרת Plex קיים וניגון תואם דרך פריט ספריית NAS נפרד וייצוא M3U. ראו [תצורת ספרייה בצד השרת וגישת לקוח](docs/synology-library.md).
-
 <a id="related-repositories"></a>
 
 ## מאגרים קשורים
