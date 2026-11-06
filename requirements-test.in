@@ -1,1 +1,2 @@
+# Regenerate with uv pip compile requirements-test.in --generate-hashes --universal --python-version=3.12 --output-file=requirements-test.txt
 coverage==7.10.7

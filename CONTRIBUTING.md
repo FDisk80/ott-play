@@ -50,7 +50,7 @@ Install coverage with `python3 -m pip install --require-hashes --only-binary=:al
 regenerate the reviewed cross-platform hashes with:
 
 ```sh
-uv pip compile requirements-test.in --generate-hashes --universal --python-version 3.12 --output-file requirements-test.txt
+uv pip compile requirements-test.in --generate-hashes --universal --python-version=3.12 --output-file=requirements-test.txt
 ```
 
 Run `npm run test:python` in the resulting Python environment.
@@ -59,3 +59,16 @@ Run `npm run test:python` in the resulting Python environment.
 
 See [governance](GOVERNANCE.md), the [maintenance roadmap](ROADMAP.md) and
 [Code of Conduct](CODE_OF_CONDUCT.md), including confidential reporting.
+
+## Gradle wrapper updates
+
+Renovate updates Gradle dependency declarations without executing repository build
+scripts. Wrapper updates, including security fixes, remain a reviewed manual unit:
+update `android/gradlew`, `android/gradlew.bat`,
+`android/gradle/wrapper/gradle-wrapper.jar` and
+`android/gradle/wrapper/gradle-wrapper.properties` together using a trusted
+Gradle installation. Verify the distribution and wrapper against the official
+Gradle checksums and retain the matching `distributionSha256Sum`. For security
+updates, verify the chosen Gradle version is in the advisory's fixed range.
+Run the existing Gradle tests and full platform CI qualification; do not enable
+unsafe wrapper execution in the dependency updater to bypass this procedure.

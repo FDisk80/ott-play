@@ -1,18 +1,20 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const YAML = require("yaml");
 const root = path.resolve(__dirname, "..");
 const policy = JSON.parse(
     fs.readFileSync(path.join(root, "renovate.json"), "utf8")
 );
-const dependabot = YAML.parse(
-    fs.readFileSync(path.join(root, ".github/dependabot.yml"), "utf8")
-);
 const updaterNames = ["@tauri-apps/plugin-updater", "tauri-plugin-updater"];
 
-// Opting into two managers must retain the shared CI managers and avoid granting
-// either updater bot ownership of the rest of the native dependency graph.
+// One updater owns application and CI updates, while native migrations retain
+// their explicit review boundary.
+for (const filename of ["dependabot.yml", "dependabot.yaml"]) {
+    assert(
+        !fs.existsSync(path.join(root, ".github", filename)),
+        "Do not introduce a competing dependency updater"
+    );
+}
 for (const manager of [
     "github-actions",
     "custom.regex",
@@ -27,20 +29,42 @@ for (const manager of [
 }
 assert(
     policy.extends.includes(
-        "local>victron-venus/venus-os-ci-toolkit:renovate-ci"
+        "local>victron-venus/venus-os-ci-toolkit:renovate-fleet"
     )
 );
 const baselineIndex = policy.packageRules.findIndex(
     (rule) =>
         rule.enabled === false &&
-        ["npm", "cargo"].every((manager) =>
-            rule.matchManagers?.includes(manager)
-        )
+        rule.matchManagers?.includes("cargo") &&
+        !rule.matchPackageNames &&
+        !rule.matchFileNames
 );
 assert(
     baselineIndex >= 0,
-    "General application updates must retain their existing owner"
+    "General Cargo upgrades require the reviewed native migration"
 );
+assert(
+    !policy.packageRules.some(
+        (rule) =>
+            rule.enabled === false &&
+            rule.matchManagers?.includes("npm") &&
+            !rule.matchPackageNames &&
+            !rule.matchFileNames
+    ),
+    "Ordinary npm updates must remain automated"
+);
+assert.equal(
+    policy.vulnerabilityAlerts?.enabled,
+    undefined,
+    "Inherit compatibility-aware security alerts without forcing or disabling them"
+);
+for (const name of updaterNames) {
+    assert(
+        policy.vulnerabilityAlerts.groupSlug.includes(JSON.stringify(name)),
+        `Security updates must retain the paired updater group for ${name}`
+    );
+}
+assert(policy.vulnerabilityAlerts.groupSlug.includes("tauri-updater"));
 const groupIndex = policy.packageRules.findIndex(
     (rule) => rule.groupSlug === "tauri-updater"
 );
@@ -76,36 +100,30 @@ assert.equal(
 );
 assert.equal(group.automerge, false);
 
-const npm = dependabot.updates.find(
-    (entry) => entry["package-ecosystem"] === "npm"
+const npmRules = policy.packageRules.filter((rule) =>
+    rule.matchManagers?.includes("npm")
 );
-const ignore = npm.ignore.find(
-    (entry) => entry["dependency-name"] === updaterNames[0]
-);
+for (const [name, versions] of [
+    ["@tauri-apps/api", "<2.12.0"],
+    ["ultracite", "<7.10.3 || >8.0.1"],
+    ["typescript", "<6"],
+    ["video.js", "<8"],
+    ["@videojs/http-streaming", "<3"],
+]) {
+    assert.equal(
+        npmRules.find((rule) => rule.matchPackageNames?.includes(name))
+            ?.allowedVersions,
+        versions,
+        `Retain the reviewed compatibility boundary for ${name}`
+    );
+}
 assert(
-    ignore && !ignore.versions && !ignore["update-types"],
-    "Dependabot must not update one half of the pair"
-);
-assert.deepEqual(
-    npm.ignore.find((entry) => entry["dependency-name"] === "@tauri-apps/api")
-        ?.versions,
-    [">=2.12.0"],
-    "API minor upgrades require the native runtime/WebView migration"
-);
-assert.deepEqual(
-    npm.ignore.find((entry) => entry["dependency-name"] === "ultracite")
-        ?.versions,
-    [">=7.10.3 <=8.0.1"],
-    "Exclude only known vulnerable releases; review future fixes normally"
-);
-assert.deepEqual(
-    npm.groups["npm-lockfile"].patterns,
-    ["*"],
+    npmRules.some(
+        (rule) =>
+            rule.groupSlug === "npm-lockfile" &&
+            rule.matchPackageNames?.includes("*")
+    ),
     "Other npm updates retain their lockfile group"
-);
-assert(
-    !dependabot.updates.some((entry) => entry["package-ecosystem"] === "cargo"),
-    "Do not introduce a competing native updater"
 );
 console.log(
     "Dependency updater ownership and cross-ecosystem grouping contracts passed"

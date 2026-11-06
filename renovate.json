@@ -1,17 +1,76 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>victron-venus/venus-os-ci-toolkit:renovate-ci"],
+  "extends": ["local>victron-venus/venus-os-ci-toolkit:renovate-fleet"],
   "enabledManagers": [
-    "github-actions",
-    "custom.regex",
+    "cargo",
     "custom.jsonata",
+    "custom.regex",
+    "dockerfile",
+    "github-actions",
+    "gradle",
     "npm",
-    "cargo"
+    "pep621",
+    "pip-compile",
+    "pip_requirements"
+  ],
+  "ignorePaths": [
+    "**/vendor/**",
+    "**/node_modules/**",
+    "**/fixtures/**",
+    "**/tools/browser-compatibility/**",
+    "security/provider/**",
+    "build-support/tls-armv7/**"
   ],
   "packageRules": [
     {
-      "description": "Dependabot retains general npm ownership; Cargo updates require a reviewed native migration.",
-      "matchManagers": ["npm", "cargo"],
+      "matchManagers": ["npm"],
+      "matchFileNames": ["/^[^/]+$/"],
+      "matchPackageNames": ["*"],
+      "groupName": "npm-lockfile",
+      "groupSlug": "npm-lockfile",
+      "separateMajorMinor": false,
+      "separateMinorPatch": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["/^[^/]+$/"],
+      "matchPackageNames": ["@tauri-apps/api"],
+      "allowedVersions": "<2.12.0"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["/^[^/]+$/"],
+      "matchPackageNames": ["ultracite"],
+      "allowedVersions": "<7.10.3 || >8.0.1"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["/^[^/]+$/"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["/^[^/]+$/"],
+      "matchPackageNames": ["video.js"],
+      "allowedVersions": "<8"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["/^[^/]+$/"],
+      "matchPackageNames": ["@videojs/http-streaming"],
+      "allowedVersions": "<3"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "groupName": "npm-lockfile",
+      "groupSlug": "npm-lockfile",
+      "separateMajorMinor": false
+    },
+    {
+      "description": "General Cargo updates require the reviewed native migration; the coupled updater exception follows below.",
+      "matchManagers": ["cargo"],
       "enabled": false
     },
     {
@@ -33,5 +92,28 @@
       "allowedVersions": ">=2.12.0 <2.13.0",
       "automerge": false
     }
-  ]
+  ],
+  "pip_requirements": {
+    "managerFilePatterns": ["/(^|/)requirements[^/]*\\.(txt|pip)$/"],
+    "ignorePaths": [
+      "**/vendor/**",
+      "**/node_modules/**",
+      "**/fixtures/**",
+      "**/tools/browser-compatibility/**",
+      "security/provider/**",
+      "build-support/tls-armv7/**",
+      "requirements-test.txt"
+    ]
+  },
+  "vulnerabilityAlerts": {
+    "groupName": "{{#if (or (equals depName \"@tauri-apps/plugin-updater\") (equals depName \"tauri-plugin-updater\"))}}Tauri updater bindings{{else}}{{#if (or (equals manager \"github-actions\") (equals manager \"custom.regex\") (equals manager \"custom.jsonata\"))}}GitHub Actions and reusable workflows{{else}}Security update: {{{depName}}}{{/if}}{{/if}}",
+    "groupSlug": "{{#if (or (equals depName \"@tauri-apps/plugin-updater\") (equals depName \"tauri-plugin-updater\"))}}tauri-updater{{else}}{{#if (or (equals manager \"github-actions\") (equals manager \"custom.regex\") (equals manager \"custom.jsonata\"))}}ci-workflows{{else}}{{{datasource}}}-{{{depNameSanitized}}}-vulnerability{{/if}}{{/if}}"
+  },
+  "description": [
+    "Native Cargo upgrades require a reviewed migration; only the coupled Tauri updater pair is automated.",
+    "GitHub vulnerability alerts and normal scheduled updates remain enabled; automatic security overrides must not bypass these constraints."
+  ],
+  "pip-compile": {
+    "managerFilePatterns": ["/^requirements\\-test\\.txt$/"]
+  }
 }
