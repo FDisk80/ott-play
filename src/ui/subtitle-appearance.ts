@@ -288,6 +288,45 @@
             finish(false);
         }
     }
+    function interfaceFontOptions(label: (key: string) => string): string[] {
+        var names = [
+            label("system"),
+            "Roboto",
+            "Roboto Condensed",
+            "Caveat",
+            "Liberation",
+            "Gabriela",
+            "PTSansNarrow",
+        ];
+        var doc = host.document;
+        if (doc && doc.head && !doc.getElementById("ott-font-samples")) {
+            var sheet = doc.createElement("style");
+            sheet.id = "ott-font-samples";
+            var source = doc.getElementById("ott-interface-style");
+            var nonce =
+                source && (source.nonce || source.getAttribute("nonce"));
+            if (nonce) sheet.setAttribute("nonce", nonce);
+            // Only the seven app-owned web/native families enter these rules.
+            // Classes survive detail/grid snapshots without serialized inline CSS.
+            sheet.textContent = names
+                .map(function (name, i) {
+                    var family = host.__ottNativeFontFamilies
+                        ? host.__ottNativeFontFamilies[i]
+                        : i
+                          ? name.replace(" ", "")
+                          : "Helvetica, Arial, sans-serif";
+                    return ".ott-font-" + i + "{font-family:" + family + "}";
+                })
+                .join("\n");
+            doc.head.appendChild(sheet);
+        }
+        return (
+            host.__ottNativeFontOptions ||
+            names.map(function (name, i) {
+                return '<span class="ott-font-' + i + '">' + name + "</span>";
+            })
+        );
+    }
     function interfaceSettings(): void {
         var ui = host.__ottAppearanceHost;
         var windowSettings =
@@ -387,26 +426,7 @@
                 choice(
                     label("Font type"),
                     "fontSize",
-                    host.__ottNativeFontOptions ||
-                        [
-                            label("system"),
-                            "Roboto",
-                            "Roboto Condensed",
-                            "Caveat",
-                            "Liberation",
-                            "Gabriela",
-                            "PTSansNarrow",
-                        ].map(function (name, i) {
-                            return (
-                                '<span style="font-family:' +
-                                (i
-                                    ? name.replace(" ", "")
-                                    : "Helvetica, Arial, sans-serif") +
-                                ';">' +
-                                name +
-                                "</span>"
-                            );
-                        })
+                    interfaceFontOptions(label)
                 ),
                 choice(label("Timezone"), "timezone", tz),
                 {

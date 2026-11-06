@@ -109,9 +109,8 @@ const family = one(
 const fontOptions = one(
     read("src/ui/subtitle-appearance.ts"),
     (node) =>
-        ts.isBinaryExpression(node) &&
-        node.operatorToken.kind === ts.SyntaxKind.BarBarToken &&
-        node.left.getText() === "host.__ottNativeFontOptions"
+        ts.isFunctionDeclaration(node) &&
+        node.name?.text === "interfaceFontOptions"
 );
 const applyFamily = one(
     indexSource,
@@ -139,9 +138,9 @@ const app = compile(
         "var w = window;",
         "var " + family + ";",
         ...coreIcons.map((node) => "var " + node + ";"),
-        "function fixtureFontOptions() { var host = window; return " +
+        "var fixtureFontOptions = (function(host) {" +
             fontOptions +
-            "; }",
+            "; return function() { return interfaceFontOptions(_); }; })(window);",
         "function fixtureApplyFont() { var " +
             fallback +
             "; " +
@@ -477,6 +476,8 @@ async function smoke(folder, platform) {
             w.fixtureApplyFont();
             const option = w.document.createElement("div");
             option.innerHTML = w.fixtureFontOptions()[index];
+            w.document.body.appendChild(option);
+            assert.equal(option.querySelector("[style]"), null);
             assert.equal(option.textContent, names[index]);
             assert.equal(
                 w.settings.fontSize,
@@ -485,13 +486,18 @@ async function smoke(folder, platform) {
             );
             assert.equal(
                 w.document.body.style.fontFamily,
-                option.firstElementChild.style.fontFamily
+                w.getComputedStyle(option.firstElementChild).fontFamily
             );
             assert.match(
                 w.document.body.style.fontFamily,
                 /(?:sans-serif|serif|cursive)/
             );
+            option.remove();
         }
+        assert.equal(
+            w.document.querySelectorAll("#ott-font-samples").length,
+            1
+        );
         pass(platform + " all seven saved font indices map to OS font options");
         const rows = $("#rows");
         assert.equal(rows.html('<button class="entry">One</button>'), rows);

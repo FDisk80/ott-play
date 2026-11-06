@@ -370,9 +370,18 @@ for (const colorProfile of ["server", "tauri", "capacitor"]) {
         }) => {
             // An empty settings override makes every fresh document load the
             // real storage adapter, without reseeding the saved color bytes.
-            const fixture = await fixturePage(browser, colorProfile, {});
+            // Hostile metadata has its own security cases. Inert parsing can
+            // report its inline attributes as CSP violations before sanitizing.
+            const fixture = await fixturePage(
+                browser,
+                colorProfile,
+                {},
+                undefined,
+                "<b>Trusted description text</b><span>Metadata text</span>"
+            );
             const context = fixture.page.context();
             let page = fixture.page;
+            let primaryFailed = false;
             async function openColors() {
                 await page.evaluate(() => window.settingsInterface());
                 await page.waitForFunction(() =>
@@ -536,6 +545,9 @@ for (const colorProfile of ["server", "tauri", "capacitor"]) {
                     await page.evaluate(() => window.settings.osdOpacity)
                 ).toBe(4);
                 await page.evaluate(() => {
+                    // This renderer fixture bypasses stbInit. Bind the real
+                    // global handler before delivering a physical Q key.
+                    window.stbBindKeyHandler();
                     window.stbExit = () => {
                         window.__colorQuit = true;
                     };
@@ -626,8 +638,17 @@ for (const colorProfile of ["server", "tauri", "capacitor"]) {
                 expect(
                     await page.evaluate(() => window.__fixtureViolations)
                 ).toEqual([]);
+            } catch (error) {
+                primaryFailed = true;
+                throw error;
             } finally {
-                await fixture.close();
+                try {
+                    await fixture.close();
+                } catch (error) {
+                    // A failed teardown must not hide the original assertion
+                    // or timeout; a teardown-only failure still fails the test.
+                    if (!primaryFailed) throw error;
+                }
             }
         });
     }

@@ -224,6 +224,85 @@ function fixture() {
     };
 }
 
+for (const stylesheet of ["absent", "stale"]) {
+    test(
+        "settings rows retain CSP-safe geometry with " + stylesheet + " CSS",
+        () => {
+            const f = fixture();
+            try {
+                const { w } = f;
+                for (const style of w.document.querySelectorAll("style"))
+                    style.remove();
+                if (stylesheet === "stale") {
+                    const style = w.document.createElement("style");
+                    style.textContent =
+                        ".item-label,.item-value{flex:0 0 100%;max-width:100%;white-space:normal;text-align:left}.item-label{min-width:90em}";
+                    w.document.head.appendChild(style);
+                }
+                const html = Object.getOwnPropertyDescriptor(
+                    w.Element.prototype,
+                    "innerHTML"
+                );
+                Object.defineProperty(w.listInElement, "innerHTML", {
+                    get() {
+                        return html.get.call(this);
+                    },
+                    set(value) {
+                        html.set.call(this, value);
+                        assert.equal(
+                            this.querySelector("[style]"),
+                            null,
+                            "settings markup must not depend on CSP-blocked style attributes"
+                        );
+                    },
+                });
+                w.settingsLists();
+                function check(row) {
+                    const label = row.querySelector(".item-label");
+                    const value = row.querySelector(".item-value");
+                    assert.equal(w.getComputedStyle(label).flexGrow, "1");
+                    assert.equal(w.getComputedStyle(label).minWidth, "0px");
+                    assert.equal(
+                        w.getComputedStyle(label).textOverflow,
+                        "ellipsis"
+                    );
+                    assert.equal(w.getComputedStyle(value).flexShrink, "0");
+                    assert.equal(w.getComputedStyle(value).maxWidth, "42%");
+                    assert.equal(w.getComputedStyle(value).marginLeft, "auto");
+                    assert.equal(
+                        w.getComputedStyle(value).whiteSpace,
+                        "nowrap"
+                    );
+                    assert.equal(w.getComputedStyle(value).textAlign, "right");
+                }
+                const firstRow = f.row();
+                check(firstRow);
+                w.settings.pageSize = 1;
+                w.selIndex = 1;
+                w.showPage(true);
+                check(w.document.getElementById("it1"));
+                assert.equal(
+                    firstRow.isConnected,
+                    false,
+                    "new rows replace the styled page"
+                );
+                w.getListItemFn = () =>
+                    '<div class="item-label">Other</div><div class="item-value">Value</div>';
+                w.listDataArray = w.listArray = ["Other"];
+                w.selIndex = 0;
+                w.showPage(true);
+                assert.equal(
+                    f.row().querySelector(".item-label").style.flex,
+                    "",
+                    "settings geometry must not leak to another formatter"
+                );
+            } finally {
+                f.dom.window.close();
+            }
+        }
+    );
+}
+
 test("separator setting keeps the existing default and rejects invalid values", () => {
     const f = fixture();
     assert.equal(f.w.settings.showListSeparators, 1);

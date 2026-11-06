@@ -1110,6 +1110,30 @@ export function showPage(presentationOnly = false): void {
             row.style.minHeight = itemHeight + "px";
             row.style.lineHeight = itemHeight + "px";
             row.style.width = itemWidth + "px";
+            if (rowFormatter && rowFormatter.__ottSettingsRows) {
+                // Keep the fallback even when player.css is stale or absent.
+                // Only this formatter owns these label/value flex children.
+                for (var part = 0; part < 2; part++) {
+                    var settingPart = row.querySelector(
+                        part ? ".item-value" : ".item-label"
+                    ) as HTMLElement | null;
+                    if (!settingPart) continue;
+                    var settingStyle = settingPart.style;
+                    settingStyle.overflow = "hidden";
+                    settingStyle.textOverflow = "ellipsis";
+                    settingStyle.whiteSpace = "nowrap";
+                    settingStyle.lineHeight = "normal";
+                    if (part) {
+                        settingStyle.flex = "0 0 auto";
+                        settingStyle.maxWidth = "42%";
+                        settingStyle.marginLeft = "auto";
+                        settingStyle.textAlign = "right";
+                    } else {
+                        settingStyle.flex = "1 1 0";
+                        settingStyle.minWidth = "0";
+                    }
+                }
+            }
             if (ri === selIndex) {
                 $(row).addClass("ott-selected");
                 row.style.color = curColor || "gold";

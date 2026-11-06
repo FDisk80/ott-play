@@ -4413,31 +4413,18 @@ window._setSetup = function (
     var w = window as any;
     w.selIndex = 0;
     w.getListItem = function (item: any, _idx: number): string {
-        // Name|value must be flex children with INLINE styles. Class-only
-        // .item-label/.item-value fails in Tauri/WKWebView when player.css is
-        // late/missing/stale; :8443 looked "formatted" because the old markup
-        // used inline width:23%/75% (floats are ignored under .item{display:flex}).
-        // Same pattern as showPage()'s inline display:flex on .item.
-        var labelStyle =
-            "flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;" +
-            "white-space:nowrap;line-height:normal;";
-        var valueStyle =
-            "flex:0 0 auto;max-width:42%;margin-left:auto;overflow:hidden;" +
-            "text-overflow:ellipsis;white-space:nowrap;line-height:normal;" +
-            "text-align:right;";
+        // showPage applies the owned flex geometry through DOM properties.
+        // Parsed style attributes are blocked by Tauri's nonce-based CSP.
         return (
-            '<div class="item-label" style="' +
-            labelStyle +
-            '">&nbsp;&nbsp;' +
+            '<div class="item-label">&nbsp;&nbsp;' +
             item.name +
             "</div>" +
-            '<div class="item-value" style="' +
-            valueStyle +
-            '">' +
+            '<div class="item-value">' +
             (item.values[item.val] || item.cur) +
             "&nbsp;&nbsp;</div>"
         );
     };
+    w.getListItem.__ottSettingsRows = true;
     var detailEl = document.getElementById("listDetail");
     if (detailEl) detailEl.innerHTML = "";
     w.detailListAction = function (): void {
