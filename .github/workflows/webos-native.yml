@@ -290,18 +290,22 @@ jobs:
               raise RuntimeError("Missing exact schema test execution")
           pages = [json.loads(line.split("SETTINGS_SCHEMA_V1 ", 1)[1])
                    for line in raw.splitlines() if "SETTINGS_SCHEMA_V1 " in line]
-          if len(pages) != 2 or any(set(page) != {"request", "data"} for page in pages):
-              raise RuntimeError("Expected two actual default schema pages")
-          first, second = pages
+          if len(pages) != 3 or any(set(page) != {"request", "data"} for page in pages):
+              raise RuntimeError("Expected three actual default schema pages")
+          first, second, third = pages
           if (first["request"] != {"op": "schema", "runtime": "fixture"}
                   or second["request"] != {"op": "schema", "runtime": "fixture", "cursor": first["data"]["next_cursor"]}
+                  or third["request"] != {"op": "schema", "runtime": "fixture", "cursor": second["data"]["next_cursor"]}
                   or not isinstance(first["data"]["next_cursor"], str)
-                  or second["data"]["next_cursor"] is not None
+                  or not isinstance(second["data"]["next_cursor"], str)
+                  or first["data"]["next_cursor"] == second["data"]["next_cursor"]
+                  or third["data"]["next_cursor"] is not None
                   or first["data"]["context"] != second["data"]["context"]
-                  or [len(page["data"]["settings"]) for page in pages] != [20, 20]):
+                  or first["data"]["context"] != third["data"]["context"]
+                  or [len(page["data"]["settings"]) for page in pages] != [20, 20, 1]):
               raise RuntimeError("Invalid actual schema page chain")
           ids = [row["id"] for page in pages for row in page["data"]["settings"]]
-          if len(ids) != len(set(ids)) or len(ids) != 40:
+          if len(ids) != len(set(ids)) or len(ids) != 41 or ids[-1] != "uiColorConfig":
               raise RuntimeError("Schema export omitted or repeated descriptors")
           pages_path = evidence / "schema-pages.json"
           pages_path.write_text(json.dumps(pages, ensure_ascii=False, indent=2) + "\n")
@@ -309,7 +313,7 @@ jobs:
                          descriptor_count=len(ids), page_count=len(pages),
                          log_sha256=digest(log), pages_sha256=digest(pages_path))
           binding_path.write_text(json.dumps(binding, indent=2) + "\n")
-          print("Actual Native schema export: 1 passed; 0 failed; 0 ignored; 40 descriptors; 2 pages")
+          print("Actual Native schema export: 1 passed; 0 failed; 0 ignored; 41 descriptors; 3 pages")
           PY
       - name: Build the native Linux renderer
         timeout-minutes: 30

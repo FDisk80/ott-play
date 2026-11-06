@@ -1,0 +1,2204 @@
+{
+  "schemaVersion": 1,
+  "verdict": "DATA_RECONCILED_WITH_ORIGINAL_RUN_FAILURE",
+  "runId": "42219826374",
+  "runAttempt": "1",
+  "workflowSha": "b1e5e80192fdd2767fe3666e3cf5f07de60de274",
+  "workflowRef": "open-ott-play/ottplay-foss/.github/workflows/webos-native.yml@refs/heads/diagnostic/client-color-cost-20261106",
+  "artifactId": 13502489193,
+  "artifactSha256": "6c1fb283097b8bc509b88c72a3b4233eb123aee7e00a93d6e5ea1d88e424b8bc",
+  "jobLogSha256": "879f03f14281e5c460cb82238610ae22299d6b23b0bd8fcea4ef32a1b2f538eb",
+  "downloadReceiptSha256": "5580f76cbee5a8bc05892e201ff8116f5a774ff1182ff4a21dc3435c2ea77ce4",
+  "originalReceiptSha256": "ebbd53a49fe5cc17550771fb49594f564ac3e71d7a18382d1d5d337083dbb19d",
+  "featurePatchSha256": "693be0fe7ef5c8abd95703ae152c2c5a9927e02691e30e8c20fc134c2a4fb1ed",
+  "manifestSha256": "8914d5e931d65748b5e6e1596e1d11cb591c6495f97b9e180d84b667f275ce40",
+  "upstreamManifestSha256": "673d3af6d1d3572afd02516480561b7a179e2bf9cf39e3d7b506a7ed0645fbe3",
+  "originalOutcome": {
+    "workflow": "FAILURE",
+    "complete": false,
+    "allCommandsPassed": false,
+    "error": "Complete JavaScript inventory differs from the bound source expectation"
+  },
+  "sourceBinding": [
+    {
+      "arm": "A",
+      "identityProbe": {
+        "buildId": "bundle-412076e8626de1af0822f482f86549036d97cb3773e5759a09fc3e3b9b07afa3",
+        "sourceHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+        "sourceRevision": ""
+      },
+      "gitHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+      "markerSha256": "d1a425a2cd2330bb0e189ef4f3e0d8df3145e7a5489ff4ffb0bb533b8822e4c2",
+      "sourceValidatedAfter": true,
+      "inventorySha256": "096db1b42ddcd59fe92c70d2b52e27dc3c849d725efc0492e915c8de834e4758",
+      "sourcePatchSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "recordedSourceHashesMatch124Paths": true
+    },
+    {
+      "arm": "B",
+      "identityProbe": {
+        "buildId": "bundle-412076e8626de1af0822f482f86549036d97cb3773e5759a09fc3e3b9b07afa3",
+        "sourceHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+        "sourceRevision": ""
+      },
+      "gitHead": "14ea5da80b20a8311bb55cee250f794ae278d310",
+      "markerSha256": "d1a425a2cd2330bb0e189ef4f3e0d8df3145e7a5489ff4ffb0bb533b8822e4c2",
+      "sourceValidatedAfter": true,
+      "inventorySha256": "23bfbc0e6b9f4f50ea47196d12b81b9d7ffaaf9a0099b92f6fd9c22a4b0716a7",
+      "sourcePatchSha256": "090f91e96838ec32547b8617fe82821402cf012360a038852728942447bf77ba",
+      "recordedSourceHashesMatch124Paths": true
+    }
+  ],
+  "physicalVerification": {
+    "originalZipMembers": 734,
+    "matchedReceiptAndExtractedFiles": 734,
+    "AAssetRawFiles": 350,
+    "BAssetRawFiles": 353,
+    "gzipRecomputed": false
+  },
+  "inventoryReconciliation": {
+    "A": {
+      "boundExpectedRootJs": 78,
+      "actualRootJs": 79,
+      "productionReportRows": 78,
+      "extraRootJs": [
+        "dist/offline-worker.js"
+      ],
+      "missingReportRows": [],
+      "rootCountsByFamily": {
+        "web": 27,
+        "tauri": 26,
+        "mobile": 26
+      }
+    },
+    "B": {
+      "boundExpectedRootJs": 81,
+      "actualRootJs": 82,
+      "productionReportRows": 81,
+      "extraRootJs": [
+        "dist/offline-worker.js"
+      ],
+      "missingReportRows": [],
+      "rootCountsByFamily": {
+        "web": 28,
+        "tauri": 27,
+        "mobile": 27
+      }
+    }
+  },
+  "commandsAndCleanup": [
+    {
+      "arm": "A",
+      "argv": [
+        "git",
+        "clone",
+        "--quiet",
+        "--no-hardlinks",
+        "/home/runner/work/ottplay-foss/ottplay-foss/source",
+        "/home/runner/work/_temp/ott-color-cost/A"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.965,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "clone",
+      "log": "clone.log",
+      "logSha256": "ea05c58edc4666450ce44f1def7a3487ca7513bdb2c4a1c78ae8e5af8ae6fd0c"
+    },
+    {
+      "arm": "A",
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "14ea5da80b20a8311bb55cee250f794ae278d310"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.214,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "checkout",
+      "log": "checkout.log",
+      "logSha256": "983f2c98e63c17cd42006bf1f6e9fbd0ca8f76383f4559d455a99c81b0110ddf"
+    },
+    {
+      "arm": "A",
+      "argv": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 2.927,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "dependencies",
+      "log": "dependencies.log",
+      "logSha256": "bfcfa28db6a1359d35808a7ab653e4c0ab83c87e8ebb83e1148068068929bbe9"
+    },
+    {
+      "arm": "A",
+      "argv": [
+        "npm",
+        "run",
+        "check:media"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.365,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "media",
+      "log": "media.log",
+      "logSha256": "ade1b6c0a8706e3f992e34dbff5ef5f20da0425b990451baff59cf6ca29cdf85"
+    },
+    {
+      "arm": "A",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 25.05,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "build",
+      "log": "build.log",
+      "logSha256": "37803947e3e46cb7e3bbf1eda7879118c4435cef7ab12b45255cab16c56c2104"
+    },
+    {
+      "arm": "A",
+      "argv": [
+        "npm",
+        "run",
+        "check:size"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.315,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "size",
+      "log": "size.log",
+      "logSha256": "eeba98fe035485f17873879212890a42d1fd034fad0afa057c684d6dce181476"
+    },
+    {
+      "arm": "A",
+      "argv": [
+        "node",
+        "/home/runner/work/ottplay-foss/ottplay-foss/control/.github/experiments/color-cost/collect-assets.cjs",
+        "/home/runner/work/_temp/ott-color-cost/A",
+        "/home/runner/work/_temp/ott-color-cost/evidence/A/assets"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 1.015,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "collect",
+      "log": "collect.log",
+      "logSha256": "7a69ef4c77835cf88e15b8765a7ce362d57798aa47fec04b71d882a6cdd2b584"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "git",
+        "clone",
+        "--quiet",
+        "--no-hardlinks",
+        "/home/runner/work/ottplay-foss/ottplay-foss/source",
+        "/home/runner/work/_temp/ott-color-cost/B"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.966,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "clone",
+      "log": "clone.log",
+      "logSha256": "10fed571f0c75fa9026375d588179ec92a93a88af6dcc9bbbacef09140f36921"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "14ea5da80b20a8311bb55cee250f794ae278d310"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.164,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "checkout",
+      "log": "checkout.log",
+      "logSha256": "983f2c98e63c17cd42006bf1f6e9fbd0ca8f76383f4559d455a99c81b0110ddf"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "git",
+        "apply",
+        "--index",
+        "/home/runner/work/ottplay-foss/ottplay-foss/control/.github/experiments/color-cost/feature.patch"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.314,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "apply",
+      "log": "apply.log",
+      "logSha256": "75a7e2fb710f9250bdd616b8931f27aa1ed14c0ada18892a117b86fb0397b3dd"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 2.827,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "dependencies",
+      "log": "dependencies.log",
+      "logSha256": "bfcfa28db6a1359d35808a7ab653e4c0ab83c87e8ebb83e1148068068929bbe9"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "npm",
+        "run",
+        "check:media"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 0.369,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "media",
+      "log": "media.log",
+      "logSha256": "ade1b6c0a8706e3f992e34dbff5ef5f20da0425b990451baff59cf6ca29cdf85"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "started": true,
+      "exit_code": 1,
+      "raw_returncode": 1,
+      "timed_out": false,
+      "seconds": 23.481,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "build",
+      "log": "build.log",
+      "logSha256": "71f4bc824dc0554c181f49e53d0c4492a838f88af7fe4ac558e1a68bac0b7c60"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "npm",
+        "run",
+        "check:size"
+      ],
+      "started": true,
+      "exit_code": 1,
+      "raw_returncode": 1,
+      "timed_out": false,
+      "seconds": 0.114,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "size",
+      "log": "size.log",
+      "logSha256": "18bce5513366ccc71aacb55e13ac3c0f399f102ead563d0f777d71035fa5ba5f"
+    },
+    {
+      "arm": "B",
+      "argv": [
+        "node",
+        "/home/runner/work/ottplay-foss/ottplay-foss/control/.github/experiments/color-cost/collect-assets.cjs",
+        "/home/runner/work/_temp/ott-color-cost/B",
+        "/home/runner/work/_temp/ott-color-cost/evidence/B/assets"
+      ],
+      "started": true,
+      "exit_code": 0,
+      "raw_returncode": 0,
+      "timed_out": false,
+      "seconds": 1.015,
+      "cleanup": {
+        "groupGone": true,
+        "adoptedChildrenGone": true,
+        "signals": [],
+        "reaped": 0
+      },
+      "name": "collect",
+      "log": "collect.log",
+      "logSha256": "7ddceea2a065a0f26e29552d07357ed96f4f8e04eb37a12ab808252f14531038"
+    }
+  ],
+  "checksPassed": 435,
+  "checksFailed": 0,
+  "checks": [
+    {
+      "name": "original ZIP SHA/size",
+      "passed": true
+    },
+    {
+      "name": "job log SHA",
+      "passed": true
+    },
+    {
+      "name": "734 ZIP members equal receipt and extracted files",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "workflow/run recorded binding",
+      "passed": true
+    },
+    {
+      "name": "base identities agree",
+      "passed": true
+    },
+    {
+      "name": "frozen manifest/feature hashes",
+      "passed": true
+    },
+    {
+      "name": "retained harness hashes",
+      "passed": true
+    },
+    {
+      "name": "124 feature paths match both manifests",
+      "passed": true
+    },
+    {
+      "name": "actual B source diff equals feature except Git index abbreviation",
+      "passed": true,
+      "details": {
+        "differentLines": 124,
+        "only": "8-to-7 hexadecimal Git blob prefix shortening"
+      }
+    },
+    {
+      "name": "actual A source diff empty",
+      "passed": true
+    },
+    {
+      "name": "A recorded exact-source hash binding",
+      "passed": true
+    },
+    {
+      "name": "A recorded source valid after collector",
+      "passed": true
+    },
+    {
+      "name": "A inventory physical hash and complete flag",
+      "passed": true
+    },
+    {
+      "name": "A all inventory raw bytes and SHA physically match",
+      "passed": true,
+      "details": {
+        "records": 350,
+        "mismatches": []
+      }
+    },
+    {
+      "name": "A frozen measurement module physically matches",
+      "passed": true
+    },
+    {
+      "name": "A report physical hash",
+      "passed": true
+    },
+    {
+      "name": "A pinned actual Node and zlib consistent",
+      "passed": true
+    },
+    {
+      "name": "A rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A web/rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A web/stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A web/locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A tauri/rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A tauri/stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A tauri/locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A mobile/rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A mobile/stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A mobile/locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "A complete production rows present in collector",
+      "passed": true
+    },
+    {
+      "name": "A sole extra root is offline-worker",
+      "passed": true
+    },
+    {
+      "name": "A/clone actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "A/checkout actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "A/dependencies actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "A/media actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "A/build actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "A/size actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "A/collect actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B recorded exact-source hash binding",
+      "passed": true
+    },
+    {
+      "name": "B recorded source valid after collector",
+      "passed": true
+    },
+    {
+      "name": "B inventory physical hash and complete flag",
+      "passed": true
+    },
+    {
+      "name": "B all inventory raw bytes and SHA physically match",
+      "passed": true,
+      "details": {
+        "records": 353,
+        "mismatches": []
+      }
+    },
+    {
+      "name": "B frozen measurement module physically matches",
+      "passed": true
+    },
+    {
+      "name": "B report physical hash",
+      "passed": true
+    },
+    {
+      "name": "B pinned actual Node and zlib consistent",
+      "passed": true
+    },
+    {
+      "name": "B rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B web/rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B web/stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B web/locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B tauri/rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B tauri/stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B tauri/locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B mobile/rootJavaScript totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B mobile/stylesheets totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B mobile/locales totals recalculate",
+      "passed": true
+    },
+    {
+      "name": "B complete production rows present in collector",
+      "passed": true
+    },
+    {
+      "name": "B sole extra root is offline-worker",
+      "passed": true
+    },
+    {
+      "name": "B/clone actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/checkout actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/apply actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/dependencies actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/media actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/build actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/size actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "B/collect actual exit and cleanup",
+      "passed": true
+    },
+    {
+      "name": "same source identity probe and dirty marker",
+      "passed": true
+    },
+    {
+      "name": "all unchanged production cap fields agree",
+      "passed": true
+    },
+    {
+      "name": "only added assets are three color-appearance modules",
+      "passed": true
+    },
+    {
+      "name": "three precise missing-optional-budget input errors",
+      "passed": true
+    },
+    {
+      "name": "original failure retained",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/devices/pc2/player.css",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/control-transport.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/favorites-transfer.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/local-compatibility.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/local-drop.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/local-media-ui.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/media-companion.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/modern-interface.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/perf-capture.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/player.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-catalog.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-edem.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-m3u.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-playlist.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-plex.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-stalker.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-torrent.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-vportal.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/provider-xtream.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/remote-local-runner.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/remote-provider-fields.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/remote-settings-extras.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/remote-settings-lifecycle.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/remote-settings.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/runtime-debug-details.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/shaka-tracks.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/dist/subtitle-appearance.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/afrikaans.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/albanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/amharic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/arabic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/armenian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/assamese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/azerbaijani.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/basque.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/belarusian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/bengali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/bosnian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/bulgarian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/burmese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/catalan.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/chinese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/croatian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/czech.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/danish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/dutch.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/english.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/estonian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/filipino.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/finnish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/french.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/galician.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/georgian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/german.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/greek.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/gujarati.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/hausa.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/hebrew.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/hindi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/hungarian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/icelandic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/igbo.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/indonesian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/irish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/italian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/japanese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/kannada.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/kazakh.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/khmer.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/kinyarwanda.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/korean.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/kurdish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/kyrgyz.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/lao.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/latvian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/lithuanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/macedonian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/malagasy.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/malay.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/malayalam.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/maltese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/marathi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/mongolian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/nepali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/norwegian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/odia.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/pashto.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/persian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/polish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/portuguese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/punjabi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/romanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/russian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/serbian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/sindhi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/sinhala.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/slovak.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/slovenian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/somali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/spanish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/swahili.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/swedish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/tajik.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/tamil.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/telugu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/thai.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/turkish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/turkmen.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/ukrainian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/urdu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/uzbek.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/vietnamese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/xhosa.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/yoruba.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/locales/zulu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist-mobile/styles/player.css",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/control-transport.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/devices/pc2/player.css",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/favorites-transfer.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/js/browser-app/window-controls.css",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/local-compatibility.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/local-drop.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/local-media-ui.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/afrikaans.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/albanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/amharic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/arabic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/armenian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/assamese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/azerbaijani.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/basque.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/belarusian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/bengali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/bosnian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/bulgarian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/burmese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/catalan.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/chinese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/croatian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/czech.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/danish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/dutch.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/english.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/estonian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/filipino.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/finnish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/french.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/galician.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/georgian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/german.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/greek.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/gujarati.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/hausa.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/hebrew.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/hindi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/hungarian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/icelandic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/igbo.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/indonesian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/irish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/italian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/japanese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/kannada.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/kazakh.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/khmer.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/kinyarwanda.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/korean.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/kurdish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/kyrgyz.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/lao.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/latvian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/lithuanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/macedonian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/malagasy.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/malay.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/malayalam.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/maltese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/marathi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/mongolian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/nepali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/norwegian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/odia.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/pashto.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/persian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/polish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/portuguese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/punjabi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/romanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/russian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/serbian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/sindhi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/sinhala.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/slovak.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/slovenian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/somali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/spanish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/swahili.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/swedish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/tajik.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/tamil.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/telugu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/thai.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/turkish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/turkmen.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/ukrainian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/urdu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/uzbek.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/vietnamese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/xhosa.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/yoruba.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/locales/zulu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/media-companion.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/modern-interface.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/offline-worker.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/perf-capture.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/player.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-catalog.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-edem.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-m3u.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-playlist.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-plex.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-stalker.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-torrent.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-vportal.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/provider-xtream.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/remote-local-runner.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/remote-provider-fields.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/remote-settings-extras.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/remote-settings-lifecycle.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/remote-settings.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/runtime-debug-details.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/shaka-tracks.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/styles/player.css",
+      "passed": true
+    },
+    {
+      "name": "stable classification dist/subtitle-appearance.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/devices/pc2/player.css",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/control-transport.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/favorites-transfer.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/local-compatibility.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/local-drop.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/local-media-ui.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/media-companion.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/modern-interface.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/perf-capture.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/player.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-catalog.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-edem.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-m3u.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-playlist.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-plex.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-stalker.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-torrent.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-vportal.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/provider-xtream.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/remote-local-runner.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/remote-provider-fields.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/remote-settings-extras.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/remote-settings-lifecycle.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/remote-settings.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/runtime-debug-details.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/shaka-tracks.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/dist/subtitle-appearance.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/afrikaans.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/albanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/amharic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/arabic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/armenian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/assamese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/azerbaijani.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/basque.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/belarusian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/bengali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/bosnian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/bulgarian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/burmese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/catalan.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/chinese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/croatian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/czech.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/danish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/dutch.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/english.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/estonian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/filipino.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/finnish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/french.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/galician.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/georgian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/german.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/greek.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/gujarati.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/hausa.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/hebrew.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/hindi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/hungarian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/icelandic.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/igbo.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/indonesian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/irish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/italian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/japanese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/kannada.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/kazakh.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/khmer.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/kinyarwanda.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/korean.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/kurdish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/kyrgyz.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/lao.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/latvian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/lithuanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/macedonian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/malagasy.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/malay.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/malayalam.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/maltese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/marathi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/mongolian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/nepali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/norwegian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/odia.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/pashto.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/persian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/polish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/portuguese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/punjabi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/romanian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/russian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/serbian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/sindhi.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/sinhala.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/slovak.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/slovenian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/somali.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/spanish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/swahili.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/swedish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/tajik.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/tamil.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/telugu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/thai.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/turkish.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/turkmen.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/ukrainian.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/urdu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/uzbek.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/vietnamese.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/xhosa.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/yoruba.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/locales/zulu.js",
+      "passed": true
+    },
+    {
+      "name": "stable classification src-tauri/frontend/styles/player.css",
+      "passed": true
+    },
+    {
+      "name": "report family binding dist/player.js",
+      "passed": true
+    },
+    {
+      "name": "production dist/player.js/legacyTotal sums match",
+      "passed": true
+    },
+    {
+      "name": "production dist/player.js/total sums match",
+      "passed": true
+    },
+    {
+      "name": "report family binding src-tauri/frontend/dist/player.js",
+      "passed": true
+    },
+    {
+      "name": "production src-tauri/frontend/dist/player.js/legacyTotal sums match",
+      "passed": true
+    },
+    {
+      "name": "production src-tauri/frontend/dist/player.js/total sums match",
+      "passed": true
+    },
+    {
+      "name": "report family binding dist-mobile/dist/player.js",
+      "passed": true
+    },
+    {
+      "name": "production dist-mobile/dist/player.js/legacyTotal sums match",
+      "passed": true
+    },
+    {
+      "name": "production dist-mobile/dist/player.js/total sums match",
+      "passed": true
+    },
+    {
+      "name": "three main CSS plus four supporting stylesheets all unchanged",
+      "passed": true
+    },
+    {
+      "name": "88 locales in each arm and family",
+      "passed": true
+    },
+    {
+      "name": "original receipts unchanged during reconciliation",
+      "passed": true
+    },
+    {
+      "name": "worker delta independently matches Main byte-normalization proof",
+      "passed": true,
+      "details": {
+        "proofPath": "/Users/vmedvedev/Developer/Codex/2026-10-04/lk/work/client-colors-20261106/OFFLINE-WORKER-DELTA.json",
+        "proofSha256": "0ffc9cacce294015c382615e742de8da54ac0447d1b05426de95b20fa7bc09ed"
+      }
+    }
+  ],
+  "comparisonSha256": "39de576afedf1d2a03bc88a566623887d7c946c1dcef744466076ae0ca65ce9f",
+  "limitations": [
+    "Offline data reconciliation only; original workflow FAILURE, receipt complete=false, and B build/size failures are unchanged.",
+    "Physical raw bytes and SHA256 were independently verified against original ZIP and records. Gzip sizes are recorded measurements from Node 22.23.4/zlib 1.3.1-e00f703, not recomputed locally.",
+    "Source binding uses retained feature patch, manifests, actual source diff and runner-recorded before/after validation. Full source checkout is not contained in this artifact and was not revalidated here.",
+    "Both arms use the same recorded dirty identity probe on base14ea, package version1.1.66. This is not a final release stamp or release-candidate qualification.",
+    "No network, builds, tests, browser runs or retained harness/module execution performed. No new budget or allowance is approved.",
+    "Child cleanup is runner-recorded for all 15 processes; this offline check cannot inspect vanished runner processes. No claim of scratch deletion.",
+    "The 78/81 inventory oracle conflated production-budget rows with all emitted root JavaScript. dist/offline-worker.js is extra and changed, not discarded.",
+    "Budget total/legacyTotal already contain component entry/provider/optional contributions; do not add overlapping totals. Recorded gzip totals sum separately compressed files, not a single concatenated/network payload."
+  ]
+}

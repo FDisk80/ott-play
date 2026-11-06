@@ -5,6 +5,7 @@ const CLASSIC_MODULES = [
     "build/shared/wire-contracts.js",
     "build/utils/lzstring.js",
     "build/storage/favorites-physical-storage.js",
+    "build/settings/interface-colors.js",
     "build/storage/index.js",
     "build/core/standby.js",
     "build/localization/unicode-data.js",
@@ -79,6 +80,9 @@ const CLASSIC_MODULES = [
     "build/ui/modern-player.js",
     "build/ui/modern.js",
     "build/ui/index.js",
+    "build/ui/interface-colors.js",
+    "build/ui/color-values.js",
+    "build/ui/color-appearance.js",
     "build/ui/subtitle-appearance.js",
     "build/key-handler/index.js",
     "build/provider/runtime.js",
@@ -259,6 +263,10 @@ const CLASSIC_PROVIDER_BUNDLES = Object.freeze({
     xtream: ["build/provider/xtream-media.js"],
 });
 const CLASSIC_OPTIONAL_BUNDLES = Object.freeze({
+    "color-appearance": [
+        "build/ui/color-values.js",
+        "build/ui/color-appearance.js",
+    ],
     "control-transport": ["build/plugins/hosted-control-transport.js"],
     "favorites-transfer": [
         "build/commands/favorites-document-json.js",
@@ -530,6 +538,10 @@ const CLASSIC_PRIVATE_MODULES = Object.freeze({
         "window.__ottClassicScreenPort",
         "window.__ottScreens",
     ]),
+    "build/ui/color-appearance.js": Object.freeze([
+        "window.__ottColorAppearance",
+    ]),
+    "build/ui/color-values.js": Object.freeze(["window.__ottColorValues"]),
     "build/ui/input-router.js": Object.freeze(["window.__ottInputRouter"]),
     "build/ui/interface-mode.js": Object.freeze([
         "window.__ottEnsureModernUi",

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add client-wide interface colors with nine roles, a 32-color palette, five
+  schemes and exact HEX/RGB/HSV input. Preview changes in the editor, apply them
+  to the settings draft and save them across restarts; retain inherited theme
+  colors, cancellation, reset and backup behavior in Classic and Modern views.
+
 - Fix a use-after-free in the Linux desktop media-controls executor during
   shutdown by updating async-executor to 1.14.1. Preserve the existing Tauri
   and D-Bus integration and all other locked dependency versions.

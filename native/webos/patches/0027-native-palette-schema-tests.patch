@@ -1,0 +1,21 @@
+diff --git a/rust-modules/src/app/ott_settings.rs b/rust-modules/src/app/ott_settings.rs
+--- a/rust-modules/src/app/ott_settings.rs
++++ b/rust-modules/src/app/ott_settings.rs
+@@ -1131,13 +1131,15 @@
+     }
+     #[test]
+     fn menu_fields_extend_existing_paginated_schema_without_reordering_it() {
+-        assert_eq!(Setting::ALL.len(), 25 + MenuItem::ALL.len());
+-        assert_eq!(Setting::ALL[35..].iter().map(|setting| setting.id()).collect::<Vec<_>>(),
++        assert_eq!(Setting::ALL.len(), 26 + MenuItem::ALL.len());
++        assert_eq!(Setting::ALL[35..40].iter().map(|setting| setting.id()).collect::<Vec<_>>(),
+             ["showNumber", "showName", "showProgram", "showDescription", "showProgress"]);
++        assert_eq!(Setting::ALL[40].id(), "uiColorConfig");
+         assert_eq!(Setting::ALL[0].id(), "uiFontScale");
+         assert_eq!(Setting::ALL[7].id(), MenuItem::Providers.setting());
+         let context = json!({"token":"context:1"});
+         assert_eq!(schema_page(&json!({"op":"schema","runtime":"runtime:1","cursor":"context:1:20"}), &context), Ok((20,20)));
++        assert_eq!(schema_page(&json!({"op":"schema","runtime":"runtime:1","cursor":"context:1:40"}), &context), Ok((40,20)));
+     }
+ }
+ 

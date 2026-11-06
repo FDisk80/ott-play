@@ -9,19 +9,18 @@ navigation, remote setting and fallback behavior.
 
 Studio 2026 is the default theme for an unset or invalid `sInterfaceTheme`.
 Explicitly saved Classic (`0`), PLi-HD (`1`) and Studio (`2`) selections survive
-restart. Selecting a theme does not reset any other preference. Custom colour
-pickers are labelled **Classic** and select that theme in the same settings draft;
-cancelling the draft preserves both the previous theme and colours.
-The shared spectrum picker treats a full-turn hue (360°) as 0° in both previews
-and saved theme/EPG colors; stored hue values are not rewritten.
+restart. Selecting a theme does not reset any other preference.
 
-The three Classic colour rows show a colour swatch and hexadecimal value.
-Their editors provide clickable arrow buttons and the same keyboard/remote
-controls: Left/Right changes hue; Up/Down changes saturation for text and the
-selected-item background, or brightness for the main background. The displayed
-preview uses the same conversion as the saved theme. Yellow/Green/Blue choose
-presets. **Set** returns the chosen colour to the settings draft; **Close**
-discards the picker edit. **Save Settings** applies the draft.
+**Interface colors** provides a palette, exact HEX/RGB/HSV input, and five
+schemes for nine parts of the interface. Overrides work with both Classic and
+Modern presentation. Unchanged parts inherit the chosen theme; older stored
+Classic colors remain the fallback when custom overrides are cleared.
+
+The editor previews changes locally. **Apply** updates the open settings draft;
+**Save Settings** makes that draft persistent. Cancel either screen to discard
+its unsaved changes. Per-color inheritance and a full reset are available. See
+[Interface colors](interface-colors.md) for controls, backup behavior and the
+remote configuration format.
 
 The presentation was developed for OTT-play FOSS in September 2026. It uses
 original HTML/CSS, existing player fonts and the established two-panel layout.

@@ -820,8 +820,36 @@ const INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE = Object.freeze({
     appearance: Object.freeze({ bytes: 301, gzipBytes: 197 }),
     entry: Object.freeze({ bytes: 3389, gzipBytes: 1144 }),
 });
+// Same-HEAD hosted Node22.23.4/zlib1.3.1 color feature cost, max per target.
+// Count each emitted family once; Edem still fits its unchanged provider cap.
+// The original comparator counted an extra offline worker and failed; preserved
+// inventories support these deltas without relabeling that run a release pass.
+// Evidence: docs/evidence/client-interface-colors-size-20261106/.
+const CLIENT_INTERFACE_COLORS_ALLOWANCE = Object.freeze({
+    appearance: Object.freeze({
+        bytes: 529,
+        gzipBytes: 215,
+    }),
+    entry: Object.freeze({
+        bytes: 8796,
+        gzipBytes: 2501,
+    }),
+    optional: Object.freeze({
+        bytes: 10444,
+        gzipBytes: 4378,
+    }),
+    providerEdem: Object.freeze({
+        bytes: 44,
+        gzipBytes: 18,
+    }),
+    remoteSettingsLifecycle: Object.freeze({
+        bytes: 334,
+        gzipBytes: 145,
+    }),
+});
 const BUDGET = Object.freeze({
     bytes:
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
         DESKTOP_DROP_ALLOWANCE.entry.bytes +
@@ -860,6 +888,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
@@ -1078,6 +1107,8 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.bytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
         DESKTOP_DROP_ALLOWANCE.entry.bytes +
@@ -1129,6 +1160,8 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.gzipBytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         DESKTOP_DROP_ALLOWANCE.entry.gzipBytes +
@@ -1193,6 +1226,7 @@ const LOCAL_SOURCE_DIAGNOSTICS_ALLOWANCE = Object.freeze({
     optional: Object.freeze({ bytes: 9450, gzipBytes: 3550 }),
 });
 const OPTIONAL_BUDGETS = Object.freeze({
+    "color-appearance": CLIENT_INTERFACE_COLORS_ALLOWANCE.optional,
     "control-transport": Object.freeze({
         bytes: 6000 + PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
         gzipBytes: 2000 + PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.gzipBytes,
@@ -1297,6 +1331,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
     "remote-settings-extras": Object.freeze({ bytes: 7000, gzipBytes: 2800 }),
     "remote-settings-lifecycle": Object.freeze({
         bytes:
+            CLIENT_INTERFACE_COLORS_ALLOWANCE.remoteSettingsLifecycle.bytes +
             TORZNAB_DISCOVERY_ALLOWANCE.settings.bytes +
             TORRENT_STREAMS_ALLOWANCE.settings.bytes +
             TORRENT_DISCOVERY_ALLOWANCE.settings.bytes +
@@ -1305,6 +1340,8 @@ const OPTIONAL_BUDGETS = Object.freeze({
             MODERN_INTERFACE_RELATED_ALLOWANCES["remote-settings-lifecycle"]
                 .bytes,
         gzipBytes:
+            CLIENT_INTERFACE_COLORS_ALLOWANCE.remoteSettingsLifecycle
+                .gzipBytes +
             TORZNAB_DISCOVERY_ALLOWANCE.settings.gzipBytes +
             TORRENT_STREAMS_ALLOWANCE.settings.gzipBytes +
             TORRENT_DISCOVERY_ALLOWANCE.settings.gzipBytes +
@@ -1321,11 +1358,13 @@ const OPTIONAL_BUDGETS = Object.freeze({
     // Keep the existing lazy editor and its original measurement headroom.
     "subtitle-appearance": Object.freeze({
         bytes:
+            CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.bytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.bytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.bytes +
             8100 +
             MODERN_INTERFACE_RELATED_ALLOWANCES["subtitle-appearance"].bytes,
         gzipBytes:
+            CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.gzipBytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
             3400 +
@@ -1341,6 +1380,11 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.bytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.bytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.remoteSettingsLifecycle.bytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.optional.bytes +
         DESKTOP_VIDEO_QUEUE_ALLOWANCE.bytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.bytes +
@@ -1432,6 +1476,11 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.gzipBytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.gzipBytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.remoteSettingsLifecycle.gzipBytes +
+        CLIENT_INTERFACE_COLORS_ALLOWANCE.optional.gzipBytes +
         DESKTOP_VIDEO_QUEUE_ALLOWANCE.gzipBytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
         CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
@@ -1701,6 +1750,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         categoryVisibilityEntryAllowance: CATEGORY_VISIBILITY_ENTRY_ALLOWANCE,
         classicPresentationSettingsAllowance:
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE,
+        clientInterfaceColorsAllowance: CLIENT_INTERFACE_COLORS_ALLOWANCE,
         companionDiagnosticsAllowance: COMPANION_DIAGNOSTICS_ALLOWANCE,
         desktopFavoritesKeyAllowance: DESKTOP_FAVORITES_KEY_ALLOWANCE,
         desktopVideoQueueAllowance: DESKTOP_VIDEO_QUEUE_ALLOWANCE,
@@ -2055,6 +2105,7 @@ function writeBuildBundleReport(
                 CATEGORY_VISIBILITY_ENTRY_ALLOWANCE,
             classicPresentationSettingsAllowance:
                 CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE,
+            clientInterfaceColorsAllowance: CLIENT_INTERFACE_COLORS_ALLOWANCE,
             collectedAt: new Date().toISOString(),
             companionDiagnosticsAllowance: COMPANION_DIAGNOSTICS_ALLOWANCE,
             complete: !inputErrors.length,
@@ -2188,6 +2239,7 @@ module.exports = {
     CATEGORY_SELECTION_FAVORITES_ALLOWANCE,
     CATEGORY_VISIBILITY_ENTRY_ALLOWANCE,
     CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE,
+    CLIENT_INTERFACE_COLORS_ALLOWANCE,
     COMPANION_DIAGNOSTICS_ALLOWANCE,
     clearBuildSizeReports,
     collectBundleMeasurement,
