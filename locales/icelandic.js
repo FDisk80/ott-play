@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Spilarinn hafnaði skipun. Athugaðu þjónustuaðila og stillingar hans.",
     About: "Um forritið",
+    "Accent color": "Áherslulitur",
     "Access code": "Aðgangskóði",
     "Access denied. Check the server access code.":
         "Aðgangi hafnað. Athugaðu aðgangskóða þjónsins.",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API mistókst, reyni M3U…",
     "API Server": "API-þjónn",
     "API server URL": "Vefslóð API-þjóns",
+    Apply: "Virkja",
+    "Apply changes to this draft, then use Save Settings.":
+        "Virkjaðu breytingarnar í þessum drögum og veldu síðan Vista stillingar.",
     "Applying HTTP remote settings...": "Nota stillingar HTTP-fjarstýringar…",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Samþykktu kóðann fyrir %1 með ott approve NAME CODE:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "Blár",
     "Bookmark age (days): %1": "Aldur bókamerkis (dagar): %1",
     "Bookmark age: %1 days": "Aldur bókamerkis: %1 dagar",
+    "Border color": "Rammalitur",
     Brightness: "Birtustig",
     "Browse folders": "Fletta í möppum",
     "Buffer Size, s": "Stærð biðminnis, sek",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "Flutningur í skýi mistókst",
     Code: "Kóði",
     Color: "Litur",
+    "Color schemes": "Litakerfi",
     "Color spectrum": "Litróf",
     "Command server": "Skipanaþjónn",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -324,6 +330,7 @@ var keyStrings = {
         "Ekki tókst að uppfæra HTTP-fjarstýringu.",
     Country: "Land",
     "Create category": "Búa til flokk",
+    Custom: "Sérsniðið",
     current: "núverandi",
     "Debug enabled. Restart to apply.":
         "Villuleit virk. Endurræstu til að nota breytinguna.",
@@ -487,6 +494,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG-uppsprettan skilaði HTTP %1",
     "EPG source: %1": "EPG-uppspretta: %1",
     "EPG stopped during: %1": "EPG stöðvaðist við: %1",
+    "EPG time color": "Litur EPG-tíma",
     "EPG unavailable on this browser": "EPG er ekki tiltækt í þessum vafra",
     "EPG unavailable: %1": "EPG ekki tiltækt: %1",
     "EPG update failed; using saved programme guide":
@@ -555,6 +563,7 @@ var keyStrings = {
     "Hide / Return": "Fela / sýna",
     "Hide provider settings?": "Fela stillingar þjónustuaðila?",
     "Hide providers?": "Fela þjónustuaðila?",
+    "High contrast": "Mikil birtuskil",
     "History in Media Library": "Ferill í miðlasafni",
     "History of watched movies": "Áhorfsferill",
     Home: "Heim",
@@ -562,6 +571,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP-fjarstýring er ekki tiltæk í þessu tæki.",
     "HTTPS support": "HTTPS-stuðningur",
+    Hue: "Litblær",
     ID: "ID",
     "Import settings": "Flytja inn stillingar",
     "In live mode: <br/>": "Í beinni útsendingu:<br/>",
@@ -569,6 +579,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Birtingartími upplýsingastiku, sek",
     "Infobar settings": "Stillingar upplýsingastiku",
     Information: "Upplýsingar",
+    Inherited: "Erft",
+    "Interface colors": "Litir viðmóts",
     "Interface credits": "Höfundar viðmóts",
     "Interface mode": "Viðmótshamur",
     "Interface settings": "Stillingar viðmóts",
@@ -577,6 +589,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Ógildur rásartengill! Sláðu inn fullt hýsilheiti úr streymisslóðinni á reikningnum (t.d. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Ógilt svar skýjastillinga",
+    "Invalid color value": "Ógilt litagildi",
     "Invalid protected source configuration":
         "Ógildar stillingar varinnar uppsprettu",
     "Invalid range: %1-%2": "Ógilt bil: %1-%2",
@@ -589,6 +602,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Stillingar fyrir KORONA TV",
     "Label (optional)": "Heiti (valfrjálst)",
+    Light: "Ljóst",
     "List created": "Listi búinn til",
     "List deleted": "Lista eytt",
     "List location": "Staðsetning lista",
@@ -650,6 +664,7 @@ var keyStrings = {
     "Media Library URL": "Vefslóð miðlasafns",
     Menu: "Valmynd",
     "Menu items settings": "Stillingar valmyndaratriða",
+    Midnight: "Miðnætti",
     Modern: "Nútímalegt",
     "Modern interface is unavailable. Classic remains active.":
         "Nútímaviðmótið er ekki tiltækt. Klassíska viðmótið helst virkt.",
@@ -695,6 +710,7 @@ var keyStrings = {
     no: "Nei",
     "no epg at current time": "Engin EPG fyrir núverandi tíma",
     "not set": "ekki stillt",
+    Ocean: "Úthaf",
     Off: "slökkt",
     Ok: "Í lagi",
     On: "Kveikt",
@@ -730,6 +746,7 @@ var keyStrings = {
         "Pörunarþjónn er ekki tiltækur. Finndu þjóninn aftur til að reyna á ný.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Pörun var hafnað eða skilaði ógildu samþykki. Finndu þjóninn aftur til að reyna á ný.",
+    Palette: "Litapalletta",
     "Parental control": "Foreldraeftirlit",
     Password: "Lykilorð",
     "Paste settings JSON": "Líma stillinga-JSON",
@@ -775,6 +792,7 @@ var keyStrings = {
     Prepaid: "Fyrirframgreitt",
     "Preparing secure remote input...": "Undirbý öruggan fjarinnslátt…",
     Prev: "Fyrra",
+    Preview: "Forskoðun",
     "Preview in channel list": "Forskoðun í rásalista",
     Previous: "Fyrra",
     "Privacy policy": "Persónuverndarstefna",
@@ -910,6 +928,7 @@ var keyStrings = {
     Search: "Leita",
     "Search languages": "Leita að tungumálum",
     "Search programme": "Leita að þætti",
+    "Secondary text color": "Litur aukatexta",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Ekki tókst að ræsa öruggan fjarinnslátt. Reyndu aftur eða notaðu skjályklaborðið.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -929,6 +948,8 @@ var keyStrings = {
     "Select screenshot source in browser": "Veldu uppruna skjámynda í vafra",
     "Select the player tab or window in the browser sharing dialog.":
         "Veldu spilaraflipann eða gluggann í samnýtingarglugganum í vafranum.",
+    "Selected item": "Valið atriði",
+    "Selected text color": "Litur valins texta",
     "Send request": "Senda beiðni",
     "Send settings": "Senda stillingar",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1043,6 +1064,7 @@ var keyStrings = {
     "Subscription information": "Áskriftarupplýsingar",
     Subtitle: "Skjátextar",
     "Subtitle appearance": "Útlit skjátexta",
+    "Surface color": "Litur flatar",
     Switch: "Skipta",
     "Switch sound track": "Skipta um hljóðrás",
     "Switch subtitle": "Skipta um skjátexta",
@@ -1150,6 +1172,7 @@ var keyStrings = {
         "Notaðu HTTPS-skipanaþjón fyrir fjargreiningu.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Notaðu HTTP eða HTTPS án notandanafns eða lykilorðs í vistfanginu.",
+    "Use inherited color": "Nota erfðan lit",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Notaðu VINSTRI/HÆGRI til að velja stjórnhnapp, OK til að virkja hann og UPP/NIÐUR til að skruna.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1173,6 +1196,7 @@ var keyStrings = {
         "Ekki tókst að hlaða VPortal. Athugaðu tengilinn, aðgangslykil og hvort gáttin sé tiltæk.",
     volume: "hljóðstyrkur",
     "Waiting for sign-in…": "Bíð eftir innskráningu…",
+    "Warm graphite": "Hlýr grafít",
     "Wrong parental code !!!": "Rangur foreldrakóði!",
     "Xtream Codes Provider": "Xtream Codes-þjónustuaðili",
     "Xtream Codes settings": "Stillingar fyrir Xtream Codes",

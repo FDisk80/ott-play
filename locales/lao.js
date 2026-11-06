@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ເຄື່ອງຫຼິ້ນປະຕິເສດຄຳສັ່ງ. ກວດສອບຜູ້ໃຫ້ບໍລິການ ແລະ ການຕັ້ງຄ່າ.",
     About: "ກ່ຽວກັບ",
+    "Accent color": "ສີເນັ້ນ",
     "Access code": "ລະຫັດເຂົ້າໃຊ້",
     "Access denied. Check the server access code.":
         "ບໍ່ອະນຸຍາດໃຫ້ເຂົ້າໃຊ້. ກວດສອບລະຫັດເຂົ້າໃຊ້ເຊີບເວີ.",
@@ -79,6 +80,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ລົ້ມເຫຼວ, ກຳລັງລອງ M3U…",
     "API Server": "ເຊີບເວີ API",
     "API server URL": "URL ເຊີບເວີ API",
+    Apply: "ນຳໃຊ້",
+    "Apply changes to this draft, then use Save Settings.":
+        "ນຳໃຊ້ການປ່ຽນແປງໃນສະບັບຮ່າງນີ້ ແລ້ວເລືອກບັນທຶກການຕັ້ງຄ່າ.",
     "Applying HTTP remote settings...": "ກຳລັງໃຊ້ການຕັ້ງຄ່າຄວບຄຸມທາງໄກຜ່ານ HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ອະນຸມັດລະຫັດສຳລັບ %1 ດ້ວຍ ott approve NAME CODE:",
@@ -113,6 +117,7 @@ var keyStrings = {
     Blue: "ສີຟ້າ",
     "Bookmark age (days): %1": "ອາຍຸຂອງບຸກມາກ (ມື້): %1",
     "Bookmark age: %1 days": "ອາຍຸບຸກມາກ: %1 ມື້",
+    "Border color": "ສີຂອບ",
     Brightness: "ຄວາມສະຫວ່າງ",
     "Browse folders": "ເບິ່ງໂຟນເດີ",
     "Buffer Size, s": "ຂະໜາດບັບເຟີ, ວິ",
@@ -181,6 +186,7 @@ var keyStrings = {
     "Cloud transfer failed": "ການໂອນ ຄລາວ ລົ້ມເຫລວ",
     Code: "ລະຫັດ",
     Color: "ສີ",
+    "Color schemes": "ຊຸດສີ",
     "Color spectrum": "ສະເປັກຕຣຳສີ",
     "Command server": "ເຊີບເວີຄຳສັ່ງ",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -314,6 +320,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "ບໍ່ສາມາດອັບເດດການຄວບຄຸມທາງໄກ HTTP.",
     Country: "ປະເທດ",
     "Create category": "ສ້າງໝວດໝູ່",
+    Custom: "ກຳນົດເອງ",
     current: "ປັດຈຸບັນ",
     "Debug enabled. Restart to apply.": "ເປີດໂໝດແກ້ບັນຫາແລ້ວ. ເລີ່ມຄືນເພື່ອໃຊ້.",
     "Debug HUD": "ແຜງ HUD ແກ້ບັນຫາ",
@@ -470,6 +477,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "ແຫຼ່ງ EPG ຕອບກັບ HTTP %1",
     "EPG source: %1": "ແຫຼ່ງ EPG: %1",
     "EPG stopped during: %1": "EPG ຢຸດໃນຂັ້ນຕອນ: %1",
+    "EPG time color": "ສີເວລາ EPG",
     "EPG unavailable on this browser": "EPG ບໍ່ພ້ອມໃຊ້ໃນບຣາວເຊີນີ້",
     "EPG unavailable: %1": "EPG ບໍ່ພ້ອມໃຊ້: %1",
     "EPG update failed; using saved programme guide":
@@ -535,6 +543,7 @@ var keyStrings = {
     "Hide / Return": "ເຊື່ອງ / ສະແດງ",
     "Hide provider settings?": "ເຊື່ອງການຕັ້ງຄ່າຜູ້ໃຫ້ບໍລິການບໍ?",
     "Hide providers?": "ເຊື່ອງຜູ້ໃຫ້ບໍລິການບໍ?",
+    "High contrast": "ຄວາມແຕກຕ່າງສູງ",
     "History in Media Library": "ປະຫວັດໃນຄັງສື່",
     "History of watched movies": "ປະຫວັດການເບິ່ງ",
     Home: "ໜ້າຫຼັກ",
@@ -542,6 +551,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "ອຸປະກອນນີ້ບໍ່ສາມາດໃຊ້ການຄວບຄຸມທາງໄກ HTTP.",
     "HTTPS support": "ການຮອງຮັບ HTTPS",
+    Hue: "ໂທນສີ",
     ID: "ID",
     "Import settings": "ນຳເຂົ້າການຕັ້ງຄ່າ",
     "In live mode: <br/>": "ໃນໂໝດຖ່າຍທອດສົດ:<br/>",
@@ -549,6 +559,8 @@ var keyStrings = {
     "Infobar display timeout, s": "ເວລາສະແດງແຖບຂໍ້ມູນ, ວິ",
     "Infobar settings": "ການຕັ້ງຄ່າແຖບຂໍ້ມູນ",
     Information: "ຂໍ້ມູນ",
+    Inherited: "ສືບທອດ",
+    "Interface colors": "ສີຂອງສ່ວນຕິດຕໍ່",
     "Interface credits": "ຜູ້ສ້າງອິນເຕີເຟດ",
     "Interface mode": "ໂໝດສ່ວນຕິດຕໍ່",
     "Interface settings": "ການຕັ້ງຄ່າອິນເຕີເຟດ",
@@ -557,6 +569,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "ລິ້ງຊ່ອງບໍ່ຖືກຕ້ອງ! ປ້ອນຊື່ໂຮສຄົບຖ້ວນຕາມ URL ສະຕຣີມໃນບັນຊີສ່ວນຕົວ (ເຊັ່ນ subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "ການຕອບສະໜອງການຕັ້ງຄ່າຄລາວບໍ່ຖືກຕ້ອງ",
+    "Invalid color value": "ຄ່າສີບໍ່ຖືກຕ້ອງ",
     "Invalid protected source configuration": "ການຕັ້ງຄ່າແຫຼ່ງທີ່ປ້ອງກັນບໍ່ຖືກຕ້ອງ",
     "Invalid range: %1-%2": "ຊ່ວງບໍ່ຖືກຕ້ອງ: %1-%2",
     "Invalid setting": "ການຕັ້ງຄ່າບໍ່ຖືກຕ້ອງ",
@@ -568,6 +581,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "ການຕັ້ງຄ່າ KORONA TV",
     "Label (optional)": "ຊື່ (ບໍ່ຈຳເປັນ)",
+    Light: "ສະຫວ່າງ",
     "List created": "ສ້າງລາຍການແລ້ວ",
     "List deleted": "ລຶບລາຍການແລ້ວ",
     "List location": "ຕຳແໜ່ງລາຍການ",
@@ -629,6 +643,7 @@ var keyStrings = {
     "Media Library URL": "URL ຄັງສື່",
     Menu: "ເມນູ",
     "Menu items settings": "ການຕັ້ງຄ່າລາຍການເມນູ",
+    Midnight: "ທ່ຽງຄືນ",
     Modern: "ທັນສະໄໝ",
     "Modern interface is unavailable. Classic remains active.":
         "ບໍ່ມີສ່ວນຕິດຕໍ່ທັນສະໄໝ. ສ່ວນຕິດຕໍ່ແບບຄລາສສິກຍັງເຮັດວຽກຢູ່.",
@@ -671,6 +686,7 @@ var keyStrings = {
     no: "ບໍ່",
     "no epg at current time": "ບໍ່ມີ EPG ໃນເວລາປັດຈຸບັນ",
     "not set": "ຍັງບໍ່ກຳນົດ",
+    Ocean: "ມະຫາສະໝຸດ",
     Off: "ປິດ",
     Ok: "ຕົກລົງ",
     On: "ເປີດ",
@@ -706,6 +722,7 @@ var keyStrings = {
         "ເຊີບເວີຈັບຄູ່ບໍ່ພ້ອມໃຊ້. ຊອກຫາເຊີບເວີຄືນເພື່ອລອງອີກ.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "ການຈັບຄູ່ຖືກປະຕິເສດ ຫຼື ຕອບກັບດ້ວຍການອະນຸມັດບໍ່ຖືກຕ້ອງ. ຊອກຫາເຊີບເວີຄືນເພື່ອລອງອີກ.",
+    Palette: "ຈານສີ",
     "Parental control": "ການຄວບຄຸມໂດຍຜູ້ປົກຄອງ",
     Password: "ລະຫັດຜ່ານ",
     "Paste settings JSON": "ວາງ JSON ການຕັ້ງຄ່າ",
@@ -750,6 +767,7 @@ var keyStrings = {
     Prepaid: "ຈ່າຍລ່ວງໜ້າ",
     "Preparing secure remote input...": "ກຳລັງກຽມການປ້ອນທາງໄກທີ່ປອດໄພ...",
     Prev: "ກ່ອນໜ້າ",
+    Preview: "ເບິ່ງຕົວຢ່າງ",
     "Preview in channel list": "ເບິ່ງຕົວຢ່າງໃນລາຍການຊ່ອງ",
     Previous: "ກ່ອນໜ້າ",
     "Privacy policy": "ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ",
@@ -878,6 +896,7 @@ var keyStrings = {
     Search: "ຄົ້ນຫາ",
     "Search languages": "ຊອກຫາພາສາ",
     "Search programme": "ຄົ້ນຫາລາຍການ",
+    "Secondary text color": "ສີຂໍ້ຄວາມຮອງ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "ບໍ່ສາມາດເລີ່ມການປ້ອນທາງໄກທີ່ປອດໄພ. ລອງອີກ ຫຼື ໃຊ້ແປ້ນພິມໃນຈໍ.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -897,6 +916,8 @@ var keyStrings = {
     "Select screenshot source in browser": "ເລືອກແຫຼ່ງພາບໜ້າຈໍໃນໂປຣແກຣມທ່ອງເວັບ",
     "Select the player tab or window in the browser sharing dialog.":
         "ເລືອກແຖບເຄື່ອງຫຼິ້ນ ຫຼືປ່ອງຢ້ຽມໃນກ່ອງໂຕ້ຕອບການແບ່ງປັນຂອງຕົວທ່ອງເວັບ.",
+    "Selected item": "ລາຍການທີ່ເລືອກ",
+    "Selected text color": "ສີຂໍ້ຄວາມທີ່ເລືອກ",
     "Send request": "ສົ່ງຄຳຂໍ",
     "Send settings": "ສົ່ງການຕັ້ງຄ່າ",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1006,6 +1027,7 @@ var keyStrings = {
     "Subscription information": "ຂໍ້ມູນການສະໝັກ",
     Subtitle: "ຄຳບັນຍາຍ",
     "Subtitle appearance": "ຮູບແບບຄຳບັນຍາຍ",
+    "Surface color": "ສີພື້ນຜິວ",
     Switch: "ສະຫຼັບ",
     "Switch sound track": "ປ່ຽນແທຣັກສຽງ",
     "Switch subtitle": "ປ່ຽນຄຳບັນຍາຍ",
@@ -1103,6 +1125,7 @@ var keyStrings = {
         "ໃຊ້ເຊີບເວີຄຳສັ່ງ HTTPS ສຳລັບການວິນິດໄສທາງໄກ.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ໃຊ້ HTTP ຫຼື HTTPS ໂດຍບໍ່ມີຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານໃນທີ່ຢູ່.",
+    "Use inherited color": "ໃຊ້ສີທີ່ສືບທອດມາ",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ໃຊ້ ຊ້າຍ/ຂວາ ເພື່ອເລືອກຕົວຄວບຄຸມ, OK ເພື່ອເປີດໃຊ້ ແລະ ຂຶ້ນ/ລົງ ເພື່ອເລື່ອນ.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1126,6 +1149,7 @@ var keyStrings = {
         "ບໍ່ສາມາດໂຫຼດ VPortal. ກວດສອບລິ້ງ, ກະແຈເຂົ້າໃຊ້ ແລະ ຄວາມພ້ອມຂອງພອດທັນ.",
     volume: "ລະດັບສຽງ",
     "Waiting for sign-in…": "ກຳລັງລໍຖ້າການເຂົ້າລະບົບ…",
+    "Warm graphite": "ກຣາໄຟຕ໌ໂທນອົບອຸ່ນ",
     "Wrong parental code !!!": "ລະຫັດຜູ້ປົກຄອງບໍ່ຖືກຕ້ອງ!",
     "Xtream Codes Provider": "ຜູ້ໃຫ້ບໍລິການ Xtream Codes",
     "Xtream Codes settings": "ການຕັ້ງຄ່າ Xtream Codes",

@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Fermanek ji hêla lêdêra medyayê ve hate red kirin. Pêşkêşker û mîhengên wê kontrol bikin.",
     About: "Derbarê",
+    "Accent color": "Rengê balkêş",
     "Access code": "Koda gihîştinê",
     "Access denied. Check the server access code.":
         "Gihîştin hat red kirin. Koda gihîştina serverê kontrol bikin.",
@@ -84,6 +85,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API têk çû, M3U hewl dide…",
     "API Server": "Pêşkêşkara API",
     "API server URL": "URL-ya pêşkêşkara API",
+    Apply: "Bisepîne",
+    "Apply changes to this draft, then use Save Settings.":
+        "Guhertinan li vê pêşnivîsê bisepîne, paşê Mîhengan hilîne hilbijêre.",
     "Applying HTTP remote settings...": "Sepandina mîhengên dûr a HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Bi ott approve NAME CODE kodê ji bo %1 bipejirînin:",
@@ -121,6 +125,7 @@ var keyStrings = {
     Blue: "Şîn",
     "Bookmark age (days): %1": "Dem ji tomarkirina nîşanê ve (roj): %1",
     "Bookmark age: %1 days": "Temenê nîşankirinê: %1 roj",
+    "Border color": "Rengê sînorê",
     Brightness: "Ronahî",
     "Browse folders": "Li peldankan bigerin",
     "Buffer Size, s": "Dirêjahiya tamponê, çirke",
@@ -195,6 +200,7 @@ var keyStrings = {
     "Cloud transfer failed": "Veguheztina ewrê têk çû",
     Code: "Kod",
     Color: "Reng",
+    "Color schemes": "Şemayên rengan",
     "Color spectrum": "Spektruma rengan",
     "Command server": "Pêşkêşkara fermanê",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -334,6 +340,7 @@ var keyStrings = {
         "Kontrola ji dûr a HTTP nehat nûve kirin.",
     Country: "Welat",
     "Create category": "Kategorî biafirîne",
+    Custom: "Taybet",
     current: "niha",
     "Debug enabled. Restart to apply.":
         "Çewtiyandîtin çalak e. Ji bo sepandina guherandinê ji nû ve bidin destpêkirin.",
@@ -496,6 +503,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Çavkaniya EPG HTTP %1 vegerand",
     "EPG source: %1": "EPG çavkanî: %1",
     "EPG stopped during: %1": "EPG di dema: %1 de rawestiya",
+    "EPG time color": "Rengê dema EPG",
     "EPG unavailable on this browser": "EPG li ser vê gerokê nayê peyda kirin",
     "EPG unavailable: %1": "EPG neberdest: %1",
     "EPG update failed; using saved programme guide":
@@ -568,6 +576,7 @@ var keyStrings = {
     "Hide / Return": "Veşêre / nîşan bide",
     "Hide provider settings?": "Mîhengên pêşkêşkarê veşêre?",
     "Hide providers?": "Pêşkêşkeran veşêrin?",
+    "High contrast": "Kontrasta bilind",
     "History in Media Library": "Dîrok di pirtûkxaneya medyayê de",
     "History of watched movies": "Dîroka temaşekirinê",
     Home: "Destpêk",
@@ -575,6 +584,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Kontrola ji dûr a HTTP li ser vê cîhazê tune ye.",
     "HTTPS support": "Piştgiriya HTTPS",
+    Hue: "Awaza rengê",
     ID: "ID",
     "Import settings": "Mîhengan bîne",
     "In live mode: <br/>": "Di moda zindî de: <br/>",
@@ -582,6 +592,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Dema nîşandana bara agahdariyê, çirke",
     "Infobar settings": "Mîhengên barika agahdariyê",
     Information: "Agahî",
+    Inherited: "Mîrasî",
+    "Interface colors": "Rengên navrûyê",
     "Interface credits": "Afirînerên navberê",
     "Interface mode": "Moda navrûyê",
     "Interface settings": "Mîhengên navberê",
@@ -590,6 +602,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Girêdana kanalê nederbasdar e! Navê hostê bi tevahî wekî di URL-ya weşanê ya hesabê taybet de binivîsin (mînak subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Bersiva mîhengên ewr nederbasdar",
+    "Invalid color value": "Nirxa rengê nederbasdar e",
     "Invalid protected source configuration":
         "Veavakirina çavkaniya parastî nederbasdar",
     "Invalid range: %1-%2": "Navbera nederbasdar: %1-%2",
@@ -602,6 +615,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Mîhengên KORONA TV",
     "Label (optional)": "Nav (ne mecbûrî)",
+    Light: "Ronahî",
     "List created": "Lîste hat afirandin",
     "List deleted": "Lîste hat jêbirin",
     "List location": "Cihê lîsteyê",
@@ -663,6 +677,7 @@ var keyStrings = {
     "Media Library URL": "Pirtûkxaneya Medyayê URL",
     Menu: "Menu",
     "Menu items settings": "Mîhengên hêmanên pêşek",
+    Midnight: "Nîvê şevê",
     Modern: "Nûjen",
     "Modern interface is unavailable. Classic remains active.":
         "Navrûya nûjen ne berdest e. Ya klasîk çalak dimîne.",
@@ -708,6 +723,7 @@ var keyStrings = {
     no: "na",
     "no epg at current time": "Di dema niha de EPG tune",
     "not set": "nayê danîn",
+    Ocean: "Okyanûs",
     Off: "Girtî",
     Ok: "Baş e",
     On: "Vekirî",
@@ -743,6 +759,7 @@ var keyStrings = {
         "Pêşkêşkara hevberdanê ne berdest e. Ji nû ve biceribînin serverê dîsa bibînin.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Hevberdan hate red kirin an pejirandinek nederbasdar hat vegerandin. Ji nû ve biceribînin serverê dîsa bibînin.",
+    Palette: "Paleta rengan",
     "Parental control": "Kontrola dê û bavan",
     Password: "Şîfre",
     "Paste settings JSON": "JSON-ya mîhengan pê ve bike",
@@ -788,6 +805,7 @@ var keyStrings = {
     Prepaid: "Dayîna pêşîn",
     "Preparing secure remote input...": "Amadekirina têketina dûr a ewle...",
     Prev: "Berê",
+    Preview: "Pêşdîtin",
     "Preview in channel list": "Di lîsteya kanalê de pêşdîtin",
     Previous: "Berê",
     "Privacy policy": "Siyaseta nepenîtiyê",
@@ -925,6 +943,7 @@ var keyStrings = {
     Search: "Lêgerîn",
     "Search languages": "Li zimanan bigerin",
     "Search programme": "Li bernameyê bigere",
+    "Secondary text color": "Rengê nivîsa duyemîn",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Ketina ji dûr a ewledar nikarî dest pê bike. Ji kerema xwe dîsa biceribîne an klavyeya li ser ekranê bikar bîne.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -946,6 +965,8 @@ var keyStrings = {
         "Di gerokê de çavkaniya dîmenê hilbijêrin",
     "Select the player tab or window in the browser sharing dialog.":
         "Di diyaloga parvekirina gerokê de tabloya bernameya lîstina medyayê an jî pencereyê hilbijêre.",
+    "Selected item": "Hêmana hilbijartî",
+    "Selected text color": "Rengê nivîsa hilbijartî",
     "Send request": "Daxwazê bişîne",
     "Send settings": "Mîhengan bişîne",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1062,6 +1083,7 @@ var keyStrings = {
     "Subscription information": "Agahiyên abonetiyê",
     Subtitle: "Binnivîs",
     "Subtitle appearance": "Xuyabûna binnivîsan",
+    "Surface color": "Rengê rûyê",
     Switch: "Biguherîne",
     "Switch sound track": "Rêça dengî biguherîne",
     "Switch subtitle": "Binnivîsan biguherîne",
@@ -1171,6 +1193,7 @@ var keyStrings = {
         "Ji bo diyagnostîka dûr pêşkêşkerekê fermanan a HTTPS bi kar bînin.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "HTTP an HTTPS bi kar bînin, bê navê bikarhêner an şîfre di navnîşanê de.",
+    "Use inherited color": "Rengê mîrasî bi kar bîne",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Ji bo hilbijartina kontrolê ÇEP/RAST, ji bo çalakkirinê OK û ji bo şemitandinê JOR/JÊR bi kar bînin.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1194,6 +1217,7 @@ var keyStrings = {
         "VPortal nehat barkirin. Girêdan, mifteya gihîştinê û berdestiya portalê kontrol bikin.",
     volume: "asta deng",
     "Waiting for sign-in…": "Li benda têketinê ye…",
+    "Warm graphite": "Grafîta germ",
     "Wrong parental code !!!": "Koda dêûbavan şaş e!",
     "Xtream Codes Provider": "Dabînkerê Xtream Codes",
     "Xtream Codes settings": "Mîhengên Xtream Codes",

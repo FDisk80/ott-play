@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Ihe ọkpụkpọ jụrụ iwu. Lelee onye na-eweta ọrụ na ntọala ya.",
     About: "Banyere",
+    "Accent color": "Agba nrụgide",
     "Access code": "Koodu nnweta",
     "Access denied. Check the server access code.":
         "A jụrụ nnweta. Lelee koodu nnweta sava.",
@@ -83,6 +84,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API dara, ana anwale M3U…",
     "API Server": "Sava API",
     "API server URL": "URL sava API",
+    Apply: "Tinye",
+    "Apply changes to this draft, then use Save Settings.":
+        "Tinye mgbanwe na ndebiri a, wee họrọ Chekwaa ntọala.",
     "Applying HTTP remote settings...":
         "Ana etinye ntọala njikwa HTTP dị anya…",
     "Approve the code for %1 with ott approve NAME CODE:":
@@ -120,6 +124,7 @@ var keyStrings = {
     Blue: "Anụnụ anụnụ",
     "Bookmark age (days): %1": "Afọ ibe edokọbara (ụbọchị): %1",
     "Bookmark age: %1 days": "Afọ akara ibe: ụbọchị %1",
+    "Border color": "Agba oke",
     Brightness: "Nchapụta",
     "Browse folders": "Chọgharịa folda",
     "Buffer Size, s": "Nha ebe nchekwa nwa oge, sekọnd",
@@ -190,6 +195,7 @@ var keyStrings = {
     "Cloud transfer failed": "Nbufe igwe ojii dara",
     Code: "Koodu",
     Color: "Agba",
+    "Color schemes": "Atụmatụ agba",
     "Color spectrum": "Ụdịdị agba",
     "Command server": "Sava iwu",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -326,6 +332,7 @@ var keyStrings = {
         "Enweghị ike imelite njikwa HTTP dị anya.",
     Country: "Obodo",
     "Create category": "Mepụta otu",
+    Custom: "Ahaziri iche",
     current: "ugbu a",
     "Debug enabled. Restart to apply.":
         "Agbanyere nchọpụta njehie. Malitegharịa ka mgbanwe rụọ ọrụ.",
@@ -489,6 +496,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Isi iyi EPG weghachiri HTTP %1",
     "EPG source: %1": "Isi iyi EPG: %1",
     "EPG stopped during: %1": "EPG kwụsịrị n'oge: %1",
+    "EPG time color": "Agba oge EPG",
     "EPG unavailable on this browser": "EPG adịghị n'ihe nchọgharị a",
     "EPG unavailable: %1": "EPG adịghị: %1",
     "EPG update failed; using saved programme guide":
@@ -558,6 +566,7 @@ var keyStrings = {
     "Hide / Return": "Zoo / gosi",
     "Hide provider settings?": "Zoo ntọala onye na-eweta ọrụ?",
     "Hide providers?": "Zoo ndị na-eweta ọrụ?",
+    "High contrast": "Ọdịiche dị elu",
     "History in Media Library": "Akụkọ na ọba mgbasa ozi",
     "History of watched movies": "Akụkọ nlele",
     Home: "Mbido",
@@ -565,6 +574,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "Njikwa HTTP dị anya adịghị na ngwaọrụ a.",
     "HTTPS support": "Nkwado HTTPS",
+    Hue: "Ụdị agba",
     ID: "ID",
     "Import settings": "Bubata ntọala",
     "In live mode: <br/>": "N'ọnọdụ mgbasa ozugbo:<br/>",
@@ -572,6 +582,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Oge ngosi ogwe ozi, sekọnd",
     "Infobar settings": "Ntọala ogwe ozi",
     Information: "Ozi",
+    Inherited: "Eketaara",
+    "Interface colors": "Agba ihu njikwa",
     "Interface credits": "Ndị nyere aka n'interface",
     "Interface mode": "Ụdị ihu njikwa",
     "Interface settings": "Ntọala ihu ngwa",
@@ -581,6 +593,7 @@ var keyStrings = {
         "Njikọ ọwa ezighi ezi! Tinye aha sava zuru ezu dịka ọ dị na URL iyi n'akaụntụ gị (dịka subdomain.cdn-domain.tld)",
     "Invalid cloud settings response":
         "Nzaghachi ntọala igwe ojii na-ezighi ezi",
+    "Invalid color value": "Uru agba adịghị mma",
     "Invalid protected source configuration":
         "Nhazi isi iyi echekwara ezighi ezi",
     "Invalid range: %1-%2": "Oke ezighi ezi: %1-%2",
@@ -593,6 +606,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Ntọala KORONA TV",
     "Label (optional)": "Aha (nhọrọ)",
+    Light: "Ìhè",
     "List created": "Emepụtara ndepụta",
     "List deleted": "Ehichapụla ndepụta",
     "List location": "Ọnọdụ ndepụta",
@@ -654,6 +668,7 @@ var keyStrings = {
     "Media Library URL": "URL ọba mgbasa ozi",
     Menu: "Ndepụta nhọrọ",
     "Menu items settings": "Ntọala ihe ndepụta nhọrọ",
+    Midnight: "Etiti abalị",
     Modern: "Ọgbara ọhụrụ",
     "Modern interface is unavailable. Classic remains active.":
         "Ihu njikwa ọgbara ọhụrụ adịghị. Nke ochie ka na-arụ ọrụ.",
@@ -699,6 +714,7 @@ var keyStrings = {
     no: "mba",
     "no epg at current time": "Enweghị EPG n'oge ugbu a",
     "not set": "etinyebeghị",
+    Ocean: "Oke osimiri",
     Off: "Gbanyụrụ",
     Ok: "Ọ dị mma",
     On: "Agbanyere",
@@ -734,6 +750,7 @@ var keyStrings = {
         "Sava njikọ ngwaọrụ adịghị. Chọọ sava ọzọ ka ị nwaa.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Ajụrụ njikọ ngwaọrụ ma ọ bụ ọ weghachiri nkwenye ezighi ezi. Chọọ sava ọzọ ka ị nwaa.",
+    Palette: "Mpempe agba",
     "Parental control": "Nchịkwa nne na nna",
     Password: "Okwuntughe",
     "Paste settings JSON": "Tapawa JSON ntọala",
@@ -780,6 +797,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Ana akwadebe ntinye dị anya echekwara…",
     Prev: "Nke gara aga",
+    Preview: "Nlele mbụ",
     "Preview in channel list": "Nlele na ndepụta ọwa",
     Previous: "Nke gara aga",
     "Privacy policy": "Iwu nzuzo",
@@ -911,6 +929,7 @@ var keyStrings = {
     Search: "Chọọ",
     "Search languages": "Chọọ asụsụ",
     "Search programme": "Chọọ mmemme",
+    "Secondary text color": "Agba ederede nke abụọ",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Ntinye dị anya echekwara enweghị ike ịmalite. Nwaa ọzọ ma ọ bụ jiri kiiboodu ihuenyo.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -931,6 +950,8 @@ var keyStrings = {
         "Họrọ isi mmalite nseta ihuenyo na ihe nchọgharị",
     "Select the player tab or window in the browser sharing dialog.":
         "Họrọ taabụ ọkpụkpọ ma ọ bụ mpio dị na mkparịta ụka nkekọrịta ihe nchọgharị.",
+    "Selected item": "Ihe ahọpụtara",
+    "Selected text color": "Agba ederede ahọpụtara",
     "Send request": "Zipụ arịrịọ",
     "Send settings": "Zipụ ntọala",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1043,6 +1064,7 @@ var keyStrings = {
     "Subscription information": "Ozi ndenye aha",
     Subtitle: "Ndepụta okwu",
     "Subtitle appearance": "Ọdịdị ndepụta okwu",
+    "Surface color": "Agba elu",
     Switch: "Gbanwee",
     "Switch sound track": "Gbanwee egwu ụda",
     "Switch subtitle": "Gbanwee ndepụta okwu",
@@ -1148,6 +1170,7 @@ var keyStrings = {
         "Jiri sava iwu HTTPS maka nchọpụta nsogbu dị anya.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Jiri HTTP ma ọ bụ HTTPS na-enweghị aha njirimara ma ọ bụ okwuntughe n'adreesị.",
+    "Use inherited color": "Jiri agba eketaara",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Jiri AKA EKPE/AKA NRI họrọ njikwa, Ọ DỊ MMA iji rụọ ya ọrụ, ELU/ALA iji pịgharịa.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1172,6 +1195,7 @@ var keyStrings = {
         "Enweghị ike ibugo VPortal. Lelee njikọ, igodo nnweta na nnweta ọdụ.",
     volume: "olu",
     "Waiting for sign-in…": "Ana eche nbanye…",
+    "Warm graphite": "Grafait na-ekpo ọkụ",
     "Wrong parental code !!!": "Koodu nchịkwa nne na nna ezighi ezi!",
     "Xtream Codes Provider": "Onye na-eweta ọrụ Xtream Codes",
     "Xtream Codes settings": "Ntọala Xtream Codes",

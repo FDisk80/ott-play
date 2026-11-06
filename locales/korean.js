@@ -39,6 +39,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "플레이어가 명령을 거부했습니다. 공급자와 설정을 확인하세요.",
     About: "소개",
+    "Accent color": "강조 색상",
     "Access code": "접속코드",
     "Access denied. Check the server access code.":
         "접근이 거부되었습니다. 서버 접근 코드를 확인하세요.",
@@ -80,6 +81,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API가 실패했습니다. M3U를 시도하고 있습니다…",
     "API Server": "API 서버",
     "API server URL": "API 서버 URL",
+    Apply: "적용",
+    "Apply changes to this draft, then use Save Settings.":
+        "이 초안에 변경 사항을 적용한 다음 설정 저장을 선택하세요.",
     "Applying HTTP remote settings...": "HTTP 원격 설정을 적용하는 중...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODE를 사용하여 %1에 대한 코드를 승인합니다.",
@@ -116,6 +120,7 @@ var keyStrings = {
     Blue: "블루",
     "Bookmark age (days): %1": "북마크 기간(일): %1",
     "Bookmark age: %1 days": "북마크 기간: %1일",
+    "Border color": "테두리 색상",
     Brightness: "밝기",
     "Browse folders": "폴더 찾아보기",
     "Buffer Size, s": "버퍼 크기, s",
@@ -188,6 +193,7 @@ var keyStrings = {
     "Cloud transfer failed": "클라우드 전송 실패",
     Code: "코드",
     Color: "색상",
+    "Color schemes": "색 구성표",
     "Color spectrum": "색상 스펙트럼",
     "Command server": "명령 서버",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -325,6 +331,7 @@ var keyStrings = {
         "HTTP 리모컨을 업데이트할 수 없습니다.",
     Country: "국가",
     "Create category": "카테고리 생성",
+    Custom: "사용자 지정",
     current: "현재",
     "Debug enabled. Restart to apply.":
         "디버그가 활성화되었습니다. 적용하려면 다시 시작하세요.",
@@ -487,6 +494,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG 소스가 HTTP %1를 반환했습니다.",
     "EPG source: %1": "EPG 출처: %1",
     "EPG stopped during: %1": "EPG가 다음 동안 중지되었습니다: %1",
+    "EPG time color": "EPG 시간 색상",
     "EPG unavailable on this browser":
         "이 브라우저에서는 EPG를 사용할 수 없습니다.",
     "EPG unavailable: %1": "EPG 사용할 수 없음: %1",
@@ -558,6 +566,7 @@ var keyStrings = {
     "Hide / Return": "숨기기 / 표시",
     "Hide provider settings?": "공급자 설정을 숨기시겠습니까?",
     "Hide providers?": "공급자를 숨기시겠습니까?",
+    "High contrast": "고대비",
     "History in Media Library": "미디어 라이브러리 내역",
     "History of watched movies": "시청 기록",
     Home: "홈",
@@ -565,6 +574,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "이 장치에서는 HTTP 원격 제어를 사용할 수 없습니다.",
     "HTTPS support": "HTTPS 지원",
+    Hue: "색조",
     ID: "ID",
     "Import settings": "설정 가져오기",
     "In live mode: <br/>": "라이브 모드:<br/>",
@@ -572,6 +582,8 @@ var keyStrings = {
     "Infobar display timeout, s": "정보 표시줄 표시 시간 초과, s",
     "Infobar settings": "정보 표시줄 설정",
     Information: "정보",
+    Inherited: "상속됨",
+    "Interface colors": "인터페이스 색상",
     "Interface credits": "인터페이스 크레딧",
     "Interface mode": "인터페이스 모드",
     "Interface settings": "인터페이스 설정",
@@ -580,6 +592,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "채널 링크가 잘못되었습니다! 캐비닛 스트림 URL(예: subdomain.cdn-domain.tld)에서와 같이 전체 호스트를 입력하세요.",
     "Invalid cloud settings response": "잘못된 클라우드 설정 응답",
+    "Invalid color value": "잘못된 색상 값",
     "Invalid protected source configuration":
         "보호된 소스 구성이 잘못되었습니다.",
     "Invalid range: %1-%2": "잘못된 범위: %1-%2",
@@ -592,6 +605,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV 설정",
     "Label (optional)": "이름 (선택 사항)",
+    Light: "밝게",
     "List created": "목록이 생성되었습니다",
     "List deleted": "목록 삭제됨",
     "List location": "목록 위치",
@@ -654,6 +668,7 @@ var keyStrings = {
     "Media Library URL": "미디어 라이브러리 URL",
     Menu: "메뉴",
     "Menu items settings": "메뉴 항목 설정",
+    Midnight: "한밤중",
     Modern: "모던",
     "Modern interface is unavailable. Classic remains active.":
         "모던 인터페이스를 사용할 수 없습니다. 클래식이 계속 활성화됩니다.",
@@ -700,6 +715,7 @@ var keyStrings = {
     no: "아니요",
     "no epg at current time": "현재 시간에는 EPG가 없습니다.",
     "not set": "설정되지 않음",
+    Ocean: "바다",
     Off: "꺼짐",
     Ok: "확인",
     On: "켜짐",
@@ -735,6 +751,7 @@ var keyStrings = {
         "페어링 서버를 사용할 수 없습니다. 다시 시도하려면 서버를 찾으세요.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "페어링이 거부되었거나 잘못된 승인이 반환되었습니다. 다시 시도하려면 서버를 찾으세요.",
+    Palette: "팔레트",
     "Parental control": "자녀 보호",
     Password: "비밀번호",
     "Paste settings JSON": "붙여넣기 설정 JSON",
@@ -779,6 +796,7 @@ var keyStrings = {
     Prepaid: "선불",
     "Preparing secure remote input...": "보안 원격 입력 준비 중...",
     Prev: "이전",
+    Preview: "미리 보기",
     "Preview in channel list": "채널 목록에서 미리보기",
     Previous: "이전",
     "Privacy policy": "개인정보취급방침",
@@ -912,6 +930,7 @@ var keyStrings = {
     Search: "검색",
     "Search languages": "언어 검색",
     "Search programme": "방송 프로그램 검색",
+    "Secondary text color": "보조 텍스트 색상",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "보안 원격 입력을 시작할 수 없습니다. 다시 시도하거나 화면 키보드를 사용하십시오.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -931,6 +950,8 @@ var keyStrings = {
     "Select screenshot source in browser": "브라우저에서 스크린샷 소스 선택",
     "Select the player tab or window in the browser sharing dialog.":
         "브라우저 공유 대화상자에서 플레이어 탭이나 창을 선택하세요.",
+    "Selected item": "선택된 항목",
+    "Selected text color": "선택된 텍스트 색상",
     "Send request": "요청 보내기",
     "Send settings": "전송 설정",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1044,6 +1065,7 @@ var keyStrings = {
     "Subscription information": "구독정보",
     Subtitle: "자막",
     "Subtitle appearance": "자막 모양",
+    "Surface color": "표면 색상",
     Switch: "스위치",
     "Switch sound track": "오디오 트랙 전환",
     "Switch subtitle": "자막 전환",
@@ -1149,6 +1171,7 @@ var keyStrings = {
         "원격 진단을 위해 HTTPS 명령 서버를 사용합니다.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "주소에 사용자 이름이나 비밀번호 없이 HTTP 또는 HTTPS를 사용하세요.",
+    "Use inherited color": "상속된 색상 사용",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "컨트롤을 선택하려면 왼쪽/오른쪽을 사용하고, 활성화하려면 확인을 사용하고, 스크롤하려면 위/아래를 사용하세요.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1173,6 +1196,7 @@ var keyStrings = {
         "VPortal를 로드할 수 없습니다. 링크, 액세스 키, 포털 가용성을 확인하세요.",
     volume: "사운드 볼륨",
     "Waiting for sign-in…": "로그인 대기 중…",
+    "Warm graphite": "따뜻한 흑연색",
     "Wrong parental code !!!": "자녀보호코드가 잘못되었습니다!",
     "Xtream Codes Provider": "Xtream 코드 제공자",
     "Xtream Codes settings": "Xtream 코드 설정",
