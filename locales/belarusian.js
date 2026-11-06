@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Прайгравальнік адхіліў каманду. Праверце правайдара і налады.",
     About: "Пра праграму",
+    "Accent color": "Акцэнтны колер",
     "Access code": "Код доступу",
     "Access denied. Check the server access code.":
         "Доступ забаронены. Праверце код доступу да сервера.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "Памылка API, спрабуем M3U…",
     "API Server": "Сервер API",
     "API server URL": "Адрас сервера API",
+    Apply: "Ужыць",
+    "Apply changes to this draft, then use Save Settings.":
+        "Ужывіце змены да гэтага чарнавіка, затым выберыце Захаваць налады.",
     "Applying HTTP remote settings...": "Ужыванне налад HTTP-пульта...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Пацвердзіце код для %1 камандай ott approve NAME CODE:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "Сіні",
     "Bookmark age (days): %1": "Узрост закладкі (дзён): %1",
     "Bookmark age: %1 days": "Даўнасць закладкі: %1 дзён",
+    "Border color": "Колер рамкі",
     Brightness: "Яркасць",
     "Browse folders": "Прагляд па папках",
     "Buffer Size, s": "Памер буфера, с",
@@ -189,6 +194,7 @@ var keyStrings = {
     "Cloud transfer failed": "Памылка перадачы ў воблака",
     Code: "Код доступу",
     Color: "Колер",
+    "Color schemes": "Колеравыя схемы",
     "Color spectrum": "Колеравая палітра",
     "Command server": "Сервер каманд",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -328,6 +334,7 @@ var keyStrings = {
         "Не ўдалося змяніць налады HTTP-пульта.",
     Country: "Краіна",
     "Create category": "Стварыць катэгорыю",
+    Custom: "Уласны",
     current: "бягучы",
     "Debug enabled. Restart to apply.":
         "Адладка ўключана. Перазапусціце плэер, каб прымяніць змены.",
@@ -490,6 +497,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "Крыніца EPG вярнула HTTP %1",
     "EPG source: %1": "Крыніца EPG: %1",
     "EPG stopped during: %1": "EPG спыніўся падчас: %1",
+    "EPG time color": "Колер часу ў EPG",
     "EPG unavailable on this browser": "EPG недаступны ў гэтым браўзеры",
     "EPG unavailable: %1": "EPG недаступны: %1",
     "EPG update failed; using saved programme guide":
@@ -560,6 +568,7 @@ var keyStrings = {
     "Hide / Return": "Схаваць / паказаць",
     "Hide provider settings?": "Схаваць налады правайдара?",
     "Hide providers?": "Схаваць правайдараў?",
+    "High contrast": "Высокі кантраст",
     "History in Media Library": "Гісторыя ў медыятэцы",
     "History of watched movies": "Гісторыя прагляду",
     Home: "Галоўная",
@@ -567,6 +576,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP-пульт недаступны на гэтай прыладзе.",
     "HTTPS support": "Падтрымка HTTPS",
+    Hue: "Тон",
     ID: "ID",
     "Import settings": "Імпарт налад",
     "In live mode: <br/>": "У прамым эфіры:<br/>",
@@ -574,6 +584,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Час паказу інфармацыйнай панэлі, с",
     "Infobar settings": "Налады інфармацыйнай панэлі",
     Information: "Інфармацыя",
+    Inherited: "Успадкаваны",
+    "Interface colors": "Колеры інтэрфейсу",
     "Interface credits": "Аўтары інтэрфейсу",
     "Interface mode": "Рэжым інтэрфейсу",
     "Interface settings": "Налады інтэрфейсу",
@@ -582,6 +594,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Няправільная спасылка на канал! Увядзіце поўнае імя вузла са спасылкі на паток у кабінеце (напрыклад, subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Няправільны адказ налад воблака",
+    "Invalid color value": "Няправільнае значэнне колеру",
     "Invalid protected source configuration":
         "Няправільная канфігурацыя абароненай крыніцы",
     "Invalid range: %1-%2": "Няправільны дыяпазон: %1-%2",
@@ -594,6 +607,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "Налады KORONA TV",
     "Label (optional)": "Назва (неабавязкова)",
+    Light: "Светлая",
     "List created": "Спіс створаны",
     "List deleted": "Спіс выдалены",
     "List location": "Размяшчэнне спіса",
@@ -655,6 +669,7 @@ var keyStrings = {
     "Media Library URL": "URL медыятэкі",
     Menu: "Меню",
     "Menu items settings": "Налады пунктаў меню",
+    Midnight: "Поўнач",
     Modern: "Сучасны",
     "Modern interface is unavailable. Classic remains active.":
         "Сучасны інтэрфейс недаступны. Класічны застаецца актыўным.",
@@ -701,6 +716,7 @@ var keyStrings = {
     no: "не",
     "no epg at current time": "Няма праграмы на бягучы час",
     "not set": "не зададзена",
+    Ocean: "Акіян",
     Off: "Выключана",
     Ok: "ОК",
     On: "Уключаны",
@@ -736,6 +752,7 @@ var keyStrings = {
         "Сервер спалучэння недаступны. Паўтарыце пошук сервера, каб паспрабаваць зноў.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Спалучэнне адхілена або атрымана няправільнае пацвярджэнне. Паўтарыце пошук сервера, каб паспрабаваць зноў.",
+    Palette: "Палітра",
     "Parental control": "Бацькоўскі кантроль",
     Password: "Пароль",
     "Paste settings JSON": "Устаўце налады ў фармаце JSON",
@@ -782,6 +799,7 @@ var keyStrings = {
     "Preparing secure remote input...":
         "Падрыхтоўка бяспечнага аддаленага ўводу...",
     Prev: "Папярэдняя",
+    Preview: "Перадпрагляд",
     "Preview in channel list": "Папярэдні прагляд у спісе каналаў",
     Previous: "Папярэдні канал",
     "Privacy policy": "Палітыка прыватнасці",
@@ -914,6 +932,7 @@ var keyStrings = {
     Search: "Пошук",
     "Search languages": "Пошук моў",
     "Search programme": "Пошук перадачы",
+    "Secondary text color": "Колер другаснага тэксту",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Бяспечны аддалены ўвод не можа быць запушчаны. Паўтарыце спробу або выкарыстоўвайце экранную клавіятуру.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -934,6 +953,8 @@ var keyStrings = {
         "Выберыце крыніцу скрыншота ў браўзеры",
     "Select the player tab or window in the browser sharing dialog.":
         "Выберыце ўкладку або акно прайгравальніка ў дыялогавым акне абагульвання браўзера.",
+    "Selected item": "Выбраны элемент",
+    "Selected text color": "Колер вылучанага тэксту",
     "Send request": "Адправіць запыт",
     "Send settings": "Адправіць налады",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1045,6 +1066,7 @@ var keyStrings = {
     "Subscription information": "Інфармацыя пра падпіску",
     Subtitle: "Субцітры",
     "Subtitle appearance": "Афармленне субтытраў",
+    "Surface color": "Колер паверхні",
     Switch: "Пераключыць",
     "Switch sound track": "Змяніць гукавую дарожку",
     "Switch subtitle": "Змяніць субцітры",
@@ -1153,6 +1175,7 @@ var keyStrings = {
         "Выкарыстоўвайце камандны сервер HTTPS для аддаленай дыягностыкі.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Выкарыстоўвайце HTTP або HTTPS без імя карыстальніка і пароля ў адрасе.",
+    "Use inherited color": "Выкарыстоўваць успадкаваны колер",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "УЛЕВА/УПРАВА — выбраць элемент, OK — выканаць дзеянне, УВЕРХ/УНІЗ — прагартаць.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1177,6 +1200,7 @@ var keyStrings = {
         "Не ўдалося загрузіць VPortal. Праверце спасылку, ключ доступу і даступнасць партала.",
     volume: "гучнасць",
     "Waiting for sign-in…": "Чаканне ўваходу...",
+    "Warm graphite": "Цёплы графіт",
     "Wrong parental code !!!": "Няправільны бацькоўскі код!!!",
     "Xtream Codes Provider": "Правайдар Xtream Codes",
     "Xtream Codes settings": "Налады Xtream Codes",

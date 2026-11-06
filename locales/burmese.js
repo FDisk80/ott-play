@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "ညွှန်ကြားချက်တစ်ခုကို မီဒီယာဖွင့်စက်က ပယ်ချခဲ့သည်။ ၎င်း၏ဝန်ဆောင်မှုပေးသူနှင့် ဆက်တင်များကို စစ်ဆေးပါ။",
     About: "အကြောင်း",
+    "Accent color": "အလေးပေးအရောင်",
     "Access code": "အသုံးပြုခွင့်ကုဒ်",
     "Access denied. Check the server access code.":
         "အသုံးပြုခွင့်ကို ငြင်းပယ်ထားသည်။ ဆာဗာဝင်ရောက်ခွင့်ကုဒ်ကို စစ်ဆေးပါ။",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API မအောင်မြင်ပါ၊ M3U ကြိုးစားနေသည်...",
     "API Server": "API ဆာဗာ",
     "API server URL": "API ဆာဗာ URL",
+    Apply: "အသုံးပြုရန်",
+    "Apply changes to this draft, then use Save Settings.":
+        "ဤမူကြမ်းတွင် ပြောင်းလဲမှုများကို အသုံးပြုပြီး «ဆက်တင်များကို သိမ်းဆည်းပါ။» ကို ရွေးပါ။",
     "Applying HTTP remote settings...": "HTTP အဝေးထိန်းဆက်တင်များကို အသုံးပြုနေသည်...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "%1 အတွက် ကုဒ်ကို ott approve NAME CODE ဖြင့် အတည်ပြုပါ-",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "အပြာရောင်",
     "Bookmark age (days): %1": "စာညှပ်အသက် (ရက်)- %1",
     "Bookmark age: %1 days": "စာညှပ်အသက်- %1 ရက်များ",
+    "Border color": "ဘောင်အရောင်",
     Brightness: "တောက်ပမှု",
     "Browse folders": "ဖိုင်တွဲများကို ရှာဖွေပါ။",
     "Buffer Size, s": "ကြိုတင်သိမ်းဆည်းမှု အရွယ်အစား၊ စက္ကန့်",
@@ -186,6 +191,7 @@ var keyStrings = {
     "Cloud transfer failed": "Cloud လွှဲပြောင်းမှု မအောင်မြင်ပါ။",
     Code: "ကုဒ်",
     Color: "အရောင်",
+    "Color schemes": "အရောင်အစီအစဉ်များ",
     "Color spectrum": "အရောင်ရောင်စဉ်",
     "Command server": "ညွှန်ကြားချက် ဆာဗာ",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -322,6 +328,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "HTTP အဝေးထိန်းခလုတ်ကို အပ်ဒိတ်မလုပ်နိုင်ခဲ့ပါ။",
     Country: "နိုင်ငံ",
     "Create category": "အမျိုးအစားကို ဖန်တီးပါ။",
+    Custom: "စိတ်ကြိုက်",
     current: "လက်ရှိ",
     "Debug enabled. Restart to apply.":
         "အမှားရှာပြင်ခြင်းကို ဖွင့်ထားသည်။ လျှောက်ထားရန် ပြန်လည်စတင်ပါ။",
@@ -479,6 +486,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG ရင်းမြစ် HTTP %1 ပြန်ပေးသည်",
     "EPG source: %1": "EPG အရင်းအမြစ်- %1",
     "EPG stopped during: %1": "EPG ကာလအတွင်း ရပ်သွားသည်- %1",
+    "EPG time color": "EPG အချိန်အရောင်",
     "EPG unavailable on this browser": "EPG ကို ဤဘရောက်ဆာတွင် မရရှိနိုင်ပါ။",
     "EPG unavailable: %1": "EPG မရနိုင်ပါ- %1",
     "EPG update failed; using saved programme guide":
@@ -546,6 +554,7 @@ var keyStrings = {
     "Hide / Return": "ဖျောက်/ရှိုး",
     "Hide provider settings?": "ဝန်ဆောင်မှုပေးသူ ဆက်တင်များကို ဖျောက်မလား။",
     "Hide providers?": "ဝန်ဆောင်မှုပေးသူများကို ဝှက်မလား။",
+    "High contrast": "ကွာခြားမှုမြင့်",
     "History in Media Library": "မီဒီယာစာကြည့်တိုက်ရှိ သမိုင်း",
     "History of watched movies": "ကြည့်ရှုမှုမှတ်တမ်း",
     Home: "ပင်မ",
@@ -553,6 +562,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP အဝေးထိန်းခလုတ်ကို ဤစက်ပစ္စည်းတွင် မရရှိနိုင်ပါ။",
     "HTTPS support": "HTTPS ပံ့ပိုးမှု",
+    Hue: "အရောင်အသွေး",
     ID: "ID",
     "Import settings": "ဆက်တင်များ တင်သွင်းရန်",
     "In live mode: <br/>": "တိုက်ရိုက်မုဒ်တွင်-<br/>",
@@ -560,6 +570,8 @@ var keyStrings = {
     "Infobar display timeout, s": "အင်ဖိုဘားပြသမှု အချိန်ကုန်ခြင်း၊ s",
     "Infobar settings": "အင်ဖိုဘား ဆက်တင်များ",
     Information: "အချက်အလက်",
+    Inherited: "ဆက်ခံထားသည်",
+    "Interface colors": "မျက်နှာပြင်အရောင်များ",
     "Interface credits": "အင်တာဖေ့စ် ဖန်တီးရာတွင် ပါဝင်သူများ",
     "Interface mode": "အင်တာဖေ့စ် မုဒ်",
     "Interface settings": "အင်တာဖေ့စ်ဆက်တင်များ",
@@ -568,6 +580,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "မမှန်ကန်သော ချန်နယ်လင့်ခ်။ ကက်ဘိနက်စီးကြောင်း URL (ဥပမာ subdomain.cdn-domain.tld) တွင်ကဲ့သို့ လက်ခံသူအပြည့်ထည့်ပါ",
     "Invalid cloud settings response": "မမှန်ကန်သော cloud ဆက်တင်များ တုံ့ပြန်မှု",
+    "Invalid color value": "အရောင်တန်ဖိုးမမှန်ပါ",
     "Invalid protected source configuration":
         "အကာအကွယ်ပေးထားသော ရင်းမြစ်ဖွဲ့စည်းပုံ မမှန်ကန်ပါ။",
     "Invalid range: %1-%2": "အပိုင်းအခြား မမှန်ပါ: %1-%2",
@@ -580,6 +593,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV ဆက်တင်များ",
     "Label (optional)": "အမည် (မဖြည့်လည်းရ)",
+    Light: "အလင်း",
     "List created": "စာရင်းဖန်တီးထားသည်။",
     "List deleted": "စာရင်းကို ဖျက်လိုက်ပါပြီ။",
     "List location": "စာရင်းအနေအထား",
@@ -641,6 +655,7 @@ var keyStrings = {
     "Media Library URL": "မီဒီယာစာကြည့်တိုက် URL",
     Menu: "မီနူး",
     "Menu items settings": "မီနူးအကြောင်းအရာ ဆက်တင်များ",
+    Midnight: "သန်းခေါင်ယံ",
     Modern: "ခေတ်မီ",
     "Modern interface is unavailable. Classic remains active.":
         "ခေတ်မီ အင်တာဖေ့စ်ကို မရရှိနိုင်ပါ။ မူလပုံစံကို ဆက်လက်အသုံးပြုထားသည်။",
@@ -686,6 +701,7 @@ var keyStrings = {
     no: "မဟုတ်ပါ",
     "no epg at current time": "လက်ရှိအချိန်တွင် EPG မရှိပါ။",
     "not set": "မသတ်မှတ်ထားဘူး။",
+    Ocean: "သမုဒ္ဒရာ",
     Off: "ပိတ်",
     Ok: "အိုကေ",
     On: "ဖွင့်",
@@ -721,6 +737,7 @@ var keyStrings = {
         "တွဲချိတ်ခြင်းဆာဗာကို မရရှိနိုင်ပါ။ ထပ်ကြိုးစားရန် ဆာဗာကို ထပ်မံရှာဖွေပါ။",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "တွဲချိတ်ခြင်းကို ပယ်ချခဲ့သည် သို့မဟုတ် မမှန်ကန်သော အတည်ပြုချက်ကို ပြန်ပေးခဲ့သည်။ ထပ်ကြိုးစားရန် ဆာဗာကို ထပ်မံရှာဖွေပါ။",
+    Palette: "အရောင်စုံ",
     "Parental control": "မိဘအုပ်ထိန်းမှု",
     Password: "စကားဝှက်",
     "Paste settings JSON": "ဆက်တင်များ JSON ကို ကူးထည့်ပါ။",
@@ -766,6 +783,7 @@ var keyStrings = {
     Prepaid: "ကြိုတင်ငွေပေးချေခြင်း။",
     "Preparing secure remote input...": "လုံခြုံသော အဝေးထိန်းထည့်သွင်းမှုကို ပြင်ဆင်နေသည်...",
     Prev: "ယခင်",
+    Preview: "ကြိုတင်ကြည့်ရန်",
     "Preview in channel list": "ချန်နယ်စာရင်းတွင် အစမ်းကြည့်ပါ။",
     Previous: "ယခင်",
     "Privacy policy": "ကိုယ်ရေးကိုယ်တာမူဝါဒ",
@@ -900,6 +918,7 @@ var keyStrings = {
     Search: "ရှာရန်",
     "Search languages": "ဘာသာစကားများကို ရှာဖွေပါ။",
     "Search programme": "အစီအစဉ်ကို ရှာဖွေပါ",
+    "Secondary text color": "ဒုတိယစာသားအရောင်",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "လုံခြုံသော အဝေးထိန်းထည့်သွင်းမှု မစတင်နိုင်ပါ။ ကျေးဇူးပြု၍ ထပ်စမ်းကြည့်ပါ သို့မဟုတ် မျက်နှာပြင်ပေါ်ရှိ ကီးဘုတ်ကို အသုံးပြုပါ။",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -920,6 +939,8 @@ var keyStrings = {
         "ဘရောင်ဇာရှိ ဖန်သားပြင်ဓာတ်ပုံရင်းမြစ်ကို ရွေးပါ။",
     "Select the player tab or window in the browser sharing dialog.":
         "ဘရောင်ဇာမျှဝေခြင်းဒိုင်ယာလော့ဂ်ရှိ ပလေယာတဘ် သို့မဟုတ် ဝင်းဒိုးကို ရွေးပါ။",
+    "Selected item": "ရွေးထားသောအရာ",
+    "Selected text color": "ရွေးထားသောစာသားအရောင်",
     "Send request": "တောင်းဆိုချက်ကို ပေးပို့ပါ။",
     "Send settings": "ဆက်တင်များကို ပို့ပါ။",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1033,6 +1054,7 @@ var keyStrings = {
     "Subscription information": "စာရင်းသွင်းမှုအချက်အလက်",
     Subtitle: "စာတန်းထိုး",
     "Subtitle appearance": "စာတန်းထိုး ပုံစံ",
+    "Surface color": "မျက်နှာပြင်၏အရောင်",
     Switch: "ပြောင်းပါ။",
     "Switch sound track": "အသံလမ်းကြောင်း ပြောင်းရန်",
     "Switch subtitle": "စာတန်းထိုး ပြောင်းရန်",
@@ -1133,6 +1155,7 @@ var keyStrings = {
         "အဝေးမှ ရောဂါရှာဖွေခြင်းအတွက် HTTPS အမိန့်ဆာဗာကို အသုံးပြုပါ။",
     "Use HTTP or HTTPS without a username or password in the address.":
         "လိပ်စာရှိ သုံးစွဲသူအမည် သို့မဟုတ် စကားဝှက်မပါဘဲ HTTP သို့မဟုတ် HTTPS ကို အသုံးပြုပါ။",
+    "Use inherited color": "ဆက်ခံထားသောအရောင်ကိုသုံးရန်",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "ထိန်းချုပ်မှုတစ်ခုကို ရွေးချယ်ရန် ဘယ်/ညာကို အသုံးပြုပါ၊ ၎င်းကို အသက်သွင်းရန် OK နှင့် အပေါ်/အောက် လှိမ့်ရန်။",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1155,6 +1178,7 @@ var keyStrings = {
         "VPortal ကို ဖွင့်၍မရပါ။ လင့်ခ်၊ ဝင်သုံးကီးနှင့် ပေါ်တယ်ရရှိနိုင်မှုတို့ကို စစ်ဆေးပါ။",
     volume: "အသံအတိုးအကျယ်",
     "Waiting for sign-in…": "လက်မှတ်ထိုးဝင်ရန် စောင့်ဆိုင်းနေသည်...",
+    "Warm graphite": "နွေးသောဂရက်ဖိုက်",
     "Wrong parental code !!!": "မိဘကုဒ် မှားနေသည်။",
     "Xtream Codes Provider": "Xtream ကုဒ်များ ပံ့ပိုးပေးသူ",
     "Xtream Codes settings": "Xtream ကုဒ်များ ဆက်တင်များ",

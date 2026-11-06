@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "Medijski reproduktor je odbio naredbu. Provjerite njegovog provajdera i postavke.",
     About: "O programu",
+    "Accent color": "Boja naglašavanja",
     "Access code": "Pristupni kod",
     "Access denied. Check the server access code.":
         "Pristup odbijen. Provjerite pristupni kod servera.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API nije uspio, pokušavam M3U…",
     "API Server": "API server",
     "API server URL": "API server URL",
+    Apply: "Primijeni",
+    "Apply changes to this draft, then use Save Settings.":
+        "Primijenite promjene na ovaj nacrt, a zatim izaberite Spremi postavke.",
     "Applying HTTP remote settings...": "Primjena daljinskih postavki HTTP...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "Odobrite kod za %1 pomoću ott approve NAME CODE:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "Plava",
     "Bookmark age (days): %1": "Starost oznaka (dana): %1",
     "Bookmark age: %1 days": "Starost oznake: %1 dana",
+    "Border color": "Boja obruba",
     Brightness: "Svjetlina",
     "Browse folders": "Pregledajte foldere",
     "Buffer Size, s": "Veličina pufera, s",
@@ -192,6 +197,7 @@ var keyStrings = {
     "Cloud transfer failed": "Prijenos u oblak nije uspio",
     Code: "Šifra",
     Color: "Boja",
+    "Color schemes": "Šeme boja",
     "Color spectrum": "Spektar boja",
     "Command server": "Naredbeni server",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -331,6 +337,7 @@ var keyStrings = {
         "Nije moguće ažurirati daljinski upravljač HTTP.",
     Country: "Država",
     "Create category": "Stvorite kategoriju",
+    Custom: "Prilagođeno",
     current: "trenutni",
     "Debug enabled. Restart to apply.":
         "Otklanjanje pogrešaka je uključeno. Ponovno pokrenite za primjenu.",
@@ -494,6 +501,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG izvor vratio HTTP %1",
     "EPG source: %1": "EPG izvor: %1",
     "EPG stopped during: %1": "EPG zaustavljen tijekom: %1",
+    "EPG time color": "Boja vremena u EPG-u",
     "EPG unavailable on this browser": "EPG nedostupan u ovom pregledniku",
     "EPG unavailable: %1": "EPG nedostupan: %1",
     "EPG update failed; using saved programme guide":
@@ -567,6 +575,7 @@ var keyStrings = {
     "Hide / Return": "Sakrij / prikaži",
     "Hide provider settings?": "Želite li sakriti postavke davatelja usluga?",
     "Hide providers?": "Sakriti pružatelje usluga?",
+    "High contrast": "Visoki kontrast",
     "History in Media Library": "Historija u medijskoj biblioteci",
     "History of watched movies": "Historija gledanja",
     Home: "Početna",
@@ -574,6 +583,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP daljinski upravljač nije dostupan na ovom uređaju.",
     "HTTPS support": "HTTPS podrška",
+    Hue: "Nijansa",
     ID: "ID",
     "Import settings": "Uvezi postavke",
     "In live mode: <br/>": "U načinu prijenosa uživo:<br/>",
@@ -581,6 +591,8 @@ var keyStrings = {
     "Infobar display timeout, s": "Vrijeme prikaza informacijske trake, s",
     "Infobar settings": "Postavke info trake",
     Information: "Informacije",
+    Inherited: "Naslijeđeno",
+    "Interface colors": "Boje interfejsa",
     "Interface credits": "Autori interfejsa",
     "Interface mode": "Način interfejsa",
     "Interface settings": "Postavke interfejsa",
@@ -589,6 +601,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "Nevažeći link kanala! Unesite puni naziv hosta iz URL-a toka na računu provajdera (npr. subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "Nevažeći odgovor postavki oblaka",
+    "Invalid color value": "Neispravna vrijednost boje",
     "Invalid protected source configuration":
         "Nevažeća konfiguracija zaštićenog izvora",
     "Invalid range: %1-%2": "Neispravan raspon: %1-%2",
@@ -601,6 +614,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV postavke",
     "Label (optional)": "Oznaka (neobavezno)",
+    Light: "Svijetlo",
     "List created": "Popis je napravljen",
     "List deleted": "Popis izbrisan",
     "List location": "Pozicija popisa",
@@ -663,6 +677,7 @@ var keyStrings = {
     "Media Library URL": "URL medijske biblioteke",
     Menu: "Meni",
     "Menu items settings": "Postavke stavki izbornika",
+    Midnight: "Ponoć",
     Modern: "Moderni",
     "Modern interface is unavailable. Classic remains active.":
         "Moderni interfejs nije dostupan. Klasični ostaje aktivan.",
@@ -709,6 +724,7 @@ var keyStrings = {
     no: "Ne",
     "no epg at current time": "Nema EPG trenutno",
     "not set": "nije postavljeno",
+    Ocean: "Okean",
     Off: "isključeno",
     Ok: "U redu",
     On: "Uključeno",
@@ -744,6 +760,7 @@ var keyStrings = {
         "Server za uparivanje nije dostupan. Ponovno pronađite server za ponovni pokušaj.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "Uparivanje je odbijeno ili je vraćeno nevažeće odobrenje. Ponovno pronađite server za ponovni pokušaj.",
+    Palette: "Paleta",
     "Parental control": "Roditeljska kontrola",
     Password: "Lozinka",
     "Paste settings JSON": "Zalijepi postavke JSON",
@@ -789,6 +806,7 @@ var keyStrings = {
     Prepaid: "Plaćanje unaprijed",
     "Preparing secure remote input...": "Priprema sigurnog daljinskog unosa...",
     Prev: "Prethodno",
+    Preview: "Pregled",
     "Preview in channel list": "Pregled na popisu kanala",
     Previous: "Prethodno",
     "Privacy policy": "Politika privatnosti",
@@ -924,6 +942,7 @@ var keyStrings = {
     Search: "Traži",
     "Search languages": "Traži jezike",
     "Search programme": "Pretraži program",
+    "Secondary text color": "Boja sekundarnog teksta",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "Sigurni daljinski unos nije se mogao pokrenuti. Pokušajte ponovo ili koristite tastaturu na ekranu.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -945,6 +964,8 @@ var keyStrings = {
         "Izaberite izvor snimka ekrana u pretraživaču",
     "Select the player tab or window in the browser sharing dialog.":
         "Izaberite karticu plejera ili prozor u dijalogu za dijeljenje pretraživača.",
+    "Selected item": "Odabrana stavka",
+    "Selected text color": "Boja odabranog teksta",
     "Send request": "Pošalji zahtjev",
     "Send settings": "Pošalji postavke",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1058,6 +1079,7 @@ var keyStrings = {
     "Subscription information": "Podaci o pretplati",
     Subtitle: "Titlovi",
     "Subtitle appearance": "Izgled titlova",
+    "Surface color": "Boja površine",
     Switch: "Prebacite",
     "Switch sound track": "Promijeni zvučni zapis",
     "Switch subtitle": "Promijeni titlove",
@@ -1165,6 +1187,7 @@ var keyStrings = {
         "Koristite HTTPS naredbeni server za daljinsku dijagnostiku.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "Koristite HTTP ili HTTPS bez korisničkog imena ili lozinke u adresi.",
+    "Use inherited color": "Koristi naslijeđenu boju",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "Koristite LIJEVO/DESNO za odabir kontrole, OK za aktiviranje i GORE/DOLJE za pomicanje.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1188,6 +1211,7 @@ var keyStrings = {
         "Nije moguće učitati VPortal. Provjerite dostupnost poveznice, pristupnog ključa i portala.",
     volume: "glasnoća",
     "Waiting for sign-in…": "Čekanje na prijavu…",
+    "Warm graphite": "Topli grafit",
     "Wrong parental code !!!": "Pogrešan roditeljski kod!",
     "Xtream Codes Provider": "Provajder Xtream Codes",
     "Xtream Codes settings": "Xtream Codes postavke",

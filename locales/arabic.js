@@ -41,6 +41,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "تم رفض الأمر من قبل المشغّل. تحقق من المزود والإعدادات الخاصة به.",
     About: "حول",
+    "Accent color": "لون التمييز",
     "Access code": "رمز الوصول",
     "Access denied. Check the server access code.":
         "تم رفض الوصول. تحقق من رمز الوصول إلى الخادم.",
@@ -82,6 +83,9 @@ var keyStrings = {
     "API failed, trying M3U...": "فشل API، حاول M3U...",
     "API Server": "خادم API",
     "API server URL": "خادم API URL",
+    Apply: "تطبيق",
+    "Apply changes to this draft, then use Save Settings.":
+        "طبّق التغييرات على هذه المسودة، ثم اختر حفظ الإعدادات.",
     "Applying HTTP remote settings...": "تطبيق إعدادات HTTP عن بعد...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "الموافقة على كود %1 مع ott approve NAME CODE:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "الأزرق",
     "Bookmark age (days): %1": "عمر الإشارة المرجعية (بالأيام): %1",
     "Bookmark age: %1 days": "عمر الإشارة المرجعية: %1 أيام",
+    "Border color": "لون الحدود",
     Brightness: "السطوع",
     "Browse folders": "تصفح المجلدات",
     "Buffer Size, s": "حجم المخزن المؤقت، ق",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "فشل النقل السحابي",
     Code: "الكود",
     Color: "اللون",
+    "Color schemes": "أنظمة الألوان",
     "Color spectrum": "طيف الألوان",
     "Command server": "خادم الأوامر",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -321,6 +327,7 @@ var keyStrings = {
         "تعذر تحديث جهاز التحكم عن بعد HTTP.",
     Country: "البلد",
     "Create category": "إنشاء فئة",
+    Custom: "مخصص",
     current: "الحالي",
     "Debug enabled. Restart to apply.":
         "تم تفعيل التصحيح. أعد التشغيل لتطبيق التغيير.",
@@ -479,6 +486,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "إرجاع مصدر EPG HTTP %1",
     "EPG source: %1": "مصدر EPG: %1",
     "EPG stopped during: %1": "توقف EPG أثناء: %1",
+    "EPG time color": "لون وقت دليل البرامج",
     "EPG unavailable on this browser": "EPG غير متوفر في هذا المتصفح",
     "EPG unavailable: %1": "EPG غير متاح: %1",
     "EPG update failed; using saved programme guide":
@@ -547,6 +555,7 @@ var keyStrings = {
     "Hide / Return": "إخفاء/إظهار",
     "Hide provider settings?": "إخفاء إعدادات المزود؟",
     "Hide providers?": "إخفاء المزودين؟",
+    "High contrast": "تباين عالٍ",
     "History in Media Library": "التاريخ في مكتبة الوسائط",
     "History of watched movies": "مشاهدة التاريخ",
     Home: "الرئيسية",
@@ -554,6 +563,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "جهاز التحكم عن بعد HTTP غير متوفر على هذا الجهاز.",
     "HTTPS support": "دعم HTTPS",
+    Hue: "درجة اللون",
     ID: "ID",
     "Import settings": "استيراد الإعدادات",
     "In live mode: <br/>": "في الوضع المباشر:<br/>",
@@ -561,6 +571,8 @@ var keyStrings = {
     "Infobar display timeout, s": "مهلة عرض شريط المعلومات، s",
     "Infobar settings": "إعدادات شريط المعلومات",
     Information: "المعلومات",
+    Inherited: "موروث",
+    "Interface colors": "ألوان الواجهة",
     "Interface credits": "المساهمون في الواجهة",
     "Interface mode": "وضع الواجهة",
     "Interface settings": "إعدادات الواجهة",
@@ -569,6 +581,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "رابط القناة غير صالح! أدخل المضيف الكامل كما هو الحال في دفق الخزانة URL (على سبيل المثال، subdomain.cdn-domain.tld)",
     "Invalid cloud settings response": "استجابة إعدادات السحابة غير صالحة",
+    "Invalid color value": "قيمة لون غير صالحة",
     "Invalid protected source configuration": "تكوين المصدر المحمي غير صالح",
     "Invalid range: %1-%2": "نطاق غير صالح: %1-%2",
     "Invalid setting": "الإعداد غير صالح",
@@ -580,6 +593,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "إعدادات KORONA TV",
     "Label (optional)": "التسمية (اختياري)",
+    Light: "فاتح",
     "List created": "تم إنشاء القائمة",
     "List deleted": "تم حذف القائمة",
     "List location": "موقف القائمة",
@@ -641,6 +655,7 @@ var keyStrings = {
     "Media Library URL": "مكتبة الوسائط URL",
     Menu: "القائمة",
     "Menu items settings": "إعدادات عنصر القائمة",
+    Midnight: "منتصف الليل",
     Modern: "حديث",
     "Modern interface is unavailable. Classic remains active.":
         "الواجهة الحديثة غير متاحة. تظل الواجهة الكلاسيكية نشطة.",
@@ -686,6 +701,7 @@ var keyStrings = {
     no: "لا",
     "no epg at current time": "لا يوجد EPG في الوقت الحالي",
     "not set": "غير محدد",
+    Ocean: "المحيط",
     Off: "إيقاف",
     Ok: "موافق",
     On: "تشغيل",
@@ -721,6 +737,7 @@ var keyStrings = {
         "خادم الاقتران غير متاح. ابحث عن الخادم مرة أخرى لإعادة المحاولة.",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "تم رفض الاقتران أو تم إرجاع موافقة غير صالحة. ابحث عن الخادم مرة أخرى لإعادة المحاولة.",
+    Palette: "لوحة الألوان",
     "Parental control": "الرقابة الأبوية",
     Password: "كلمة المرور",
     "Paste settings JSON": "لصق الإعدادات JSON",
@@ -766,6 +783,7 @@ var keyStrings = {
     Prepaid: "الدفع المسبق",
     "Preparing secure remote input...": "جارٍ تحضير الإدخال الآمن عن بعد...",
     Prev: "السابق",
+    Preview: "معاينة",
     "Preview in channel list": "معاينة في قائمة القنوات",
     Previous: "السابق",
     "Privacy policy": "سياسة الخصوصية",
@@ -897,6 +915,7 @@ var keyStrings = {
     Search: "البحث",
     "Search languages": "البحث عن لغة",
     "Search programme": "ابحث عن برنامج",
+    "Secondary text color": "لون النص الثانوي",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "تعذر بدء الإدخال الآمن عن بعد. الرجاء المحاولة مرة أخرى أو استخدام لوحة المفاتيح التي تظهر على الشاشة.",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -916,6 +935,8 @@ var keyStrings = {
     "Select screenshot source in browser": "حدد مصدر لقطة الشاشة في المتصفح",
     "Select the player tab or window in the browser sharing dialog.":
         "حدد علامة تبويب أو نافذة المشغل في مربع حوار مشاركة المتصفح.",
+    "Selected item": "العنصر المحدد",
+    "Selected text color": "لون النص المحدد",
     "Send request": "إرسال الطلب",
     "Send settings": "إعدادات الإرسال",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1030,6 +1051,7 @@ var keyStrings = {
     "Subscription information": "معلومات الاشتراك",
     Subtitle: "الترجمة",
     "Subtitle appearance": "مظهر الترجمة",
+    "Surface color": "لون السطح",
     Switch: "التبديل",
     "Switch sound track": "تبديل المسار الصوتي",
     "Switch subtitle": "تبديل الترجمة",
@@ -1133,6 +1155,7 @@ var keyStrings = {
         "استخدم خادم الأوامر HTTPS للتشخيص عن بعد.",
     "Use HTTP or HTTPS without a username or password in the address.":
         "استخدم HTTP أو HTTPS بدون اسم مستخدم أو كلمة مرور في العنوان.",
+    "Use inherited color": "استخدام اللون الموروث",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "استخدم يسار/يمين لتحديد عنصر تحكم، وموافق لتنشيطه، وأعلى/أسفل للتمرير.",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1156,6 +1179,7 @@ var keyStrings = {
         "تعذر تحميل VPortal. تحقق من الرابط ومفتاح الوصول وتوافر البوابة.",
     volume: "مستوى الصوت",
     "Waiting for sign-in…": "في انتظار تسجيل الدخول...",
+    "Warm graphite": "غرافيت دافئ",
     "Wrong parental code !!!": "رمز الوالدين خاطئ!",
     "Xtream Codes Provider": "مزود رموز Xtream",
     "Xtream Codes settings": "إعدادات رموز Xtream",

@@ -40,6 +40,7 @@ var keyStrings = {
     "A command was rejected by the player. Check its provider and settings.":
         "একটি কমান্ড প্লেয়ার দ্বারা প্রত্যাখ্যান করা হয়েছে। এর প্রদানকারী এবং সেটিংস চেক করুন।",
     About: "সম্পর্কে",
+    "Accent color": "বিশেষ রং",
     "Access code": "অ্যাক্সেস কোড",
     "Access denied. Check the server access code.":
         "অ্যাক্সেস অস্বীকৃত। সার্ভার অ্যাক্সেস কোড চেক করুন.",
@@ -81,6 +82,9 @@ var keyStrings = {
     "API failed, trying M3U...": "API ব্যর্থ হয়েছে, M3U চেষ্টা করছে...",
     "API Server": "API সার্ভার",
     "API server URL": "API সার্ভার URL",
+    Apply: "প্রয়োগ করুন",
+    "Apply changes to this draft, then use Save Settings.":
+        "এই খসড়ায় পরিবর্তনগুলি প্রয়োগ করুন, তারপর সেটিংস সংরক্ষণ করুন বেছে নিন।",
     "Applying HTTP remote settings...": "HTTP রিমোট সেটিংস প্রয়োগ করা হচ্ছে...",
     "Approve the code for %1 with ott approve NAME CODE:":
         "ott approve NAME CODE সহ %1-এর কোড অনুমোদন করুন:",
@@ -117,6 +121,7 @@ var keyStrings = {
     Blue: "নীল",
     "Bookmark age (days): %1": "বুকমার্ক বয়স (দিন): %1",
     "Bookmark age: %1 days": "বুকমার্ক বয়স: %1 দিন",
+    "Border color": "সীমানার রং",
     Brightness: "উজ্জ্বলতা",
     "Browse folders": "ফোল্ডার ব্রাউজ করুন",
     "Buffer Size, s": "বাফার সাইজ, s",
@@ -187,6 +192,7 @@ var keyStrings = {
     "Cloud transfer failed": "ক্লাউড স্থানান্তর ব্যর্থ হয়েছে৷",
     Code: "কোড",
     Color: "রঙ",
+    "Color schemes": "রঙের বিন্যাস",
     "Color spectrum": "রঙের বর্ণালী",
     "Command server": "কমান্ড সার্ভার",
     "Command server address, device access code, local HTTP control, and remote text entry settings":
@@ -321,6 +327,7 @@ var keyStrings = {
     "Could not update HTTP remote control.": "HTTP রিমোট কন্ট্রোল আপডেট করা যায়নি।",
     Country: "দেশ",
     "Create category": "বিভাগ তৈরি করুন",
+    Custom: "নিজস্ব",
     current: "বর্তমান",
     "Debug enabled. Restart to apply.":
         "ডিবাগ চালু হয়েছে। কার্যকর করতে প্লেয়ার পুনরায় চালু করুন।",
@@ -478,6 +485,7 @@ var keyStrings = {
     "EPG source returned HTTP %1": "EPG উৎস HTTP %1 ফেরত দিয়েছে",
     "EPG source: %1": "EPG উৎস: %1",
     "EPG stopped during: %1": "EPG এই সময়ে বন্ধ হয়েছে: %1",
+    "EPG time color": "EPG সময়ের রং",
     "EPG unavailable on this browser": "EPG এই ব্রাউজারে অনুপলব্ধ৷",
     "EPG unavailable: %1": "EPG অনুপলব্ধ: %1",
     "EPG update failed; using saved programme guide":
@@ -548,6 +556,7 @@ var keyStrings = {
     "Hide / Return": "লুকান/দেখান",
     "Hide provider settings?": "প্রদানকারী সেটিংস লুকাবেন?",
     "Hide providers?": "প্রদানকারীদের লুকাবেন?",
+    "High contrast": "উচ্চ বৈসাদৃশ্য",
     "History in Media Library": "মিডিয়া লাইব্রেরিতে ইতিহাস",
     "History of watched movies": "দেখার ইতিহাস",
     Home: "হোম",
@@ -555,6 +564,7 @@ var keyStrings = {
     "HTTP remote control is unavailable on this device.":
         "HTTP রিমোট কন্ট্রোল এই ডিভাইসে অনুপলব্ধ৷",
     "HTTPS support": "HTTPS সমর্থন",
+    Hue: "বর্ণ",
     ID: "ID",
     "Import settings": "সেটিংস আমদানি করুন৷",
     "In live mode: <br/>": "সরাসরি সম্প্রচারের সময়:<br/>",
@@ -562,6 +572,8 @@ var keyStrings = {
     "Infobar display timeout, s": "ইনফো বার ডিসপ্লে টাইমআউট, এস",
     "Infobar settings": "তথ্য বার সেটিংস",
     Information: "তথ্য",
+    Inherited: "উত্তরাধিকারসূত্রে পাওয়া",
+    "Interface colors": "ইন্টারফেসের রং",
     "Interface credits": "ইন্টারফেসের অবদানকারীরা",
     "Interface mode": "ইন্টারফেস মোড",
     "Interface settings": "ইন্টারফেস সেটিংস",
@@ -570,6 +582,7 @@ var keyStrings = {
     "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)":
         "অবৈধ চ্যানেল লিঙ্ক! আপনার প্রদানকারী অ্যাকাউন্ট পৃষ্ঠায় URL স্ট্রীম থেকে সম্পূর্ণ হোস্টনাম লিখুন (উদাহরণস্বরূপ subdomain.cdn-domain.tld )।",
     "Invalid cloud settings response": "অবৈধ ক্লাউড সেটিংস প্রতিক্রিয়া",
+    "Invalid color value": "রঙের মান অবৈধ",
     "Invalid protected source configuration": "অবৈধ সুরক্ষিত উৎস কনফিগারেশন",
     "Invalid range: %1-%2": "অবৈধ পরিসর: %1-%2",
     "Invalid setting": "অবৈধ সেটিং",
@@ -581,6 +594,7 @@ var keyStrings = {
     "KORONA TV": "KORONA TV",
     "KORONA TV settings": "KORONA TV সেটিংস",
     "Label (optional)": "লেবেল (ঐচ্ছিক)",
+    Light: "হালকা",
     "List created": "তালিকা তৈরি করা হয়েছে",
     "List deleted": "তালিকা মুছে ফেলা হয়েছে",
     "List location": "তালিকা অবস্থান",
@@ -642,6 +656,7 @@ var keyStrings = {
     "Media Library URL": "মিডিয়া লাইব্রেরি URL",
     Menu: "মেনু",
     "Menu items settings": "মেনু আইটেম সেটিংস",
+    Midnight: "মধ্যরাত",
     Modern: "আধুনিক",
     "Modern interface is unavailable. Classic remains active.":
         "আধুনিক ইন্টারফেস উপলব্ধ নয়। ক্লাসিক সক্রিয় থাকবে।",
@@ -687,6 +702,7 @@ var keyStrings = {
     no: "না",
     "no epg at current time": "বর্তমান সময়ে কোন EPG নেই",
     "not set": "সেট করা হয়নি",
+    Ocean: "মহাসাগর",
     Off: "বন্ধ",
     Ok: "ঠিক আছে",
     On: "চালু",
@@ -722,6 +738,7 @@ var keyStrings = {
         "পেয়ারিং সার্ভার অনুপলব্ধ৷ পুনরায় চেষ্টা করতে সার্ভারটি আবার খুঁজুন।",
     "Pairing was rejected or returned an invalid approval. Find the server again to retry.":
         "পেয়ারিং প্রত্যাখ্যান করা হয়েছে বা একটি অবৈধ অনুমোদন ফিরিয়ে দেওয়া হয়েছে। পুনরায় চেষ্টা করতে সার্ভারটি আবার খুঁজুন।",
+    Palette: "রঙের প্যালেট",
     "Parental control": "পিতামাতার নিয়ন্ত্রণ",
     Password: "পাসওয়ার্ড",
     "Paste settings JSON": "সেটিংস JSON আটকান",
@@ -766,6 +783,7 @@ var keyStrings = {
     Prepaid: "প্রিপেইড",
     "Preparing secure remote input...": "নিরাপদ দূরবর্তী ইনপুট প্রস্তুত করা হচ্ছে...",
     Prev: "আগের",
+    Preview: "পূর্বরূপ",
     "Preview in channel list": "চ্যানেল তালিকায় পূর্বরূপ",
     Previous: "আগের",
     "Privacy policy": "গোপনীয়তা নীতি",
@@ -898,6 +916,7 @@ var keyStrings = {
     Search: "অনুসন্ধান করুন",
     "Search languages": "ভাষা অনুসন্ধান করুন",
     "Search programme": "অনুষ্ঠান খুঁজুন",
+    "Secondary text color": "সহায়ক লেখার রং",
     "Secure remote input could not start. Please try again or use the on-screen keyboard.":
         "নিরাপদ দূরবর্তী ইনপুট শুরু করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন বা অন-স্ক্রীন কীবোর্ড ব্যবহার করুন।",
     "Secure remote input could not start. Please use the on-screen keyboard.":
@@ -917,6 +936,8 @@ var keyStrings = {
     "Select screenshot source in browser": "ব্রাউজারে স্ক্রিনশট উৎস নির্বাচন করুন",
     "Select the player tab or window in the browser sharing dialog.":
         "ব্রাউজার শেয়ারিং ডায়ালগে প্লেয়ার ট্যাব বা উইন্ডো নির্বাচন করুন।",
+    "Selected item": "নির্বাচিত আইটেম",
+    "Selected text color": "নির্বাচিত লেখার রং",
     "Send request": "অনুরোধ পাঠান",
     "Send settings": "পাঠান সেটিংস",
     "Send this code from your proxy in the Authorization: Bearer header.":
@@ -1027,6 +1048,7 @@ var keyStrings = {
     "Subscription information": "সাবস্ক্রিপশন তথ্য",
     Subtitle: "সাবটাইটেল",
     "Subtitle appearance": "সাবটাইটেলের চেহারা",
+    "Surface color": "পৃষ্ঠের রং",
     Switch: "স্যুইচ করুন",
     "Switch sound track": "অডিও ট্র্যাক পরিবর্তন করুন",
     "Switch subtitle": "সাবটাইটেল পরিবর্তন করুন",
@@ -1127,6 +1149,7 @@ var keyStrings = {
         "দূরবর্তী ডায়াগনস্টিকসের জন্য একটি HTTPS কমান্ড সার্ভার ব্যবহার করুন।",
     "Use HTTP or HTTPS without a username or password in the address.":
         "ঠিকানায় ব্যবহারকারীর নাম বা পাসওয়ার্ড ছাড়া HTTP বা HTTPS ব্যবহার করুন।",
+    "Use inherited color": "উত্তরাধিকারসূত্রে পাওয়া রং ব্যবহার করুন",
     "Use LEFT/RIGHT to select a control, OK to activate, and UP/DOWN to scroll.":
         "একটি নিয়ন্ত্রণ নির্বাচন করতে বাম/ডান ব্যবহার করুন, এটি সক্রিয় করতে ঠিক আছে এবং স্ক্রোল করতে UP/DOWN ব্যবহার করুন৷",
     "Use the full link, including the part after #. Do not share it with anyone else.":
@@ -1150,6 +1173,7 @@ var keyStrings = {
         "VPortal লোড করা যায়নি। লিঙ্ক, অ্যাক্সেস কী এবং পোর্টাল উপলব্ধতা পরীক্ষা করুন।",
     volume: "শব্দের মাত্রা",
     "Waiting for sign-in…": "সাইন-ইন করার জন্য অপেক্ষা করা হচ্ছে...",
+    "Warm graphite": "উষ্ণ গ্রাফাইট",
     "Wrong parental code !!!": "ভুল প্যারেন্টাল কোড!",
     "Xtream Codes Provider": "Xtream কোড প্রদানকারী",
     "Xtream Codes settings": "Xtream কোড সেটিংস",
