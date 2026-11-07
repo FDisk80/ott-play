@@ -8242,7 +8242,7 @@ mod tests {
             .await
             .unwrap();
         assert_ne!(new.id, old.id);
-        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+        let completion = tokio::time::timeout(std::time::Duration::from_secs(2), async {
             loop {
                 if library
                     .scan
@@ -8257,8 +8257,38 @@ mod tests {
                 tokio::task::yield_now().await;
             }
         })
-        .await
-        .unwrap();
+        .await;
+        if completion.is_err() {
+            let diagnostic = match library.scan.try_lock() {
+                Ok(scan) => {
+                    let source = scan.source_scans.get(&new.id);
+                    let state = match source.map(|source| source.state) {
+                        Some(state @ ("pending" | "scanning" | "complete" | "error")) => state,
+                        Some(_) => "other",
+                        None => "missing",
+                    };
+                    let error = source.and_then(|source| source.error.as_deref());
+                    let reason = match error {
+                        Some(NATIVE_SCAN_LIMIT) => "scan-limit",
+                        Some("Local source could not be completely scanned") => "scan-incomplete",
+                        Some(_) => "other",
+                        None => "none",
+                    };
+                    format!(
+                        "state={state} generation={:?} jobs={} has_error={} reason={reason} first_published={:?} available={:?} old_present={} old_revoked={}",
+                        source.map(|source| source.generation),
+                        scan.jobs,
+                        error.is_some(),
+                        source.map(|source| source.first_published),
+                        source.and_then(|source| source.available),
+                        scan.source_scans.contains_key(&old.id),
+                        scan.revoked_ids.contains(&old.id),
+                    )
+                }
+                Err(_) => "scan-lock-busy".to_string(),
+            };
+            panic!("New source did not complete within 2s while old worker was held: {diagnostic}");
+        }
         drop(held);
         disconnect.await.unwrap().unwrap();
         wait_for_drain(&library.background).await;
