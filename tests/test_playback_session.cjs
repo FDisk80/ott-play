@@ -1243,7 +1243,12 @@ console.log(
 
 // Execute the real offset owner, compatibility adapter, and local banner renderer
 // together. A preview must not become a second announcement at debounce commit.
-for (const mode of [-1e11, 999900, 0]) {
+for (const [mode, guideDelay, archiveEpoch] of [
+    [-1e11, 0, null],
+    [999900, 0, 999930],
+    [0, 0, 999991],
+    [0, 3100, 999994],
+]) {
     for (const enabled of [1, 0]) {
         const c = fixture();
         const { JSDOM } = require("jsdom");
@@ -1281,14 +1286,26 @@ for (const mode of [-1e11, 999900, 0]) {
             require("./helpers/notification-banners.cjs")({
                 Date: c.Date,
             }).createNotificationBanners;
-        include(c, "src/ui/index.ts", ["showShift"]);
+        include(c, "src/ui/index.ts", ["showShift", "formatSeekOffset"]);
+        const announcements = [];
+        const showShift = c.showShift;
+        c.showShift = (text, seek) => {
+            announcements.push([text, seek]);
+            showShift(text, seek);
+        };
         c.playType = mode;
         c.playTime = 20;
+        c.Date.now = () => 1000000001 + now;
+        let finishGuide;
         if (mode === 0) {
-            c.timeShift = (delta) => c.__ottClassicArchive.rewind(delta);
+            include(c, "src/channels/index.ts", ["replayFromLiveOffset"]);
             c.ifParentalAccessChId = () => false;
-            c.getChannelEpgCached = (id, done) =>
-                done(id, [{ name: "Current", time: 999000, time_to: 1001000 }]);
+            c.getChannelEpgCached = (id, done) => {
+                finishGuide = () =>
+                    done(id, [
+                        { name: "Current", time: 999000, time_to: 1001000 },
+                    ]);
+            };
             c.getArchiveUrl = () => "archive-url";
             c.stbPlay = () => c.effects.push(["archive", c.playType]);
         }
@@ -1311,7 +1328,26 @@ for (const mode of [-1e11, 999900, 0]) {
                 "the seek OSD stays enabled independently of the notification"
             );
             tick(500);
-            assert.equal(container.firstChild, first);
+            if (mode === 0) {
+                assert.equal(typeof finishGuide, "function");
+                assert.equal(
+                    c.playType,
+                    0,
+                    "first seek still awaits the live guide"
+                );
+                tick(guideDelay);
+                finishGuide();
+            }
+            assert.equal(
+                container.firstChild,
+                guideDelay ? null : first,
+                "late archive completion cannot resurrect an expired seek banner"
+            );
+            assert.deepEqual(
+                announcements,
+                [[mode === 0 ? "<< 10 s" : ">> 10 s", true]],
+                "first live-to-archive completion cannot repaint or extend its preview"
+            );
             assert.equal(
                 info,
                 mode === 0 ? 2 : 1,
@@ -1319,21 +1355,29 @@ for (const mode of [-1e11, 999900, 0]) {
             );
             assert.deepEqual(
                 c.effects.filter((row) => ["seek", "archive"].includes(row[0])),
-                mode < 0
-                    ? [["seek", 135.9]]
-                    : [["archive", mode === 0 ? 999990 : 999930]]
+                mode < 0 ? [["seek", 135.9]] : [["archive", archiveEpoch]]
             );
             if (mode === 0) {
                 assert.equal(
                     insertions,
                     enabled,
-                    "live rewind completion updates the preview card"
+                    "first live rewind keeps the original preview card"
+                );
+                if (!guideDelay) {
+                    tick(2499);
+                    assert.equal(container.firstChild, first);
+                    tick(1);
+                }
+                assert.equal(
+                    container.firstChild,
+                    null,
+                    "commit does not start another notification lifetime"
                 );
                 continue;
             }
             c.__ottClassicPlayback.shift(10);
             assert.equal(container.firstChild, first);
-            if (first) assert.equal(first.textContent, "20");
+            if (first) assert.equal(first.textContent, ">> 20 s");
             tick(500);
             assert.equal(insertions, enabled);
             assert.equal(info, 2);

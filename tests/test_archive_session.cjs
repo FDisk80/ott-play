@@ -574,6 +574,59 @@ for (const refusal of [
 // Live rewind, programme start and live pause share a scoped guide request.
 {
     const c = fixture();
+    include(c, ["formatSeekOffset"], "src/ui/index.ts");
+    for (const [input, expected] of [
+        [-60.0009999275207519531, "<< 1 m "],
+        [60.0009999275207519531, ">> 1 m "],
+        [-61.001, "<< 1 m 1 s"],
+        [59.999, ">> 1 m "],
+        [-0.5, "<< 1 s"],
+        [0, "&nbsp;"],
+    ])
+        assert.equal(c.formatSeekOffset(input), expected);
+}
+for (const announce of [false, true]) {
+    const c = fixture();
+    include(c, ["formatSeekOffset"], "src/ui/index.ts");
+    const offset = 60.0009999275207519531;
+    c.replayFromLiveOffset(offset, announce);
+    c.locked = true;
+    c.reply(0, [{ name: "Current", time: 999000, time_to: 1001000 }]);
+    assert.equal(c.opens().length, 0);
+    c.locked = false;
+    c.prompts[0]();
+    assert.equal(c.opens().length, 1);
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().target.archiveStart,
+        Math.floor(1000000 - offset),
+        "presentation rounding does not alter the target epoch"
+    );
+    assert.deepEqual(
+        c.effects.filter((e) => e[0] === "message"),
+        announce ? [["message", "<< 1 m "]] : [],
+        "the request owns its feedback choice across guide and PIN callbacks"
+    );
+}
+for (const announce of [false, true]) {
+    const c = fixture();
+    c.replayFromLiveOffset(60, !announce);
+    c.replayFromLiveOffset(30, announce);
+    c.reply(0, [{ name: "Current", time: 999000, time_to: 1001000 }]);
+    assert.equal(
+        c.opens().length,
+        0,
+        "superseded guide cannot announce or open"
+    );
+    c.reply(1, [{ name: "Current", time: 999000, time_to: 1001000 }]);
+    assert.equal(c.opens().length, 1);
+    assert.deepEqual(
+        c.effects.filter((e) => e[0] === "message"),
+        announce ? [["message", "-30"]] : [],
+        "a suppressed request does not change the next request's feedback"
+    );
+}
+{
+    const c = fixture();
     c.timeShift(30);
     assert.equal(c.opens().length, 0);
     c.reply(0, [{ name: "Current", time: 999000, time_to: 1001000 }]);
