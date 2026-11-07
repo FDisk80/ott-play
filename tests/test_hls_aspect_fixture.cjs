@@ -643,9 +643,9 @@ test("host transition collection is bounded, ordered, and retains only typed fie
                     prefix + JSON.stringify({ step: -1 }),
                     prefix + JSON.stringify({ step: 8 }),
                     prefix +
-                        JSON.stringify({ step: 0, secret: "x".repeat(1024) }),
+                        JSON.stringify({ secret: "x".repeat(1024), step: 0 }),
                     prefix +
-                        JSON.stringify({ step: 0, secret: "😊".repeat(300) }),
+                        JSON.stringify({ secret: "😊".repeat(300), step: 0 }),
                 ])
                     emit(text);
                 emit(
