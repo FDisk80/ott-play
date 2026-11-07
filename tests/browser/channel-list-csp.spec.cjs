@@ -96,9 +96,10 @@ test("pending seek shows a bounded timeline target in Classic and Modern", async
     await page.addScriptTag({
         content:
             "(function(setTimeout,clearTimeout){" +
-            declarations("src/ui/index.ts", [
-                "_t2",
+            declarations("src/utils/helpers.ts", [
                 "formatClockTime",
+                "formatPlaybackTime",
+                "formatTwoDigits",
                 "virtualTimeshiftProg",
             ]) +
             declarations("src/channels/index.ts", ["showPlaybackSeekDialog"]) +
@@ -139,6 +140,11 @@ test("pending seek shows a bounded timeline target in Classic and Modern", async
             });
         for (const width of [1280, 360]) {
             await page.setViewportSize({ height: 720, width });
+            await page
+                .locator("#progress_span > span")
+                .evaluate((label, width) => {
+                    label.style.fontSize = width === 360 ? "24px" : "12px";
+                }, width);
             for (const [mode, delta, expected] of [
                 ["vod", 10, "05:10"],
                 ["vod", -1000, "00:00"],
@@ -167,6 +173,11 @@ test("pending seek shows a bounded timeline target in Classic and Modern", async
                 expect(g.label.right).toBeLessThanOrEqual(width + 0.5);
                 expect(g.glyphs.left).toBeGreaterThanOrEqual(-0.5);
                 expect(g.glyphs.right).toBeLessThanOrEqual(width + 0.5);
+                // Intrinsic label sizing must contain all glyphs in either skin.
+                expect(g.glyphs.left).toBeGreaterThanOrEqual(
+                    g.label.left - 0.5
+                );
+                expect(g.glyphs.right).toBeLessThanOrEqual(g.label.right + 0.5);
                 if (mode === "vod" && delta === 10) {
                     await page.evaluate(() => dialogBoxKeyHandler(keys.RIGHT));
                     await expect(
@@ -6420,6 +6431,21 @@ test("Modern fullscreen timeline and audio picker preserve the playback owner", 
             progress.x + progress.width / 4,
             progress.y - progress.height / 2 + 0.5
         );
+        await expect(page.locator("#progress_span")).toBeVisible();
+        const hoverBounds = await page
+            .locator("#progress_span > span")
+            .evaluate((span) => {
+                const range = document.createRange();
+                range.selectNodeContents(span);
+                const glyphs = range.getBoundingClientRect();
+                const box = span.getBoundingClientRect();
+                return {
+                    left: glyphs.left - box.left,
+                    right: box.right - glyphs.right,
+                };
+            });
+        expect(hoverBounds.left).toBeGreaterThanOrEqual(-0.5);
+        expect(hoverBounds.right).toBeGreaterThanOrEqual(-0.5);
         await expect
             .poll(() => page.evaluate(() => __modernSeeks.length))
             .toBe(1);

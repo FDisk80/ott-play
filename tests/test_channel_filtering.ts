@@ -41,6 +41,19 @@ async function getModule() {
 }
 
 async function runTests() {
+    const { formatPlaybackTime } = await import("../src/utils/helpers.ts");
+    for (const [seconds, expected] of [
+        [-1, "00:00"],
+        [0, "00:00"],
+        [59, "00:59"],
+        [60, "01:00"],
+        [3599, "59:59"],
+        [3599.5, "1:00:00"],
+        [3600, "1:00:00"],
+        [3601, "1:00:01"],
+    ] as const) {
+        assert.strictEqual(formatPlaybackTime(seconds), expected);
+    }
     const ch = await getModule();
     const {
         setSearchText,

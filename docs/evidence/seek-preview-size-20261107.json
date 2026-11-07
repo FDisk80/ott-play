@@ -1,0 +1,111 @@
+{
+  "status": "OBSERVED_NET_PAIR_NOT_BUILD_QUALIFICATION",
+  "issue": 1090,
+  "pullRequest": 1092,
+  "allocationKind": "BOUNDED_NEW_FEATURE_ALLOCATION",
+  "feature": "Pending seek target in the existing Classic and Modern timeline, with bounded target, reopen restoration, pointer ownership and lifecycle guards. The signed delta remains in the existing seek dialog.",
+  "allowance": {
+    "bytes": 2560,
+    "gzipBytes": 896
+  },
+  "allocationRationale": "Allocate 2560 raw / 896 gzip entry bytes for this new feature. The observed stock-to-CI net pair is 2543 / 830, leaving 17 / 66 within this explicit feature allocation. This is a reviewed bounded allocation, not a measured isolated feature cost and not an arbitrary platform-wide reserve. Existing entry headroom remains available for separately integrated changes; optimized and combined emitted bundles must still pass the strict gates.",
+  "stockBaseline": {
+    "source": "3a8b9daba822a76db39c82036a43f1634fad7c1d",
+    "releaseTag": "v1.1.67-beta.1",
+    "entryPath": "dist/player.js",
+    "entry": {
+      "bytes": 1213215,
+      "gzipBytes": 371666
+    },
+    "entrySha256": "5a6d32865ce6ad44fcd19894ba0527f7bd41b7e43f6f1c7868248bd2fc679544",
+    "measurement": {
+      "node": "22.23.4",
+      "zlib": "1.3.1-e00f703",
+      "gzipLevel": 9
+    }
+  },
+  "observedCi": {
+    "head": "d59c6e1f376a9f5cb228fb1362028e539f5ba776",
+    "headTree": "0d7cf359dea6ad47807e198719b297566a5a3f95",
+    "syntheticMerge": "95b82d44d47f807de4613824dc475fb6a49678f0",
+    "runId": 42374875526,
+    "attempt": 1,
+    "jobId": 128410949453,
+    "artifactId": 13575651504,
+    "diagnosticsSha256": "ee4931b902aaf2038c0dd54ad3f43f048db352bedc4d43d02639d4bb0a3606e8",
+    "entryPath": "dist/player.js",
+    "entry": {
+      "bytes": 1215758,
+      "gzipBytes": 372496
+    },
+    "entrySha256": "10e8c0f6f05189db4a7a5ab8db74e3694572164ebf38053dd4ae4ccc9942ea72",
+    "result": "SIZE_GATE_FAILED_BEFORE_ALLOCATION",
+    "comparisonLimit": "Different build identities; this net pair is not controlled feature isolation."
+  },
+  "observedNetDelta": {
+    "bytes": 2543,
+    "gzipBytes": 830
+  },
+  "unqualifiedEstimates": {
+    "method": "Per-module ES5 transpilation and minification, summing separate module gzip level9. Not a complete emitted bundle or artifact qualification.",
+    "optimizedImplementationPatchSha256": "1549679f850a81a4c91fd97dfd22712d4141cd8a7dd43a99b95985de71672e29",
+    "optimizedVsD59": {
+      "bytes": -258,
+      "gzipBytes": -59
+    },
+    "combinedPr1091AndOptimizedFeatureVs3a8": {
+      "bytes": 2806,
+      "gzipBytes": 961
+    }
+  },
+  "exactOptimizedBuildQualification": "PENDING_CI",
+  "oldCaps": {
+    "BUDGET": {
+      "bytes": 1215126,
+      "gzipBytes": 372086
+    },
+    "BASE_TOTAL_BUDGET": {
+      "bytes": 1903612,
+      "gzipBytes": 588923
+    },
+    "LEGACY_TOTAL_BUDGET": {
+      "bytes": 1460226,
+      "gzipBytes": 456359
+    },
+    "TOTAL_BUDGET": {
+      "bytes": 1913892,
+      "gzipBytes": 592951
+    }
+  },
+  "newCaps": {
+    "BUDGET": {
+      "bytes": 1217686,
+      "gzipBytes": 372982
+    },
+    "BASE_TOTAL_BUDGET": {
+      "bytes": 1906172,
+      "gzipBytes": 589819
+    },
+    "LEGACY_TOTAL_BUDGET": {
+      "bytes": 1462786,
+      "gzipBytes": 457255
+    },
+    "TOTAL_BUDGET": {
+      "bytes": 1916452,
+      "gzipBytes": 593847
+    }
+  },
+  "chargingRule": "Add the named entry allowance once to BUDGET, LEGACY_TOTAL_BUDGET and BASE_TOTAL_BUDGET. TOTAL_BUDGET inherits it once from BASE_TOTAL_BUDGET. Never add it per provider, per optional chunk or a second time to the complete total.",
+  "unchangedGuards": [
+    "Provider and every optional asset cap",
+    "Provider/optional/compatibility inventory",
+    "Legacy and complete aggregate content membership",
+    "Actual over-limit failure comparisons and latestCaps tests",
+    "Existing historical receipts, with this later allowance excluded only from their projections"
+  ],
+  "acceptancePending": [
+    "Exact optimized PR head must execute ordinary Classic size CI for every platform and aggregate.",
+    "Combined PR1091 and issue1090 must pass emitted-bundle size gates; module estimates do not authorize release.",
+    "Actual seek preview browser case must pass on Chromium and WebKit."
+  ]
+}

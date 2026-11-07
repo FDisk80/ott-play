@@ -116,12 +116,13 @@ function fixture() {
     });
     host.window = host;
     installTimezone(host);
-    load(host, "src/ui/index.ts", [
-        "_t2",
+    load(host, "src/ui/index.ts", ["_t2", "initBackgroundIntervals"]);
+    load(host, "src/utils/helpers.ts", [
         "formatClockTime",
-        "initBackgroundIntervals",
+        "formatPlaybackTime",
+        "formatTwoDigits",
+        "time2time",
     ]);
-    load(host, "src/utils/helpers.ts", ["formatTwoDigits", "time2time"]);
     load(host, "src/localization/index.ts", ["formatLocaleDateTime"]);
     load(host, "src/channels/index.ts", [
         "formatEpgTime",

@@ -1,11 +1,13 @@
 import { openGlobalFavorites } from "../commands/global-favorites";
 import { createSettingsEditor } from "../settings/editor";
-import { formatClockTime, virtualTimeshiftProg } from "../ui/index";
 import {
+    formatClockTime,
+    formatPlaybackTime,
     hasTmdbService,
     metadataCssUrl,
     metadataHtml,
     metadataText,
+    virtualTimeshiftProg,
 } from "../utils/helpers";
 /**
  * Channel management — data structures, navigation, favorites, parental control.
@@ -2675,7 +2677,7 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
     var finished = false;
     var revision = 0;
     var previewNode: any = null;
-    var previewOwner = { refresh: renderPreview };
+    var previewOwner = { refresh: renderPreview, suspended: false };
     function clearPreview(): void {
         if (previewNode && previewNode.__ottSeekPreviewOwner === previewOwner) {
             delete previewNode.__ottSeekPreviewOwner;
@@ -2685,16 +2687,22 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
         }
         previewNode = null;
     }
+    function current(): boolean {
+        // Host callbacks may synchronously replace or finish this dialog.
+        return (
+            !finished &&
+            context.isCurrent() &&
+            submit.current() &&
+            !finished &&
+            w.dialogBoxKeyHandler === handler
+        );
+    }
     function renderPreview(): void {
-        if (
-            finished ||
-            w.dialogBoxKeyHandler !== handler ||
-            !context.isCurrent() ||
-            !submit.current()
-        ) {
+        if (!current()) {
             finish(false);
             return;
         }
+        if (previewOwner.suspended) return;
         var bar = document.getElementById("progress_div");
         var marker = document.getElementById("progress_span");
         if (!bar || !marker || typeof bar.getBoundingClientRect !== "function")
@@ -2711,14 +2719,7 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
             return;
         }
         var preview = context.previewOffset(i);
-        // Decoder sampling and liveness reads can synchronously replace the
-        // source or dialog. Check local ownership after those host callbacks.
-        if (
-            !context.isCurrent() ||
-            !submit.current() ||
-            finished ||
-            w.dialogBoxKeyHandler !== handler
-        ) {
+        if (!current()) {
             finish(false);
             return;
         }
@@ -2750,12 +2751,8 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
         previewNode.__ottSeekPreviewOwner = previewOwner;
         var span = marker.querySelector("span");
         if (!span) return;
-        var seconds = Math.round(target);
         span.textContent = finite
-            ? (seconds >= 3600 ? Math.floor(seconds / 3600) + ":" : "") +
-              ("0" + Math.floor((seconds % 3600) / 60)).slice(-2) +
-              ":" +
-              ("0" + (seconds % 60)).slice(-2)
+            ? formatPlaybackTime(target)
             : formatClockTime(target);
         span.style.left = "";
         marker.style.display = "block";
@@ -2772,21 +2769,11 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
                     rect.left + fraction * rect.width - marker.offsetWidth / 2
                 )
             ) + "px";
+        // Both skins keep the label intrinsically sized, including its glyphs.
         var labelRect = span.getBoundingClientRect();
-        var labelLeft = labelRect.left;
-        var labelRight = labelRect.right;
-        // Modern's label is a block inside the small marker: its glyphs can
-        // extend beyond that block even though the text has no wrapping spaces.
-        var range = document.createRange();
-        range.selectNodeContents(span);
-        if (typeof range.getBoundingClientRect === "function") {
-            var textRect = range.getBoundingClientRect();
-            labelLeft = Math.min(labelLeft, textRect.left);
-            labelRight = Math.max(labelRight, textRect.right);
-        }
         span.style.left =
-            Math.max(0, -labelLeft) -
-            Math.max(0, labelRight - w.innerWidth) +
+            Math.max(0, -labelRect.left) -
+            Math.max(0, labelRect.right - w.innerWidth) +
             "px";
     }
     var submit = w.__ottClassicPlayback.guard(function (): void {
@@ -2795,6 +2782,7 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
     function finish(apply: boolean): void {
         if (finished) return;
         finished = true;
+        if (w.__ottSeekPreview === previewOwner) delete w.__ottSeekPreview;
         revision++;
         clearTimeout(t);
         if (w.removeEventListener)
@@ -2808,13 +2796,13 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
         if (w.dialogBoxKeyHandler === handler) w.dialogBoxKeyHandler = null;
     }
     function r(delta: number): void {
-        if (finished || w.dialogBoxKeyHandler !== handler) return;
-        if (!context.isCurrent() || !submit.current()) {
+        if (!current()) {
             finish(false);
             return;
         }
         clearTimeout(t);
         i += delta;
+        previewOwner.suspended = false;
         renderPreview();
         if (finished) return;
         var stepEl = document.getElementById("step");
@@ -2899,6 +2887,7 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
         }
     };
     w.dialogBoxKeyHandler = handler;
+    w.__ottSeekPreview = previewOwner;
     if (w.addEventListener) w.addEventListener("resize", renderPreview);
     var screen =
         w.__ottClassicScreenPort && w.__ottClassicScreenPort.screens.current();

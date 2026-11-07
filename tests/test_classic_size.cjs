@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 let {
+    SEEK_PREVIEW_ENTRY_ALLOWANCE,
     TIMEZONE_LOCAL_STARTUP_ALLOWANCE,
     CLIENT_INTERFACE_COLORS_ALLOWANCE,
     INTERFACE_FONT_CSP_ASSET_CORRECTION,
@@ -169,7 +170,54 @@ function capsWithoutAllowances(names) {
         );
     return baseline.exports;
 }
+const preSeekCaps = capsWithoutAllowances(["SEEK_PREVIEW_ENTRY_ALLOWANCE"]);
+// New seek preview allocation is bounded, entry-only and not build qualification.
+{
+    const evidence = require("../docs/evidence/seek-preview-size-20261107.json");
+    assert(Object.isFrozen(SEEK_PREVIEW_ENTRY_ALLOWANCE));
+    assert.deepEqual(SEEK_PREVIEW_ENTRY_ALLOWANCE, {
+        bytes: 2560,
+        gzipBytes: 896,
+    });
+    assert.deepEqual(evidence.allowance, SEEK_PREVIEW_ENTRY_ALLOWANCE);
+    assert.equal(evidence.status, "OBSERVED_NET_PAIR_NOT_BUILD_QUALIFICATION");
+    assert.equal(evidence.exactOptimizedBuildQualification, "PENDING_CI");
+    for (const name of [
+        "BUDGET",
+        "LEGACY_TOTAL_BUDGET",
+        "BASE_TOTAL_BUDGET",
+        "TOTAL_BUDGET",
+    ]) {
+        assert.deepEqual(preSeekCaps[name], evidence.oldCaps[name]);
+        assert.deepEqual(latestCaps[name], evidence.newCaps[name]);
+        for (const metric of ["bytes", "gzipBytes"])
+            assert.equal(
+                latestCaps[name][metric] - preSeekCaps[name][metric],
+                SEEK_PREVIEW_ENTRY_ALLOWANCE[metric],
+                name + " charges the seek entry allocation exactly once"
+            );
+    }
+    for (const name of [
+        "PROVIDER_BUDGET",
+        "OPTIONAL_BUDGET",
+        "OPTIONAL_BUDGETS",
+        "LOCAL_COMPATIBILITY_ALLOWANCE",
+    ])
+        assert.deepEqual(
+            require("../scripts/classic-size.cjs")[name],
+            preSeekCaps[name],
+            name + " remains protected"
+        );
+    for (const metric of ["bytes", "gzipBytes"])
+        assert.equal(
+            evidence.observedNetDelta[metric],
+            evidence.observedCi.entry[metric] -
+                evidence.stockBaseline.entry[metric]
+        );
+}
+
 const preStartupCaps = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
 ]);
 
@@ -189,7 +237,7 @@ const preStartupCaps = capsWithoutAllowances([
         ["total", "TOTAL_BUDGET"],
     ]) {
         assert.deepEqual(evidence.oldCaps[key], preStartupCaps[name]);
-        assert.deepEqual(evidence.newCaps[key], latestCaps[name]);
+        assert.deepEqual(evidence.newCaps[key], preSeekCaps[name]);
     }
     assert.deepEqual(
         evidence.oldCaps.appearance,
@@ -197,7 +245,7 @@ const preStartupCaps = capsWithoutAllowances([
     );
     assert.deepEqual(
         evidence.newCaps.appearance,
-        latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"]
+        preSeekCaps.OPTIONAL_BUDGETS["subtitle-appearance"]
     );
     assert(Object.isFrozen(allowance));
     for (const part of Object.values(allowance)) assert(Object.isFrozen(part));
@@ -280,7 +328,7 @@ const preStartupCaps = capsWithoutAllowances([
                     preStartupCaps[name][metric] -
                     variant[scope].before[metric];
                 const newHeadroom =
-                    latestCaps[name][metric] - variant[scope].after[metric];
+                    preSeekCaps[name][metric] - variant[scope].after[metric];
                 assert(
                     oldHeadroom >= 0 && newHeadroom >= oldHeadroom,
                     scope + " retains prior headroom"
@@ -309,18 +357,18 @@ const preStartupCaps = capsWithoutAllowances([
     for (const metric of ["bytes", "gzipBytes"]) {
         for (const name of ["BUDGET", "LEGACY_TOTAL_BUDGET"])
             assert.equal(
-                latestCaps[name][metric] - preStartupCaps[name][metric],
+                preSeekCaps[name][metric] - preStartupCaps[name][metric],
                 allowance.entry[metric],
                 name + " charges entry once"
             );
         for (const name of ["BASE_TOTAL_BUDGET", "TOTAL_BUDGET"])
             assert.equal(
-                latestCaps[name][metric] - preStartupCaps[name][metric],
+                preSeekCaps[name][metric] - preStartupCaps[name][metric],
                 allowance.entry[metric] + allowance.appearance[metric],
                 name + " charges both components once"
             );
         assert.equal(
-            latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"][metric] -
+            preSeekCaps.OPTIONAL_BUDGETS["subtitle-appearance"][metric] -
                 preStartupCaps.OPTIONAL_BUDGETS["subtitle-appearance"][metric],
             allowance.appearance[metric]
         );
@@ -328,7 +376,7 @@ const preStartupCaps = capsWithoutAllowances([
             const oldHeadroom =
                 preStartupCaps.BUDGET[metric] - asset.before[metric];
             assert(
-                latestCaps.BUDGET[metric] - asset.after[metric] >= oldHeadroom
+                preSeekCaps.BUDGET[metric] - asset.after[metric] >= oldHeadroom
             );
             assert.equal(
                 asset.after[metric] - asset.published[metric],
@@ -342,7 +390,7 @@ const preStartupCaps = capsWithoutAllowances([
                 asset.before[metric];
             assert.equal(oldHeadroom, metric === "bytes" ? 55 : 24);
             assert.equal(
-                latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"][metric] -
+                preSeekCaps.OPTIONAL_BUDGETS["subtitle-appearance"][metric] -
                     asset.after[metric],
                 oldHeadroom
             );
@@ -354,17 +402,18 @@ const preStartupCaps = capsWithoutAllowances([
             preStartupCaps[name]
         );
     assert.deepEqual(
-        Object.keys(latestCaps.OPTIONAL_BUDGETS),
+        Object.keys(preSeekCaps.OPTIONAL_BUDGETS),
         Object.keys(preStartupCaps.OPTIONAL_BUDGETS)
     );
     for (const [name, cap] of Object.entries(preStartupCaps.OPTIONAL_BUDGETS))
         if (name !== "subtitle-appearance")
-            assert.deepEqual(latestCaps.OPTIONAL_BUDGETS[name], cap, name);
+            assert.deepEqual(preSeekCaps.OPTIONAL_BUDGETS[name], cap, name);
 }
 
 // CSP font previews were measured after the color evidence. Keep that evidence
 // on its original caps; the live boundary tests still use latestCaps.
 const preFontCspCaps = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
 ]);
@@ -528,6 +577,7 @@ const preFontCspCaps = capsWithoutAllowances([
 // Structural accounting only. The paired hosted inventory supplies the actual
 // per-family measurements; old receipts must not inherit these new allowances.
 const preClientColorsCaps = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -657,6 +707,7 @@ CLASSIC_OPTIONAL_BUNDLES = preClientColorsOptionalBundles;
 // artifacts use different identities; never relabel them as an isolated experiment.
 const notificationEvidence = require("../docs/evidence/interface-notification-settings-size-20261106.json");
 const preNotificationCaps = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -882,6 +933,7 @@ for (const [name, cap] of Object.entries(preClientColorsCaps.OPTIONAL_BUDGETS))
 // The queue is a separately emitted optional chunk. Keep its measured increment
 // out of older receipts and never treat the version-mismatched entry delta as cost.
 const preQueueCaps = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -1027,6 +1079,7 @@ for (const [name, cap] of Object.entries(preNotificationCaps.OPTIONAL_BUDGETS))
 // inventories. Allocate the largest per-platform delta, never their sum.
 const presentationEvidence = require("../docs/evidence/classic-presentation-settings-size-20261105.json");
 const presentationBaseline = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -1176,6 +1229,7 @@ for (const [name, cap] of Object.entries(preQueueCaps.OPTIONAL_BUDGETS))
 // Qualify desktop startup and its new optional asset independently. Earlier
 // receipts predate both; remove them only from the historical cap projections.
 const desktopBaseline = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -1245,6 +1299,7 @@ CLASSIC_OPTIONAL_BUNDLES = Object.fromEntries(
 // Remove only those named features from historical projections. Live checks
 // below retain the complete merged caps and restore the full asset inventory.
 const preRecoveryCaps = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -1255,6 +1310,7 @@ const preRecoveryCaps = capsWithoutAllowances([
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 const withoutAutoRecovery = capsWithoutAllowances([
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
     "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -1263,6 +1319,7 @@ const withoutAutoRecovery = capsWithoutAllowances([
 ]);
 function historicalCapsWithoutAllowances(names) {
     return capsWithoutAllowances([
+        "SEEK_PREVIEW_ENTRY_ALLOWANCE",
         "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
         "INTERFACE_FONT_CSP_ASSET_CORRECTION",
         "CLIENT_INTERFACE_COLORS_ALLOWANCE",
@@ -6316,6 +6373,7 @@ try {
         nativeWindowControlsEntryAllowance:
             NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
         plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
+        seekPreviewEntryAllowance: SEEK_PREVIEW_ENTRY_ALLOWANCE,
     })) {
         assert.deepEqual(strictReport[key], allowance);
         assert.deepEqual(failed[key], strictReport[key]);

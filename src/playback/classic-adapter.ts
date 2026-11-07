@@ -1283,23 +1283,16 @@ function classicPlaybackProgramme(): any {
                 classicPlaybackCapture();
                 if (observation.isCurrent && !observation.isCurrent())
                     return null;
-                var current = classicPlaybackObservation();
-                return {
-                    duration: current.duration,
-                    now: current.now,
-                    plan: classicPlaybackHost().OttPlayCore.playbackSeekPlan(
+                var current: any = classicPlaybackObservation();
+                // The observation is a fresh value, separate from player state.
+                current.intent = "offset";
+                current.value = delta;
+                current.plan =
+                    classicPlaybackHost().OttPlayCore.playbackSeekPlan(
                         current.target,
-                        {
-                            archiveAvailable: current.archiveAvailable,
-                            archiveEarliest: current.archiveEarliest,
-                            duration: current.duration,
-                            intent: "offset",
-                            now: current.now,
-                            position: current.position,
-                            value: delta,
-                        }
-                    ),
-                };
+                        current
+                    );
+                return current;
             },
             sourceId: classicPlaybackSource(classicPlaybackHost()),
         };

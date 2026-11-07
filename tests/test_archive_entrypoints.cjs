@@ -281,7 +281,9 @@ function seekPreviewFixture(kind = "archive", duration = 600) {
     );
     const uiSource = ts.createSourceFile(
         "ui.ts",
-        fs.readFileSync(path.join(root, "src/ui/index.ts"), "utf8"),
+        ["src/ui/index.ts", "src/utils/helpers.ts"]
+            .map((file) => fs.readFileSync(path.join(root, file), "utf8"))
+            .join("\n"),
         ts.ScriptTarget.Latest,
         true
     );
@@ -294,6 +296,8 @@ function seekPreviewFixture(kind = "archive", duration = 600) {
                         [
                             "_t2",
                             "formatClockTime",
+                            "formatPlaybackTime",
+                            "formatTwoDigits",
                             "formatSeekOffset",
                             "virtualTimeshiftProg",
                             "initBackgroundIntervals",
@@ -390,6 +394,10 @@ function seekPreviewFixture(kind = "archive", duration = 600) {
                 position,
                 type: "position",
             });
+        },
+        show: () => {
+            visible = true;
+            c.$("#info1").show();
         },
         text: () => label.textContent,
         tick,
@@ -713,3 +721,88 @@ console.log(
     assert.equal(f.timers.length, 0);
     f.dom.window.close();
 }
+
+{
+    const f = seekPreviewFixture("vod");
+    f.c.showPlaybackSeekDialog(10);
+    const pending = f.c.__ottSeekPreview;
+    f.hide();
+    f.c.infoBarHide();
+    f.tick();
+    assert.notEqual(f.marker.style.display, "block");
+    assert.equal(f.marker.__ottSeekPreviewOwner, undefined);
+    assert.equal(
+        f.c.__ottSeekPreview,
+        pending,
+        "Hiding does not retire the pending seek"
+    );
+    f.position(360);
+    f.show();
+    f.tick();
+    assert.equal(f.marker.style.display, "block");
+    assert.equal(
+        f.text(),
+        "06:10",
+        "Reopened timeline refreshes the latest pending target"
+    );
+    assert.deepEqual(playbackCalls(f), []);
+    f.c.dialogBoxKeyHandler(f.c.keys.ENTER);
+    assert.equal(f.c.__ottSeekPreview, undefined);
+    assert.deepEqual(
+        f.calls.filter((call) => call[0] === "request"),
+        [["request", 10]]
+    );
+    f.dom.window.close();
+}
+{
+    const f = seekPreviewFixture("vod");
+    f.c.showPlaybackSeekDialog(10);
+    const timer = f.timers.at(-1);
+    // These are the actual uiInit mousemove ownership effects, tested there too.
+    f.c.__ottSeekPreview.suspended = true;
+    delete f.marker.__ottSeekPreviewOwner;
+    f.label.textContent = "pointer target";
+    f.move(200, 400);
+    f.tick();
+    assert.equal(
+        f.text(),
+        "pointer target",
+        "Resize and clock preserve pointer priority"
+    );
+    assert.equal(f.marker.style.display, "block");
+    timer.callback();
+    assert.equal(
+        f.text(),
+        "pointer target",
+        "Keyboard commit does not erase the pointer label"
+    );
+    assert.equal(f.marker.style.display, "block");
+    assert.equal(f.marker.__ottSeekPreviewOwner, undefined);
+    assert.equal(f.c.__ottSeekPreview, undefined);
+    assert.deepEqual(
+        f.calls.filter((call) => call[0] === "request"),
+        [["request", 10]]
+    );
+    f.dom.window.close();
+}
+{
+    const f = seekPreviewFixture("vod");
+    f.c.showPlaybackSeekDialog(10);
+    f.c.__ottSeekPreview.suspended = true;
+    delete f.marker.__ottSeekPreviewOwner;
+    f.label.textContent = "pointer target";
+    f.c.dialogBoxKeyHandler(f.c.keys.RIGHT);
+    assert.equal(
+        f.text(),
+        "05:20",
+        "An explicit key reclaims the pending target"
+    );
+    assert.equal(f.marker.__ottSeekPreviewOwner, f.c.__ottSeekPreview);
+    f.c.dialogBoxKeyHandler(f.c.keys.RETURN);
+    assert.equal(f.c.__ottSeekPreview, undefined);
+    assert.deepEqual(playbackCalls(f), []);
+    f.dom.window.close();
+}
+console.log(
+    "PASS seek preview lifecycle: hide/reopen, pointer resize/timeout priority and explicit keyboard reclaim"
+);

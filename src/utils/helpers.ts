@@ -287,6 +287,57 @@ export function formatTwoDigits(num: number): string {
 }
 
 /**
+ * Convert a Unix timestamp (seconds since epoch) to a "HH:MM:SS" time string.
+ *
+ * @param e - Unix timestamp in seconds.
+ * @returns string — Formatted as "HH:MM:SS".
+ */
+export function formatClockTime(e: number): string {
+    var t = new Date(e * 1e3);
+    return (
+        formatTwoDigits(t.getHours()) +
+        ":" +
+        formatTwoDigits(t.getMinutes()) +
+        ":" +
+        formatTwoDigits(t.getSeconds())
+    );
+}
+
+/** Format a finite playback position independently of the system timezone. */
+export function formatPlaybackTime(seconds: number): string {
+    seconds = Math.max(Math.round(seconds), 0);
+    var hours = Math.floor(seconds / 3600);
+    return (
+        (hours ? hours + ":" : "") +
+        ("0" + Math.floor((seconds % 3600) / 60)).slice(-2) +
+        ":" +
+        ("0" + (seconds % 60)).slice(-2)
+    );
+}
+
+/**
+ * Virtual timeshift window when EPG is missing: 1 hour lookback on the left,
+ * live playhead at ~80% (15 min headroom on the right).
+ */
+export function virtualTimeshiftProg(nowSec?: number): {
+    name: string;
+    descr: string;
+    time: number;
+    time_to: number;
+} {
+    var now = nowSec != null ? nowSec : Date.now() / 1000;
+    var lookback = 3600;
+    var fill = 0.8;
+    var total = lookback / fill;
+    return {
+        descr: "",
+        name: "",
+        time: now - lookback,
+        time_to: now - lookback + total,
+    };
+}
+
+/**
  * Convert a Unix timestamp (seconds since epoch) to an `HH:MM` string.
  *
  * @param timestamp - Seconds since 1970-01-01 UTC.
