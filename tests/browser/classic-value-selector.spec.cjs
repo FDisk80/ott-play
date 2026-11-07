@@ -673,3 +673,85 @@ test("footer clock and late audio badge remain inside the panel after scaling an
     expect(errors).toEqual([]);
     expect(requests).toEqual([]);
 });
+
+test("Modern list separators restore visible borders without changing geometry or selection", async ({
+    page,
+}) => {
+    const errors = [];
+    const requests = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) => {
+        requests.push(route.request().url());
+        return route.abort("blockedbyclient");
+    });
+    await page.setContent(
+        '<!doctype html><body class="interface-modern"><div id="list"><div id="listIn">' +
+            '<div id="it0" class="item ott-selected" tabindex="0">Selected setting</div>' +
+            '<div id="it1" class="item" tabindex="-1">Another setting</div>' +
+            "</div></div></body>"
+    );
+    await page.addStyleTag({ content: read("styles/player.css") });
+    await page.locator("#it0").focus();
+    // Settings transactions have unit coverage; this fixture checks the real
+    // browser cascade, including the Modern surface custom property.
+    const snapshot = () =>
+        page.evaluate(() => {
+            const rows = [...document.querySelectorAll("#listIn > .item")];
+            return {
+                colors: rows.map(
+                    (row) => getComputedStyle(row).borderBottomColor
+                ),
+                layout: {
+                    focused: document.activeElement.id,
+                    rows: rows.map((row) => {
+                        const { height, width, x, y } =
+                            row.getBoundingClientRect();
+                        const style = getComputedStyle(row);
+                        return {
+                            background: style.backgroundColor,
+                            borderStyle: style.borderBottomStyle,
+                            borderWidth: style.borderBottomWidth,
+                            color: style.color,
+                            height,
+                            selected: row.classList.contains("ott-selected"),
+                            shadow: style.boxShadow,
+                            width,
+                            x,
+                            y,
+                        };
+                    }),
+                },
+            };
+        });
+    const before = await snapshot();
+    expect(before.layout.focused).toBe("it0");
+    expect(before.layout.rows.map((row) => row.selected)).toEqual([
+        true,
+        false,
+    ]);
+    for (const [index, row] of before.layout.rows.entries()) {
+        expect(row.width).toBeGreaterThan(0);
+        expect(row.height).toBeGreaterThan(0);
+        expect(row.borderWidth).toBe("1px");
+        expect(row.borderStyle).toBe("solid");
+        const rgba = before.colors[index].match(
+            /^rgba?\(\d+,\s*\d+,\s*\d+(?:,\s*([\d.]+))?\)$/
+        );
+        expect(rgba).not.toBeNull();
+        expect(Number(rgba[1] ?? 1)).toBeGreaterThan(0);
+    }
+    await page.evaluate(() => {
+        document.body.classList.add("hide-list-separators");
+    });
+    const hidden = await snapshot();
+    expect(hidden.colors).toEqual(["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]);
+    expect(hidden.layout).toEqual(before.layout);
+    await page.evaluate(() => {
+        document.body.classList.remove("hide-list-separators");
+    });
+    const restored = await snapshot();
+    expect(restored.colors).toEqual(before.colors);
+    expect(restored.layout).toEqual(before.layout);
+    expect(errors).toEqual([]);
+    expect(requests).toEqual([]);
+});
