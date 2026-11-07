@@ -154,6 +154,12 @@ impl Drop for PendingUpload {
     }
 }
 
+#[cfg(test)]
+type NativeDirectoryIterator = Box<dyn Iterator<Item = std::io::Result<std::fs::DirEntry>> + Send>;
+#[cfg(test)]
+type NativeDirectoryOpener =
+    Arc<dyn Fn(PathBuf) -> std::io::Result<NativeDirectoryIterator> + Send + Sync>;
+
 #[derive(Clone)]
 pub struct Library {
     root: PathBuf,
@@ -180,6 +186,8 @@ pub struct Library {
     native_source_probe_gate: Option<(PathBuf, Arc<Semaphore>)>,
     #[cfg(test)]
     native_source_probe_timeout: Option<std::time::Duration>,
+    #[cfg(test)]
+    native_directory_opener: Option<NativeDirectoryOpener>,
     #[cfg(test)]
     native_folder_probes: Arc<std::sync::atomic::AtomicUsize>,
     #[cfg(test)]
@@ -1044,6 +1052,8 @@ impl Library {
             native_source_probe_gate: None,
             #[cfg(test)]
             native_source_probe_timeout: None,
+            #[cfg(test)]
+            native_directory_opener: None,
             #[cfg(test)]
             native_folder_probes: Arc::default(),
             #[cfg(test)]
@@ -2177,9 +2187,37 @@ impl Library {
             }
             return Err((StatusCode::BAD_REQUEST, "Select an accessible local folder"));
         }
-        match checked(Some(owner), fs::read_dir(&path)).await? {
-            Ok(directory) => drop(directory),
-            Err(_) => return Ok(None),
+        // Availability needs an openable directory, not its first 32 children.
+        // Tokio read_dir eagerly fills that batch (including file types) before
+        // returning. Keep the lazy open/drop on the blocking pool and retain
+        // its owner and probe permit until the admitted operation has drained.
+        let directory_path = path.clone();
+        let directory_owner = owner.clone();
+        #[cfg(test)]
+        let opener = self.native_directory_opener.clone();
+        let opened = checked(Some(owner), async move {
+            // Construct the task only after checked() observes cancellation.
+            tokio::task::spawn_blocking(move || {
+                // Cancellation can win while this closure waits for a thread.
+                directory_owner.check()?;
+                #[cfg(test)]
+                let directory = match opener {
+                    Some(open) => open(directory_path),
+                    None => std::fs::read_dir(directory_path)
+                        .map(|directory| Box::new(directory) as NativeDirectoryIterator),
+                };
+                #[cfg(not(test))]
+                let directory = std::fs::read_dir(directory_path);
+                let opened = directory.map(drop);
+                directory_owner.check()?;
+                Ok::<_, Failure>(opened)
+            })
+            .await
+        })
+        .await?
+        .map_err(storage_error)??;
+        if opened.is_err() {
+            return Ok(None);
         }
         Ok(Some(path))
     }
@@ -8587,6 +8625,275 @@ mod tests {
         .await
         .unwrap();
         source
+    }
+
+    #[derive(Default)]
+    struct NativeDirectoryHold {
+        entered: std::sync::atomic::AtomicUsize,
+        released: std::sync::Mutex<bool>,
+        changed: std::sync::Condvar,
+    }
+    impl NativeDirectoryHold {
+        fn block(&self) -> std::io::Result<()> {
+            self.entered.fetch_add(1, Ordering::SeqCst);
+            let (released, _) = self
+                .changed
+                .wait_timeout_while(
+                    self.released.lock().unwrap(),
+                    std::time::Duration::from_secs(5),
+                    |released| !*released,
+                )
+                .unwrap();
+            if *released {
+                Ok(())
+            } else {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "directory fixture gate",
+                ))
+            }
+        }
+        fn release(&self) {
+            *self.released.lock().unwrap() = true;
+            self.changed.notify_all();
+        }
+        async fn wait_entered(&self) {
+            bounded(async {
+                while self.entered.load(Ordering::SeqCst) == 0 {
+                    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+                }
+            })
+            .await;
+        }
+    }
+    struct ReleaseNativeDirectory(Arc<NativeDirectoryHold>);
+    impl Drop for ReleaseNativeDirectory {
+        fn drop(&mut self) {
+            self.0.release();
+        }
+    }
+    struct HeldNativeDirectory {
+        directory: std::fs::ReadDir,
+        iteration: Arc<NativeDirectoryHold>,
+        dropped: Arc<std::sync::atomic::AtomicUsize>,
+    }
+    impl Iterator for HeldNativeDirectory {
+        type Item = std::io::Result<std::fs::DirEntry>;
+        fn next(&mut self) -> Option<Self::Item> {
+            if let Err(error) = self.iteration.block() {
+                return Some(Err(error));
+            }
+            self.directory.next()
+        }
+    }
+    impl Drop for HeldNativeDirectory {
+        fn drop(&mut self) {
+            self.dropped.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[tokio::test]
+    async fn native_selected_folder_availability_does_not_iterate_open_directory() {
+        for selector in ["id", "path"] {
+            let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+            let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+                .await
+                .unwrap();
+            let source = native_lookup_fixture(&library, "Movies", true).await;
+            fs::write(source.path.join("first.mp4"), b"original")
+                .await
+                .unwrap();
+            let iteration = Arc::new(NativeDirectoryHold::default());
+            let _release = ReleaseNativeDirectory(iteration.clone());
+            let opened = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let dropped = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let opener: NativeDirectoryOpener = {
+                let (iteration, opened, dropped) =
+                    (iteration.clone(), opened.clone(), dropped.clone());
+                Arc::new(move |path| {
+                    let directory = std::fs::read_dir(path)?;
+                    opened.fetch_add(1, Ordering::SeqCst);
+                    Ok(Box::new(HeldNativeDirectory {
+                        directory,
+                        iteration: iteration.clone(),
+                        dropped: dropped.clone(),
+                    }) as NativeDirectoryIterator)
+                })
+            };
+            library.native_directory_opener = Some(opener.clone());
+            // Negative control: the same real directory iterator cannot advance
+            // until released. Availability must finish while that boundary is held.
+            let mut control = opener(source.path.clone()).unwrap();
+            let control = tokio::task::spawn_blocking(move || control.next());
+            iteration.wait_entered().await;
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(2),
+                library.native_sources_selected(
+                    false,
+                    (selector == "path").then(|| source.path.clone()),
+                    (selector == "id").then_some(source.id.as_str()),
+                ),
+            )
+            .await;
+            let control_still_held = !control.is_finished();
+            let opens_before_release = opened.load(Ordering::SeqCst);
+            let iterations_before_release = iteration.entered.load(Ordering::SeqCst);
+            let drops_before_release = dropped.load(Ordering::SeqCst);
+            iteration.release();
+            let control_result = bounded(control).await.unwrap();
+            wait_for_drain(&library.background).await;
+            let rows = result
+                .expect("availability must not enumerate children")
+                .unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].id, source.id);
+            assert!(rows[0].available);
+            assert!(control_still_held);
+            assert_eq!(
+                opens_before_release, 2,
+                "the real lookup must call the controlled opener"
+            );
+            assert_eq!(
+                iterations_before_release, 1,
+                "only the negative control may iterate"
+            );
+            assert_eq!(
+                drops_before_release, 1,
+                "availability closes its unused directory"
+            );
+            assert!(control_result.unwrap().is_ok());
+            assert_eq!(dropped.load(Ordering::SeqCst), 2);
+            assert_eq!(
+                library.source_probes.available_permits(),
+                LIBRARY_PROBE_CONCURRENCY
+            );
+            assert_eq!(library.background.status().pending, 0);
+            assert_eq!(library.scan.lock().await.jobs, 0);
+            fs::remove_dir_all(base).await.unwrap();
+        }
+    }
+
+    struct HeldNativeDirectoryClose {
+        directory: std::fs::ReadDir,
+        closing: Arc<NativeDirectoryHold>,
+    }
+    impl Iterator for HeldNativeDirectoryClose {
+        type Item = std::io::Result<std::fs::DirEntry>;
+        fn next(&mut self) -> Option<Self::Item> {
+            self.directory.next()
+        }
+    }
+    impl Drop for HeldNativeDirectoryClose {
+        fn drop(&mut self) {
+            let _ = self.closing.block();
+        }
+    }
+
+    #[tokio::test]
+    async fn native_selected_folder_open_retains_owner_after_deadline_drop_and_standby() {
+        for boundary in ["open", "close"] {
+            for cancellation in ["deadline", "drop", "standby"] {
+                let base = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+                let mut library = Library::new(base.join("metadata"), "t".repeat(32), "device")
+                    .await
+                    .unwrap();
+                let source = native_lookup_fixture(&library, "Movies", true).await;
+                library.native_source_probe_timeout = Some(std::time::Duration::from_millis(500));
+                let held = Arc::new(NativeDirectoryHold::default());
+                let _release = ReleaseNativeDirectory(held.clone());
+                let opened = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+                library.native_directory_opener = Some({
+                    let (held, opened) = (held.clone(), opened.clone());
+                    Arc::new(move |path| {
+                        let directory = std::fs::read_dir(path)?;
+                        opened.fetch_add(1, Ordering::SeqCst);
+                        if boundary == "open" {
+                            held.block()?;
+                            Ok(Box::new(directory) as NativeDirectoryIterator)
+                        } else {
+                            Ok(Box::new(HeldNativeDirectoryClose {
+                                directory,
+                                closing: held.clone(),
+                            }) as NativeDirectoryIterator)
+                        }
+                    })
+                });
+                let pending = {
+                    let (library, path) = (library.clone(), source.path.clone());
+                    tokio::spawn(async move {
+                        library
+                            .native_sources_selected(false, Some(path), None)
+                            .await
+                    })
+                };
+                held.wait_entered().await;
+                if cancellation == "drop" {
+                    pending.abort();
+                }
+                if cancellation == "standby" {
+                    library.background.set_standby(true);
+                }
+                let result = bounded(pending).await;
+                let mut denied_admission = None;
+                if boundary == "open" && cancellation == "deadline" {
+                    let remaining = library
+                        .source_probes
+                        .acquire_many((LIBRARY_PROBE_CONCURRENCY - 1) as u32)
+                        .await
+                        .unwrap();
+                    let second = bounded(library.native_sources_selected(
+                        false,
+                        Some(source.path.clone()),
+                        None,
+                    ))
+                    .await;
+                    denied_admission = Some(second.err().is_some_and(|error| {
+                        error
+                            .downcast_ref::<NativeProbeDeadline>()
+                            .is_some_and(|deadline| !deadline.admitted)
+                    }));
+                    drop(remaining);
+                }
+                let owned_before_release = library.background.status().pending;
+                let permits_before_release = library.source_probes.available_permits();
+                let opens_before_release = opened.load(Ordering::SeqCst);
+                held.release();
+                wait_for_drain(&library.background).await;
+                if cancellation == "drop" {
+                    match result {
+                        Err(error) => assert!(error.is_cancelled()),
+                        Ok(_) => panic!("dropped caller must not publish availability"),
+                    }
+                } else {
+                    let error = result
+                        .unwrap()
+                        .err()
+                        .expect("cancelled lookup cannot publish availability");
+                    assert_eq!(is_native_probe_deadline(&error), cancellation == "deadline");
+                    assert!(!error.is::<NativeSourceUnavailable>());
+                }
+                if let Some(denied) = denied_admission {
+                    assert!(denied);
+                }
+                assert_eq!(
+                    opens_before_release, 1,
+                    "a saturated lookup cannot dispatch another open"
+                );
+                assert_eq!(
+                    owned_before_release, 1,
+                    "the blocking open and close retain their lease"
+                );
+                assert_eq!(permits_before_release, LIBRARY_PROBE_CONCURRENCY - 1);
+                assert_eq!(library.background.status().pending, 0);
+                assert_eq!(
+                    library.source_probes.available_permits(),
+                    LIBRARY_PROBE_CONCURRENCY
+                );
+                assert_eq!(library.scan.lock().await.jobs, 0);
+                assert!(library.scan.lock().await.source_scans.is_empty());
+                fs::remove_dir_all(base).await.unwrap();
+            }
+        }
     }
 
     #[tokio::test]
