@@ -23,6 +23,16 @@
   ],
   "packageRules": [
     {
+      "description": "Keep the API 22 flavor on AppCompat 1.7.1; 1.8 requires API 23. Review the AAR manifests before changing this compatibility boundary.",
+      "matchManagers": ["gradle"],
+      "matchFileNames": ["android/compat/variables.gradle"],
+      "matchPackageNames": [
+        "androidx.appcompat:appcompat",
+        "androidx.appcompat:appcompat-resources"
+      ],
+      "allowedVersions": "/^1\\.7\\.1$/"
+    },
+    {
       "matchManagers": ["npm"],
       "matchFileNames": ["/^[^/]+$/"],
       "matchPackageNames": ["*"],

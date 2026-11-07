@@ -125,6 +125,53 @@ assert(
     ),
     "Other npm updates retain their lockfile group"
 );
+
+// Google's published AAR manifests set AppCompat 1.8's minimum to API 23.
+// Keep the API 22 flavor isolated; modern Android dependencies remain free to update.
+const compatPath = "android/compat/variables.gradle";
+const compatVariables = fs.readFileSync(path.join(root, compatPath), "utf8");
+assert.match(compatVariables, /^\s*minSdkVersion\s*=\s*22\s*$/m);
+const compatVersions = [
+    ...compatVariables.matchAll(
+        /^\s*androidxAppCompatVersion\s*=\s*['"]([^'"]+)['"]\s*$/gm
+    ),
+];
+assert.equal(
+    compatVersions.length,
+    1,
+    "Require one explicit API 22 AppCompat version"
+);
+assert.equal(compatVersions[0][1], "1.7.1", "AppCompat 1.8 requires API 23");
+const compatRules = policy.packageRules.filter((rule) =>
+    rule.matchPackageNames?.includes("androidx.appcompat:appcompat")
+);
+assert.equal(
+    compatRules.length,
+    1,
+    "Require one explicit API 22 update boundary"
+);
+const compatRule = compatRules[0];
+assert.deepEqual(compatRule.matchManagers, ["gradle"]);
+assert.deepEqual(
+    compatRule.matchFileNames,
+    [compatPath],
+    "Do not freeze modern Android"
+);
+assert.deepEqual(compatRule.matchPackageNames, [
+    "androidx.appcompat:appcompat",
+    "androidx.appcompat:appcompat-resources",
+]);
+assert.equal(compatRule.allowedVersions, "/^1\\.7\\.1$/");
+const allowedCompatVersion = new RegExp(
+    compatRule.allowedVersions.slice(1, -1)
+);
+assert(allowedCompatVersion.test(compatVersions[0][1]));
+for (const version of ["1.8.0-alpha01", "1.8.0", "1.9.0", "2.0.0", "1.7.10"]) {
+    assert(
+        !allowedCompatVersion.test(version),
+        `Unreviewed API 22 dependency: ${version}`
+    );
+}
 console.log(
     "Dependency updater ownership and cross-ecosystem grouping contracts passed"
 );
