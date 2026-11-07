@@ -3943,7 +3943,8 @@ export function channelsKeyHandler(keyCode: number): boolean {
                             String(selChId)
                     );
                 }
-                if (selChId !== curChId || retryMedia) {
+                // Channel selection leaves archive through normal live admission.
+                if (selChId !== curChId || window.playType > 0 || retryMedia) {
                     if (typeof window.playChannel === "function") {
                         window.playChannel(
                             window.listCatIndex,

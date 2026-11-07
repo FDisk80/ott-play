@@ -62,6 +62,122 @@ function setup(provider = "plex") {
     return { c, end, pending, resolve };
 }
 
+// Channel-list reselection is an explicit live choice while playing archive.
+// Run the real list handler, transport entrypoint and shared playback owner.
+function selectCurrentChannel(c, category = 0, index = 0) {
+    vm.runInContext(
+        sourceFunctions("src/channels/index.ts", ["channelsKeyHandler"]),
+        c
+    );
+    c.listCatIndex = category;
+    c.listArray = c.cats[c.catsArray[category]];
+    c.selIndex = index;
+    assert.equal(c.channelsKeyHandler(c.keys.ENTER), true);
+}
+function setupPlainChannels(provider = "m3u") {
+    const { c } = setup(provider);
+    c.__ottActiveProviderDriver.capabilities = {};
+    c.channels = Object.fromEntries(
+        c.cats.All.map((id) => [id, { channel_name: "Channel " + id, rec: 24 }])
+    );
+    c.cats.Repeated = [103, 101];
+    c.catsArray.push("Repeated");
+    c.getChannelUrl = (id) => "live-channel-" + id + ".m3u8";
+    c.checkMedia = () => {};
+    c.updateChannelInfo = (id) => c.calls.push(["channel-info", id]);
+    c._playChannel(0, 0);
+    return c;
+}
+for (const paused of [false, true]) {
+    for (const repeatedCategory of [false, true]) {
+        const c = setupPlainChannels();
+        c.__ottClassicPlayback.command({
+            archiveStart: 1700000000,
+            channelId: 101,
+            type: "archive",
+        });
+        c.__ottClassicPlayback.command({ type: "playing" });
+        if (paused) c.__ottClassicPlayback.command({ type: "pause" });
+        assert.equal(c.__ottClassicPlayback.snapshot().target.kind, "archive");
+        assert(c.playType > 0);
+        const before = c.calls.filter(([kind]) => kind === "play").length;
+        selectCurrentChannel(
+            c,
+            repeatedCategory ? 1 : 0,
+            repeatedCategory ? 1 : 0
+        );
+        const state = c.__ottClassicPlayback.snapshot();
+        assert.equal(
+            state.target.kind,
+            "live",
+            "Selecting the archived channel returns to live"
+        );
+        assert.equal(state.target.channelId, "101");
+        assert.equal(state.phase, "playing");
+        assert.equal(c.playType, 0);
+        assert.equal(c.catIndex, repeatedCategory ? 1 : 0);
+        assert.equal(c.primaryIndex, repeatedCategory ? 1 : 0);
+        assert.deepEqual(
+            c.calls.filter(([kind]) => kind === "play").slice(before),
+            [["play", "live-channel-101.m3u8", undefined]]
+        );
+    }
+}
+for (const mode of ["live", "vod", "offline"]) {
+    const c = setupPlainChannels(mode === "offline" ? "offline" : "m3u");
+    if (mode === "vod")
+        c.__ottClassicPlayback.command({
+            channelId: 101,
+            type: "finite-channel",
+        });
+    const before = c.__ottClassicPlayback.snapshot();
+    const plays = c.calls.filter(([kind]) => kind === "play").length;
+    selectCurrentChannel(c);
+    assert.equal(
+        c.calls.filter(([kind]) => kind === "play").length,
+        plays,
+        "Same " + mode + " channel does not restart"
+    );
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().generation,
+        before.generation
+    );
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().target.kind,
+        mode === "live" ? "live" : "vod"
+    );
+}
+for (const paused of [false, true]) {
+    const { c, pending, resolve } = setup("plex");
+    c._playChannel(0, 0);
+    resolve();
+    if (paused) c.__ottClassicPlayback.command({ type: "pause" });
+    const owner = c.__ottMedia.current();
+    const before = c.__ottClassicPlayback.snapshot();
+    const plays = c.calls.filter(([kind]) => kind === "play").length;
+    const requests = pending.length;
+    assert(c.playType < 0);
+    selectCurrentChannel(c);
+    assert.equal(c.calls.filter(([kind]) => kind === "play").length, plays);
+    assert.equal(
+        pending.length,
+        requests,
+        "Same Plex item does not resolve again"
+    );
+    assert.equal(c.__ottMedia.current(), owner);
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().generation,
+        before.generation
+    );
+    assert.equal(
+        c.__ottClassicPlayback.snapshot().phase,
+        paused ? "paused" : "playing"
+    );
+}
+console.log(
+    "PASS channel reselection: archive returns live; live/VOD/Local/Plex continuity retained"
+);
+
 // Every ordinary Plex library entry uses the current category/channel list.
 {
     const { c } = setup("plex");
