@@ -256,26 +256,37 @@ function installTimeoutProbes(w, nativeQueryPermission) {
             });
             return freshHandle;
         });
-        await probe(
-            "identity",
-            async () => restoredHandle,
-            async (handle, step) => {
-                const sameEntry = await step("native-same-entry", () => {
-                    if (
-                        !handle ||
-                        handle.kind !== "directory" ||
-                        !freshHandle ||
-                        freshHandle.kind !== "directory" ||
-                        typeof nativeSameEntry !== "function"
-                    )
-                        throw new TypeError("Probe identity unavailable");
-                    return nativeSameEntry.call(handle, freshHandle);
-                });
-                if (typeof sameEntry !== "boolean")
-                    throw new TypeError("Unexpected native identity result");
-                return { sameEntry };
-            }
-        );
+        function identity(name, receiver, other) {
+            return probe(
+                name,
+                async () => receiver,
+                async (handle, step) => {
+                    const sameEntry = await step("native-same-entry", () => {
+                        if (
+                            !handle ||
+                            handle.kind !== "directory" ||
+                            !other ||
+                            other.kind !== "directory" ||
+                            typeof nativeSameEntry !== "function"
+                        )
+                            throw new TypeError("Probe identity unavailable");
+                        return nativeSameEntry.call(handle, other);
+                    });
+                    if (typeof sameEntry !== "boolean")
+                        throw new TypeError(
+                            "Unexpected native identity result"
+                        );
+                    return { sameEntry };
+                }
+            );
+        }
+        // Both native directions share this stage, preserving the existing
+        // maximum wait. A healthy fresh receiver can report a broken restored
+        // transfer token even if calls on the restored receiver never settle.
+        await Promise.all([
+            identity("identity", restoredHandle, freshHandle),
+            identity("identity-reverse", freshHandle, restoredHandle),
+        ]);
         await probe("clone", (step) =>
             step("structured-clone", () => {
                 if (!freshHandle || typeof nativeClone !== "function")
@@ -433,9 +444,15 @@ function parseProbeEvent(text) {
             "rejected",
             "complete",
         ].includes(row.event) ||
-        !["none", "idb", "opfs", "identity", "clone", "roundtrip"].includes(
-            row.probe
-        ) ||
+        ![
+            "none",
+            "idb",
+            "opfs",
+            "identity",
+            "identity-reverse",
+            "clone",
+            "roundtrip",
+        ].includes(row.probe) ||
         ![
             "none",
             "idb-open",

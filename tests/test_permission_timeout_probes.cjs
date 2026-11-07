@@ -141,9 +141,23 @@ function fixture(options = {}) {
             prototype: {
                 isSameEntry(other) {
                     calls.push(["identity", this.tag, other.tag]);
-                    assert.equal(this, restored);
-                    assert.equal(other, fresh);
-                    if (options.hang?.includes("identity")) return never;
+                    const direction =
+                        this === restored ? "identity" : "identity-reverse";
+                    assert.equal(
+                        this,
+                        direction === "identity" ? restored : fresh
+                    );
+                    assert.equal(
+                        other,
+                        direction === "identity" ? fresh : restored
+                    );
+                    if (options.hang?.includes(direction)) return never;
+                    if (options.identityErrors?.[direction])
+                        return Promise.reject(
+                            options.identityErrors[direction]
+                        );
+                    if (options.deferredIdentity?.[direction])
+                        return options.deferredIdentity[direction];
                     return Promise.resolve(
                         options.sameEntry ?? this.identity === other.identity
                     );
@@ -293,7 +307,7 @@ test("installation and non-timeout catalogs perform no native or storage work", 
     await f.drain(f.w.__directMediaTimeoutProbes(catalog));
     assert.equal(
         f.events().filter((row) => row.event === "complete").length,
-        5
+        6
     );
 });
 
@@ -313,8 +327,11 @@ test("captured natives compare restored identity and query fresh clone/isolated 
         ["restored", "fresh", "clone", "roundtrip"]
     );
     assert.deepEqual(
-        f.calls.find((row) => row[0] === "identity"),
-        ["identity", "restored", "fresh"]
+        f.calls.filter((row) => row[0] === "identity"),
+        [
+            ["identity", "restored", "fresh"],
+            ["identity", "fresh", "restored"],
+        ]
     );
     assert.equal(
         f
@@ -348,13 +365,169 @@ test("captured natives compare restored identity and query fresh clone/isolated 
     assert.ok(!f.logs.join("\n").includes(source.name));
 });
 
+test("reverse identity records token failure while the restored receiver stays pending", async () => {
+    const f = fixture({
+        hang: ["restored", "identity"],
+        identityErrors: {
+            "identity-reverse": Object.assign(
+                new Error("private token failure"),
+                {
+                    name: "AbortError",
+                }
+            ),
+        },
+    });
+    await f.drain(f.w.__directMediaTimeoutProbes(catalog));
+    const end = (probe) =>
+        f
+            .events()
+            .find(
+                (row) =>
+                    row.probe === probe &&
+                    ["complete", "rejected", "timeout"].includes(row.event)
+            );
+    assert.equal(end("identity").event, "timeout");
+    assert.equal(end("identity-reverse").event, "rejected");
+    assert.equal(end("identity-reverse").error, "AbortError");
+    assert.ok(end("identity-reverse").elapsedMs < end("identity").elapsedMs);
+    assert.equal(end("roundtrip").event, "complete");
+    assert.equal(f.now(), 20000);
+    assert.equal(f.timers.size, 0);
+    assert.ok(!f.logs.join("\n").includes("private token failure"));
+});
+
+test("reverse identity preserves false and late settlement as separate observations", async () => {
+    const mismatch = fixture({ sameEntry: false });
+    await mismatch.drain(mismatch.w.__directMediaTimeoutProbes(catalog));
+    assert.equal(
+        mismatch
+            .events()
+            .find(
+                (row) =>
+                    row.probe === "identity-reverse" && row.event === "complete"
+            ).sameEntry,
+        false
+    );
+    let resolveIdentity;
+    const deferred = new Promise((resolve) => {
+        resolveIdentity = resolve;
+    });
+    const f = fixture({ deferredIdentity: { "identity-reverse": deferred } });
+    await f.drain(f.w.__directMediaTimeoutProbes(catalog));
+    const calls = f.calls.length;
+    resolveIdentity(true);
+    await f.flush();
+    assert.equal(f.calls.length, calls);
+    assert.equal(
+        f
+            .events()
+            .filter(
+                (row) =>
+                    row.probe === "identity-reverse" && row.event === "timeout"
+            ).length,
+        1
+    );
+    assert.equal(
+        f
+            .events()
+            .filter(
+                (row) =>
+                    row.probe === "identity-reverse" && row.event === "complete"
+            ).length,
+        0
+    );
+    assert.equal(
+        f
+            .events()
+            .filter(
+                (row) =>
+                    row.probe === "identity-reverse" &&
+                    row.event === "late-resolved"
+            ).length,
+        1
+    );
+    assert.equal(f.timers.size, 0);
+});
+
+test("both late identity results cannot change the original failure after the full 50-second budget", async () => {
+    const text = fs.readFileSync(
+        path.join(__dirname, "test_browser_direct_media.cjs"),
+        "utf8"
+    );
+    const block = text.match(
+        /if \(rawCatalog\.readErrorName \|\| rawCatalog\.reconnectRequired\) \{[\s\S]*?throw originalPermissionFailure;\s*\}/
+    );
+    assert.ok(block);
+    let resolveForward, resolveReverse;
+    const forward = new Promise((resolve) => {
+        resolveForward = resolve;
+    });
+    const reverse = new Promise((resolve) => {
+        resolveReverse = resolve;
+    });
+    const f = fixture({
+        deferredIdentity: { identity: forward, "identity-reverse": reverse },
+        hang: ["restored", "fresh", "clone", "roundtrip"],
+    });
+    f.w.__directMediaProfilePermission = {
+        queries: 1,
+        queriesRejected: 0,
+        queriesResolved: 0,
+    };
+    const runFailure = vm.runInNewContext(
+        `(async (window, rawCatalog) => {${block[0]}})`
+    );
+    let failure;
+    try {
+        await f.drain(runFailure(f.w, catalog));
+    } catch (error) {
+        failure = error;
+    }
+    assert.equal(
+        failure?.message,
+        "Profile catalog permission timed out; native permission queries=1, resolved=0, rejected=0"
+    );
+    assert.equal(f.now(), 50000);
+    assert.equal(f.events().filter((row) => row.event === "timeout").length, 6);
+    const calls = f.calls.length;
+    const retainedHandle = f.record.handle;
+    resolveForward(true);
+    resolveReverse(false);
+    await f.flush();
+    assert.equal(f.calls.length, calls);
+    assert.equal(f.record.handle, retainedHandle);
+    assert.equal(f.record.handle, f.restored);
+    assert.equal(
+        f.events().filter((row) => row.event === "complete").length,
+        0
+    );
+    assert.equal(
+        f.events().filter((row) => row.event === "late-resolved").length,
+        2
+    );
+    assert.equal(
+        failure.message,
+        "Profile catalog permission timed out; native permission queries=1, resolved=0, rejected=0"
+    );
+    assert.equal(f.databases.size, 0);
+    assert.equal(f.timers.size, 0);
+    assert.ok(f.logs.length <= 64);
+});
+
 test("all native promises can remain pending without exceeding 50 seconds", async () => {
     const f = fixture({
-        hang: ["restored", "fresh", "identity", "clone", "roundtrip"],
+        hang: [
+            "restored",
+            "fresh",
+            "identity",
+            "identity-reverse",
+            "clone",
+            "roundtrip",
+        ],
     });
     await f.drain(f.w.__directMediaTimeoutProbes(catalog));
     assert.equal(f.now(), 50000);
-    assert.equal(f.events().filter((row) => row.event === "timeout").length, 5);
+    assert.equal(f.events().filter((row) => row.event === "timeout").length, 6);
     assert.equal(
         f.databases.size,
         0,
@@ -468,7 +641,7 @@ test("the actual browser failure block still throws the original failure after s
     });
     assert.equal(
         f.events().filter((row) => row.event === "complete").length,
-        5
+        6
     );
     f.w.__directMediaTimeoutProbes = async () => {
         throw new Error("diagnostic failed");
