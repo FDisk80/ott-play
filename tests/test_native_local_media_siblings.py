@@ -23,7 +23,10 @@ def android_fixture():
         function(source, "private class QueuedWork(") + "\n" + function(source, "private fun discovery()") + r'''
     val owner = Executors.newSingleThreadExecutor()
     fun beginWork() = NativeWork.begin()
-    fun finishWork(ticket: NativeWork.Ticket) = ticket.finish()
+    var holdChildCleanup = false
+    fun finishWork(ticket: NativeWork.Ticket) {
+        try { if (holdChildCleanup) currentGate.hold() } finally { ticket.finish() }
+    }
     val currentGate = Gate()
     var heldOpen = ""
     var heldQuery = ""
@@ -49,6 +52,41 @@ def android_fixture():
     code = code.replace('"snapshot-${snapshots.size}"', '"snapshot-${serial.incrementAndGet()}"')
     code = code.replace("val snapshots = mutableMapOf<String, Map<String, Any>>()", "val snapshots = ConcurrentHashMap<String, Map<String, Any>>(); val serial = AtomicInteger()")
     methods = r'''
+    fun assertDiscoveryDrained() {
+        // An owner consumes Completion before the worker's ticket finally runs.
+        // Join the actual executor before inspecting its final ownership count.
+        discoveryWorkers.shutdown()
+        check(discoveryWorkers.awaitTermination(4, TimeUnit.SECONDS)) { "discovery executor did not terminate" }
+        check(NativeWork.pendingCount == 0) { "discovery tickets remain after executor termination" }
+    }
+    fun cleanupCase() {
+        holdChildCleanup = true
+        val parent = NativeWork.begin()!!
+        val done = owner.submit {
+            currentWork.set(parent)
+            try {
+                val jobs = discovery()
+                jobs.add { val adopt: () -> Unit = {}; adopt }
+                jobs.run()
+            } finally { currentWork.remove(); parent.finish() }
+        }
+        try {
+            check(currentGate.entered.await(4, TimeUnit.SECONDS))
+            done.get(4, TimeUnit.SECONDS)
+            check(NativeWork.pendingCount == 1) { "child cleanup must remain owned after the owner completes" }
+            currentGate.release.countDown()
+            assertDiscoveryDrained()
+            // Termination must not hide a real ownership leak.
+            val leaked = NativeWork.begin()!!
+            try {
+                check(discoveryWorkers.isTerminated)
+                val failure = runCatching { assertDiscoveryDrained() }.exceptionOrNull()
+                check(failure is IllegalStateException && failure.message == "discovery tickets remain after executor termination")
+            } finally { leaked.finish() }
+            check(NativeWork.pendingCount == 0)
+            println("PASS Android child cleanup joins after owner completion; retained ticket still fails")
+        } finally { currentGate.release.countDown(); parent.cancel(); done.get(4, TimeUnit.SECONDS) }
+    }
     fun heldCase(kind: String) {
         documents = when (kind) {
             "file" -> mapOf("root" to listOf(listOf("slow", "Slow.mp4", "video/mp4"), listOf("ready", "Ready.mp4", "video/mp4")))
@@ -82,8 +120,8 @@ def android_fixture():
             check(!nextStarted.await(100, TimeUnit.MILLISECONDS)) { "replacement ran before old syscall drained" }
             currentGate.release.countDown()
             done.get(4, TimeUnit.SECONDS); next.get(4, TimeUnit.SECONDS)
+            assertDiscoveryDrained()
             check(published.get() == before) { "cancelled scan published a late item" }
-            check(NativeWork.pendingCount == 0)
             println("PASS Android held $kind: first ready before release, no late publication, retained owner")
         } finally { currentGate.release.countDown(); parent.cancel(); done.get(4, TimeUnit.SECONDS) }
     }
@@ -123,7 +161,7 @@ def android_fixture():
             check(probe.await(4, TimeUnit.SECONDS)) { "queued D iterator hid A's known-file probe" }
             check(!done.isDone)
             parent.cancel(); tailRelease.countDown(); done.get(4, TimeUnit.SECONDS)
-            check(NativeWork.pendingCount == 0)
+            assertDiscoveryDrained()
             println("PASS Android saturated A/B/C/root-next, queued D: known-file probe precedes blocked metadata")
         } finally { parent.cancel(); currentGate.release.countDown(); tailRelease.countDown(); done.get(4, TimeUnit.SECONDS) }
     }
@@ -152,7 +190,8 @@ def android_fixture():
             val replacement = owner.submit { check(started.get() == 4) }
             check(!done.isDone && NativeWork.pendingCount >= 5) { "four child tickets and parent must remain owned" }
             release.countDown(); done.get(4, TimeUnit.SECONDS); replacement.get(4, TimeUnit.SECONDS)
-            check(started.get() == 4 && adopted.get() == 0 && NativeWork.pendingCount == 0)
+            assertDiscoveryDrained()
+            check(started.get() == 4 && adopted.get() == 0)
             println("PASS Android four shared slots survive cancellation and suppress queued original reads")
         } finally { release.countDown(); parent.cancel(); done.get(4, TimeUnit.SECONDS) }
     }
@@ -168,10 +207,10 @@ class Gate {
 fun NativeWork.Ticket.checkCancelled() { try { check(); error("unexpected scan failure") } catch (_: IOException) {} }
 fun main() {
     NativeWork.setStandby(false)
-    for (kind in listOf("file", "directory", "parent-next", "saturated", "bound")) {
+    for (kind in listOf("cleanup", "file", "directory", "parent-next", "saturated", "bound")) {
         val directory = Files.createTempDirectory("ott-siblings-").toFile()
         val harness = Harness(directory)
-        try { if (kind == "bound") harness.boundCase() else if (kind == "saturated") harness.saturatedCase() else harness.heldCase(kind) }
+        try { if (kind == "cleanup") harness.cleanupCase() else if (kind == "bound") harness.boundCase() else if (kind == "saturated") harness.saturatedCase() else harness.heldCase(kind) }
         finally { harness.currentGate.release.countDown(); harness.owner.shutdownNow(); harness.discoveryWorkers.shutdownNow(); directory.deleteRecursively() }
     }
 }
