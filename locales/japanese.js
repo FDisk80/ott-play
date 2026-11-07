@@ -901,6 +901,7 @@ var keyStrings = {
     "Restart player": "プレーヤーを再起動します",
     "Restart stream": "ストリーム再開",
     "Restart stream / Live": "配信再開 / ライブ",
+    "Resume archive after restart": "再起動後に見逃し配信を再開",
     "Resume from archive?": "過去の放送を再開しますか？",
     Retry: "リトライ",
     "Retry EPG download": "EPGダウンロードを再試行してください",
@@ -947,6 +948,7 @@ var keyStrings = {
         "セキュアリモート入力を開始できませんでした。スクリーンキーボードをご利用ください。",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "このデバイスでは安全なリモート入力は利用できません。オンスクリーンキーボードを使用します。",
+    "Seek notifications": "巻き戻し・早送りの通知",
     "Select a live channel first": "先にライブチャンネルを選択してください",
     "Select a stream type:<br>%1": "ストリームの種類を選択します。<br>%1",
     "Select category to add channel":

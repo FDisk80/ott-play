@@ -908,6 +908,8 @@ var keyStrings = {
     "Restart player": "Uruchom ponownie odtwarzacz",
     "Restart stream": "Uruchom ponownie strumień",
     "Restart stream / Live": "Uruchom ponownie strumień / na żywo",
+    "Resume archive after restart":
+        "Wznawiaj z archiwum po ponownym uruchomieniu",
     "Resume from archive?": "Wznowić z archiwum?",
     Retry: "Ponów",
     "Retry EPG download": "Ponów próbę pobrania EPG",
@@ -955,6 +957,7 @@ var keyStrings = {
         "Nie można uruchomić bezpiecznego zdalnego wprowadzania. Skorzystaj z klawiatury ekranowej.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Bezpieczne zdalne wprowadzanie danych jest niedostępne na tym urządzeniu. Użyj klawiatury ekranowej.",
+    "Seek notifications": "Powiadomienia o przewijaniu",
     "Select a live channel first": "Najpierw wybierz kanał na żywo",
     "Select a stream type:<br>%1": "Wybierz typ strumienia:<br>%1",
     "Select category to add channel": "Wybierz kategorię, aby dodać kanał",

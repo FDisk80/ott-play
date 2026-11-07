@@ -905,6 +905,8 @@ var keyStrings = {
     "Restart player": "Ponovo pokrenite medijski reproduktor",
     "Restart stream": "Ponovno pokrenite stream",
     "Restart stream / Live": "Ponovno pokrenite stream / Uživo",
+    "Resume archive after restart":
+        "Nastavi iz arhive nakon ponovnog pokretanja",
     "Resume from archive?": "Nastaviti iz arhive?",
     Retry: "Pokušaj ponovo",
     "Retry EPG download": "Pokušajte ponovo preuzeti EPG",
@@ -952,6 +954,7 @@ var keyStrings = {
         "Sigurni daljinski unos nije se mogao pokrenuti. Koristite zaslonsku tipkovnicu.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Siguran daljinski unos nije dostupan na ovom uređaju. Koristite tipkovnicu na zaslonu.",
+    "Seek notifications": "Obavijesti o premotavanju",
     "Select a live channel first": "Najprije odaberite kanal uživo",
     "Select a stream type:<br>%1": "Odaberite vrstu streama:<br>%1",
     "Select category to add channel":

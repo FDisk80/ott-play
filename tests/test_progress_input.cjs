@@ -69,7 +69,14 @@ function fixture(options = {}, jqueryFile = "js/jquery-1.11.1.min.js") {
         playType: -1e11,
         primaryIndex: 0,
         replayFromLiveOffset: (delta) => calls.push(["rewind", delta]),
-        showShift: (text) => calls.push(["message", text]),
+        showShift: (text, seek) => {
+            assert.equal(
+                seek,
+                true,
+                "pointer seeking uses the seek-only notification setting"
+            );
+            calls.push(["message", text]);
+        },
         stbGetLen: () => 3700,
         stbSetPosTime: (at) => calls.push(["seek", at]),
         ...options,

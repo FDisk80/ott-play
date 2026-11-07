@@ -877,6 +877,7 @@ var keyStrings = {
     "Restart player": "إعادة تشغيل المشغّل",
     "Restart stream": "إعادة تشغيل البث",
     "Restart stream / Live": "إعادة تشغيل البث/البث المباشر",
+    "Resume archive after restart": "استئناف إعادة المشاهدة بعد إعادة التشغيل",
     "Resume from archive?": "استئناف مشاهدة البث الماضي؟",
     Retry: "إعادة المحاولة",
     "Retry EPG download": "إعادة محاولة تنزيل EPG",
@@ -922,6 +923,7 @@ var keyStrings = {
         "تعذر بدء الإدخال الآمن عن بعد. الرجاء استخدام لوحة المفاتيح التي تظهر على الشاشة.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "لا يتوفر الإدخال الآمن عن بعد على هذا الجهاز. استخدم لوحة المفاتيح التي تظهر على الشاشة.",
+    "Seek notifications": "إشعارات التقديم والإرجاع",
     "Select a live channel first": "اختر قناة مباشرة أولاً",
     "Select a stream type:<br>%1": "حدد نوع الدفق:<br>%1",
     "Select category to add channel": "حدد فئة لإضافة القناة",

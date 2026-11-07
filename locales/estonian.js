@@ -897,6 +897,7 @@ var keyStrings = {
     "Restart player": "Taaskäivitage meediumipleier",
     "Restart stream": "Taaskäivitage voog",
     "Restart stream / Live": "Taaskäivitage voog / Otse",
+    "Resume archive after restart": "Jätka arhiivist pärast taaskäivitamist",
     "Resume from archive?": "Kas jätkata arhiivist?",
     Retry: "Proovi uuesti",
     "Retry EPG download": "Proovige EPG uuesti alla laadida",
@@ -943,6 +944,7 @@ var keyStrings = {
         "Turvalist kaugsisendit ei saanud käivitada. Kasutage ekraaniklaviatuuri.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Turvaline kaugsisend pole selles seadmes saadaval. Kasutage ekraaniklaviatuuri.",
+    "Seek notifications": "Kerimise teavitused",
     "Select a live channel first": "Valige esmalt otsekanal",
     "Select a stream type:<br>%1": "Valige voo tüüp:<br>%1",
     "Select category to add channel": "Valige kanali lisamiseks kategooria",

@@ -903,6 +903,8 @@ var keyStrings = {
     "Restart player": "پلیئر دوبارہ شروع کریں۔",
     "Restart stream": "سلسلہ دوبارہ شروع کریں۔",
     "Restart stream / Live": "سلسلہ دوبارہ شروع کریں / لائیو",
+    "Resume archive after restart":
+        "دوبارہ شروع ہونے کے بعد محفوظ پروگرام جاری رکھیں",
     "Resume from archive?": "آرکائیو سے دوبارہ شروع کریں؟",
     Retry: "دوبارہ کوشش کریں۔",
     "Retry EPG download": "دوبارہ EPG ڈاؤن لوڈ کرنے کی کوشش کریں۔",
@@ -949,6 +951,7 @@ var keyStrings = {
         "محفوظ ریموٹ ان پٹ شروع نہیں ہو سکا۔ براہ کرم آن اسکرین کی بورڈ استعمال کریں۔",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "اس ڈیوائس پر محفوظ ریموٹ ان پٹ دستیاب نہیں ہے۔ آن اسکرین کی بورڈ استعمال کریں۔",
+    "Seek notifications": "آگے/پیچھے کرنے کی اطلاعات",
     "Select a live channel first": "پہلے براہ راست چینل منتخب کریں",
     "Select a stream type:<br>%1": "ایک سلسلہ کی قسم منتخب کریں:<br>%1",
     "Select category to add channel":

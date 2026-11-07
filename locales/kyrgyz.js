@@ -913,6 +913,7 @@ var keyStrings = {
     "Restart player": "Плеерди кайра иштетүү",
     "Restart stream": "Агымды кайра баштоо",
     "Restart stream / Live": "Агымды кайра баштоо / Түз эфир",
+    "Resume archive after restart": "Кайра иштеткенден кийин архивден улантуу",
     "Resume from archive?": "Архивден улантылсынбы?",
     Retry: "Кайра аракет кылуу",
     "Retry EPG download": "EPG жүктөөнү кайталоо",
@@ -959,6 +960,7 @@ var keyStrings = {
         "Коопсуз алыстан киргизүү башталган жок. Экрандык баскычтопту колдонуңуз.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Бул түзмөктө коопсуз алыстан киргизүү жеткиликсиз. Экрандык баскычтопту колдонуңуз.",
+    "Seek notifications": "Убакытты жылдыруу билдирүүлөрү",
     "Select a live channel first": "Адегенде түз эфир каналын тандаңыз",
     "Select a stream type:<br>%1": "Агымдын түрүн тандаңыз:<br>%1",
     "Select category to add channel": "Каналды кошуу үчүн категорияны тандаңыз",

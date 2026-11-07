@@ -514,12 +514,11 @@ export function setCurrent(
  * Restore continue-watching bookmark on startup.
  *
  * Reads the scoped playback journal. The same selected local file resumes
- * directly. TV archive bookmarks younger than seven days offer confirmation.
- * On Yes or after 10 seconds: plays archive at the saved position.
- * On No: starts normal live playback.
+ * directly. When enabled in settings, TV archive bookmarks younger than seven
+ * days resume at the saved position without confirmation.
  *
- * Returns true if local resume started or archive confirmation was offered, false
- * otherwise (no bookmark / stale archive / channel missing / live TV) — the caller
+ * Returns true if local or archive resume started (including a required PIN), false
+ * otherwise (resume disabled / no bookmark / stale archive / channel missing / live TV) — the caller
  * should then run the normal `playChannel` path.
  *
  * Must be called after the playlist is populated.
@@ -550,17 +549,18 @@ export function restoreContinueWatch(): boolean {
             );
         }
         if (ageMs > 7 * 24 * 60 * 60 * 1000) return false;
-        // 1) Resume dialog = archive only (positive playType sentinel required).
+        // Archive startup is opt-in and requires the positive playType sentinel.
         // VOD / live → return false so caller does live playback.
         if (
             !(
+                settings.resumeArchiveAfterRestart === 1 &&
                 cw.mode === "archive" &&
                 typeof cw.playType === "number" &&
                 cw.playType > 0
             )
         )
             return false;
-        // 3) Category-aware channel lookup — track which list won so Yes callback can use it directly.
+        // Track the bookmarked category so archive resume uses the same list.
         var resumeCatIndex: number = -1;
         var resumeIdx: number = -1;
         if (
@@ -585,7 +585,7 @@ export function restoreContinueWatch(): boolean {
         }
         if (resumeIdx === -1) return false; // channel no longer present
         // A PIN adds another asynchronous step. Keep it tied to the playlist
-        // and provider that offered the bookmark, even when IDs are reused.
+        // and provider that supplied the bookmark, even when IDs are reused.
         var source = {
             categories: catsArray,
             cats: cats,
@@ -668,32 +668,7 @@ export function restoreContinueWatch(): boolean {
             }
         };
 
-        if (typeof window.confirmBox === "function") {
-            var restore = playback.guard(function (accept: boolean) {
-                if (accept) playSavedArchive();
-                else playLiveFallback();
-            });
-            window.confirmBox(
-                _("Resume from archive?") +
-                    "<br><br>" +
-                    _(
-                        "Bookmark age (days): %1",
-                        formatLocaleNumber(
-                            Math.max(0, Math.floor(ageMs / 86400000))
-                        )
-                    ),
-                function () {
-                    restore(true);
-                },
-                function () {
-                    restore(false);
-                },
-                10000
-            );
-        } else {
-            // No confirmBox available — skip archive, let caller play live.
-            return false;
-        }
+        playSavedArchive();
         return true;
     } catch (_e) {
         // never block startup on bookmark restore
@@ -1598,7 +1573,7 @@ export function onChannelsLoaded(): void {
                 }
                 if (!localRecovery && !mediaRecovery) {
                     // Start playback: restore continue-watching bookmark if available.
-                    // If no archive bookmark is offered, fall back to the normal
+                    // If archive resume is disabled or unavailable, use the normal
                     // live playChannel path (live bookmarks are already encoded in
                     // catIndex/primaryIndex persisted by setCurrent).
                     var el = document.getElementById("launch");

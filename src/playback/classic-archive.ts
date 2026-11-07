@@ -159,7 +159,8 @@ function classicArchiveRuntime(): any {
                             : String(-rewind)
                         : w._
                           ? w._("Archive - begin")
-                          : "Archive - begin"
+                          : "Archive - begin",
+                    true
                 );
             info(1);
             if (!openCurrent()) return null;

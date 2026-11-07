@@ -900,6 +900,8 @@ var keyStrings = {
     "Restart player": "Käynnistä mediasoitin uudelleen",
     "Restart stream": "Käynnistä stream uudelleen",
     "Restart stream / Live": "Käynnistä stream uudelleen / Suora lähetys",
+    "Resume archive after restart":
+        "Jatka arkistosta uudelleenkäynnistyksen jälkeen",
     "Resume from archive?": "Jatka arkistosta?",
     Retry: "Yritä uudelleen",
     "Retry EPG download": "Yritä EPG latausta uudelleen",
@@ -946,6 +948,7 @@ var keyStrings = {
         "Suojattu etäsyöttö ei voinut käynnistyä. Käytä näyttönäppäimistöä.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Suojattu etäsyöttö ei ole käytettävissä tällä laitteella. Käytä näyttönäppäimistöä.",
+    "Seek notifications": "Ilmoitukset toistokohdan siirrosta",
     "Select a live channel first": "Valitse ensin suora kanava",
     "Select a stream type:<br>%1": "Valitse streamin tyyppi:<br>%1",
     "Select category to add channel": "Valitse luokka lisätäksesi kanavan",

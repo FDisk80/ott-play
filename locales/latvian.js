@@ -906,6 +906,7 @@ var keyStrings = {
     "Restart player": "Pārstartēt atskaņotāju",
     "Restart stream": "Pārstartēt straumi",
     "Restart stream / Live": "Pārstartēt straumi / tiešraide",
+    "Resume archive after restart": "Turpināt no arhīva pēc pārstartēšanas",
     "Resume from archive?": "Turpināt no arhīva?",
     Retry: "Mēģināt vēlreiz",
     "Retry EPG download": "Mēģiniet vēlreiz lejupielādēt EPG",
@@ -952,6 +953,7 @@ var keyStrings = {
         "Drošo attālo ievadi nevarēja palaist. Lūdzu, izmantojiet ekrāna tastatūru.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Šajā ierīcē nav pieejama droša attālināta ievade. Izmantojiet ekrāna tastatūru.",
+    "Seek notifications": "Paziņojumi par pārtīšanu",
     "Select a live channel first": "Vispirms atlasiet tiešraides kanālu",
     "Select a stream type:<br>%1": "Izvēlieties straumes veidu:<br>%1",
     "Select category to add channel":

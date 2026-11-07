@@ -902,6 +902,7 @@ var keyStrings = {
     "Restart player": "Վերագործարկել նվագարկիչը",
     "Restart stream": "Վերագործարկել հոսքը",
     "Restart stream / Live": "Վերագործարկել հոսքը / ուղիղ եթեր",
+    "Resume archive after restart": "Շարունակել արխիվից վերագործարկումից հետո",
     "Resume from archive?": "Շարունակե՞լ արխիվից։",
     Retry: "Կրկին փորձել",
     "Retry EPG download": "Կրկին փորձեք EPG ներբեռնումը",
@@ -949,6 +950,7 @@ var keyStrings = {
         "Անվտանգ հեռակառավարման մուտքագրումը չհաջողվեց սկսել: Խնդրում ենք օգտագործել էկրանի ստեղնաշարը:",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Անվտանգ հեռակառավարման մուտքագրումն անհասանելի է այս սարքում: Օգտագործեք էկրանի ստեղնաշարը:",
+    "Seek notifications": "Տեղաշարժի ծանուցումներ",
     "Select a live channel first": "Նախ ընտրեք ուղիղ եթերի ալիք",
     "Select a stream type:<br>%1": "Ընտրեք հոսքի տեսակը՝<br>%1",
     "Select category to add channel":

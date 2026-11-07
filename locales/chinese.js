@@ -855,6 +855,7 @@ var keyStrings = {
     "Restart player": "重新启动播放器",
     "Restart stream": "重新启动流",
     "Restart stream / Live": "重新开始串流/直播",
+    "Resume archive after restart": "重启后继续回看",
     "Resume from archive?": "继续观看过去的广播吗？",
     Retry: "重试",
     "Retry EPG download": "重试EPG下载",
@@ -898,6 +899,7 @@ var keyStrings = {
         "安全远程输入无法启动。请使用屏幕键盘。",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "安全远程输入在此设备上不可用。使用屏幕键盘。",
+    "Seek notifications": "快进和快退提示",
     "Select a live channel first": "请先选择直播频道",
     "Select a stream type:<br>%1": "选择码流类型：<br>%1",
     "Select category to add channel": "选择类别以添加频道",

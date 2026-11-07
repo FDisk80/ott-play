@@ -9,6 +9,7 @@ interface BannerOptions {
     label?: string;
     local?: boolean;
     message?: string;
+    seek?: boolean;
     severity?: string;
     title?: string;
 }
@@ -85,6 +86,7 @@ export function createNotificationBanners(w: any): any {
         var element = document.createElement("div");
         element.className = "notify remote-notify remote-notify-" + severity;
         if (options.local) element.classList.add("remote-notify-local");
+        if (options.seek) element.classList.add("remote-notify-seek");
         var navigator = w.navigator || {};
         if (
             (navigator.deviceMemory > 0 && navigator.deviceMemory <= 2) ||
@@ -106,7 +108,8 @@ export function createNotificationBanners(w: any): any {
         }
 
         var heading: any = null,
-            headingBody: any = null;
+            headingBody: any = null,
+            message: any = null;
         if (options.hidden) element.style.display = "none";
         else {
             part("icon", "", element).setAttribute("aria-hidden", "true");
@@ -117,7 +120,7 @@ export function createNotificationBanners(w: any): any {
                 if (options.label) part("label", options.label, headingBody);
                 if (options.title) part("title", options.title, headingBody);
             }
-            part("message", options.message || "", content);
+            message = part("message", options.message || "", content);
         }
         container.appendChild(element);
         var timer: any = null,
@@ -140,18 +143,48 @@ export function createNotificationBanners(w: any): any {
             }
         }
 
-        var entry: any = { local: !!options.local, severity: severity };
+        function elapsed(): number {
+            var now = monotonic();
+            return Math.max(
+                0,
+                Date.now() - createdAt,
+                now !== null && createdMonotonic !== null
+                    ? now - createdMonotonic
+                    : 0
+            );
+        }
+        function expire(after: number): void {
+            w.clearTimeout(timer);
+            timer = w.setTimeout(function () {
+                handle.remove("expired");
+            }, after);
+        }
+        var entry: any = {
+            local: !!options.local,
+            refresh: function (text: string, duration: number): void {
+                if (closed) return;
+                message.textContent = text;
+                var age = elapsed();
+                lifetime = age + duration;
+                // Retain the card and its original entrance. Move only its fade
+                // deadline forward when the same seek gesture is updated.
+                if (element.classList.contains("remote-notify-out")) {
+                    element.style.animationName = "none";
+                    element.classList.remove("remote-notify-out");
+                }
+                element.style.setProperty(
+                    "--ott-notify-fade-delay",
+                    age + 980 + "ms"
+                );
+                expire(duration);
+                handle.animate(duration);
+            },
+            seek: !!options.seek,
+            severity: severity,
+        };
         var handle: NotificationBannerHandle = {
             animate: function (available) {
-                var now = monotonic();
-                var elapsed = Math.max(
-                    0,
-                    Date.now() - createdAt,
-                    now !== null && createdMonotonic !== null
-                        ? now - createdMonotonic
-                        : 0
-                );
-                var left = Math.min(available, lifetime - elapsed);
+                var left = Math.min(available, lifetime - elapsed());
                 if (closed || left <= 0) {
                     handle.remove("expired");
                     return false;
@@ -163,6 +196,7 @@ export function createNotificationBanners(w: any): any {
                 w.clearTimeout(exitTimer);
                 exitTimer = w.setTimeout(
                     function () {
+                        element.style.animationName = "";
                         element.style.animationDuration =
                             "320ms," + fadeDuration;
                         element.classList.add("remote-notify-out");
@@ -186,9 +220,7 @@ export function createNotificationBanners(w: any): any {
         };
         entry.handle = handle;
         entries.push(entry);
-        timer = w.setTimeout(function () {
-            handle.remove("expired");
-        }, lifetime);
+        expire(lifetime);
         w.addEventListener("resize", measureHeading);
         return handle;
     }
@@ -198,16 +230,31 @@ export function createNotificationBanners(w: any): any {
             clear(true);
         },
         create: create,
-        showLocal: function (message: string, durationMs = 3000) {
+        showLocal: function (message: string, durationMs = 3000, seek = false) {
             if (!active() || typeof message !== "string" || !message)
                 return null;
+            if (seek && w.sShowSeekNotifications === 0) {
+                entries.slice().forEach(function (entry) {
+                    if (entry.seek) entry.handle.remove("disabled");
+                });
+                return null;
+            }
             var lifetime =
                 typeof durationMs === "number" &&
                 isFinite(durationMs) &&
                 durationMs > 0
                     ? Math.min(3600000, durationMs)
                     : 3000;
-            var banner = create({ local: true, message: message }, lifetime);
+            if (seek)
+                for (var i = 0; i < entries.length; i++)
+                    if (entries[i].seek) {
+                        entries[i].refresh(message, lifetime);
+                        return entries[i].handle;
+                    }
+            var banner = create(
+                { local: true, message: message, seek: seek },
+                lifetime
+            );
             if (banner) banner.animate(lifetime);
             return banner;
         },

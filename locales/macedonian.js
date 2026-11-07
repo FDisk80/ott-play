@@ -914,6 +914,7 @@ var keyStrings = {
     "Restart player": "Рестартирај го плеерот",
     "Restart stream": "Рестартирај го стримот",
     "Restart stream / Live": "Рестартирај стрим / Во живо",
+    "Resume archive after restart": "Продолжи од архивата по рестартирање",
     "Resume from archive?": "Да продолжи од архивата?",
     Retry: "Обиди се повторно",
     "Retry EPG download": "Повторно преземи EPG",
@@ -961,6 +962,7 @@ var keyStrings = {
         "Безбедниот далечински внес не може да започне. Користете ја екранската тастатура.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Безбедниот далечински внес не е достапен на овој уред. Користете ја екранската тастатура.",
+    "Seek notifications": "Известувања при премотување",
     "Select a live channel first": "Прво изберете канал во живо",
     "Select a stream type:<br>%1": "Изберете тип на стрим:<br>%1",
     "Select category to add channel":

@@ -920,6 +920,8 @@ var keyStrings = {
     "Restart player": "Qala isidlali kwakhona",
     "Restart stream": "Qala usasazo kwakhona",
     "Restart stream / Live": "Qala usasazo kwakhona / Usasazo ngqo",
+    "Resume archive after restart":
+        "Qhubeka kugcino lweenkqubo emva kokuqalisa kwakhona",
     "Resume from archive?": "Qhubeka kugcino lweenkqubo?",
     Retry: "Zama kwakhona",
     "Retry EPG download": "Zama ukukhuphela i-EPG kwakhona",
@@ -967,6 +969,7 @@ var keyStrings = {
         "Ukufaka okukude okukhuselekileyo akukwazanga ukuqala. Nceda usebenzise ibhodi yezitshixo esesikrinini.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Ukufaka okukude okukhuselekileyo akufumaneki kwesi sixhobo. Sebenzisa ibhodi yezitshixo esesikrinini.",
+    "Seek notifications": "Izaziso zokutshintsha ixesha levidiyo",
     "Select a live channel first": "Qala ukhethe isitishi esisasaza ngqo",
     "Select a stream type:<br>%1": "Khetha uhlobo losasazo:<br>%1",
     "Select category to add channel": "Khetha udidi oza kongeza kulo ijelo",

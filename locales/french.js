@@ -926,6 +926,8 @@ var keyStrings = {
     "Restart player": "Redémarrer le lecteur",
     "Restart stream": "Redémarrer le flux",
     "Restart stream / Live": "Redémarrer le flux / direct",
+    "Resume archive after restart":
+        "Reprendre depuis les archives après redémarrage",
     "Resume from archive?": "Reprendre depuis les archives ?",
     Retry: "Réessayer",
     "Retry EPG download": "Réessayez le téléchargement de EPG",
@@ -973,6 +975,7 @@ var keyStrings = {
         "L'entrée à distance sécurisée n'a pas pu démarrer. Veuillez utiliser le clavier à l'écran.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "L'entrée à distance sécurisée n'est pas disponible sur cet appareil. Utilisez le clavier à l'écran.",
+    "Seek notifications": "Notifications de déplacement dans la lecture",
     "Select a live channel first": "Sélectionnez d’abord une chaîne en direct",
     "Select a stream type:<br>%1": "Choisissez un type de flux :<br>%1",
     "Select category to add channel":

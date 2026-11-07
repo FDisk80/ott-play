@@ -917,6 +917,8 @@ var keyStrings = {
     "Restart player": "Rinisni luajtësin e mediave",
     "Restart stream": "Rinis transmetimin",
     "Restart stream / Live": "Rinis transmetimin / drejtpërdrejt",
+    "Resume archive after restart":
+        "Vazhdo riprodhimin nga arkivi pas rinisjes",
     "Resume from archive?": "Të vazhdojë riprodhimi nga arkivi?",
     Retry: "Provo sërish",
     "Retry EPG download": "Provo sërish shkarkimin e EPG",
@@ -963,6 +965,7 @@ var keyStrings = {
         "Hyrja e sigurt në distancë nuk mund të nisej. Ju lutemi përdorni tastierën në ekran.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Hyrja e sigurt në distancë nuk ofrohet në këtë pajisje. Përdorni tastierën në ekran.",
+    "Seek notifications": "Njoftimet për ndryshimin e pozicionit",
     "Select a live channel first":
         "Zgjidhni fillimisht një kanal drejtpërdrejt",
     "Select a stream type:<br>%1": "Zgjidhni një lloj transmetimi:<br>%1",

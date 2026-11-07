@@ -915,6 +915,7 @@ var keyStrings = {
     "Restart player": "Player neu starten",
     "Restart stream": "Stream neu starten",
     "Restart stream / Live": "Stream neu starten / Live",
+    "Resume archive after restart": "Archiv nach Neustart fortsetzen",
     "Resume from archive?": "Aus dem Archiv fortsetzen?",
     Retry: "Wiederholen",
     "Retry EPG download": "Versuchen Sie den EPG-Download erneut",
@@ -962,6 +963,7 @@ var keyStrings = {
         "Die sichere Remote-Eingabe konnte nicht gestartet werden. Bitte nutzen Sie die Bildschirmtastatur.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Die sichere Remote-Eingabe ist auf diesem Gerät nicht verfügbar. Verwenden Sie die Bildschirmtastatur.",
+    "Seek notifications": "Benachrichtigungen beim Spulen",
     "Select a live channel first": "Zuerst einen Live-Kanal auswählen",
     "Select a stream type:<br>%1": "Wählen Sie einen Streamtyp:<br>%1",
     "Select category to add channel":

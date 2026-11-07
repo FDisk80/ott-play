@@ -863,6 +863,7 @@ var keyStrings = {
     "Restart player": "ማጫወቻውን እንደገና አስጀምር",
     "Restart stream": "ዥረቱን እንደገና አስጀምር",
     "Restart stream / Live": "ዥረቱን እንደገና አስጀምር / ቀጥታ ስርጭት",
+    "Resume archive after restart": "ከዳግም ማስጀመር በኋላ ከማህደር ቀጥል",
     "Resume from archive?": "ከማህደር መቀጠል ይፈልጋሉ?",
     Retry: "እንደገና ሞክር",
     "Retry EPG download": "የEPG ማውረድን እንደገና ሞክር",
@@ -908,6 +909,7 @@ var keyStrings = {
         "ደህንነቱ የተጠበቀ የርቀት ግቤት መጀመር አልቻለም። እባክዎ የማያ ገጽ ቁልፍ ሰሌዳ ይጠቀሙ።",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ደህንነቱ የተጠበቀ የርቀት ግቤት በዚህ መሣሪያ አይገኝም። የማያ ገጽ ቁልፍ ሰሌዳ ይጠቀሙ።",
+    "Seek notifications": "የጊዜ መዝለል ማሳወቂያዎች",
     "Select a live channel first": "መጀመሪያ የቀጥታ ሰርጥ ይምረጡ",
     "Select a stream type:<br>%1": "የዥረት ዓይነት ይምረጡ፦<br>%1",
     "Select category to add channel": "ሰርጡን ለማከል ምድብ ይምረጡ",

@@ -916,6 +916,7 @@ var keyStrings = {
     "Restart player": "Erġa’ ibda l-plejer",
     "Restart stream": "Erġa’ ibda l-istrim",
     "Restart stream / Live": "Erġa’ ibda l-istrim / Dirett",
+    "Resume archive after restart": "Kompli mill-arkivju wara li terġa’ tibda",
     "Resume from archive?": "Tkompli mill-arkivju?",
     Retry: "Erġa’ pprova",
     "Retry EPG download": "Erġa’ pprova tniżżel EPG",
@@ -963,6 +964,7 @@ var keyStrings = {
         "Id-dħul remot sigur ma setax jibda. Uża t-tastiera fuq l-iskrin.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Id-dħul remot sigur mhux disponibbli fuq dan l-apparat. Uża t-tastiera fuq l-iskrin.",
+    "Seek notifications": "Notifiki dwar ċaqliq fil-ħin tad-daqq",
     "Select a live channel first": "L-ewwel agħżel kanal dirett",
     "Select a stream type:<br>%1": "Agħżel tip ta’ strim:<br>%1",
     "Select category to add channel": "Agħżel kategorija biex iżżid il-kanal",

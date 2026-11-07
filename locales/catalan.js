@@ -926,6 +926,8 @@ var keyStrings = {
     "Restart player": "Reinicia el reproductor",
     "Restart stream": "Reinicia la transmissió",
     "Restart stream / Live": "Reinicia la transmissió / En directe",
+    "Resume archive after restart":
+        "Reprèn des de l’arxiu després de reiniciar",
     "Resume from archive?": "Vols continuar des de l’arxiu?",
     Retry: "Torna-ho a provar",
     "Retry EPG download": "Torna a baixar l’EPG",
@@ -973,6 +975,7 @@ var keyStrings = {
         "No s’ha pogut iniciar l’entrada remota segura. Utilitza el teclat en pantalla.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "L’entrada remota segura no està disponible en aquest dispositiu. Utilitza el teclat en pantalla.",
+    "Seek notifications": "Avisos de desplaçament de la reproducció",
     "Select a live channel first": "Selecciona primer un canal en directe",
     "Select a stream type:<br>%1": "Selecciona un tipus de transmissió:<br>%1",
     "Select category to add channel":

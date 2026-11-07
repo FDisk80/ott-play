@@ -927,6 +927,8 @@ var keyStrings = {
     "Restart player": "Επανεκκίνηση προγράμματος αναπαραγωγής",
     "Restart stream": "Επανεκκίνηση ροής",
     "Restart stream / Live": "Επανεκκίνηση ροής / ζωντανά",
+    "Resume archive after restart":
+        "Συνέχιση από το αρχείο μετά την επανεκκίνηση",
     "Resume from archive?": "Συνέχεια από το αρχείο;",
     Retry: "Επανάληψη",
     "Retry EPG download": "Δοκιμάστε ξανά τη λήψη του EPG",
@@ -974,6 +976,7 @@ var keyStrings = {
         "Δεν ήταν δυνατή η εκκίνηση της ασφαλούς απομακρυσμένης εισόδου. Χρησιμοποιήστε το πληκτρολόγιο οθόνης.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Η ασφαλής απομακρυσμένη είσοδος δεν είναι διαθέσιμη σε αυτήν τη συσκευή. Χρησιμοποιήστε το πληκτρολόγιο οθόνης.",
+    "Seek notifications": "Ειδοποιήσεις μετακίνησης στην αναπαραγωγή",
     "Select a live channel first": "Επιλέξτε πρώτα ένα ζωντανό κανάλι",
     "Select a stream type:<br>%1": "Επιλέξτε τύπο ροής:<br>%1",
     "Select category to add channel":

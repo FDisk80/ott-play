@@ -443,6 +443,102 @@ function save(w) {
     w.listKeyHandlerFn(w.keys.GREEN);
 }
 
+for (const profile of [
+    "server",
+    "tauri",
+    "capacitor-android",
+    "capacitor-ios",
+]) {
+    for (const mode of [0, 1]) {
+        const { w, typed, stored } = fixture(profile);
+        w.sInterfaceMode = mode;
+        const options = [
+            ["resumeArchiveAfterRestart", "sResumeArchiveAfterRestart", 0],
+            ["showSeekNotifications", "sShowSeekNotifications", 1],
+        ];
+        w.settingsInterface();
+        for (const [id, key, fallback] of options) {
+            assert.equal(typed()[id], fallback);
+            assert.equal(stored.has(key), false);
+            w.listArray.find((row) => row.settingId === id).val = 1 - fallback;
+        }
+        w.listKeyHandlerFn(w.keys.RETURN);
+        for (const [id, key, fallback] of options) {
+            assert.equal(typed()[id], fallback, "Cancel preserves " + id);
+            assert.equal(stored.has(key), false);
+        }
+        w.settingsInterface();
+        for (const [id, , fallback] of options)
+            w.listArray.find((row) => row.settingId === id).val = 1 - fallback;
+        save(w);
+        const reopened = fixture(profile, false, "full", undefined, [
+            ...stored,
+        ]);
+        vm.runInContext("loadSettings();", reopened.w);
+        for (const [id, key, fallback] of options) {
+            assert.equal(stored.get(key), String(1 - fallback));
+            assert.equal(
+                reopened.typed()[id],
+                1 - fallback,
+                "Restart restores " + id
+            );
+        }
+        vm.runInContext(
+            compile(
+                fs.readFileSync(
+                    path.join(root, "src/plugins/remote-settings.ts"),
+                    "utf8"
+                )
+            ),
+            reopened.w
+        );
+        const remote = reopened.w.__ottPlayerSettingsFactory.create(
+            reopened.w,
+            () => "notifications-test"
+        );
+        function request(params) {
+            let response;
+            remote.request(
+                {
+                    action: "player_settings",
+                    params: { runtime: "notifications-test", ...params },
+                },
+                (result) => {
+                    response = result;
+                }
+            );
+            return response;
+        }
+        for (const [id, key, fallback] of options) {
+            const current = request({ id, op: "get" });
+            assert.equal(current.data.descriptor.default_value, fallback);
+            assert.equal(current.data.descriptor.scope, "application");
+            const result = request({
+                context: current.data.context.token,
+                id,
+                op: "set",
+                revision: current.data.setting.revision,
+                value: fallback,
+            });
+            assert.equal(result.data.persisted, true);
+            assert.equal(reopened.stored.get(key), String(fallback));
+        }
+        const restored = fixture(profile, false, "full", undefined, [
+            ...reopened.stored,
+        ]);
+        vm.runInContext("loadSettings();", restored.w);
+        for (const [id, , fallback] of options)
+            assert.equal(
+                restored.typed()[id],
+                fallback,
+                "Remote save survives restart: " + id
+            );
+    }
+}
+console.log(
+    "PASS playback notification preferences: defaults, cancel, save, restart and remote writes"
+);
+
 // Timezone UI regression: the real settings page, draft and storage codec.
 {
     const expectedOffsets = [

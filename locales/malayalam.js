@@ -885,6 +885,7 @@ var keyStrings = {
     "Restart player": "പ്ലേയർ പുനരാരംഭിക്കുക",
     "Restart stream": "സ്ട്രീം പുനരാരംഭിക്കുക",
     "Restart stream / Live": "സ്ട്രീം / ലൈവ് പുനരാരംഭിക്കുക",
+    "Resume archive after restart": "പുനരാരംഭിച്ച ശേഷം ആർക്കൈവിൽ നിന്ന് തുടരുക",
     "Resume from archive?": "ആർക്കൈവിൽ നിന്ന് പുനരാരംഭിക്കണോ?",
     Retry: "വീണ്ടും ശ്രമിക്കുക",
     "Retry EPG download": "EPG ഡൗൺലോഡ് ചെയ്യാൻ വീണ്ടും ശ്രമിക്കുക",
@@ -932,6 +933,7 @@ var keyStrings = {
         "സുരക്ഷിത വിദൂര ഇൻപുട്ട് ആരംഭിക്കാൻ കഴിഞ്ഞില്ല. ദയവായി ഓൺ-സ്ക്രീൻ കീബോർഡ് ഉപയോഗിക്കുക.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ഈ ഉപകരണത്തിൽ സുരക്ഷിത റിമോട്ട് ഇൻപുട്ട് ലഭ്യമല്ല. ഓൺ-സ്ക്രീൻ കീബോർഡ് ഉപയോഗിക്കുക.",
+    "Seek notifications": "മുന്നോട്ട്/പിന്നോട്ട് നീക്കുന്നതിന്റെ അറിയിപ്പുകൾ",
     "Select a live channel first": "ആദ്യം ഒരു തത്സമയ ചാനൽ തിരഞ്ഞെടുക്കുക",
     "Select a stream type:<br>%1": "ഒരു സ്ട്രീം തരം തിരഞ്ഞെടുക്കുക:<br>%1",
     "Select category to add channel": "ചാനൽ ചേർക്കാൻ ഒരു വിഭാഗം തിരഞ്ഞെടുക്കുക",

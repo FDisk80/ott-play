@@ -892,6 +892,7 @@ var keyStrings = {
     "Restart player": "플레이어 다시 시작",
     "Restart stream": "스트림 다시 시작",
     "Restart stream / Live": "스트림/라이브 다시 시작",
+    "Resume archive after restart": "재시작 후 다시보기 이어보기",
     "Resume from archive?": "지난 방송을 다시 시청하시겠습니까?",
     Retry: "재시도",
     "Retry EPG download": "EPG 다운로드 재시도",
@@ -937,6 +938,7 @@ var keyStrings = {
         "보안 원격 입력을 시작할 수 없습니다. 온스크린 키보드를 사용해 주세요.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "이 장치에서는 보안 원격 입력을 사용할 수 없습니다. 온스크린 키보드를 사용하세요.",
+    "Seek notifications": "되감기 및 빨리감기 알림",
     "Select a live channel first": "먼저 실시간 채널을 선택하세요",
     "Select a stream type:<br>%1": "스트림 유형 선택:<br>%1",
     "Select category to add channel": "채널을 추가할 카테고리를 선택하세요",

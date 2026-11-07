@@ -202,3 +202,187 @@ test("explicit popup lifetime and full plain text retain the remote command cont
         f.dom.window.close();
     }
 });
+
+for (const enabled of [undefined, 1, 0]) {
+    test("seek-only setting retains other feedback: " + enabled, () => {
+        const f = fixture({ sShowSeekNotifications: enabled });
+        try {
+            f.w.showShift("Pause");
+            const pause = f.notice();
+            f.w.showShift("+00:10", true);
+            if (enabled === 0) {
+                assert.equal(
+                    f.notice(),
+                    pause,
+                    "disabled seek does not evict another notice"
+                );
+                assert.equal(f.notice().textContent, "Pause");
+            } else {
+                assert.notEqual(f.notice(), pause);
+                assert(f.notice().classList.contains("remote-notify-seek"));
+            }
+            f.w.showPopup("Unrelated remote command result");
+            assert.equal(
+                f.notice().textContent,
+                "Unrelated remote command result"
+            );
+            assert(!f.notice().classList.contains("remote-notify-seek"));
+        } finally {
+            f.dom.window.close();
+        }
+    });
+}
+
+test("seek repeats and committed archive feedback reuse one card without another entrance", () => {
+    const f = fixture();
+    try {
+        const container = f.w.document.getElementById("notifications");
+        let insertions = 0;
+        const append = container.appendChild.bind(container);
+        container.appendChild = (node) => {
+            insertions++;
+            return append(node);
+        };
+        f.w.showShift("-00:10", true);
+        const first = f.notice();
+        f.tick(200);
+        f.w.showShift("-00:20", true);
+        assert.equal(
+            first.style.animationName,
+            "",
+            "a repeat during entrance preserves its animation"
+        );
+        f.tick(500);
+        f.w.showShift("-00:20", true);
+        assert.equal(f.notice(), first);
+        assert.equal(insertions, 1);
+        assert.equal(first.textContent, "-00:20");
+        assert.equal(
+            first.style.animationName,
+            "",
+            "refresh never restarts the entrance"
+        );
+        assert.equal(
+            first.style.getPropertyValue("--ott-notify-fade-delay"),
+            "1680ms"
+        );
+        f.tick(2680);
+        assert(first.classList.contains("remote-notify-out"));
+        f.w.showShift("<b>-00:30</b>", true);
+        assert.equal(
+            f.notice(),
+            first,
+            "an update during exit keeps the same card"
+        );
+        assert(!first.classList.contains("remote-notify-out"));
+        assert.equal(first.style.animationName, "none");
+        assert.equal(first.querySelector("b"), null);
+        f.tick(2999);
+        assert.equal(f.notice(), first, "each repeat refreshes its expiry");
+        f.tick(1);
+        assert.equal(f.notice(), null);
+        assert.equal(f.tasks.size, 0);
+        f.w.showShift("+00:10", true);
+        assert.notEqual(
+            f.notice(),
+            first,
+            "a later gesture has its own entrance"
+        );
+        assert.equal(f.notice().style.animationName, "");
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("turning seek notifications off removes only seek feedback, and standby cannot revive it", () => {
+    const f = fixture();
+    try {
+        f.w.showShift("+00:10", true);
+        const service = f.w.__ottNotificationBanners;
+        const remote = service.create(
+            { message: "Door opened", severity: "critical" },
+            5000
+        );
+        remote.animate(5000);
+        f.w.sShowSeekNotifications = 0;
+        f.w.showShift("+00:20", true);
+        assert.equal(f.notice(), null);
+        assert(remote.element.isConnected);
+        f.w.sShowSeekNotifications = 1;
+        f.w.showShift("+00:30", true);
+        service.suspend();
+        assert.equal(f.w.document.querySelectorAll(".notify").length, 0);
+        f.w.__ottScreenAwake = false;
+        f.w.showShift("+00:40", true);
+        f.tick(5000);
+        assert.equal(f.notice(), null);
+        assert.equal(f.tasks.size, 0);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("seek cards shrink to content even alongside a full-width remote notice", () => {
+    const dom = new JSDOM(read("index.html"));
+    try {
+        const rules = [...dom.window.document.styleSheets].flatMap((sheet) => [
+            ...sheet.cssRules,
+        ]);
+        const base = rules.find(
+            (rule) => rule.selectorText === ".notify.remote-notify"
+        );
+        const seek = rules.find(
+            (rule) =>
+                rule.selectorText === ".notify.remote-notify.remote-notify-seek"
+        );
+        assert.equal(
+            base.style.width,
+            "24em",
+            "remote card sizing stays unchanged"
+        );
+        assert.equal(seek.style.width, "auto");
+        assert.equal(
+            seek.style["align-self"],
+            "flex-end",
+            "the flex container cannot stretch it to a remote card's width"
+        );
+        assert.equal(
+            seek.style["max-width"],
+            "",
+            "the existing viewport bound is inherited"
+        );
+        assert.match(base.style["max-width"], /100vw/);
+        const surfaceSelector =
+            ".notify.remote-notify.remote-notify-seek::before";
+        const delayRule = rules.find((rule) =>
+            rule.selectorText
+                ?.split(",")
+                .map((selector) => selector.trim())
+                .includes(surfaceSelector)
+        );
+        assert.equal(
+            delayRule.style["animation-delay"],
+            "0ms, var(--ott-notify-fade-delay, 980ms)"
+        );
+        const surfaceShorthand = rules.find(
+            (rule) =>
+                rule.style?.animation &&
+                rule.selectorText
+                    ?.split(",")
+                    .map((selector) => selector.trim())
+                    .includes(".notify.remote-notify::before")
+        );
+        assert(
+            surfaceShorthand,
+            "shared shorthand resets delay after the seek rule"
+        );
+        assert(rules.indexOf(surfaceShorthand) > rules.indexOf(delayRule));
+        assert(
+            surfaceSelector.split(".").length >
+                ".notify.remote-notify::before".split(".").length,
+            "the seek surface delay wins by specificity despite the later animation shorthand"
+        );
+    } finally {
+        dom.window.close();
+    }
+});

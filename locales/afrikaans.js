@@ -903,6 +903,7 @@ var keyStrings = {
     "Restart player": "Herbegin speler",
     "Restart stream": "Herbegin stroom",
     "Restart stream / Live": "Herbegin stroom / Regstreeks",
+    "Resume archive after restart": "Hervat die argief ná herbegin",
     "Resume from archive?": "Hervat vanuit argief?",
     Retry: "Probeer weer",
     "Retry EPG download": "Probeer EPG-aflaai weer",
@@ -949,6 +950,7 @@ var keyStrings = {
         "Veilige afstandinvoer kon nie begin nie. Gebruik asseblief die skermsleutelbord.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Veilige afstandinvoer is nie op hierdie toestel beskikbaar nie. Gebruik die skermsleutelbord.",
+    "Seek notifications": "Kennisgewings oor tydspronge",
     "Select a live channel first": "Kies eers 'n regstreekse kanaal",
     "Select a stream type:<br>%1": "Kies 'n stroomtipe:<br>%1",
     "Select category to add channel":

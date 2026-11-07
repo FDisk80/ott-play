@@ -899,6 +899,8 @@ var keyStrings = {
     "Restart player": "Pleyeri yenidən başlat",
     "Restart stream": "Yayımı yenidən başlat",
     "Restart stream / Live": "Yayımı yenidən başlat / canlı yayım",
+    "Resume archive after restart":
+        "Yenidən başladıqdan sonra arxivdən davam et",
     "Resume from archive?": "Arxivdən davam edilsin?",
     Retry: "Yenidən cəhd et",
     "Retry EPG download": "EPG yükləməsini yenidən cəhd edin",
@@ -946,6 +948,7 @@ var keyStrings = {
         "Təhlükəsiz uzaqdan giriş başlaya bilmədi. Zəhmət olmasa ekran klaviaturasından istifadə edin.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Təhlükəsiz uzaqdan giriş bu cihazda mövcud deyil. Ekran klaviaturasından istifadə edin.",
+    "Seek notifications": "Sarıma bildirişləri",
     "Select a live channel first": "Əvvəlcə canlı kanal seçin",
     "Select a stream type:<br>%1": "Yayım növünü seçin:<br>%1",
     "Select category to add channel":

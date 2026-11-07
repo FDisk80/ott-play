@@ -676,7 +676,7 @@ export function uiInit(): void {
         if (w.playType < 0) {
             var r = Math.max(Math.round(t * w.stbGetLen()), 0);
             if (typeof w.showShift === "function")
-                w.showShift(">> " + formatPlaybackTime(r) + " <<");
+                w.showShift(">> " + formatPlaybackTime(r) + " <<", true);
             if (typeof w.stbSetPosTime === "function") w.stbSetPosTime(r);
             return;
         }
@@ -702,11 +702,11 @@ export function uiInit(): void {
                 return;
             }
             if (typeof w.showShift === "function")
-                w.showShift(">> " + formatClockTime(r2) + " <<");
+                w.showShift(">> " + formatClockTime(r2) + " <<", true);
             if (typeof w.playArchive === "function") w.playArchive(r2);
         } else {
             if (typeof w.showShift === "function")
-                w.showShift(w._(w.playType ? "Live" : "Restart stream"));
+                w.showShift(w._(w.playType ? "Live" : "Restart stream"), true);
             if (typeof w.playChannel === "function")
                 w.playChannel(w.catIndex, w.primaryIndex);
         }
@@ -1516,8 +1516,8 @@ export function localizedTextHtml(message: string, centered?: boolean): string {
 }
 
 /** Show a short plain-text notice, replacing the previous local notice. */
-export function showShift(message: string): void {
-    createNotificationBanners(window).showLocal(message, 3000);
+export function showShift(message: string, seek = false): void {
+    createNotificationBanners(window).showLocal(message, 3000, seek);
 }
 
 /**

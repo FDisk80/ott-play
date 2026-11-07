@@ -899,6 +899,8 @@ var keyStrings = {
     "Restart player": "Ойнатқышты қайта іске қосу",
     "Restart stream": "Ағынды қайта іске қосу",
     "Restart stream / Live": "Ағынды қайта іске қосу / тікелей эфир",
+    "Resume archive after restart":
+        "Қайта іске қосқаннан кейін мұрағаттан жалғастыру",
     "Resume from archive?": "Мұрағаттан жалғастыру керек пе?",
     Retry: "Қайталау",
     "Retry EPG download": "EPG жүктеп алуды қайталаңыз",
@@ -946,6 +948,7 @@ var keyStrings = {
         "Қауіпсіз қашықтан енгізу іске қосылмады. Экрандық пернетақтаны пайдаланыңыз.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Бұл құрылғыда қауіпсіз қашықтан енгізу мүмкін емес. Экрандық пернетақтаны пайдаланыңыз.",
+    "Seek notifications": "Айналдыру туралы хабарландырулар",
     "Select a live channel first": "Алдымен тікелей эфир арнасын таңдаңыз",
     "Select a stream type:<br>%1": "Ағын түрін таңдаңыз:<br>%1",
     "Select category to add channel": "Арнаны қосатын санатты таңдаңыз",

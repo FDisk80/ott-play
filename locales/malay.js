@@ -896,6 +896,7 @@ var keyStrings = {
     "Restart player": "Mulakan semula pemain",
     "Restart stream": "Mulakan semula strim",
     "Restart stream / Live": "Mulakan semula strim / langsung",
+    "Resume archive after restart": "Sambung dari arkib selepas mula semula",
     "Resume from archive?": "Sambung daripada arkib?",
     Retry: "Cuba semula",
     "Retry EPG download": "Cuba semula muat turun EPG",
@@ -943,6 +944,7 @@ var keyStrings = {
         "Input jauh selamat tidak dapat dimulakan. Sila gunakan papan kekunci pada skrin.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Input jauh selamat tidak tersedia pada peranti ini. Gunakan papan kekunci pada skrin.",
+    "Seek notifications": "Pemberitahuan perubahan kedudukan main",
     "Select a live channel first": "Pilih saluran langsung dahulu",
     "Select a stream type:<br>%1": "Pilih jenis strim:<br>%1",
     "Select category to add channel": "Pilih kategori untuk menambah saluran",

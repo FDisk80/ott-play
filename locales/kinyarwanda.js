@@ -921,6 +921,8 @@ var keyStrings = {
     "Restart player": "Ongera utangize porogaramu yo gukina",
     "Restart stream": "Ongera utangize isakaza",
     "Restart stream / Live": "Ongera utangize isakaza / imbonankubone",
+    "Resume archive after restart":
+        "Komeza uhereye mu bubiko nyuma yo kongera gutangiza",
     "Resume from archive?": "Gukomeza uhereye mu bubiko?",
     Retry: "Ongera ugerageze",
     "Retry EPG download": "Ongera ugerageze gukuramo EPG",
@@ -967,6 +969,7 @@ var keyStrings = {
         "Iyinjiza rya kure ririnzwe ryanze gutangira. Koresha mwandikisho yo kuri ekara.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Iyinjiza rya kure ririnzwe ntiriboneka kuri iki gikoresho. Koresha mwandikisho yo kuri ekara.",
+    "Seek notifications": "Imenyesha ryo guhindura igihe cyo gukina",
     "Select a live channel first": "Banza uhitemo shene inyura ako kanya",
     "Select a stream type:<br>%1": "Hitamo ubwoko bw'isakaza:<br>%1",
     "Select category to add channel": "Hitamo icyiciro cyo kongeramo shene",

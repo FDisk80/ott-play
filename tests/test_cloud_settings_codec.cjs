@@ -27,6 +27,23 @@ function group(name, run) {
 }
 
 group(
+    "playback notification preferences survive portable export and import",
+    () => {
+        for (const [archive, seek] of [
+            [0, 1],
+            [1, 0],
+        ]) {
+            const original = {
+                sResumeArchiveAfterRestart: String(archive),
+                sShowSeekNotifications: String(seek),
+            };
+            const restored = codec.read(codec.write(original));
+            assert.deepEqual(normalized(restored), original);
+        }
+    }
+);
+
+group(
     "versioned storage round-trip preserves XML, compression and all UTF-16 units",
     () => {
         const units = [];

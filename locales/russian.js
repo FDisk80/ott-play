@@ -895,6 +895,7 @@ var keyStrings = {
     "Restart player": "Перезапустить плеер",
     "Restart stream": "Перезапустить поток",
     "Restart stream / Live": "Перезапустить поток / прямой эфир",
+    "Resume archive after restart": "Продолжать архив после перезапуска",
     "Resume from archive?": "Продолжить из архива?",
     Retry: "Повторить",
     "Retry EPG download": "Повторить загрузку EPG",
@@ -941,6 +942,7 @@ var keyStrings = {
         "Не удалось начать защищённый удалённый ввод. Используйте экранную клавиатуру.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "На этом устройстве недоступен защищённый удалённый ввод. Используйте экранную клавиатуру.",
+    "Seek notifications": "Уведомления о перемотке",
     "Select a live channel first": "Сначала выберите канал прямого эфира",
     "Select a stream type:<br>%1": "Выберите тип потока:<br>%1",
     "Select category to add channel": "Выбор категории для добавления канала",

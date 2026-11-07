@@ -902,6 +902,7 @@ var keyStrings = {
     "Restart player": "Sake kunna manhajar kunnawa",
     "Restart stream": "Sake kunna rafi",
     "Restart stream / Live": "Sake kunna rafi / Kai tsaye",
+    "Resume archive after restart": "Ci gaba daga ma'ajiya bayan sake kunnawa",
     "Resume from archive?": "Ci gaba daga ma'ajiya?",
     Retry: "Sake gwadawa",
     "Retry EPG download": "Sake gwada sauke EPG",
@@ -948,6 +949,7 @@ var keyStrings = {
         "Amintaccen shigarwa daga nesa bai iya farawa ba. Yi amfani da madannan allo.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Amintaccen shigarwa daga nesa ba ya samuwa a wannan na'ura. Yi amfani da madannan allo.",
+    "Seek notifications": "Sanarwar sauya lokacin bidiyo",
     "Select a live channel first": "Da farko zaɓi tashar kai tsaye",
     "Select a stream type:<br>%1": "Zaɓi nau'in rafi:<br>%1",
     "Select category to add channel": "Zaɓi rukuni don ƙara tashar",

@@ -859,6 +859,7 @@ var keyStrings = {
     "Restart player": "ເລີ່ມເຄື່ອງຫຼິ້ນຄືນ",
     "Restart stream": "ເລີ່ມສະຕຣີມຄືນ",
     "Restart stream / Live": "ເລີ່ມສະຕຣີມຄືນ / ຖ່າຍທອດສົດ",
+    "Resume archive after restart": "ສືບຕໍ່ເບິ່ງລາຍການຍ້ອນຫຼັງຫຼັງຈາກເລີ່ມໃໝ່",
     "Resume from archive?": "ຫຼິ້ນຕໍ່ຈາກຍ້ອນຫຼັງບໍ?",
     Retry: "ລອງອີກ",
     "Retry EPG download": "ລອງດາວໂຫຼດ EPG ອີກ",
@@ -903,6 +904,7 @@ var keyStrings = {
         "ບໍ່ສາມາດເລີ່ມການປ້ອນທາງໄກທີ່ປອດໄພ. ໃຊ້ແປ້ນພິມໃນຈໍ.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ການປ້ອນທາງໄກທີ່ປອດໄພບໍ່ພ້ອມໃຊ້ໃນອຸປະກອນນີ້. ໃຊ້ແປ້ນພິມໃນຈໍ.",
+    "Seek notifications": "ແຈ້ງເຕືອນເມື່ອເລື່ອນເວລາ",
     "Select a live channel first": "ກະລຸນາເລືອກຊ່ອງສົດກ່ອນ",
     "Select a stream type:<br>%1": "ເລືອກປະເພດສະຕຣີມ:<br>%1",
     "Select category to add channel": "ເລືອກໝວດໝູ່ເພື່ອເພີ່ມຊ່ອງ",

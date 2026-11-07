@@ -900,6 +900,7 @@ var keyStrings = {
     "Restart player": "Paleisti grotuvą iš naujo",
     "Restart stream": "Paleisti srautą iš naujo",
     "Restart stream / Live": "Paleisti srautą iš naujo / tiesiogiai",
+    "Resume archive after restart": "Tęsti iš archyvo paleidus iš naujo",
     "Resume from archive?": "Tęsti iš archyvo?",
     Retry: "Bandyti dar kartą",
     "Retry EPG download": "Pabandykite dar kartą atsisiųsti EPG",
@@ -946,6 +947,7 @@ var keyStrings = {
         "Nepavyko paleisti saugios nuotolinės įvesties. Naudokite ekraninę klaviatūrą.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Šiame įrenginyje saugi nuotolinė įvestis nepasiekiama. Naudokite ekrano klaviatūrą.",
+    "Seek notifications": "Pranešimai apie persukimą",
     "Select a live channel first": "Pirmiausia pasirinkite tiesioginį kanalą",
     "Select a stream type:<br>%1": "Pasirinkite srauto tipą:<br>%1",
     "Select category to add channel": "Pasirinkite kategoriją kanalui pridėti",

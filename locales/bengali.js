@@ -877,6 +877,7 @@ var keyStrings = {
     "Restart player": "প্লেয়ার রিস্টার্ট করুন",
     "Restart stream": "স্ট্রীম রিস্টার্ট করুন",
     "Restart stream / Live": "রিস্টার্ট স্ট্রিম / লাইভ",
+    "Resume archive after restart": "পুনরায় চালুর পর আর্কাইভ থেকে চালিয়ে যান",
     "Resume from archive?": "সংরক্ষণাগার থেকে পুনরায় শুরু করবেন?",
     Retry: "আবার চেষ্টা করুন",
     "Retry EPG download": "EPG ডাউনলোড পুনরায় চেষ্টা করুন",
@@ -923,6 +924,7 @@ var keyStrings = {
         "নিরাপদ দূরবর্তী ইনপুট শুরু করা যায়নি। অন-স্ক্রীন কীবোর্ড ব্যবহার করুন.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "এই ডিভাইসে সুরক্ষিত দূরবর্তী ইনপুট অনুপলব্ধ৷ অন-স্ক্রিন কীবোর্ড ব্যবহার করুন।",
+    "Seek notifications": "এগোনো/পেছানোর বিজ্ঞপ্তি",
     "Select a live channel first": "প্রথমে একটি সরাসরি সম্প্রচারের চ্যানেল বেছে নিন",
     "Select a stream type:<br>%1": "একটি স্ট্রিম প্রকার নির্বাচন করুন:<br>%1",
     "Select category to add channel": "চ্যানেল যোগ করতে একটি বিভাগ নির্বাচন করুন",
