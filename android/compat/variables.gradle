@@ -2,11 +2,11 @@
 ext {
     minSdkVersion = 22
     androidxActivityVersion = '1.9.3'
-    androidxAppCompatVersion = '1.7.0'
-    androidxCoordinatorLayoutVersion = '1.2.0'
+    androidxAppCompatVersion = '1.8.0'
+    androidxCoordinatorLayoutVersion = '1.3.0'
     androidxCoreVersion = '1.13.1'
     androidxFragmentVersion = '1.8.5'
-    coreSplashScreenVersion = '1.0.1'
+    coreSplashScreenVersion = '1.2.0'
     androidxWebkitVersion = '1.12.1'
     cordovaAndroidVersion = '10.1.1'
 }

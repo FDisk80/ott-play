@@ -1,5 +1,5 @@
 # Build the TS bundle (dist/player.js)
-FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS build
+FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
@@ -26,7 +26,7 @@ RUN npm run typecheck && npm run build:server
 
 # Resolve the server workspace before the target compilation cache boundary.
 # Desktop release version changes must not invalidate unchanged server inputs.
-FROM --platform=$BUILDPLATFORM rust:1.99-alpine@sha256:7e9e2d068a107a2adafd19930011178d14a78326053cd4c3a9f7ad3fd049557d AS server-inputs
+FROM --platform=$BUILDPLATFORM rust:1.99-alpine@sha256:44819b27be4c97b0e4d7203bd2e02c4820f97700211b6a37fb4c246a2de59383 AS server-inputs
 RUN apk add --no-cache python3
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
@@ -39,7 +39,7 @@ RUN python3 scripts/prepare-container-workspace.py --workspace /app --output /pr
 # Build Rust server against musl so the published image does not need
 # GLIBC_2.38+ (Hub :latest built on a newer glibc toolchain failed on
 # Synology DSM Docker / x86_64). Alpine = musl host target by default.
-FROM rust:1.99-alpine@sha256:7e9e2d068a107a2adafd19930011178d14a78326053cd4c3a9f7ad3fd049557d AS rust-build
+FROM rust:1.99-alpine@sha256:44819b27be4c97b0e4d7203bd2e02c4820f97700211b6a37fb4c246a2de59383 AS rust-build
 RUN apk add --no-cache musl-dev build-base
 WORKDIR /app
 COPY --from=server-inputs /prepared/Cargo.toml /prepared/Cargo.lock ./
@@ -49,7 +49,7 @@ COPY plugins ./plugins
 RUN cargo build --locked --release --bin ottplay-server
 
 # Musl runtime (no glibc). ca-certificates for outbound HTTPS (EPG / M3U).
-FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS server-runtime
+FROM alpine:3.24@sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a AS server-runtime
 RUN apk add --no-cache ca-certificates \
  && adduser -D -H -u 65532 -g nonroot nonroot
 WORKDIR /app
