@@ -71,7 +71,8 @@ module.exports = async function observeAspectReadiness(
         }
     };
     const report = (event) => {
-        if (reported) return;
+        // A pending snapshot must not hide later successful transition events.
+        if (reported && event !== "resolved") return;
         reported = true;
         try {
             const browser = page.context().browser();
@@ -119,7 +120,11 @@ module.exports = async function observeAspectReadiness(
     const timer = setTimeout(() => report("pending"), 15000);
     timer.unref();
     try {
-        return await operation();
+        const result = await operation();
+        // Retain the existing scalar observations after the evaluate returns.
+        if (observeTransition && labels.engine === "video.js")
+            report("resolved");
+        return result;
     } catch (error) {
         report("rejected");
         throw error;

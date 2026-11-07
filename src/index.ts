@@ -3593,8 +3593,8 @@ function createInterfaceStyle(): HTMLStyleElement {
 //    often composite ABOVE HTML regardless of z-index, so mousedown lands on
 //    #video/#launch. Fix: capture-phase mousedown on document when overlays are
 //    closed → pending startDragging on empty chrome/video (NOT CSS body drag),
-//    except interactive controls in NO_DRAG_SEL. Top ~36px strip stays a visual
-//    affordance; drag works across the whole empty plane.
+//    except interactive controls in NO_DRAG_SEL. The top ~36px strip is an
+//    invisible hit target; drag works across the whole empty plane.
 // Do not use $("#list").is(":visible") — #list has no CSS display:none, so after
 // showPage clears inline style it stays :visible and falsely hides the strip.
 if (typeof window.__TAURI__ !== "undefined") {
@@ -3606,7 +3606,7 @@ if (typeof window.__TAURI__ !== "undefined") {
         const OVERLAY_CLASS = "ott-tauri-overlay-open";
         const STYLE_ID = "ott-tauri-frameless-drag";
         const STRIP_ID = "ott-tauri-drag-strip";
-        // Thick enough to find; subtle fill so it is not invisible chrome.
+        // Keep an accessible hit area without drawing chrome over the video.
         const STRIP_H = 36;
         // Interactive / overlay surfaces that must keep pointer clicks.
         // #list / #listCaption / rows must never be CSS or JS drag handles.
@@ -3646,7 +3646,7 @@ if (typeof window.__TAURI__ !== "undefined") {
 
         // CSS: html/body/list chrome always no-drag. Strip is also no-drag so
         // WKWebView delivers mousedown; our startDragging moves the window.
-        // Subtle visible top chrome so the handle is discoverable.
+        // The grab cursor and tooltip identify the handle without obscuring video.
         if (!document.getElementById(STYLE_ID)) {
             const style = createInterfaceStyle();
             style.id = STYLE_ID;
@@ -3663,9 +3663,10 @@ if (typeof window.__TAURI__ !== "undefined") {
                 STRIP_ID +
                 " {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: " +
                 STRIP_H +
-                "px;\n  z-index: 2147483000;\n  pointer-events: auto;\n  cursor: grab;\n" +
-                "  background: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.18) 70%, transparent);\n" +
-                "  border-bottom: 1px solid rgba(255,255,255,0.08);\n" +
+                // Video stays below the handle; OSD, notifications and capture
+                // controls keep their higher layers and receive pointer input.
+                "px;\n  z-index: 1;\n  pointer-events: auto;\n  cursor: grab;\n" +
+                "  background: transparent;\n  border: 0;\n" +
                 "  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n" +
                 "html." +
                 CLASS +

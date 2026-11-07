@@ -151,6 +151,31 @@
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
 
+## [1.1.68] - Development line
+
+### Changes
+
+- Return to live playback when the current channel is selected again from an
+  archive, while preserving ordinary live-channel and finite-media behavior.
+- Retry an initial HLS manifest failure through the existing bounded source
+  recovery path instead of trying to restart a manifest that never loaded.
+- Keep desktop drag chrome transparent and behind playback diagnostics so
+  capture controls remain visible and clickable.
+- Retain transition evidence and add bounded, failure-only local-source scan
+  diagnostics. These changes do not claim to fix the scan timeout itself.
+
+### Upgrade
+
+Update native players and deploy the web build, then restart or refresh the
+affected player. Existing profiles, Favorites, Local sources and saved player
+settings are preserved; no configuration migration is required.
+
+### Security
+
+No security vulnerability fix is claimed for this release. Existing source
+validation and remote-control authorization remain unchanged. The new scan
+timeout diagnostic excludes paths, source IDs, raw errors and catalog data.
+
 ## [1.1.67] - Development line
 
 - Return to the live stream when selecting the same channel from the channel
