@@ -1,0 +1,13 @@
+--- a/rust-modules/platform/src/storage/readonly.rs
++++ b/rust-modules/platform/src/storage/readonly.rs
+@@ -361,7 +361,9 @@
+             }
+             None => { complete = false; None }
+         };
+-        if !visit(value, entry.bytes)? { return Ok(DirectoryVisit { reached_end: false, complete: false }); }
++        let keep_going = visit(value, entry.bytes)?;
++        checkpoint(check)?;
++        if !keep_going { return Ok(DirectoryVisit { reached_end: false, complete: false }); }
+     }
+     Ok(DirectoryVisit { reached_end: true, complete })
+ }
