@@ -161,6 +161,19 @@
   failure results remain unchanged; the underlying timeout is still under
   investigation.
 
+### Upgrade
+
+Update and restart native players and OTT servers to use the new folder check.
+Refresh an open browser player after deploying the web build. Existing profiles,
+Favorites and Local folder bindings are preserved; no reimport is required.
+
+### Security
+
+This update does not change file permissions or grant new folder access.
+Existing source validation and cancellation checks remain in place. Browser
+identity diagnostics run only after a failure and do not grant permissions or
+replace the original failure result.
+
 ## [1.1.66] - Development line
 
 - Account for the final interface fixes in Classic bundle limits. The initial
