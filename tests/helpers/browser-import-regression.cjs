@@ -119,7 +119,9 @@ async function browserImportRegression(
             kind: "directory",
             name: "Fixture videos",
             queryPermission: () =>
-                Promise.resolve(options.permission ? options.permission() : "granted"),
+                Promise.resolve(
+                    options.permission ? options.permission() : "granted"
+                ),
             requestPermission: (request) => {
                 assert.equal(request.mode, "read");
                 return options.requestPermission();
@@ -379,6 +381,10 @@ async function browserImportRegression(
             picker,
             pickerCalls: () => pickerCalls,
             played: () => played,
+            progress: () => progressNode.textContent,
+            reads: () => reads,
+            releaseEnumeration: () =>
+                blocked.resolve({ done: false, value: first }),
             replaceSource(id, name) {
                 records.splice(0, records.length, {
                     created: 2,
@@ -387,10 +393,6 @@ async function browserImportRegression(
                     name,
                 });
             },
-            progress: () => progressNode.textContent,
-            reads: () => reads,
-            releaseEnumeration: () =>
-                blocked.resolve({ done: false, value: first }),
             setNamespace: (value) => {
                 namespace = value;
             },
@@ -419,24 +421,34 @@ async function browserImportRegression(
 
     if (regression.permissionRecovery) {
         const mode = regression.permissionRecovery;
-        assert.ok([
-            "late-resolve", "late-reject", "current", "m3u-resolve", "m3u-reject",
-        ].includes(mode));
+        assert.ok(
+            [
+                "late-resolve",
+                "late-reject",
+                "current",
+                "m3u-resolve",
+                "m3u-reject",
+            ].includes(mode)
+        );
         const permission = deferred();
-        let access = "prompt", requests = 0;
+        let access = "prompt",
+            requests = 0;
         const f = fixture({
             existing: true,
-            readableSibling: mode.startsWith("m3u-"),
-            secondPlayable: true,
             permission: () => access,
+            readableSibling: mode.startsWith("m3u-"),
             requestPermission: () => {
                 requests++;
                 return permission.promise;
             },
+            secondPlayable: true,
         });
         // Profiles are not installed by this pre-existing wrapper fixture.
         // Retain opaque persistence sentinels; do not claim schema/codec coverage.
-        f.storage.set("ottplayprov", mode.startsWith("m3u-") ? "offline" : "m3u");
+        f.storage.set(
+            "ottplayprov",
+            mode.startsWith("m3u-") ? "offline" : "m3u"
+        );
         f.storage.set("offlineProfiles", "saved-profile-sentinel");
         f.storage.set("offlineProfileBindings", "private-binding-sentinel");
         f.storage.set("globalFavorites", "mixed-favorites-sentinel");
@@ -447,14 +459,23 @@ async function browserImportRegression(
         const grant = f.host.listArray.find((row) => row.id === "grant-access");
         assert.ok(grant, "actual recovery UI offers Grant access");
         grant.action();
-        assert.equal(requests, 1, "native request starts synchronously in the action");
+        assert.equal(
+            requests,
+            1,
+            "native request starts synchronously in the action"
+        );
         await flush();
         if (mode.startsWith("m3u-")) {
             // Actual Local close and provider-exit lifecycle. The replacement
             // M3U driver/list are fixture ports, not a real M3U decoder engine.
             const initialView = f.api.favoriteSnapshot();
-            assert.ok(initialView && initialView.catalog.items.some((item) =>
-                item.sourceId === "source-readable" && item.url));
+            assert.ok(
+                initialView &&
+                    initialView.catalog.items.some(
+                        (item) =>
+                            item.sourceId === "source-readable" && item.url
+                    )
+            );
             f.close();
             f.api.suspend();
             const m3uDriver = { id: "m3u" };
@@ -470,30 +491,53 @@ async function browserImportRegression(
             const beforeWrites = f.writes();
             assert.equal(f.played(), 0);
             if (mode === "m3u-reject")
-                permission.reject(Object.assign(new Error("native prompt dismissed"), {
-                    name: "NotAllowedError",
-                }));
+                permission.reject(
+                    Object.assign(new Error("native prompt dismissed"), {
+                        name: "NotAllowedError",
+                    })
+                );
             else permission.resolve("granted");
             await flush();
             assert.equal(f.host.__ottActiveProviderDriver, m3uDriver);
             assert.equal(f.host.listKeyHandler, m3uList);
-            assert.equal(f.played(), 0, "late permission must not leave M3U for Local");
-            assert.equal(f.enumerations(), beforeEnumerations, "no late rescan");
+            assert.equal(
+                f.played(),
+                0,
+                "late permission must not leave M3U for Local"
+            );
+            assert.equal(
+                f.enumerations(),
+                beforeEnumerations,
+                "no late rescan"
+            );
             assert.equal(f.writes(), beforeWrites, "no source write");
-            assert.deepEqual(Array.from(f.storage.entries()), beforeSaved,
-                "M3U and opaque profile/Favorites storage remain unchanged");
+            assert.deepEqual(
+                Array.from(f.storage.entries()),
+                beforeSaved,
+                "M3U and opaque profile/Favorites storage remain unchanged"
+            );
             const afterView = f.api.favoriteSnapshot();
-            assert.equal(JSON.stringify(afterView && afterView.catalog), beforeCatalog,
-                "leaving Local retains its cached source/catalog");
+            assert.equal(
+                JSON.stringify(afterView && afterView.catalog),
+                beforeCatalog,
+                "leaving Local retains its cached source/catalog"
+            );
             return;
         }
         if (mode === "current") {
             access = "granted";
             permission.resolve("granted");
             await flush();
-            assert.equal(f.played(), 1, "a current successful recovery still activates");
+            assert.equal(
+                f.played(),
+                1,
+                "a current successful recovery still activates"
+            );
             assert.equal(f.storage.get("ottplayprov"), "offline");
-            assert.equal(f.storage.get("globalFavorites"), "mixed-favorites-sentinel");
+            assert.equal(
+                f.storage.get("globalFavorites"),
+                "mixed-favorites-sentinel"
+            );
             return;
         }
         // Close through the actual UI, then load a different saved source and
@@ -509,16 +553,21 @@ async function browserImportRegression(
         const beforeView = f.api.favoriteSnapshot();
         assert.ok(beforeView && beforeView.current());
         const beforeCatalog = JSON.stringify(beforeView.catalog);
-        assert.ok(beforeView.catalog.items.every((item) =>
-            item.sourceId === "source-replacement"));
+        assert.ok(
+            beforeView.catalog.items.every(
+                (item) => item.sourceId === "source-replacement"
+            )
+        );
         const beforeSaved = Array.from(f.storage.entries());
         const beforeEnumerations = f.enumerations();
         const beforeWrites = f.writes();
         assert.equal(f.played(), 0);
         if (mode === "late-reject")
-            permission.reject(Object.assign(new Error("native prompt dismissed"), {
-                name: "NotAllowedError",
-            }));
+            permission.reject(
+                Object.assign(new Error("native prompt dismissed"), {
+                    name: "NotAllowedError",
+                })
+            );
         else permission.resolve("granted");
         await flush();
         // The browser API converts both obsolete native outcomes to the same
@@ -526,20 +575,31 @@ async function browserImportRegression(
         assert.equal(f.enumerations(), beforeEnumerations, "no late rescan");
         assert.equal(f.writes(), beforeWrites, "no source write");
         const afterView = f.api.favoriteSnapshot();
-        assert.equal(JSON.stringify(afterView && afterView.catalog), beforeCatalog,
-            "new owner catalogue and exact source survive");
-        assert.deepEqual({
-            activations: f.played(),
-            saved: Array.from(f.storage.entries()),
-        }, {
-            activations: 0,
-            saved: beforeSaved,
-        }, "cancelled recovery must not activate or change Saved/Favorites");
+        assert.equal(
+            JSON.stringify(afterView && afterView.catalog),
+            beforeCatalog,
+            "new owner catalogue and exact source survive"
+        );
+        assert.deepEqual(
+            {
+                activations: f.played(),
+                saved: Array.from(f.storage.entries()),
+            },
+            {
+                activations: 0,
+                saved: beforeSaved,
+            },
+            "cancelled recovery must not activate or change Saved/Favorites"
+        );
         return;
     }
 
     for (const mode of [
-        "late-resolve", "late-reject", "current", "m3u-resolve", "m3u-reject",
+        "late-resolve",
+        "late-reject",
+        "current",
+        "m3u-resolve",
+        "m3u-reject",
     ])
         await browserImportRegression(root, { permissionRecovery: mode });
 

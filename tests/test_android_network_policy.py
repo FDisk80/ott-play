@@ -58,36 +58,84 @@ object SystemMediaControl {
         println("PASS Android system controls: retired queued command, standby admission, actual JS completion and detached WebView")
     }
 }
-object DestroyedLocalOwner {
+object DestroyedLocalOwner : Plugin() {
     // ACTUAL_QUEUED_WORK
+    // Single-worker lanes make one active and one queued operation deterministic.
+    private val clients = Executors.newSingleThreadExecutor()
+    private val discoveryWorkers = Executors.newSingleThreadExecutor()
+    private val worker = Executors.newSingleThreadExecutor()
+    private val ownedWork = ConcurrentHashMap.newKeySet<NativeWork.Ticket>()
+    private val connections = ConcurrentHashMap.newKeySet<Socket>()
+    private var listener: ServerSocket? = null
+    private var stopSubscription: (() -> Unit)? = null
+    private var destroyed = false
+    // ACTUAL_LOCAL_DESTROY
     fun run() {
-        val executor = Executors.newSingleThreadExecutor()
-        val started = CountDownLatch(1)
+        val executors = listOf(clients, discoveryWorkers, worker)
+        val started = CountDownLatch(executors.size)
         val hold = CountDownLatch(1)
-        val active = NativeWork.begin()!!
-        executor.execute(QueuedWork({
-            started.countDown()
-            try { hold.await() } catch (_: InterruptedException) { }
-            finally { active.finish() }
-        }, { active.finish() }))
-        check(started.await(5, TimeUnit.SECONDS))
-        val waiting = NativeWork.begin()!!
-        var ran = false
-        var discarded = 0
-        val queued = QueuedWork({ ran = true; waiting.finish() }, { discarded++; waiting.finish() })
-        executor.execute(queued)
-        waiting.cancel(); active.cancel()
-        check(!NativeWork.isStandby && runCatching { waiting.check() }.isFailure)
-        val removed = executor.shutdownNow()
-        check(removed.size == 1)
-        removed.forEach { (it as? QueuedWork)?.discardBeforeStart() }
-        check(executor.awaitTermination(5, TimeUnit.SECONDS))
-        queued.run(); queued.discardBeforeStart()
-        check(!ran && discarded == 1 && NativeWork.pendingCount == 0)
-        val next = NativeWork.begin()!!; next.check(); next.finish()
-        println("PASS Android local owner destruction: running cancellation, queued discard exactly once, no leaked pending tickets")
+        val cancelled = java.util.concurrent.atomic.AtomicInteger()
+        val discarded = java.util.concurrent.atomic.AtomicInteger()
+        val ranQueued = java.util.concurrent.atomic.AtomicInteger()
+        val queued = mutableListOf<QueuedWork>()
+        val tickets = mutableListOf<NativeWork.Ticket>()
+        var unsubscribed = 0
+        fun ticket(): NativeWork.Ticket = NativeWork.begin()!!.also {
+            tickets.add(it); ownedWork.add(it)
+            it.cancelWith { cancelled.incrementAndGet() }
+        }
+        fun finish(ticket: NativeWork.Ticket) { ownedWork.remove(ticket); ticket.finish() }
+        val server = ServerSocket()
+        val accepted = Socket()
+        listener = server; connections.add(accepted)
+        stopSubscription = { unsubscribed++ }
+        try {
+            for (executor in executors) {
+                val active = ticket()
+                executor.execute(QueuedWork({
+                    started.countDown()
+                    // Cancellation must retain ownership until blocked work exits.
+                    try {
+                        while (hold.count != 0L) {
+                            try { hold.await() } catch (_: InterruptedException) { }
+                        }
+                    } finally { finish(active) }
+                }, { finish(active) }))
+                val waiting = ticket()
+                val task = QueuedWork({ ranQueued.incrementAndGet(); finish(waiting) }, {
+                    discarded.incrementAndGet(); finish(waiting)
+                })
+                queued.add(task); executor.execute(task)
+            }
+            check(started.await(5, TimeUnit.SECONDS))
+            check(NativeWork.pendingCount == 2 * executors.size)
+            handleOnDestroy()
+            check(destroyed && unsubscribed == 1 && stopSubscription == null)
+            check(server.isClosed && listener == null && accepted.isClosed)
+            check(executors.all { it.isShutdown }) { "A local work lane was not shut down" }
+            check(cancelled.get() == tickets.size) { "Owned tickets were not cancelled" }
+            check(!NativeWork.isStandby)
+            check(discarded.get() == executors.size && ranQueued.get() == 0) { "Queued work was not discarded" }
+            check(NativeWork.pendingCount == executors.size) { "Running work lost ownership before completion" }
+            hold.countDown()
+            check(executors.all { it.awaitTermination(5, TimeUnit.SECONDS) })
+            queued.forEach { it.run(); it.discardBeforeStart() }
+            check(ranQueued.get() == 0 && discarded.get() == executors.size)
+            check(ownedWork.isEmpty() && NativeWork.pendingCount == 0)
+            val next = NativeWork.begin()!!; next.check(); next.finish()
+            println("PASS Android actual local teardown: all three lanes cancelled, queued discard once, running ownership retained, sockets closed")
+        } finally {
+            hold.countDown()
+            executors.forEach { executor ->
+                executor.shutdownNow().forEach { (it as? QueuedWork)?.discardBeforeStart() }
+            }
+            executors.forEach { it.awaitTermination(5, TimeUnit.SECONDS) }
+            tickets.forEach { it.finish() }
+            accepted.close(); server.close()
+        }
     }
 }
+
 fun backgroundStandby() {
     BuildConfig.FLAVOR = "full"
     val generic = StalkerPortalPlugin()
@@ -435,15 +483,17 @@ while depth:
     end+=1
 MAIN=MAIN.replace('// ACTUAL_EVAL_ON_WEB_VIEW', service[start:end])
 local=(ROOT/'android/app/src/main/java/play/ott/foss/LocalMediaPlugin.kt').read_text()
-start=local.index('private class QueuedWork(')
-end=local.index('{',start)+1
-depth=1
-while depth:
-    depth+=(local[end]=='{')-(local[end]=='}')
-    end+=1
-MAIN=MAIN.replace('// ACTUAL_QUEUED_WORK', local[start:end])
-assert 'ownedWork.forEach { it.cancel() }' in local
-assert '(clients.shutdownNow() + worker.shutdownNow()).forEach { (it as? QueuedWork)?.discardBeforeStart() }' in local
+for declaration, marker in [
+    ('private class QueuedWork(', '// ACTUAL_QUEUED_WORK'),
+    ('override fun handleOnDestroy()', '// ACTUAL_LOCAL_DESTROY'),
+]:
+    start=local.index(declaration)
+    end=local.index('{',start)+1
+    depth=1
+    while depth:
+        depth+=(local[end]=='{')-(local[end]=='}')
+        end+=1
+    MAIN=MAIN.replace(marker, local[start:end])
 SDK=Path(os.environ.get('ANDROID_SDK_ROOT',os.environ.get('ANDROID_HOME','/opt/homebrew/share/android-commandlinetools')))/'platforms/android-36/android.jar'
 JSON=Path(os.environ['ANDROID_JSON_JAR'])
 HTTP_JARS=[Path(p) for p in os.environ['ANDROID_HTTP_CLASSPATH'].split(os.pathsep)]

@@ -190,23 +190,152 @@ async fn denied(
     Ok(json!({"window": window.label(), "command": command, "error": error}))
 }
 
-async fn appkit_activate_zoom(window: &tauri::WebviewWindow) -> Result<(), String> {
-    window.set_focus().map_err(|e| e.to_string())?;
-    let deadline = Instant::now() + Duration::from_secs(4);
+fn appkit_zoom_menu_readiness(window: &tauri::WebviewWindow) -> Value {
+    let Some(menu) = window.app_handle().menu() else {
+        return json!({"status": "missing", "component": "app_menu"});
+    };
+    let items = match menu.items() {
+        Ok(items) => items,
+        Err(error) => return json!({"status": "read_error", "component": "app_menu", "error": error.to_string()}),
+    };
+    let Some(item) = items.into_iter().find(|item| item.id().as_ref() == tauri::menu::WINDOW_SUBMENU_ID) else {
+        return json!({"status": "missing", "component": "window_menu"});
+    };
+    let Some(menu) = item.as_submenu() else {
+        return json!({"status": "wrong_type", "component": "window_menu"});
+    };
+    let items = match menu.items() {
+        Ok(items) => items,
+        Err(error) => return json!({"status": "read_error", "component": "window_menu", "error": error.to_string()}),
+    };
+    let Some(item) = items.into_iter().find(|item| item.id().as_ref() == "ott.window.zoom") else {
+        return json!({"status": "missing", "component": "zoom_item"});
+    };
+    let Some(item) = item.as_menuitem() else {
+        return json!({"status": "wrong_type", "component": "zoom_item"});
+    };
+    match item.is_enabled() {
+        Ok(enabled) => json!({"status": if enabled { "enabled" } else { "disabled" }, "enabled": enabled}),
+        Err(error) => json!({"status": "read_error", "component": "zoom_item", "error": error.to_string()}),
+    }
+}
+
+fn appkit_zoom_query(result: tauri::Result<bool>) -> Value {
+    match result {
+        Ok(value) => json!({"value": value}),
+        Err(error) => json!({"error": error.to_string()}),
+    }
+}
+
+// This separate observation must not change AppKitSnapshot's equality contract
+// for denied IPC. Read it once after the first not-ready result, not per poll.
+fn appkit_zoom_native_observation_now(window: &tauri::WebviewWindow) -> Result<Value, String> {
+    let mtm = MainThreadMarker::new().ok_or("Zoom observation requires the main thread")?;
+    let native = appkit_native(window)?;
+    let app = NSApp(mtm);
+    let native_menu = match app.windowsMenu() {
+        None => json!({"status": "missing", "component": "window_menu"}),
+        Some(menu) if menu.numberOfItems() < 2 => {
+            json!({"status": "incomplete", "item_count": menu.numberOfItems()})
+        }
+        Some(menu) => match menu.itemAtIndex(1) {
+            None => json!({"status": "missing", "component": "zoom_item"}),
+            Some(item) => json!({"status": "present", "title": item.title().to_string(), "enabled": item.isEnabled()}),
+        },
+    };
+    Ok(json!({
+        "eligibility": {
+            "visible": appkit_zoom_query(window.is_visible()), "minimized": appkit_zoom_query(window.is_minimized()),
+            "native_fullscreen": appkit_zoom_query(window.is_fullscreen()), "resizable": appkit_zoom_query(window.is_resizable()),
+            "decorated": appkit_zoom_query(window.is_decorated()), "maximizable": appkit_zoom_query(window.is_maximizable()),
+            "maximized": appkit_zoom_query(window.is_maximized()),
+        },
+        "appkit": {
+            "app_active": app.isActive(), "key": native.isKeyWindow(), "main": native.isMainWindow(),
+            "visible": native.isVisible(), "minimized": native.isMiniaturized(),
+            "fullscreen": native.styleMask().contains(NSWindowStyleMask::FullScreen),
+            "style_mask": native.styleMask().bits(), "movable": native.isMovable(),
+            "presentation_options": app.presentationOptions().bits(),
+        },
+        "native_menu": native_menu,
+    }))
+}
+
+async fn appkit_zoom_native_observation(
+    window: &tauri::WebviewWindow,
+    deadline: Instant,
+) -> Result<Value, String> {
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    let target = window.clone();
+    window.run_on_main_thread(move || {
+        let _ = sender.send(appkit_zoom_native_observation_now(&target));
+    }).map_err(|e| e.to_string())?;
+    // A single diagnostic observation shares the original readiness budget.
+    tokio::time::timeout(deadline.saturating_duration_since(Instant::now()), receiver).await
+        .map_err(|_| "Zoom observation deadline".to_owned())?
+        .map_err(|_| "Zoom observation channel closed".to_owned())?
+}
+
+fn appkit_zoom_readiness_failure(
+    phase: &str,
+    error: &str,
+    readiness: Option<&Value>,
+    native_first_not_ready: Option<&Value>,
+) -> String {
+    let detail = json!({"zoom_phase": phase, "error": error,
+        "last_readiness": readiness, "native_first_not_ready": native_first_not_ready});
+    trace("native-zoom-readiness-failed", detail.clone());
+    format!("{error}; readiness={detail}")
+}
+
+async fn appkit_activate_zoom(window: &tauri::WebviewWindow, phase: &str) -> Result<(), String> {
+    window.set_focus().map_err(|e| format!("Zoom focus request failed ({phase}): {e}"))?;
+    let started = Instant::now();
+    let deadline = started + Duration::from_secs(4);
+    let mut previous = None;
+    let mut native_first_not_ready = None;
     loop {
-        let menu_ready = window.app_handle().menu()
-            .and_then(|menu| menu.get(tauri::menu::WINDOW_SUBMENU_ID))
-            .and_then(|item| item.as_submenu().and_then(|menu| menu.get("ott.window.zoom")))
-            .and_then(|item| item.as_menuitem().and_then(|item| item.is_enabled().ok()))
-            == Some(true);
-        if window.is_focused().map_err(|e| e.to_string())? && menu_ready {
+        if Instant::now() >= deadline {
+            return Err(appkit_zoom_readiness_failure(phase,
+                "Native Window Zoom did not become available for the focused main window",
+                previous.as_ref(), native_first_not_ready.as_ref()));
+        }
+        // Preserve the original menu-then-focus query order. These observations
+        // do not recompute availability or request focus again.
+        let menu = appkit_zoom_menu_readiness(window);
+        let focused = appkit_zoom_query(window.is_focused());
+        let observation = json!({"focused": focused, "menu": menu,
+            "zoom_event_count": MENU_ZOOM_EVENTS.load(Ordering::SeqCst)});
+        if previous.as_ref() != Some(&observation) {
+            trace("native-zoom-readiness", json!({"zoom_phase": phase, "observation": observation}));
+        }
+        if let Some(error) = observation["focused"]["error"].as_str() {
+            return Err(appkit_zoom_readiness_failure(phase, error,
+                Some(&observation), native_first_not_ready.as_ref()));
+        }
+        let ready = observation["focused"]["value"] == true && observation["menu"]["enabled"] == true;
+        previous = Some(observation);
+        // Even a matching result cannot admit activation after the deadline.
+        if Instant::now() >= deadline {
+            continue;
+        }
+        if ready {
             break;
         }
-        if Instant::now() >= deadline {
-            return Err("Native Window Zoom did not become available for the focused main window".into());
+        if native_first_not_ready.is_none() {
+            // One extra main-thread turn can affect scheduling. Label this as
+            // the first not-ready observation, never as the final native state.
+            let result = appkit_zoom_native_observation(window, deadline).await;
+            let observation = match result {
+                Ok(value) => json!({"received_after_ms": started.elapsed().as_millis(), "value": value}),
+                Err(error) => json!({"received_after_ms": started.elapsed().as_millis(), "error": error}),
+            };
+            trace("native-zoom-first-not-ready", json!({"zoom_phase": phase, "observation": observation}));
+            native_first_not_ready = Some(observation);
         }
-        tokio::time::sleep(Duration::from_millis(20)).await;
+        tokio::time::sleep(Duration::from_millis(20).min(deadline.saturating_duration_since(Instant::now()))).await;
     }
+    trace("native-zoom-activate", json!({"zoom_phase": phase}));
     let (sender, receiver) = tokio::sync::oneshot::channel();
     let target = window.clone();
     window.run_on_main_thread(move || {
@@ -334,7 +463,8 @@ async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, St
     let menu_target = appkit_maximize_target(&main).await?;
     let mut menu_transitions = Vec::new();
     for (index, target) in [true, false].into_iter().enumerate() {
-        appkit_activate_zoom(&main).await?;
+        let phase = if target { "menu-maximize" } else { "menu-restore" };
+        appkit_activate_zoom(&main, phase).await?;
         let native = appkit_settled(&main, &baseline, !target, false, None, !target,
             if target { Some(menu_target) } else { None }).await?;
         let event_count = MENU_ZOOM_EVENTS.load(Ordering::SeqCst);
@@ -358,7 +488,8 @@ async fn exercise(main: tauri::WebviewWindow, missing: bool) -> Result<Value, St
         ("set_fullscreen", false), ("native_menu_zoom", false),
     ].into_iter().enumerate() {
         if kind == "native_menu_zoom" {
-            appkit_activate_zoom(&main).await?;
+            let phase = if target { "mixed-maximize" } else { "mixed-restore-after-fullscreen" };
+            appkit_activate_zoom(&main, phase).await?;
         } else {
             let reply = allowed(&main, "set_fullscreen", json!({"fullscreen": target})).await?;
             if reply != json!({"ok": true, "fullscreen": target}) {

@@ -234,7 +234,7 @@ async function requestAccessGenerationRegressions() {
             resolve = yes;
             reject = no;
         });
-        return { promise, resolve, reject };
+        return { promise, reject, resolve };
     }
     async function setup(waits = {}) {
         const f = fixture(2, "mp4", -1, undefined, waits);
@@ -280,18 +280,24 @@ async function requestAccessGenerationRegressions() {
     function completed(f, result) {
         assert.equal(result.cancelled, false);
         assert.equal(result.scanning, false);
-        assert.deepEqual(Array.from(result.items, (item) => item.name), [
-            "movie-0.mp4",
-            "movie-1.mp4",
-        ]);
+        assert.deepEqual(
+            Array.from(result.items, (item) => item.name),
+            ["movie-0.mp4", "movie-1.mp4"]
+        );
         assert.equal(result.sources[0].id, "source-movies");
         assert.equal(result.sources[0].access, "granted");
         assert.ok(result.items.every((item) => item.url && item.available));
-        assert.ok(result.items.every((item) => item.sourceId === "source-movies"));
+        assert.ok(
+            result.items.every((item) => item.sourceId === "source-movies")
+        );
         assert.equal(f.permissionQueries(), 1);
         assert.equal(f.iteratorCreations(), 1);
         assert.equal(f.reads(), 2);
-        assert.equal(f.writes(), 2, "only the successful scan caches its files");
+        assert.equal(
+            f.writes(),
+            2,
+            "only the successful scan caches its files"
+        );
     }
     for (const outcome of ["grant", "reject"]) {
         for (const withProgress of [true, false]) {

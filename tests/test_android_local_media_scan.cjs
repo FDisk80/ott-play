@@ -28,8 +28,11 @@ assert.match(
     /catch \(_: UnavailableDocument\)/,
     "only expected source failures may be skipped"
 );
-assert.match(scan, /catch \(_: Exception\) \{ checkWork\(\); false \}/,
-    "saved-source failures must recheck cancellation before publishing unavailable");
+assert.match(
+    scan,
+    /catch \(_: Exception\) \{ checkWork\(\); false \}/,
+    "saved-source failures must recheck cancellation before publishing unavailable"
+);
 assert.match(scan, /check\(!destroyed\)/);
 assert.match(scan, /require\(\+\+count <= 20000\)/);
 const accept = source.slice(

@@ -121,11 +121,12 @@ function readinessObservationFixture({ brokenReporter = false } = {}) {
         throw new Error("Diagnostics contacted the page");
     };
     const context = {
+        Buffer,
         clearTimeout: (timer) => timers.delete(timer),
         console: {
             error: (message) => {
                 if (brokenReporter) throw new Error("Reporter unavailable");
-                assert.ok(message.length < 512);
+                assert.ok(message.length < 8192);
                 records.push(JSON.parse(message.slice(message.indexOf("{"))));
             },
         },
@@ -303,10 +304,15 @@ test("a readiness result after the diagnostic deadline still succeeds unchanged"
     assert.equal(f.page.listenerCount("crash"), 0);
 });
 
-function channelOpeningFixture({ error, pending = false } = {}) {
+function channelOpeningFixture({
+    brokenLogger = false,
+    error,
+    pending = false,
+} = {}) {
     const f = readinessObservationFixture();
     const calls = [];
     const evaluations = [];
+    const messages = [];
     let enter;
     const entered = new Promise((resolve) => {
         enter = resolve;
@@ -337,6 +343,23 @@ function channelOpeningFixture({ error, pending = false } = {}) {
         closeList: () => calls.push(["closeList"]),
         providerMediaClient: {},
         stbStop: () => calls.push(["stop"]),
+        video: {
+            buffered: {
+                end(index) {
+                    assert.equal(index, 0);
+                    return 6;
+                },
+                length: 1,
+            },
+            currentSrc: "https://private.invalid/source?token=private",
+            currentTime: 2.5,
+            duration: 10,
+            ended: false,
+            error: null,
+            networkState: 2,
+            paused: false,
+            readyState: 3,
+        },
     };
     f.page.waitForFunction = async (predicate) => {
         assert.equal(predicate(), true);
@@ -366,7 +389,18 @@ function channelOpeningFixture({ error, pending = false } = {}) {
     });
     const open = require("node:vm").runInNewContext(
         source.slice(start, end) + "\nopenPlexChannels",
-        { expect, observeAspectReadiness: f.observe, window }
+        {
+            console: {
+                log(text) {
+                    if (brokenLogger) throw new Error("Logger unavailable");
+                    messages.push(text);
+                    f.page.emit("console", { text: () => text });
+                },
+            },
+            expect,
+            observeAspectReadiness: f.observe,
+            window,
+        }
     );
     return {
         ...f,
@@ -374,8 +408,10 @@ function channelOpeningFixture({ error, pending = false } = {}) {
         calls,
         entered,
         evaluations,
+        messages,
         open,
         rejectTransition,
+        window,
     };
 }
 
@@ -422,6 +458,7 @@ test("channel opening crash retains the original error and identifies the pre-pl
             event: "rejected",
             pageClosed: false,
             phase: "open-channels",
+            transition: [],
         },
     ]);
     assert.equal(f.evaluations.length, 1);
@@ -465,6 +502,21 @@ test("channel opening host deadline observes once without settling or retrying t
         event: "pending",
         pageClosed: false,
         phase: "open-channels",
+        transition: Array.from({ length: 8 }, (_, step) => ({
+            media: {
+                bufferedRangeCount: 1,
+                currentTime: 2.5,
+                duration: 10,
+                ended: false,
+                errorCode: null,
+                lastBufferEnd: 6,
+                networkState: 2,
+                paused: false,
+                readyState: 3,
+                sourcePresent: true,
+            },
+            step,
+        })),
     });
     assert.equal(f.records.length, 1);
     assert.equal(f.evaluations.length, 1);
@@ -472,4 +524,200 @@ test("channel opening host deadline observes once without settling or retrying t
     assert.deepEqual(f.assertions, []);
     assert.equal(f.timers.size, 0);
     assert.equal(f.page.listenerCount("crash"), 0);
+});
+
+test("channel transition marks bound each original call and retain its failure", async () => {
+    for (const [index, name] of [
+        "stbStop",
+        "closeList",
+        "useSource",
+        "open",
+    ].entries()) {
+        const f = channelOpeningFixture();
+        const error = new Error("private failure " + name);
+        const target = index < 2 ? f.window : f.window.__ottMedia;
+        target[name] = () => {
+            throw error;
+        };
+        await assert.rejects(f.open(f.page, "video.js"), (e) => e === error);
+        const expected = Array.from({ length: index * 2 + 1 }, (_, n) => n);
+        assert.deepEqual(
+            f.records[0].transition.map((row) => row.step),
+            expected
+        );
+        assert.equal(f.messages.length, expected.length);
+        assert.equal(f.calls.length, index);
+        assert.equal(f.evaluations.length, 1);
+        assert.deepEqual(f.assertions, []);
+        assert.equal(f.page.listenerCount("console"), 0);
+        assert.equal(f.page.listenerCount("crash"), 0);
+        assert.equal(f.timers.size, 0);
+        assert.ok(!JSON.stringify(f.records).includes("private"));
+    }
+});
+
+test("channel marks capture before and after media state without copying source URLs", async () => {
+    const f = channelOpeningFixture({ pending: true });
+    f.window.stbStop = () => {
+        f.window.video.paused = true;
+        f.window.video.currentTime = 0;
+        f.window.video.currentSrc = "";
+        f.window.video.buffered = {
+            end() {
+                throw new Error("An empty range must not be read");
+            },
+            length: 0,
+        };
+    };
+    const result = f.open(f.page, "video.js");
+    await f.entered;
+    f.advance(15000);
+    const rows = f.records[0].transition;
+    assert.equal(rows.length, 8);
+    assert.deepEqual(
+        rows.map((row) => row.step),
+        [0, 1, 2, 3, 4, 5, 6, 7]
+    );
+    assert.equal(rows[0].media.paused, false);
+    assert.equal(rows[1].media.paused, true);
+    assert.equal(rows[0].media.currentTime, 2.5);
+    assert.equal(rows[1].media.currentTime, 0);
+    assert.equal(rows[0].media.sourcePresent, true);
+    assert.equal(rows[1].media.sourcePresent, false);
+    assert.equal(rows[0].media.bufferedRangeCount, 1);
+    assert.equal(rows[0].media.lastBufferEnd, 6);
+    assert.equal(rows[1].media.bufferedRangeCount, 0);
+    assert.equal(rows[1].media.lastBufferEnd, null);
+    assert.ok(!JSON.stringify(f.messages).includes("private"));
+    const error = new Error("original timeout");
+    f.rejectTransition(error);
+    await assert.rejects(result, (e) => e === error);
+    assert.equal(f.page.listenerCount("console"), 0);
+});
+
+test("unavailable media and failed console logging do not change the channel calls", async () => {
+    for (const brokenLogger of [false, true]) {
+        const f = channelOpeningFixture({ brokenLogger });
+        Object.defineProperty(f.window, "video", {
+            get() {
+                throw new Error("private inaccessible media");
+            },
+        });
+        const external = () => {};
+        f.page.on("console", external);
+        await f.open(f.page, "video.js");
+        assert.deepEqual(f.calls, [
+            ["stop"],
+            ["closeList"],
+            ["useSource", null],
+            ["open", null],
+        ]);
+        assert.equal(f.assertions.length, 3);
+        assert.equal(f.messages.length, brokenLogger ? 0 : 8);
+        assert.ok(!JSON.stringify(f.messages).includes("private"));
+        assert.deepEqual(f.page.listeners("console"), [external]);
+        assert.equal(f.timers.size, 0);
+    }
+});
+
+test("host transition collection is bounded, ordered, and retains only typed fields", async () => {
+    const f = readinessObservationFixture();
+    const emit = (text) => f.page.emit("console", { text: () => text });
+    const prefix = "Plex channel transition: ";
+    const error = new Error("original failure");
+    await assert.rejects(
+        f.observe(
+            f.page,
+            { engine: "video.js", phase: "open-channels" },
+            () => {
+                f.page.emit("console", {
+                    text() {
+                        throw new Error("private inaccessible text");
+                    },
+                });
+                for (const text of [
+                    "unrelated private log",
+                    prefix + "invalid json",
+                    prefix + "null",
+                    prefix + JSON.stringify({ step: "0" }),
+                    prefix + JSON.stringify({ step: -1 }),
+                    prefix + JSON.stringify({ step: 8 }),
+                    prefix +
+                        JSON.stringify({ secret: "x".repeat(1024), step: 0 }),
+                    prefix +
+                        JSON.stringify({ secret: "😊".repeat(300), step: 0 }),
+                ])
+                    emit(text);
+                emit(
+                    prefix +
+                        JSON.stringify({
+                            media: {
+                                currentTime: "private",
+                                duration: 1e12,
+                                ended: "private",
+                                errorCode: "private",
+                                networkState: 99,
+                                paused: {},
+                                readyState: -1,
+                                sourcePresent: "private",
+                                url: "https://private.invalid/",
+                            },
+                            secret: "private",
+                            step: 0,
+                        })
+                );
+                emit(prefix + JSON.stringify({ step: 0 }));
+                for (let step = 1; step <= 7; step++)
+                    emit(prefix + JSON.stringify({ media: null, step }));
+                emit(prefix + JSON.stringify({ step: 7 }));
+                throw error;
+            }
+        ),
+        (actual) => actual === error
+    );
+    const rows = f.records[0].transition;
+    assert.equal(rows.length, 8);
+    assert.deepEqual(
+        rows.map((row) => row.step),
+        [0, 1, 2, 3, 4, 5, 6, 7]
+    );
+    assert.deepEqual(rows[0].media, {
+        bufferedRangeCount: null,
+        currentTime: null,
+        duration: null,
+        ended: null,
+        errorCode: null,
+        lastBufferEnd: null,
+        networkState: null,
+        paused: null,
+        readyState: null,
+        sourcePresent: null,
+    });
+    assert.ok(!JSON.stringify(f.records).includes("private"));
+    assert.equal(f.page.listenerCount("console"), 0);
+});
+
+test("failed diagnostic listener registration and removal preserve the operation", async () => {
+    for (const failOn of ["on", "off"]) {
+        const f = readinessObservationFixture();
+        const original = f.page[failOn].bind(f.page);
+        f.page[failOn] = (...args) => {
+            original(...args);
+            throw new Error("listener failure");
+        };
+        const error = new Error("original failure");
+        await assert.rejects(
+            f.observe(
+                f.page,
+                { engine: "video.js", phase: "open-channels" },
+                () => {
+                    throw error;
+                }
+            ),
+            (actual) => actual === error
+        );
+        assert.equal(f.page.listenerCount("console"), 0);
+        assert.equal(f.page.listenerCount("crash"), 0);
+        assert.equal(f.timers.size, 0);
+    }
 });
