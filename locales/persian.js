@@ -894,6 +894,7 @@ var keyStrings = {
     "Restart player": "پخش کننده را دوباره راه اندازی کنید",
     "Restart stream": "جریان را دوباره راه اندازی کنید",
     "Restart stream / Live": "پخش جریانی / زنده را دوباره راه اندازی کنید",
+    "Resume archive after restart": "ادامهٔ پخش از آرشیو پس از راه‌اندازی مجدد",
     "Resume from archive?": "تماشای پخش گذشته را از سر بگیرید؟",
     Retry: "دوباره امتحان کنید",
     "Retry EPG download": "دانلود EPG را دوباره امتحان کنید",
@@ -940,6 +941,7 @@ var keyStrings = {
         "ورودی از راه دور ایمن شروع نشد. لطفا از صفحه کلید روی صفحه استفاده کنید.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ورودی ایمن از راه دور در این دستگاه در دسترس نیست. از صفحه کلید روی صفحه استفاده کنید.",
+    "Seek notifications": "اعلان‌های جلو و عقب بردن",
     "Select a live channel first": "ابتدا یک کانال زنده انتخاب کنید",
     "Select a stream type:<br>%1": "نوع جریان را انتخاب کنید:<br>%1",
     "Select category to add channel":

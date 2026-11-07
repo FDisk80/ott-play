@@ -895,6 +895,8 @@ var keyStrings = {
     "Restart player": "Pleýeri täzeden işlet",
     "Restart stream": "Ýaýlymy täzeden başlat",
     "Restart stream / Live": "Ýaýlymy täzeden başlat / Göni ýaýlym",
+    "Resume archive after restart":
+        "Täzeden işledilenden soň arhiwden dowam et",
     "Resume from archive?": "Arhiwden dowam edilmelimi?",
     Retry: "Gaýtadan synanyş",
     "Retry EPG download": "EPG ýüklemesini gaýtala",
@@ -941,6 +943,7 @@ var keyStrings = {
         "Howpsuz uzakdan girizmek başlamady. Ekran klawiaturasyny ulanyň.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Bu enjamda howpsuz uzakdan girizmek elýeterli däl. Ekran klawiaturasyny ulanyň.",
+    "Seek notifications": "Wagt boýunça geçiriş habarnamalary",
     "Select a live channel first": "Ilki göni ýaýlym kanalyny saýlaň",
     "Select a stream type:<br>%1": "Ýaýlymyň görnüşini saýlaň:<br>%1",
     "Select category to add channel": "Kanal goşmak üçin kategoriýa saýlaň",

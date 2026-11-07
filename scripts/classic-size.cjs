@@ -856,6 +856,13 @@ const INTERFACE_FONT_CSP_ASSET_CORRECTION = Object.freeze({
     bytes: 35,
     gzipBytes: 86,
 });
+// The two playback notification controls use existing lazy-asset headroom first.
+// Allocate only the measured remaining shortfall; entry/provider/total caps stay fixed.
+// Evidence: docs/evidence/playback-notification-settings-size-20261107.json.
+const PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE = Object.freeze({
+    bytes: 65,
+    gzipBytes: 22,
+});
 // The 41-choice timezone selector and progressive Local startup were added
 // after the prior feature measurements. Same-toolchain f7010d0 -> optimized
 // a9bba03 source, with a common version/revision envelope, adds at most
@@ -1397,6 +1404,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
         bytes:
             TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.bytes +
             INTERFACE_FONT_CSP_ASSET_CORRECTION.bytes +
+            PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE.bytes +
             CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.bytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.bytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.bytes +
@@ -1405,6 +1413,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
         gzipBytes:
             TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.gzipBytes +
             INTERFACE_FONT_CSP_ASSET_CORRECTION.gzipBytes +
+            PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE.gzipBytes +
             CLIENT_INTERFACE_COLORS_ALLOWANCE.appearance.gzipBytes +
             INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
             CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE.appearance.gzipBytes +
@@ -2336,6 +2345,7 @@ module.exports = {
     NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
     OPTIONAL_BUDGET,
     OPTIONAL_BUDGETS,
+    PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE,
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
     PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
     PLEX_ARTWORK_ALLOWANCE,

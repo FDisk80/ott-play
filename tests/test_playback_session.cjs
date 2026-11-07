@@ -1023,7 +1023,7 @@ for (const replace of [
     );
     assert.deepEqual(
         c.effects.filter((row) => row[0] === "message").map((row) => row[1]),
-        ["10", "10", "20", "20"]
+        ["10", "20"]
     );
     assert.equal(
         c.__ottClassicPlayback.snapshot().generation,
@@ -1063,7 +1063,7 @@ for (const replace of [
     );
     assert.deepEqual(
         c.effects.filter((row) => row[0] === "message").map((row) => row[1]),
-        ["10", "10", "20", "20"]
+        ["10", "20"]
     );
 }
 
@@ -1239,4 +1239,116 @@ for (const file of ["session.ts", "classic-adapter.ts"]) {
 }
 console.log(
     "PASS playback sessions: history, VOD/native files, archive clocks, migration records, stale seeks/EPG and stop ownership"
+);
+
+// Execute the real offset owner, compatibility adapter, and local banner renderer
+// together. A preview must not become a second announcement at debounce commit.
+for (const mode of [-1e11, 999900, 0]) {
+    for (const enabled of [1, 0]) {
+        const c = fixture();
+        const { JSDOM } = require("jsdom");
+        const dom = new JSDOM('<div id="notifications"></div>', {
+            pretendToBeVisual: true,
+        });
+        let now = 0,
+            sequence = 0,
+            insertions = 0,
+            info = 0;
+        const jobs = new Map();
+        c.document = dom.window.document;
+        c.performance = { now: () => now };
+        c.addEventListener = dom.window.addEventListener.bind(dom.window);
+        c.removeEventListener = dom.window.removeEventListener.bind(dom.window);
+        c.setTimeout = (callback, ms) => {
+            jobs.set(++sequence, { at: now + ms, callback });
+            return sequence;
+        };
+        c.clearTimeout = (id) => jobs.delete(id);
+        function tick(ms) {
+            const end = now + ms;
+            for (;;) {
+                const next = [...jobs]
+                    .filter(([, item]) => item.at <= end)
+                    .sort((a, b) => a[1].at - b[1].at)[0];
+                if (!next) break;
+                now = next[1].at;
+                jobs.delete(next[0]);
+                next[1].callback();
+            }
+            now = end;
+        }
+        c.createNotificationBanners =
+            require("./helpers/notification-banners.cjs")({
+                Date: c.Date,
+            }).createNotificationBanners;
+        include(c, "src/ui/index.ts", ["showShift"]);
+        c.playType = mode;
+        c.playTime = 20;
+        if (mode === 0) {
+            c.timeShift = (delta) => c.__ottClassicArchive.rewind(delta);
+            c.ifParentalAccessChId = () => false;
+            c.getChannelEpgCached = (id, done) =>
+                done(id, [{ name: "Current", time: 999000, time_to: 1001000 }]);
+            c.getArchiveUrl = () => "archive-url";
+            c.stbPlay = () => c.effects.push(["archive", c.playType]);
+        }
+        c.sInfoRew = 1;
+        c.sShowSeekNotifications = enabled;
+        c.showChannelInfo = () => info++;
+        const container = c.document.getElementById("notifications");
+        const append = container.appendChild.bind(container);
+        container.appendChild = (node) => {
+            insertions++;
+            return append(node);
+        };
+        try {
+            c.__ottClassicPlayback.shift(mode === 0 ? -10 : 10);
+            const first = container.firstChild;
+            assert.equal(!!first, !!enabled);
+            assert.equal(
+                info,
+                1,
+                "the seek OSD stays enabled independently of the notification"
+            );
+            tick(500);
+            assert.equal(container.firstChild, first);
+            assert.equal(
+                info,
+                mode === 0 ? 2 : 1,
+                "commit does not announce the same offset again"
+            );
+            assert.deepEqual(
+                c.effects.filter((row) => ["seek", "archive"].includes(row[0])),
+                mode < 0
+                    ? [["seek", 135.9]]
+                    : [["archive", mode === 0 ? 999990 : 999930]]
+            );
+            if (mode === 0) {
+                assert.equal(
+                    insertions,
+                    enabled,
+                    "live rewind completion updates the preview card"
+                );
+                continue;
+            }
+            c.__ottClassicPlayback.shift(10);
+            assert.equal(container.firstChild, first);
+            if (first) assert.equal(first.textContent, "20");
+            tick(500);
+            assert.equal(insertions, enabled);
+            assert.equal(info, 2);
+            assert.equal(
+                c.effects.filter((row) => ["seek", "archive"].includes(row[0]))
+                    .length,
+                2
+            );
+            tick(2500);
+            assert.equal(container.firstChild, null);
+        } finally {
+            dom.window.close();
+        }
+    }
+}
+console.log(
+    "PASS seek notification integration: one announcement per intent, in-place repeats, opt-out preserves transport and OSD"
 );

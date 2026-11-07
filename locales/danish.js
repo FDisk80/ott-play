@@ -901,6 +901,7 @@ var keyStrings = {
     "Restart player": "Genstart medieafspilleren",
     "Restart stream": "Genstart stream",
     "Restart stream / Live": "Genstart stream / Direkte",
+    "Resume archive after restart": "Genoptag fra arkivet efter genstart",
     "Resume from archive?": "Genoptage fra arkiv?",
     Retry: "Prøv igen",
     "Retry EPG download": "Prøv at downloade EPG igen",
@@ -947,6 +948,7 @@ var keyStrings = {
         "Sikker fjernindgang kunne ikke starte. Brug venligst skærmtastaturet.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Sikker fjernindgang er ikke tilgængelig på denne enhed. Brug skærmtastaturet.",
+    "Seek notifications": "Beskeder ved spoling",
     "Select a live channel first": "Vælg først en direkte kanal",
     "Select a stream type:<br>%1": "Vælg en strømtype:<br>%1",
     "Select category to add channel": "Vælg en kategori for at tilføje kanalen",

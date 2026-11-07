@@ -877,6 +877,7 @@ var keyStrings = {
     "Restart player": "પ્લેયર રીસ્ટાર્ટ કરો",
     "Restart stream": "સ્ટ્રીમ પુનઃપ્રારંભ કરો",
     "Restart stream / Live": "સ્ટ્રીમ / લાઇવ પુનઃપ્રારંભ કરો",
+    "Resume archive after restart": "ફરી શરૂ કર્યા પછી સંગ્રહમાંથી ચાલુ રાખો",
     "Resume from archive?": "આર્કાઇવમાંથી ફરી શરૂ કરીએ?",
     Retry: "ફરી પ્રયાસ કરો",
     "Retry EPG download": "EPG ડાઉનલોડ કરવાનો ફરી પ્રયાસ કરો",
@@ -922,6 +923,7 @@ var keyStrings = {
         "સુરક્ષિત રિમોટ ઇનપુટ શરૂ થઈ શક્યું નથી. કૃપા કરીને ઑન-સ્ક્રીન કીબોર્ડનો ઉપયોગ કરો.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "આ ઉપકરણ પર સુરક્ષિત રિમોટ ઇનપુટ અનુપલબ્ધ છે. ઑન-સ્ક્રીન કીબોર્ડનો ઉપયોગ કરો.",
+    "Seek notifications": "આગળ/પાછળ કરવાની સૂચનાઓ",
     "Select a live channel first": "પહેલા જીવંત પ્રસારણની ચેનલ પસંદ કરો",
     "Select a stream type:<br>%1": "સ્ટ્રીમનો પ્રકાર પસંદ કરો:<br>%1",
     "Select category to add channel": "ચેનલ ઉમેરવા માટે શ્રેણી પસંદ કરો",

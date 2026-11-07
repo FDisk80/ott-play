@@ -906,6 +906,7 @@ var keyStrings = {
     "Restart player": "Рестартиране на плейъра",
     "Restart stream": "Рестартиране на потока",
     "Restart stream / Live": "Рестартиране на потока / на живо",
+    "Resume archive after restart": "Продължаване от архива след рестартиране",
     "Resume from archive?": "Да се продължи ли от архива?",
     Retry: "Повторен опит",
     "Retry EPG download": "Повторете изтеглянето на EPG",
@@ -953,6 +954,7 @@ var keyStrings = {
         "Сигурният дистанционен вход не може да стартира. Моля, използвайте екранната клавиатура.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Сигурното дистанционно въвеждане не е налично на това устройство. Използвайте екранната клавиатура.",
+    "Seek notifications": "Известия при превъртане",
     "Select a live channel first": "Първо изберете канал на живо",
     "Select a stream type:<br>%1": "Изберете тип поток:<br>%1",
     "Select category to add channel": "Изберете категория за добавяне на канал",

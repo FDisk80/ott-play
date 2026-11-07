@@ -891,6 +891,8 @@ var keyStrings = {
     "Restart player": "Malitegharịa ihe ọkpụkpọ",
     "Restart stream": "Malitegharịa iyi",
     "Restart stream / Live": "Malitegharịa iyi / Mgbasa ozugbo",
+    "Resume archive after restart":
+        "Gaa n'ihu site na nchekwa mmemme mgbe ịmalitegharịrị",
     "Resume from archive?": "Gaa n'ihu site na nchekwa mmemme?",
     Retry: "Nwaa ọzọ",
     "Retry EPG download": "Nwaa nbudata EPG ọzọ",
@@ -936,6 +938,7 @@ var keyStrings = {
         "Ntinye dị anya echekwara enweghị ike ịmalite. Biko jiri kiiboodu ihuenyo.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Ntinye dị anya echekwara adịghị na ngwaọrụ a. Jiri kiiboodu ihuenyo.",
+    "Seek notifications": "Ọkwa mgbanwe oge vidiyo",
     "Select a live channel first": "Buru ụzọ họrọ ọwa mgbasa ozi dị ndụ",
     "Select a stream type:<br>%1": "Họrọ ụdị iyi:<br>%1",
     "Select category to add channel": "Họrọ otu iji tinye ọwa",

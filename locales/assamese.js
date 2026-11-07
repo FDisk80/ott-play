@@ -876,6 +876,7 @@ var keyStrings = {
     "Restart player": "প্লেয়াৰ পুনৰ আৰম্ভ কৰক",
     "Restart stream": "ষ্ট্ৰিম পুনৰ আৰম্ভ কৰক",
     "Restart stream / Live": "ষ্ট্ৰিম পুনৰ আৰম্ভ কৰক / পোনপটীয়া",
+    "Resume archive after restart": "পুনৰ আৰম্ভ কৰাৰ পিছত পুৰণি অনুষ্ঠান চলাই যাওক",
     "Resume from archive?": "পুৰণি অনুষ্ঠানৰ পৰা পুনৰ চলাবনে?",
     Retry: "পুনৰ চেষ্টা কৰক",
     "Retry EPG download": "EPG ডাউনলোড পুনৰ চেষ্টা কৰক",
@@ -922,6 +923,7 @@ var keyStrings = {
         "সুৰক্ষিত দূৰৱৰ্তী ইনপুট আৰম্ভ কৰিব পৰা নগ’ল। পৰ্দাৰ কীব’ৰ্ড ব্যৱহাৰ কৰক।",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "এই ডিভাইচত সুৰক্ষিত দূৰৱৰ্তী ইনপুট উপলব্ধ নহয়। পৰ্দাৰ কীব’ৰ্ড ব্যৱহাৰ কৰক।",
+    "Seek notifications": "আগলৈ/পিছলৈ যোৱাৰ জাননী",
     "Select a live channel first": "প্ৰথমে এটা পোনপটীয়া সম্প্ৰচাৰৰ চেনেল বাছক",
     "Select a stream type:<br>%1": "ষ্ট্ৰিমৰ প্ৰকাৰ বাছক:<br>%1",
     "Select category to add channel": "চেনেল যোগ কৰিবলৈ শ্ৰেণী বাছক",

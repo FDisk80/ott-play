@@ -907,6 +907,7 @@ var keyStrings = {
     "Restart player": "Lejátszó újraindítása",
     "Restart stream": "Adatfolyam újraindítása",
     "Restart stream / Live": "Adatfolyam újraindítása / élő",
+    "Resume archive after restart": "Archívum folytatása újraindítás után",
     "Resume from archive?": "Folytatja az archívumból?",
     Retry: "Újrapróbálkozás",
     "Retry EPG download": "Próbálja újra a EPG letöltését",
@@ -954,6 +955,7 @@ var keyStrings = {
         "A biztonságos távoli bemenet nem indul el. Kérjük, használja a képernyő-billentyűzetet.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "A biztonságos távoli bemenet nem érhető el ezen az eszközön. Használja a képernyő-billentyűzetet.",
+    "Seek notifications": "Értesítések tekeréskor",
     "Select a live channel first": "Először válasszon élő csatornát",
     "Select a stream type:<br>%1": "Válasszon adatfolyamtípust:<br>%1",
     "Select category to add channel":

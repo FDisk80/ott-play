@@ -919,6 +919,7 @@ var keyStrings = {
     "Restart player": "Repornește playerul",
     "Restart stream": "Repornește fluxul",
     "Restart stream / Live": "Repornește fluxul / în direct",
+    "Resume archive after restart": "Reia din arhivă după repornire",
     "Resume from archive?": "Reluați din arhivă?",
     Retry: "Reîncearcă",
     "Retry EPG download": "Reîncercați descărcarea EPG",
@@ -966,6 +967,7 @@ var keyStrings = {
         "Intrarea securizată de la distanță nu a putut porni. Vă rugăm să utilizați tastatura de pe ecran.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Intrarea securizată de la distanță nu este disponibilă pe acest dispozitiv. Utilizați tastatura de pe ecran.",
+    "Seek notifications": "Notificări la derulare",
     "Select a live channel first": "Selectați mai întâi un canal în direct",
     "Select a stream type:<br>%1": "Alegeți tipul de flux:<br>%1",
     "Select category to add channel":

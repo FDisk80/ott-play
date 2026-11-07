@@ -887,6 +887,7 @@ var keyStrings = {
     "Restart player": "Restart player",
     "Restart stream": "Restart stream",
     "Restart stream / Live": "Restart stream / Live",
+    "Resume archive after restart": "Resume archive after restart",
     "Resume from archive?": "Resume from archive?",
     Retry: "Retry",
     "Retry EPG download": "Retry EPG download",
@@ -933,6 +934,7 @@ var keyStrings = {
         "Secure remote input could not start. Please use the on-screen keyboard.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Secure remote input is unavailable on this device. Use the on-screen keyboard.",
+    "Seek notifications": "Seek notifications",
     "Select a live channel first": "Select a live channel first",
     "Select a stream type:<br>%1": "Select a stream type:<br>%1",
     "Select category to add channel": "Select a category to add the channel",

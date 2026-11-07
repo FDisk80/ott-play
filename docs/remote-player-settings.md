@@ -26,6 +26,26 @@ A read distinguishes the runtime preference, valid stored value, missing/default
 
 Audio and subtitle language defaults also apply to the next stream; an explicit per-channel track selection takes precedence. Interface preferences with an unavailable platform apply hook are marked for manual application. Subtitle appearance saves wait for the existing renderer module, so a failed load cannot earn a successful save.
 
+Two playback preferences are available in **Settings → Interface settings** in
+Classic and Modern, and through the same remote settings API:
+
+- **Resume archive after restart** (`resumeArchiveAfterRestart`, default `0`):
+  start live TV after restarting. Set it to `1` to resume a valid saved archive
+  position automatically. There is no archive confirmation popup. The existing
+  bookmark expiry, channel availability and parental PIN checks still apply.
+  Local-file and movie resume behavior is unchanged.
+- **Seek notifications** (`showSeekNotifications`, default `1`): show the compact
+  seek banner. Set it to `0` to hide these notifications without disabling
+  seeking, the timeline, or other playback and error messages.
+
+Both preferences belong to this client, persist across restarts, and use the
+normal settings save/cancel and profile export/import paths. For example:
+
+```sh
+ott t1 setting resumeArchiveAfterRestart 1
+ott t1 setting showSeekNotifications 0
+```
+
 Secret descriptors omit defaults, and secret reads omit current/stored/effective values. They only indicate whether a value is configured. For supported private values, the CLI accepts a UTF-8 file rather than putting the value on the command line:
 
 ```sh

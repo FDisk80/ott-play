@@ -911,6 +911,7 @@ var keyStrings = {
     "Restart player": "Berrabiarazi erreproduzitzailea",
     "Restart stream": "Berrabiarazi transmisioa",
     "Restart stream / Live": "Berrabiarazi transmisioa / Zuzenean",
+    "Resume archive after restart": "Berrabiarazi ondoren artxibotik jarraitu",
     "Resume from archive?": "Artxibotik jarraitu?",
     Retry: "Saiatu berriro",
     "Retry EPG download": "Deskargatu EPG berriro",
@@ -958,6 +959,7 @@ var keyStrings = {
         "Urruneko sarrera segurua ezin izan da hasi. Erabili pantailako teklatua.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Urruneko sarrera segurua ez dago erabilgarri gailu honetan. Erabili pantailako teklatua.",
+    "Seek notifications": "Erreprodukzio-posizioaren jakinarazpenak",
     "Select a live channel first": "Hautatu lehenik zuzeneko kanal bat",
     "Select a stream type:<br>%1": "Hautatu transmisio mota:<br>%1",
     "Select category to add channel": "Hautatu kategoria kanal hau gehitzeko",

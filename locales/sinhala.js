@@ -879,6 +879,7 @@ var keyStrings = {
     "Restart player": "වාදකය නැවත ආරම්භ කරන්න",
     "Restart stream": "ප්‍රවාහය නැවත ආරම්භ කරන්න",
     "Restart stream / Live": "ප්‍රවාහය / සජීවීව නැවත ආරම්භ කරන්න",
+    "Resume archive after restart": "නැවත ආරම්භ කළ පසු පසුගිය වැඩසටහන දිගටම බලන්න",
     "Resume from archive?": "පසුගිය විකාශනය නැරඹීම නැවත ආරම්භ කරන්නද?",
     Retry: "නැවත උත්සාහ කරන්න",
     "Retry EPG download": "EPG බාගැනීමට නැවත උත්සාහ කරන්න",
@@ -924,6 +925,7 @@ var keyStrings = {
         "ආරක්ෂිත දුරස්ථ ආදානය ආරම්භ කළ නොහැක. කරුණාකර තිරයේ යතුරු පුවරුව භාවිතා කරන්න.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "මෙම උපාංගයේ ආරක්ෂිත දුරස්ථ ආදානය නොමැත. තිරයේ යතුරු පුවරුව භාවිතා කරන්න.",
+    "Seek notifications": "ඉදිරියට/පසුපසට යාමේ දැනුම්දීම්",
     "Select a live channel first": "පළමුව සජීවී නාලිකාවක් තෝරන්න",
     "Select a stream type:<br>%1": "ප්‍රවාහ වර්ගයක් තෝරන්න:<br>%1",
     "Select category to add channel": "නාලිකාව එක් කිරීමට ප්‍රවර්ගයක් තෝරන්න",

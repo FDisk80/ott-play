@@ -899,6 +899,7 @@ var keyStrings = {
     "Restart player": "Mulai ulang pemutar",
     "Restart stream": "Mulai ulang aliran",
     "Restart stream / Live": "Mulai ulang aliran / langsung",
+    "Resume archive after restart": "Lanjutkan dari arsip setelah mulai ulang",
     "Resume from archive?": "Lanjutkan dari arsip?",
     Retry: "Coba lagi",
     "Retry EPG download": "Coba lagi unduh EPG",
@@ -945,6 +946,7 @@ var keyStrings = {
         "Input jarak jauh yang aman tidak dapat dimulai. Silakan gunakan keyboard di layar.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Input jarak jauh yang aman tidak tersedia pada perangkat ini. Gunakan keyboard di layar.",
+    "Seek notifications": "Notifikasi pergeseran posisi putar",
     "Select a live channel first": "Pilih saluran langsung terlebih dahulu",
     "Select a stream type:<br>%1": "Pilih jenis aliran:<br>%1",
     "Select category to add channel":

@@ -731,7 +731,7 @@ function handleMainKey(keyCode: number, event: KeyboardEvent): void {
         call("playChannel", w.catIndex, w.primaryIndex);
     }
     function live() {
-        call("showShift", _(w.playType ? "Live" : "Restart stream"));
+        call("showShift", _(w.playType ? "Live" : "Restart stream"), true);
         currentChannel();
     }
     function guide() {
@@ -1064,7 +1064,7 @@ export function keyFun(fn: number): void {
             if (next && next.time < Date.now() / 1e3)
                 call("playArchive", next.time);
             else {
-                call("showShift", _("Live"));
+                call("showShift", _("Live"), true);
                 call("playChannel", w.catIndex, w.primaryIndex);
             }
         },

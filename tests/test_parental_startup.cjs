@@ -113,6 +113,7 @@ function fixture({
     archive = false,
     enabled = true,
     authorized = false,
+    resumeArchiveAfterRestart,
 } = {}) {
     const dom = new JSDOM(
         '<div id="dialogbox">Loading</div><div id="launch">Starting</div><div id="buffering"></div>',
@@ -222,7 +223,11 @@ function fixture({
             timers.push({ callback, delay });
             return timers.length;
         },
-        settings: { prevCount: 1, psChannels: enabled },
+        settings: {
+            prevCount: 1,
+            psChannels: enabled,
+            resumeArchiveAfterRestart,
+        },
         sFavorites: 0,
         showShift: (text) => {
             if (text !== "Loading. Please wait...") notices.push(text);
@@ -306,15 +311,11 @@ function fixture({
         enter,
         errors,
         notices,
+        pendingTimers: (delay) =>
+            timers.filter((timer) => timer.delay === delay && !timer.cancelled)
+                .length,
         played,
         prompts: () => prompts,
-        runResume: () => {
-            const pending = timers.filter(
-                (timer) => timer.delay === 10000 && !timer.cancelled
-            );
-            assert.equal(pending.length, 1, "Resume has one ten-second timer");
-            pending[0].callback();
-        },
         runSeek: () => {
             const pending = timers.filter((timer) => timer.delay === 500);
             assert.equal(
@@ -467,164 +468,138 @@ function fixture({
             f.close();
         }
     }
-    for (const answer of ["correct", "wrong", "cancel"]) {
-        const f = fixture({ archive: true });
+    for (const resumeArchiveAfterRestart of [undefined, 0]) {
+        for (const protectedChannel of [false, true]) {
+            const f = fixture({
+                archive: true,
+                protectedChannel,
+                resumeArchiveAfterRestart,
+            });
+            try {
+                f.start();
+                assert.deepEqual(f.archives, [], "Archive resume is opt-in");
+                assert.equal(
+                    f.pendingTimers(10000),
+                    0,
+                    "Disabled or absent preference must not schedule an archive prompt"
+                );
+                assert.doesNotMatch(
+                    f.w.document.getElementById("dialogbox").textContent,
+                    /Resume from archive/
+                );
+                if (protectedChannel) {
+                    assert.equal(
+                        f.prompts(),
+                        1,
+                        "Normal live startup keeps PIN protection"
+                    );
+                    assert.deepEqual(f.played, []);
+                    await f.enter("2468");
+                }
+                assert.deepEqual(f.played, [
+                    "https://example.invalid/channel/202",
+                ]);
+                assert.equal(f.pendingTimers(500), 0);
+            } finally {
+                f.close();
+            }
+        }
+    }
+    {
+        const f = fixture({
+            archive: true,
+            protectedChannel: false,
+            resumeArchiveAfterRestart: 1,
+        });
         try {
             f.start();
+            assert.deepEqual(f.archives, [1700000000]);
+            assert.deepEqual(f.played, []);
+            assert.deepEqual(f.seeks, [], "Saved seek keeps its decoder delay");
             assert.equal(
-                f.prompts(),
+                f.pendingTimers(10000),
                 0,
-                `${answer}: archive choice is offered before requesting access`
+                "No hidden resume countdown"
             );
-            assert.equal(
-                f.w.$("#dialogbox").is(":visible"),
-                true,
-                `${answer}: archive choice remains visible`
+            assert.doesNotMatch(
+                f.w.document.getElementById("dialogbox").textContent,
+                /Resume from archive/
             );
-            assert.deepEqual(
-                f.archives,
-                [],
-                `${answer}: no archive before confirmation`
-            );
-            f.w._doKey(f.w.keys.ENTER);
-            assert.equal(
-                f.prompts(),
-                1,
-                `${answer}: protected archive asks for PIN after Yes`
-            );
-            assert.equal(
-                f.w.$("#dialogbox").is(":visible"),
-                true,
-                `${answer}: archive PIN remains visible`
-            );
-            assert.deepEqual(
-                f.archives,
-                [],
-                `${answer}: Yes does not bypass parental protection`
-            );
-            assert.deepEqual(
-                f.played,
-                [],
-                `${answer}: no premature live fallback`
-            );
-            if (answer === "correct") {
-                await f.enter("2468");
-                assert.deepEqual(
-                    f.archives,
-                    [1700000000],
-                    "correct PIN resumes the intended protected archive once"
-                );
-                assert.equal(
-                    f.w.curList[f.w.primaryIndex],
-                    202,
-                    "archive resumes on the bookmarked channel"
-                );
-                assert.equal(
-                    f.prompts(),
-                    1,
-                    "archive resume does not duplicate PIN dialog"
-                );
-                f.runSeek();
-                assert.deepEqual(
-                    f.seeks,
-                    [25],
-                    "authorized archive restores the saved position"
-                );
-            } else if (answer === "wrong") {
-                await f.enter("1357");
-                assert.deepEqual(
-                    f.archives,
-                    [],
-                    "wrong PIN never starts protected archive"
-                );
-                assert.equal(f.notices.length, 1);
-            } else {
-                f.w._doKey(f.w.keys.RETURN);
-                assert.deepEqual(
-                    f.archives,
-                    [],
-                    "cancel never starts protected archive"
-                );
-            }
-            assert.deepEqual(
-                f.played,
-                [],
-                `${answer}: protected archive path never starts live unexpectedly`
-            );
-            assert.deepEqual(
-                f.errors,
-                [],
-                `${answer}: archive path has no caught runtime errors`
-            );
+            f.runSeek();
+            assert.deepEqual(f.seeks, [25]);
         } finally {
             f.close();
         }
     }
-    for (const change of ["provider", "playlist", "channel"]) {
-        const f = fixture({ archive: true });
+    for (const answer of ["correct", "wrong", "cancel"]) {
+        const f = fixture({ archive: true, resumeArchiveAfterRestart: 1 });
         try {
             f.start();
-            f.w._doKey(f.w.keys.ENTER);
-            assert.equal(
-                f.prompts(),
-                1,
-                `${change}: PIN is pending before context changes`
-            );
+            assert.equal(f.prompts(), 1, "Automatic archive still needs a PIN");
+            assert.equal(f.w.$("#dialogbox").is(":visible"), true);
+            assert.deepEqual(f.archives, []);
+            assert.equal(f.pendingTimers(10000), 0);
+            if (answer === "cancel") f.w._doKey(f.w.keys.RETURN);
+            else await f.enter(answer === "correct" ? "2468" : "1357");
+            if (answer === "correct") {
+                assert.deepEqual(f.archives, [1700000000]);
+                assert.equal(f.w.curList[f.w.primaryIndex], 202);
+                f.runSeek();
+                assert.deepEqual(f.seeks, [25]);
+            } else {
+                assert.deepEqual(f.archives, []);
+                assert.equal(f.pendingTimers(500), 0);
+            }
+            assert.deepEqual(f.played, [], "PIN refusal must not start live");
+            assert.equal(f.prompts(), 1);
+        } finally {
+            f.close();
+        }
+    }
+    for (const change of ["provider", "playlist", "channel", "playback"]) {
+        const f = fixture({ archive: true, resumeArchiveAfterRestart: 1 });
+        try {
+            f.start();
+            assert.equal(f.prompts(), 1);
             if (change === "provider") f.w.p_pref = "other-test-provider";
             else if (change === "playlist")
                 f.w.cats[f.w.catsArray[1]] = [101, 303];
-            else
+            else if (change === "channel")
                 f.w.channels[202] = {
                     category: { name: "Replacement channel" },
                 };
+            else
+                f.w.__ottClassicPlayback.command({
+                    channelId: "78777",
+                    item: {
+                        stream_url: "https://example.invalid/plex-film.mp4",
+                    },
+                    sourceId: "plex-synthetic",
+                    type: "vod",
+                });
             await f.enter("2468");
             assert.deepEqual(
                 f.archives,
                 [],
-                `${change}: old PIN callback cannot resume a changed playback context`
+                `${change}: stale PIN cannot resume`
             );
-            assert.deepEqual(
-                f.played,
-                [],
-                `${change}: stale callback cannot silently start live instead`
-            );
-        } finally {
-            f.close();
-        }
-    }
-    {
-        const f = fixture({ archive: true });
-        try {
-            f.start();
-            f.w.p_pref = "other-test-provider";
-            f.w._doKey(f.w.keys.ENTER);
-            assert.equal(
-                f.prompts(),
-                0,
-                "stale archive confirmation must not open a PIN for another provider"
-            );
-            assert.deepEqual(f.archives, []);
             assert.deepEqual(f.played, []);
+            assert.equal(f.pendingTimers(500), 0);
         } finally {
             f.close();
         }
     }
     {
-        const f = fixture({ archive: true });
+        const f = fixture({ archive: true, resumeArchiveAfterRestart: 1 });
         try {
             f.start();
-            f.w._doKey(f.w.keys.ENTER);
             f.w.cats[f.w.catsArray[1]].reverse();
             await f.enter("2468");
-            assert.deepEqual(
-                f.archives,
-                [1700000000],
-                "same-list reorder still resumes the authorized bookmark"
-            );
+            assert.deepEqual(f.archives, [1700000000]);
             assert.equal(
                 f.w.primaryIndex,
                 0,
-                "resume resolves the moved channel by ID"
+                "Resume resolves the moved channel by ID"
             );
             assert.equal(f.w.curList[f.w.primaryIndex], 202);
             f.runSeek();
@@ -633,211 +608,98 @@ function fixture({
             f.close();
         }
     }
-    {
-        const f = fixture({ archive: true });
+    for (const change of ["provider", "selection", "stop"]) {
+        const f = fixture({
+            archive: true,
+            protectedChannel: false,
+            resumeArchiveAfterRestart: 1,
+        });
         try {
             f.start();
-            f.w._doKey(f.w.keys.ENTER);
-            await f.enter("2468");
             assert.deepEqual(f.archives, [1700000000]);
-            f.w.primaryIndex = 0;
+            if (change === "provider") f.w.p_pref = "other-test-provider";
+            else if (change === "selection") f.w.primaryIndex = 0;
+            else f.w.__ottClassicPlayback.cancel();
             f.runSeek();
-            assert.deepEqual(
-                f.seeks,
-                [],
-                "delayed archive seek must not alter a newly selected channel"
-            );
+            assert.deepEqual(f.seeks, [], `${change}: stale seek cannot run`);
         } finally {
             f.close();
         }
     }
-    {
-        const f = fixture({ archive: true });
-        try {
-            f.start();
-            f.w._doKey(f.w.keys.RETURN);
-            assert.equal(
-                f.prompts(),
-                1,
-                "declining archive still requires PIN for protected live channel"
-            );
-            assert.equal(
-                f.w.$("#dialogbox").is(":visible"),
-                true,
-                "live fallback PIN is visible"
-            );
-            assert.deepEqual(
-                f.played,
-                [],
-                "archive No cannot bypass live protection"
-            );
-            assert.deepEqual(f.archives, []);
-            await f.enter("2468");
-            assert.deepEqual(
-                f.played,
-                ["https://example.invalid/channel/202"],
-                "authorized fallback resumes the bookmarked live channel"
-            );
-            assert.deepEqual(f.archives, []);
-        } finally {
-            f.close();
-        }
-    }
-    {
-        const f = fixture({ archive: true, protectedChannel: false });
-        try {
-            f.start();
-            assert.equal(
-                f.w.$("#dialogbox").is(":visible"),
-                true,
-                "archive resume confirmation survives startup cleanup"
-            );
-            assert.match(
-                f.w.document.getElementById("dialogbox").textContent,
-                /Resume from archive/
-            );
-            assert.deepEqual(
-                f.played,
-                [],
-                "archive confirmation blocks live fallback until choice"
-            );
-            assert.deepEqual(
-                f.archives,
-                [],
-                "archive does not start before confirmation"
-            );
-            f.w._doKey(f.w.keys.ENTER);
-            assert.deepEqual(
-                f.archives,
-                [1700000000],
-                "archive confirmation retains its callback"
-            );
-            f.runSeek();
-            assert.deepEqual(
-                f.seeks,
-                [25],
-                "normal unprotected archive retains the saved position"
-            );
-            assert.deepEqual(f.played, []);
-        } finally {
-            f.close();
-        }
-    }
-    for (const protectedChannel of [false, true]) {
-        const f = fixture({ archive: true, protectedChannel });
-        try {
-            f.start();
-            assert.deepEqual(
-                f.archives,
-                [],
-                "Archive waits while the question is open"
-            );
-            f.runResume();
-            if (protectedChannel) {
-                assert.deepEqual(
-                    f.archives,
-                    [],
-                    "Timeout must still require the PIN"
-                );
-                assert.equal(f.prompts(), 1);
-                await f.enter("2468");
-            }
-            assert.deepEqual(f.archives, [1700000000]);
-            f.runSeek();
-            assert.deepEqual(
-                f.seeks,
-                [25],
-                "Timeout restores the saved archive position"
-            );
-            assert.deepEqual(f.played, []);
-            assert.equal(f.w.$("#dialogbox").is(":visible"), false);
-        } finally {
-            f.close();
-        }
-    }
-    // An explicit playback choice owns the screen even while the old prompt is open.
-    for (const answer of ["timeout", "yes", "no"]) {
-        const f = fixture({ archive: true, protectedChannel: false });
-        try {
-            f.start();
-            f.w.__ottClassicPlayback.command({
-                channelId: "78777",
-                item: { stream_url: "https://example.invalid/plex-film.mp4" },
-                sourceId: "plex-synthetic",
-                type: "vod",
+    for (const resumeArchiveAfterRestart of [0, 1]) {
+        for (const mode of ["live", "vod"]) {
+            const f = fixture({
+                protectedChannel: false,
+                resumeArchiveAfterRestart,
             });
-            if (answer === "timeout") f.runResume();
-            else
-                f.w._doKey(answer === "yes" ? f.w.keys.ENTER : f.w.keys.RETURN);
-            assert.deepEqual(
-                f.archives,
-                [],
-                `${answer}: stale archive cannot replace Plex`
-            );
-            assert.deepEqual(
-                f.played,
-                [],
-                `${answer}: stale fallback cannot replace Plex`
-            );
+            try {
+                f.start();
+                f.w.__ottClassicPlayback.bookmark = () => ({
+                    channelId: 202,
+                    mode,
+                    playTime: 25,
+                    playType: -1,
+                    updatedAt: Date.now(),
+                    v: 1,
+                });
+                const resumed = [];
+                f.w.playChannel = (...args) => resumed.push(args);
+                assert.equal(
+                    f.w.restoreContinueWatch(),
+                    false,
+                    `${mode}: remote non-archive bookmark keeps its existing path`
+                );
+                assert.deepEqual(resumed, []);
+                f.w.__ottActiveProviderDriver = { id: "offline" };
+                assert.equal(f.w.restoreContinueWatch(), true);
+                assert.equal(resumed.length, 1);
+                assert.equal(resumed[0][4].channelId, "202");
+                assert.equal(resumed[0][4].position, 25);
+                assert.equal(
+                    resumed[0][4].sourceId,
+                    f.w.__ottClassicPlayback.sourceId(),
+                    "Local resume remains bound to the selected source"
+                );
+                assert.deepEqual(f.archives, []);
+            } finally {
+                f.close();
+            }
+        }
+    }
+    for (const changedBookmark of [
+        { updatedAt: Date.now() - 8 * 86400000 },
+        { updatedAt: Date.now() + 600000 },
+        { channelId: 303 },
+        { playType: -1 },
+    ]) {
+        const f = fixture({
+            protectedChannel: false,
+            resumeArchiveAfterRestart: 1,
+        });
+        try {
+            f.start();
+            f.w.__ottClassicPlayback.bookmark = () => ({
+                channelId: 202,
+                mode: "archive",
+                playTime: 25,
+                playType: 1700000000,
+                updatedAt: Date.now(),
+                v: 1,
+                ...changedBookmark,
+            });
             assert.equal(
-                f.w.__ottClassicPlayback.snapshot().target.channelId,
-                "78777"
+                f.w.restoreContinueWatch(),
+                false,
+                "Invalid archive cannot auto-resume"
             );
-            assert.equal(f.w.$("#dialogbox").is(":visible"), false);
-        } finally {
-            f.close();
-        }
-    }
-    {
-        const f = fixture({ archive: true, protectedChannel: false });
-        try {
-            f.start();
-            f.w.playChannel(1, 0);
-            f.runResume();
             assert.deepEqual(f.archives, []);
-            assert.deepEqual(f.played, ["https://example.invalid/channel/101"]);
-        } finally {
-            f.close();
-        }
-    }
-    {
-        const f = fixture({ archive: true });
-        try {
-            f.start();
-            f.w._doKey(f.w.keys.ENTER);
-            f.w.__ottClassicPlayback.command({ channelId: 101, type: "live" });
-            await f.enter("2468");
-            assert.deepEqual(
-                f.archives,
-                [],
-                "A pending PIN cannot resurrect the old restore"
-            );
-            assert.deepEqual(f.played, []);
-        } finally {
-            f.close();
-        }
-    }
-
-    // Stopping the same archive revokes its pending restoration without changing IDs.
-    {
-        const f = fixture({ archive: true, protectedChannel: false });
-        try {
-            f.start();
-            f.w._doKey(f.w.keys.ENTER);
-            assert.deepEqual(f.archives, [1700000000]);
-            f.w.__ottClassicPlayback.cancel();
-            f.runSeek();
-            assert.deepEqual(
-                f.seeks,
-                [],
-                "stopped archive must not restore a delayed position"
-            );
+            assert.equal(f.pendingTimers(500), 0);
         } finally {
             f.close();
         }
     }
     console.log(
-        `PASS parental startup (${bundle ? "classic bundle" : "source"}): visible one-shot PIN, guarded live/archive resume, cancel/wrong PIN, normal startup, and archive confirmation`
+        `PASS parental startup (${bundle ? "classic bundle" : "source"}): visible one-shot PIN, guarded live/archive resume, cancel/wrong PIN, normal startup, and opt-in archive resume`
     );
 })().catch((error) => {
     console.error(error);

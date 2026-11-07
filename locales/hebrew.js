@@ -870,6 +870,7 @@ var keyStrings = {
     "Restart player": "הפעל מחדש את הנגן",
     "Restart stream": "הפעל מחדש את השידור",
     "Restart stream / Live": "הפעל שידור מחדש / שידור חי",
+    "Resume archive after restart": "המשך מהארכיון לאחר הפעלה מחדש",
     "Resume from archive?": "להמשיך מהארכיון?",
     Retry: "נסה שוב",
     "Retry EPG download": "נסה שוב להוריד את EPG",
@@ -915,6 +916,7 @@ var keyStrings = {
         "לא ניתן היה להפעיל קלט מרחוק מאובטח. אנא השתמש במקלדת שעל המסך.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "קלט מאובטח מרחוק אינו זמין במכשיר זה. השתמש במקלדת שעל המסך.",
+    "Seek notifications": "התראות על דילוג בזמן",
     "Select a live channel first": "יש לבחור תחילה ערוץ בשידור חי",
     "Select a stream type:<br>%1": "בחר סוג שידור:<br>%1",
     "Select category to add channel": "בחר קטגוריה להוספת ערוץ",

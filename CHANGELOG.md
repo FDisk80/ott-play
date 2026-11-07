@@ -155,6 +155,11 @@
 
 ### Changes
 
+- Add an opt-in **Resume archive after restart** preference, disabled by
+  default. Start live TV unless enabled; resume valid archive bookmarks without
+  a confirmation popup while retaining parental checks and movie/file resume.
+- Show one compact seek notification per gesture, update it in place, and add
+  a **Seek notifications** preference in Interface settings and remote settings.
 - Return to live playback when the current channel is selected again from an
   archive, while preserving ordinary live-channel and finite-media behavior.
 - Retry an initial HLS manifest failure through the existing bounded source

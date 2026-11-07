@@ -2381,8 +2381,88 @@ for (const profile of ["server", "tauri"]) {
         }
     );
     test(
-        profile +
-            " archive confirmation preserves translated lines and choices",
+        profile + " archive restart is opt-in without a confirmation",
+        async ({ browser }) => {
+            for (const enabled of [false, true]) {
+                const fixture = await fixturePage(browser, profile);
+                const page = fixture.page;
+                try {
+                    const archiveStart = await page.evaluate((resume) => {
+                        window.channels[101] = window.channels.one;
+                        window.cats.Fixture = [101];
+                        window.curList = window.cats.Fixture;
+                        window.catIndex = window.primaryIndex = 0;
+                        const start = Math.floor(Date.now() / 1000) - 3600;
+                        const stored = new Map([
+                            [
+                                "continueWatch",
+                                JSON.stringify({
+                                    catIndex: 0,
+                                    channelId: 101,
+                                    mode: "archive",
+                                    playTime: 25,
+                                    playType: start,
+                                    updatedAt: Date.now(),
+                                    v: 1,
+                                }),
+                            ],
+                        ]);
+                        window.providerGetItem = (key) =>
+                            stored.get(key) ?? null;
+                        window.providerSetItem = (key, value) =>
+                            stored.set(key, value);
+                        window.__archiveResumeEffects = [];
+                        window.playArchive = (time) => {
+                            window.playType = Math.floor(time);
+                            window.__archiveResumeEffects.push([
+                                "archive",
+                                time,
+                            ]);
+                        };
+                        window.stbSetPosTime = (time) =>
+                            window.__archiveResumeEffects.push(["seek", time]);
+                        window.playChannel = (category, index) =>
+                            window.__archiveResumeEffects.push([
+                                "live",
+                                category,
+                                index,
+                            ]);
+                        if (window.settings.resumeArchiveAfterRestart !== 0)
+                            throw new Error(
+                                "Archive startup must default to off"
+                            );
+                        if (resume) window.sResumeArchiveAfterRestart = 1;
+                        if (!window.restoreContinueWatch())
+                            window.playChannel(
+                                window.catIndex,
+                                window.primaryIndex
+                            );
+                        return start;
+                    }, enabled);
+                    await expect(page.locator("#dialogbox")).toBeHidden();
+                    await expect
+                        .poll(() =>
+                            page.evaluate(() => window.__archiveResumeEffects)
+                        )
+                        .toEqual(
+                            enabled
+                                ? [
+                                      ["archive", archiveStart],
+                                      ["seek", 25],
+                                  ]
+                                : [["live", 0, 0]]
+                        );
+                    expect(fixture.errors).toEqual([]);
+                    expect(fixture.unexpectedRequests).toEqual([]);
+                } finally {
+                    await fixture.close();
+                }
+            }
+        }
+    );
+
+    test(
+        profile + " confirmation preserves translated lines and choices",
         async ({ browser }) => {
             for (const [language, title, age, yes, no] of [
                 [
@@ -2408,53 +2488,22 @@ for (const profile of ["server", "tauri"]) {
                 );
                 const page = fixture.page;
                 try {
-                    const archiveStart = await page.evaluate(() => {
-                        // Provider startup normally installs numeric channel
-                        // IDs and the production keyboard listener.
-                        window.channels[101] = window.channels.one;
-                        window.cats.Fixture = [101];
-                        window.curList = window.cats.Fixture;
-                        window.catIndex = window.primaryIndex = 0;
+                    await page.evaluate(() => {
                         window.stbBindKeyHandler();
-                        const start = Math.floor(Date.now() / 1000) - 3600;
-                        const stored = new Map([
-                            [
-                                "continueWatch",
-                                JSON.stringify({
-                                    catIndex: 0,
-                                    channelId: 101,
-                                    mode: "archive",
-                                    playTime: 25,
-                                    playType: start,
-                                    updatedAt: Date.now(),
-                                    v: 1,
-                                }),
-                            ],
-                        ]);
-                        window.providerGetItem = (key) =>
-                            stored.get(key) ?? null;
-                        window.providerSetItem = (key, value) =>
-                            stored.set(key, value);
                         window.__confirmationChoices = [];
-                        window.playArchive = (time) =>
-                            window.__confirmationChoices.push([
-                                "archive",
-                                time,
-                            ]);
-                        window.playChannel = (category, index) =>
-                            window.__confirmationChoices.push([
-                                "live",
-                                category,
-                                index,
-                            ]);
-                        window.stbIsPlaying = () => false;
-                        return start;
                     });
                     const dialog = page.locator("#dialogbox");
                     for (const accept of [true, false]) {
-                        expect(
-                            await page.evaluate(() => restoreContinueWatch())
-                        ).toBe(true);
+                        await page.evaluate(() => {
+                            window.confirmBox(
+                                window._("Resume from archive?") +
+                                    "<br><br>" +
+                                    window._("Bookmark age (days): %1", 0),
+                                () => window.__confirmationChoices.push("yes"),
+                                () => window.__confirmationChoices.push("no"),
+                                10000
+                            );
+                        });
                         await expect(dialog).toBeVisible();
                         await expect(dialog).toContainText(title);
                         await expect(dialog).toContainText(age);
@@ -2510,10 +2559,7 @@ for (const profile of ["server", "tauri"]) {
                     }
                     expect(
                         await page.evaluate(() => window.__confirmationChoices)
-                    ).toEqual([
-                        ["archive", archiveStart],
-                        ["live", 0, 0],
-                    ]);
+                    ).toEqual(["yes", "no"]);
                     expect(fixture.errors).toEqual([]);
                     expect(fixture.unexpectedRequests).toEqual([]);
                 } finally {

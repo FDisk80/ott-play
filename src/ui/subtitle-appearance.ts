@@ -510,6 +510,16 @@
                     noyes
                 ),
                 choice(
+                    label("Resume archive after restart"),
+                    "resumeArchiveAfterRestart",
+                    noyes
+                ),
+                choice(
+                    label("Seek notifications"),
+                    "showSeekNotifications",
+                    noyes
+                ),
+                choice(
                     label("Remember previous channels"),
                     "prevCount",
                     [1, 5, 10, 15, 20]

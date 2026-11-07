@@ -879,6 +879,7 @@ var keyStrings = {
     "Restart player": "प्लेअर रीस्टार्ट करा",
     "Restart stream": "स्ट्रीम रीस्टार्ट करा",
     "Restart stream / Live": "स्ट्रीम / लाइव्ह रीस्टार्ट करा",
+    "Resume archive after restart": "पुन्हा सुरू केल्यानंतर संग्रहातून पुढे चालू ठेवा",
     "Resume from archive?": "संग्रहणातून पुन्हा सुरू करायचे?",
     Retry: "पुन्हा प्रयत्न करा",
     "Retry EPG download": "EPG डाउनलोड करण्याचा पुन्हा प्रयत्न करा",
@@ -924,6 +925,7 @@ var keyStrings = {
         "सुरक्षित रिमोट इनपुट सुरू होऊ शकले नाही. कृपया ऑन-स्क्रीन कीबोर्ड वापरा.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "या डिव्हाइसवर सुरक्षित रिमोट इनपुट अनुपलब्ध आहे. ऑन-स्क्रीन कीबोर्ड वापरा.",
+    "Seek notifications": "पुढे/मागे करण्याच्या सूचना",
     "Select a live channel first": "प्रथम थेट प्रसारणाची वाहिनी निवडा",
     "Select a stream type:<br>%1": "प्रवाह प्रकार निवडा:<br>%1",
     "Select category to add channel": "चॅनेल जोडण्यासाठी श्रेणी निवडा",

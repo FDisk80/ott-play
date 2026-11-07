@@ -471,6 +471,88 @@ async function animationStyle(banner, time) {
     }, time);
 }
 
+test("seek banner stays compact and updates without replaying its entrance", async ({
+    page,
+    context,
+    baseURL,
+}) => {
+    await page.clock.install();
+    const h = await setup(page, context, baseURL, false, { disabled: true });
+    await page.clock.pauseAt(Date.now() + 100);
+    await page.evaluate(() => {
+        window.__ottNotificationBanners.create(
+            { message: "Remote notification" },
+            10000
+        );
+        window.showShift("+10 seconds", true);
+        const card = document.querySelector(".remote-notify-seek");
+        window.__seekCard = card;
+        window.__seekEntrance = card
+            .getAnimations()
+            .find((animation) =>
+                ["remoteNotifyIn", "remoteNotifySimpleIn"].includes(
+                    animation.animationName
+                )
+            );
+        if (!window.__seekEntrance)
+            throw new Error("Seek entrance animation is missing");
+    });
+    const seek = page.locator(".remote-notify-seek");
+    await expect(seek).toHaveCount(1);
+    const widths = await page.evaluate(() => ({
+        ordinary: document.querySelector(
+            ".remote-notify:not(.remote-notify-seek)"
+        ).offsetWidth,
+        seek: window.__seekCard.offsetWidth,
+    }));
+    expect(widths.seek).toBeLessThan(widths.ordinary * 0.75);
+    await page.clock.runFor(200);
+    const refreshed = await page.evaluate(() => {
+        window.__seekEntrance.pause();
+        window.__seekEntrance.currentTime = 200;
+        window.showShift("+20 seconds", true);
+        const card = document.querySelector(".remote-notify-seek");
+        return {
+            contentDelay: getComputedStyle(
+                card.querySelector(".remote-notify-content")
+            ).animationDelay,
+            entranceTime: window.__seekEntrance.currentTime,
+            iconDelay: getComputedStyle(
+                card.querySelector(".remote-notify-icon")
+            ).animationDelay,
+            sameCard: card === window.__seekCard,
+            sameEntrance: card.getAnimations().includes(window.__seekEntrance),
+            surfaceDelay: getComputedStyle(card, "::before").animationDelay,
+        };
+    });
+    expect(refreshed.sameCard).toBe(true);
+    expect(refreshed.sameEntrance).toBe(true);
+    expect(refreshed.entranceTime).toBe(200);
+    expect(refreshed.surfaceDelay).toBe(refreshed.contentDelay);
+    expect(refreshed.surfaceDelay).toBe(refreshed.iconDelay);
+    expect(refreshed.surfaceDelay).toBe("0s, 1.18s");
+    await expect(seek.locator(".remote-notify-message")).toHaveText(
+        "+20 seconds"
+    );
+    await page.clock.runFor(2999);
+    await expect(seek).toHaveCount(1);
+    await page.clock.runFor(1);
+    await expect(seek).toHaveCount(0);
+    await page.evaluate(() => {
+        window.sShowSeekNotifications = 0;
+        window.showShift("+30 seconds", true);
+        window.showShift("Pause");
+    });
+    await expect(seek).toHaveCount(0);
+    await expect(
+        page.locator(".remote-notify-local .remote-notify-message")
+    ).toHaveText("Pause");
+    await expect(
+        page.locator(".remote-notify:not(.remote-notify-local)")
+    ).toHaveCount(1);
+    expect(h.errors).toEqual([]);
+});
+
 test("remote banner slides and reveals, holds then fades without restarting or extending expiry", async ({
     page,
     context,

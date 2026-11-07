@@ -919,6 +919,8 @@ var keyStrings = {
     "Restart stream": "I-restart ang stream",
     "Restart stream / Live":
         "I-restart ang stream / Direktang pagsasahimpapawid",
+    "Resume archive after restart":
+        "Ipagpatuloy mula sa archive pagkatapos mag-restart",
     "Resume from archive?": "Ipagpatuloy mula sa archive?",
     Retry: "Subukan muli",
     "Retry EPG download": "Subukan muli EPG download",
@@ -967,6 +969,7 @@ var keyStrings = {
         "Hindi makapagsimula ang secure na remote input. Mangyaring gamitin ang on-screen na keyboard.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Hindi available ang secure na remote input sa device na ito. Gamitin ang on-screen na keyboard.",
+    "Seek notifications": "Mga abiso sa paglipat ng oras sa video",
     "Select a live channel first": "Pumili muna ng live na channel",
     "Select a stream type:<br>%1": "Pumili ng uri ng stream:<br>%1",
     "Select category to add channel":

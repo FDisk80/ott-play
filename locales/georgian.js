@@ -904,6 +904,8 @@ var keyStrings = {
     "Restart player": "გადატვირთეთ მედია ფლეერი",
     "Restart stream": "გადატვირთეთ ნაკადი",
     "Restart stream / Live": "ნაკადის ხელახლა გაშვება / პირდაპირი ეთერი",
+    "Resume archive after restart":
+        "არქივიდან დაკვრის გაგრძელება გადატვირთვის შემდეგ",
     "Resume from archive?": "გავაგრძელოთ დაკვრა არქივიდან?",
     Retry: "ხელახლა სცადეთ",
     "Retry EPG download": "ხელახლა სცადეთ EPG ჩამოტვირთვა",
@@ -950,6 +952,7 @@ var keyStrings = {
         "უსაფრთხო დისტანციური შეყვანის დაწყება ვერ მოხერხდა. გთხოვთ, გამოიყენოთ ეკრანის კლავიატურა.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ამ მოწყობილობაზე მიუწვდომელია უსაფრთხო დისტანციური შეყვანა. გამოიყენეთ ეკრანის კლავიატურა.",
+    "Seek notifications": "დაკვრის პოზიციის შეცვლის შეტყობინებები",
     "Select a live channel first": "ჯერ აირჩიეთ პირდაპირი ეთერის არხი",
     "Select a stream type:<br>%1": "აირჩიეთ ნაკადის ტიპი:<br>%1",
     "Select category to add channel": "აირჩიეთ კატეგორია არხის დასამატებლად",

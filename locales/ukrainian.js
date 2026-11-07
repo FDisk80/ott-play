@@ -896,6 +896,7 @@ var keyStrings = {
     "Restart player": "Перезапустити програвач",
     "Restart stream": "Перезапустити потік",
     "Restart stream / Live": "Перезапустити потік / прямий ефір",
+    "Resume archive after restart": "Продовжувати архів після перезапуску",
     "Resume from archive?": "Продовжити з архіву?",
     Retry: "Повторити",
     "Retry EPG download": "Повторіть спробу завантаження EPG",
@@ -943,6 +944,7 @@ var keyStrings = {
         "Не вдалося запустити захищене дистанційне введення. Будь ласка, використовуйте екранну клавіатуру.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Захищене дистанційне введення недоступне на цьому пристрої. Використовуйте екранну клавіатуру.",
+    "Seek notifications": "Сповіщення про перемотування",
     "Select a live channel first": "Спочатку виберіть канал прямого ефіру",
     "Select a stream type:<br>%1": "Виберіть тип потоку:<br>%1",
     "Select category to add channel": "Вибір категорії для додавання каналу",

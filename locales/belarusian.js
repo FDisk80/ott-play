@@ -893,6 +893,7 @@ var keyStrings = {
     "Restart player": "Перазапусціць прайгравальнік",
     "Restart stream": "Перазапусціць паток",
     "Restart stream / Live": "Перазапусціць паток / прамы эфір",
+    "Resume archive after restart": "Працягваць архіў пасля перазапуску",
     "Resume from archive?": "Працягнуць з архіва?",
     Retry: "Паўтарыць",
     "Retry EPG download": "Паўтарыце загрузку EPG",
@@ -939,6 +940,7 @@ var keyStrings = {
         "Бяспечны аддалены ўвод не можа быць запушчаны. Выкарыстоўвайце экранную клавіятуру.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Бяспечны аддалены ўвод недаступны на гэтай прыладзе. Выкарыстоўвайце экранную клавіятуру.",
+    "Seek notifications": "Паведамленні пра перамотку",
     "Select a live channel first": "Спачатку выберыце канал прамога эфіру",
     "Select a stream type:<br>%1": "Выберыце тып патоку:<br>%1",
     "Select category to add channel": "Выбар катэгорыі для дадання канала",

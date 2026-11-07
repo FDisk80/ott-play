@@ -863,6 +863,7 @@ var keyStrings = {
     "Restart player": "ପ୍ଲେୟାର୍ ପୁନଃଆରମ୍ଭ କରନ୍ତୁ",
     "Restart stream": "ଷ୍ଟ୍ରିମ୍ ପୁନଃଆରମ୍ଭ କରନ୍ତୁ",
     "Restart stream / Live": "ଷ୍ଟ୍ରିମ୍ ପୁନଃଆରମ୍ଭ / ସିଧା ପ୍ରସାରଣ",
+    "Resume archive after restart": "ପୁନଃଆରମ୍ଭ ପରେ ଆର୍କାଇଭ୍‌ରୁ ଜାରି ରଖନ୍ତୁ",
     "Resume from archive?": "ଆର୍କାଇଭ୍‌ରୁ ଚଲାଇବା ଜାରି ରଖିବେ?",
     Retry: "ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ",
     "Retry EPG download": "EPG ଡାଉନଲୋଡ୍ ପୁଣି କରନ୍ତୁ",
@@ -908,6 +909,7 @@ var keyStrings = {
         "ସୁରକ୍ଷିତ ଦୂର ଇନପୁଟ୍ ଆରମ୍ଭ ହୋଇପାରିଲା ନାହିଁ। ପରଦା କୀବୋର୍ଡ ବ୍ୟବହାର କରନ୍ତୁ।",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ଏହି ଡିଭାଇସ୍‌ରେ ସୁରକ୍ଷିତ ଦୂର ଇନପୁଟ୍ ଉପଲବ୍ଧ ନାହିଁ। ପରଦା କୀବୋର୍ଡ ବ୍ୟବହାର କରନ୍ତୁ।",
+    "Seek notifications": "ସମୟ ସ୍ଥାନ ବଦଳାଇବାର ସୂଚନା",
     "Select a live channel first": "ପ୍ରଥମେ ଏକ ସିଧା ପ୍ରସାରଣ ଚ୍ୟାନେଲ୍ ବାଛନ୍ତୁ",
     "Select a stream type:<br>%1": "ଷ୍ଟ୍ରିମ୍ ପ୍ରକାର ବାଛନ୍ତୁ:<br>%1",
     "Select category to add channel": "ଚ୍ୟାନେଲ୍ ଯୋଡ଼ିବାକୁ ବର୍ଗ ବାଛନ୍ତୁ",

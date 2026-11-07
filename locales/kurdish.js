@@ -902,6 +902,7 @@ var keyStrings = {
     "Restart player": "Lêdêra medyayê ji nû ve bidin destpêkirin",
     "Restart stream": "Weşanê ji nû ve dest pê bike",
     "Restart stream / Live": "Weşanê ji nû ve bide destpêkirin / Weşana zindî",
+    "Resume archive after restart": "Piştî destpêkirina nû ji arşîvê bidomîne",
     "Resume from archive?": "Ji arşîvê lêdanê bidomînin?",
     Retry: "Dubare biceribîne",
     "Retry EPG download": "Daxistina EPG ji nû ve biceribîne",
@@ -950,6 +951,7 @@ var keyStrings = {
         "Ketina ji dûr a ewledar nikarî dest pê bike. Ji kerema xwe klavyeya li ser ekranê bikar bînin.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Ketina ji dûr a ewle li ser vê cîhazê tune ye. Klavyeya li ser ekranê bikar bînin.",
+    "Seek notifications": "Agahdariyên guherandina dema lêdanê",
     "Select a live channel first": "Pêşî kanaleke zindî hilbijêrin",
     "Select a stream type:<br>%1": "Cureyê weşanê hilbijêrin:<br>%1",
     "Select category to add channel":

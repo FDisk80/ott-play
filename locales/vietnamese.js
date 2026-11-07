@@ -892,6 +892,7 @@ var keyStrings = {
     "Restart player": "Khởi động lại trình phát",
     "Restart stream": "Khởi động lại luồng",
     "Restart stream / Live": "Khởi động lại luồng / trực tiếp",
+    "Resume archive after restart": "Tiếp tục từ lưu trữ sau khi khởi động lại",
     "Resume from archive?": "Tiếp tục từ lưu trữ?",
     Retry: "Thử lại",
     "Retry EPG download": "Thử lại tải xuống EPG",
@@ -937,6 +938,7 @@ var keyStrings = {
         "Không thể khởi động đầu vào từ xa an toàn. Vui lòng sử dụng bàn phím trên màn hình.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Đầu vào từ xa an toàn không khả dụng trên thiết bị này. Sử dụng bàn phím trên màn hình.",
+    "Seek notifications": "Thông báo khi tua",
     "Select a live channel first": "Trước tiên hãy chọn kênh trực tiếp",
     "Select a stream type:<br>%1": "Chọn loại luồng:<br>%1",
     "Select category to add channel": "Chọn danh mục để thêm kênh",

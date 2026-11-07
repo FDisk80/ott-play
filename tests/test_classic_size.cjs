@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 let {
+    PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE,
     SEEK_PREVIEW_ENTRY_ALLOWANCE,
     TIMEZONE_LOCAL_STARTUP_ALLOWANCE,
     CLIENT_INTERFACE_COLORS_ALLOWANCE,
@@ -128,20 +129,22 @@ function capsWithoutAllowances(names) {
     for (const { name, initializer } of initializers.sort(
         (a, b) => b.initializer.pos - a.initializer.pos
     )) {
-        const neutral =
-            name === "INTERFACE_FONT_CSP_ASSET_CORRECTION"
-                ? "Object.freeze({bytes:0,gzipBytes:0})"
-                : name === "CLIENT_INTERFACE_COLORS_ALLOWANCE"
-                  ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),providerEdem:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0}),remoteSettingsLifecycle:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
-                  : [
-                          "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
-                          "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
-                          "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
-                      ].includes(name)
-                    ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0})})"
-                    : name === "DESKTOP_DROP_ALLOWANCE"
-                      ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
-                      : "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})";
+        const neutral = [
+            "INTERFACE_FONT_CSP_ASSET_CORRECTION",
+            "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
+        ].includes(name)
+            ? "Object.freeze({bytes:0,gzipBytes:0})"
+            : name === "CLIENT_INTERFACE_COLORS_ALLOWANCE"
+              ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),providerEdem:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0}),remoteSettingsLifecycle:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
+              : [
+                      "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
+                      "CLASSIC_PRESENTATION_SETTINGS_ALLOWANCE",
+                      "INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE",
+                  ].includes(name)
+                ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),appearance:Object.freeze({bytes:0,gzipBytes:0})})"
+                : name === "DESKTOP_DROP_ALLOWANCE"
+                  ? "Object.freeze({entry:Object.freeze({bytes:0,gzipBytes:0}),optional:Object.freeze({bytes:0,gzipBytes:0})})"
+                  : "Object.freeze({bytes:0,gzipBytes:0,optional:Object.freeze({bytes:4800,gzipBytes:1900}),entry:Object.freeze({bytes:0,gzipBytes:0}),favorites:Object.freeze({bytes:0,gzipBytes:0})})";
         source =
             source.slice(0, initializer.getStart(parsed)) +
             neutral +
@@ -170,7 +173,89 @@ function capsWithoutAllowances(names) {
         );
     return baseline.exports;
 }
-const preSeekCaps = capsWithoutAllowances(["SEEK_PREVIEW_ENTRY_ALLOWANCE"]);
+// Only the newly measured lazy settings asset receives this shortfall correction.
+const prePlaybackNotificationCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
+]);
+{
+    const evidence = require("../docs/evidence/playback-notification-settings-size-20261107.json");
+    assert(Object.isFrozen(PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE));
+    assert.deepEqual(PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE, {
+        bytes: 65,
+        gzipBytes: 22,
+    });
+    assert.deepEqual(
+        evidence.allowance,
+        PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE
+    );
+    assert.deepEqual(evidence.oldAssetCap, { bytes: 9567, gzipBytes: 4154 });
+    assert.deepEqual(evidence.newAssetCap, { bytes: 9632, gzipBytes: 4176 });
+    assert.deepEqual(
+        prePlaybackNotificationCaps.OPTIONAL_BUDGETS["subtitle-appearance"],
+        evidence.oldAssetCap
+    );
+    assert.deepEqual(
+        latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"],
+        evidence.newAssetCap
+    );
+    assert.deepEqual(evidence.featureCost, { bytes: 120, gzipBytes: 46 });
+    assert.equal(evidence.baseline.sources.length, 2);
+    assert.equal(
+        new Set(evidence.baseline.sources.map((source) => source.blob)).size,
+        1
+    );
+    assert.deepEqual(
+        evidence.assets.map((asset) => asset.path),
+        ARTIFACTS.map(
+            (entry) => path.posix.dirname(entry) + "/subtitle-appearance.js"
+        )
+    );
+    for (const asset of evidence.assets) {
+        assert.match(asset.before.sha256, /^[a-f0-9]{64}$/);
+        assert.equal(asset.after.sha256, evidence.candidate.artifactSha256);
+        for (const metric of ["bytes", "gzipBytes"]) {
+            assert.equal(
+                asset.after[metric] - asset.before[metric],
+                evidence.featureCost[metric]
+            );
+            assert.equal(asset.after[metric], evidence.newAssetCap[metric]);
+            assert.equal(
+                asset.after[metric] - evidence.oldAssetCap[metric],
+                PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE[metric]
+            );
+        }
+    }
+    for (const name of [
+        "BUDGET",
+        "BASE_TOTAL_BUDGET",
+        "LEGACY_TOTAL_BUDGET",
+        "TOTAL_BUDGET",
+        "PROVIDER_BUDGET",
+        "OPTIONAL_BUDGET",
+    ])
+        assert.deepEqual(
+            require("../scripts/classic-size.cjs")[name],
+            prePlaybackNotificationCaps[name],
+            name + " is unchanged"
+        );
+    assert.deepEqual(
+        Object.keys(latestCaps.OPTIONAL_BUDGETS),
+        Object.keys(prePlaybackNotificationCaps.OPTIONAL_BUDGETS)
+    );
+    for (const [name, cap] of Object.entries(
+        prePlaybackNotificationCaps.OPTIONAL_BUDGETS
+    ))
+        if (name !== "subtitle-appearance")
+            assert.deepEqual(
+                latestCaps.OPTIONAL_BUDGETS[name],
+                cap,
+                name + " is unchanged"
+            );
+}
+const preSeekCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
+    "SEEK_PREVIEW_ENTRY_ALLOWANCE",
+]);
 // New seek preview allocation is bounded, entry-only and not build qualification.
 {
     const evidence = require("../docs/evidence/seek-preview-size-20261107.json");
@@ -204,7 +289,7 @@ const preSeekCaps = capsWithoutAllowances(["SEEK_PREVIEW_ENTRY_ALLOWANCE"]);
         "LOCAL_COMPATIBILITY_ALLOWANCE",
     ])
         assert.deepEqual(
-            require("../scripts/classic-size.cjs")[name],
+            prePlaybackNotificationCaps[name],
             preSeekCaps[name],
             name + " remains protected"
         );
@@ -217,6 +302,7 @@ const preSeekCaps = capsWithoutAllowances(["SEEK_PREVIEW_ENTRY_ALLOWANCE"]);
 }
 
 const preStartupCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
 ]);
@@ -413,6 +499,7 @@ const preStartupCaps = capsWithoutAllowances([
 // CSP font previews were measured after the color evidence. Keep that evidence
 // on its original caps; the live boundary tests still use latestCaps.
 const preFontCspCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -577,6 +664,7 @@ const preFontCspCaps = capsWithoutAllowances([
 // Structural accounting only. The paired hosted inventory supplies the actual
 // per-family measurements; old receipts must not inherit these new allowances.
 const preClientColorsCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -707,6 +795,7 @@ CLASSIC_OPTIONAL_BUNDLES = preClientColorsOptionalBundles;
 // artifacts use different identities; never relabel them as an isolated experiment.
 const notificationEvidence = require("../docs/evidence/interface-notification-settings-size-20261106.json");
 const preNotificationCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -933,6 +1022,7 @@ for (const [name, cap] of Object.entries(preClientColorsCaps.OPTIONAL_BUDGETS))
 // The queue is a separately emitted optional chunk. Keep its measured increment
 // out of older receipts and never treat the version-mismatched entry delta as cost.
 const preQueueCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -1079,6 +1169,7 @@ for (const [name, cap] of Object.entries(preNotificationCaps.OPTIONAL_BUDGETS))
 // inventories. Allocate the largest per-platform delta, never their sum.
 const presentationEvidence = require("../docs/evidence/classic-presentation-settings-size-20261105.json");
 const presentationBaseline = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -1229,6 +1320,7 @@ for (const [name, cap] of Object.entries(preQueueCaps.OPTIONAL_BUDGETS))
 // Qualify desktop startup and its new optional asset independently. Earlier
 // receipts predate both; remove them only from the historical cap projections.
 const desktopBaseline = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -1299,6 +1391,7 @@ CLASSIC_OPTIONAL_BUNDLES = Object.fromEntries(
 // Remove only those named features from historical projections. Live checks
 // below retain the complete merged caps and restore the full asset inventory.
 const preRecoveryCaps = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -1310,6 +1403,7 @@ const preRecoveryCaps = capsWithoutAllowances([
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 const withoutAutoRecovery = capsWithoutAllowances([
+    "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
     "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
     "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -1319,6 +1413,7 @@ const withoutAutoRecovery = capsWithoutAllowances([
 ]);
 function historicalCapsWithoutAllowances(names) {
     return capsWithoutAllowances([
+        "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
         "SEEK_PREVIEW_ENTRY_ALLOWANCE",
         "TIMEZONE_LOCAL_STARTUP_ALLOWANCE",
         "INTERFACE_FONT_CSP_ASSET_CORRECTION",
@@ -5957,6 +6052,47 @@ try {
                 if (size(length) === target) return dense.subarray(0, length);
         }
         assert.fail(label + ": no exact gzip boundary fixture for " + target);
+    }
+    const appearancePath = path.join(root, "dist/subtitle-appearance.js");
+    const appearanceCap = latestCaps.OPTIONAL_BUDGETS["subtitle-appearance"];
+    const originalAppearance = fs.readFileSync(appearancePath);
+    try {
+        for (const metric of ["bytes", "gzipBytes"]) {
+            for (const extra of [0, 1]) {
+                const target = appearanceCap[metric] + extra;
+                const fixture =
+                    metric === "bytes"
+                        ? Buffer.from("x".repeat(target))
+                        : optionalGzipBoundary(
+                              target,
+                              appearanceCap.bytes,
+                              "subtitle-appearance-boundary"
+                          );
+                const measured = collectBundleMeasurement(
+                    fixture,
+                    appearancePath
+                );
+                assert.equal(measured[metric], target);
+                if (metric === "gzipBytes")
+                    assert(measured.bytes <= appearanceCap.bytes);
+                fs.writeFileSync(appearancePath, fixture);
+                if (extra)
+                    assert.throws(
+                        () => inspectBundleSets(root),
+                        new RegExp(
+                            "subtitle-appearance\\.js: " +
+                                metric +
+                                " " +
+                                target +
+                                " exceeds budget " +
+                                appearanceCap[metric]
+                        )
+                    );
+                else assert.doesNotThrow(() => inspectBundleSets(root));
+            }
+        }
+    } finally {
+        fs.writeFileSync(appearancePath, originalAppearance);
     }
     const colorPath = path.join(root, "dist/color-appearance.js");
     const colorBudget = latestCaps.OPTIONAL_BUDGETS["color-appearance"];

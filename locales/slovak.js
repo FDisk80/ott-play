@@ -911,6 +911,7 @@ var keyStrings = {
     "Restart player": "Reštartujte prehrávač médií",
     "Restart stream": "Reštartujte stream",
     "Restart stream / Live": "Reštartujte stream / Naživo",
+    "Resume archive after restart": "Pokračovať z archívu po reštarte",
     "Resume from archive?": "Obnoviť z archívu?",
     Retry: "Skúste to znova",
     "Retry EPG download": "Zopakujte stiahnutie EPG",
@@ -958,6 +959,7 @@ var keyStrings = {
         "Zabezpečený vzdialený vstup sa nepodarilo spustiť. Použite klávesnicu na obrazovke.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Zabezpečený vzdialený vstup nie je na tomto zariadení k dispozícii. Použite klávesnicu na obrazovke.",
+    "Seek notifications": "Upozornenia pri pretáčaní",
     "Select a live channel first": "Najprv vyberte živý kanál",
     "Select a stream type:<br>%1": "Vyberte typ streamu:<br>%1",
     "Select category to add channel": "Vyberte kategóriu na pridanie kanála",

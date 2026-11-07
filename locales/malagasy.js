@@ -934,6 +934,8 @@ var keyStrings = {
     "Restart player": "Avereno atomboka ny mpamaky",
     "Restart stream": "Avereno atomboka ny fikorianana",
     "Restart stream / Live": "Avereno atomboka ny fikorianana / Mivantana",
+    "Resume archive after restart":
+        "Tohizo avy amin'ny tahiry rehefa averina alefa",
     "Resume from archive?": "Hanohy avy amin'ny tahiry?",
     Retry: "Andramo indray",
     "Retry EPG download": "Andramo indray ny fisintonana EPG",
@@ -982,6 +984,7 @@ var keyStrings = {
         "Tsy afaka nanomboka ny fampidirana lavitra azo antoka. Ampiasao azafady ny fitendry eo amin'ny efijery.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Tsy misy fampidirana lavitra azo antoka amin'ity fitaovana ity. Ampiasao ny fitendry eo amin'ny efijery.",
+    "Seek notifications": "Fampandrenesana rehefa afindra ny fotoana",
     "Select a live channel first": "Misafidiana fantsona mivantana aloha",
     "Select a stream type:<br>%1": "Misafidiana karazana fikorianana:<br>%1",
     "Select category to add channel":

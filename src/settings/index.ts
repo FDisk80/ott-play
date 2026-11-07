@@ -162,6 +162,8 @@ export function applyTimezoneSetting(index: number): number {
  * @property favorites         - Enable favourites filtering (0/1).
  * @property permanentTime     - Always show time in OSD (0/1).
  * @property resumeWithTenSecondRewind - Rewind ten seconds when resuming (0/1).
+ * @property resumeArchiveAfterRestart - Resume an archive bookmark without a prompt on startup (0/1).
+ * @property showSeekNotifications - Show compact notifications for playback seeks (0/1).
  * @property prevCount         - Number of previous programmes shown.
  * @property medCount          - Media item count threshold.
  * @property psChannels        - Provider-switch channel mapping (0/1).
@@ -249,6 +251,7 @@ export interface PlayerSettings {
     psChannels: number;
     psOptions: number;
     requirePinForProviderSelection: number;
+    resumeArchiveAfterRestart: number;
     resumeWithTenSecondRewind: number;
     rewFun: number;
     rFun: number;
@@ -266,6 +269,7 @@ export interface PlayerSettings {
     showProgram: number;
     showProgress: number;
     showScroll: number;
+    showSeekNotifications: number;
     sleepTimeout: number;
     stopPlay: number;
     streamMaxBitrate: number;
@@ -370,6 +374,7 @@ export function defaultSettings(): PlayerSettings {
         psChannels: 1,
         psOptions: 0,
         requirePinForProviderSelection: 0,
+        resumeArchiveAfterRestart: 0,
         resumeWithTenSecondRewind: 1,
         rewFun: 0,
         rFun: 10,
@@ -387,6 +392,7 @@ export function defaultSettings(): PlayerSettings {
         showProgram: 1,
         showProgress: 1,
         showScroll: 1,
+        showSeekNotifications: 1,
         sleepTimeout: 0,
         stopPlay: 0,
         streamMaxBitrate: 0,
@@ -824,6 +830,8 @@ export const settingsSchema: SettingDefinition[] = [
     defineSetting("infoSwitch", "sInfoSwitch"),
     defineSetting("infoChange", "sInfoChange"),
     defineSetting("infoRew", "sInfoRew"),
+    defineSetting("showSeekNotifications", "sShowSeekNotifications"),
+    defineSetting("resumeArchiveAfterRestart", "sResumeArchiveAfterRestart"),
     defineSetting("thumbnail", "sThumbnail"),
     defineSetting(
         "osdOpacity",

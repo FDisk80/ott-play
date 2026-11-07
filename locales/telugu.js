@@ -872,6 +872,7 @@ var keyStrings = {
     "Restart player": "ప్లేయర్‌ని పునఃప్రారంభించండి",
     "Restart stream": "స్ట్రీమ్‌ని పునఃప్రారంభించండి",
     "Restart stream / Live": "స్ట్రీమ్ / లైవ్‌ని పునఃప్రారంభించండి",
+    "Resume archive after restart": "పునఃప్రారంభించిన తర్వాత ఆర్కైవ్ నుండి కొనసాగించండి",
     "Resume from archive?": "ఆర్కైవ్ నుండి పునఃప్రారంభించాలా?",
     Retry: "మళ్లీ ప్రయత్నించండి",
     "Retry EPG download": "EPG డౌన్‌లోడ్‌ని మళ్లీ ప్రయత్నించండి",
@@ -917,6 +918,7 @@ var keyStrings = {
         "సురక్షిత రిమోట్ ఇన్‌పుట్ ప్రారంభం కాలేదు. దయచేసి ఆన్-స్క్రీన్ కీబోర్డ్‌ని ఉపయోగించండి.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ఈ పరికరంలో సురక్షిత రిమోట్ ఇన్‌పుట్ అందుబాటులో లేదు. ఆన్-స్క్రీన్ కీబోర్డ్ ఉపయోగించండి.",
+    "Seek notifications": "ముందుకు/వెనుకకు జరిపే నోటిఫికేషన్‌లు",
     "Select a live channel first": "ముందుగా ప్రత్యక్ష ఛానెల్‌ను ఎంచుకోండి",
     "Select a stream type:<br>%1": "స్ట్రీమ్ రకాన్ని ఎంచుకోండి:<br>%1",
     "Select category to add channel": "ఛానెల్‌ని జోడించడానికి వర్గాన్ని ఎంచుకోండి",

@@ -908,6 +908,8 @@ var keyStrings = {
     "Restart player": "Pleyerni qayta ishga tushirish",
     "Restart stream": "Oqimni qayta ishga tushirish",
     "Restart stream / Live": "Oqimni qayta ishga tushirish / jonli efir",
+    "Resume archive after restart":
+        "Qayta ishga tushirilgandan keyin arxivdan davom etish",
     "Resume from archive?": "Arxivdan davom ettirilsinmi?",
     Retry: "Qayta urinish",
     "Retry EPG download": "EPG yuklab olishga qayta urinib ko'ring",
@@ -955,6 +957,7 @@ var keyStrings = {
         "Xavfsiz masofaviy kiritishni ishga tushirib bo'lmadi. Iltimos, ekran klaviaturasidan foydalaning.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Ushbu qurilmada xavfsiz masofaviy kiritish mavjud emas. Ekrandagi klaviaturadan foydalaning.",
+    "Seek notifications": "Vaqt bo‘yicha o‘tkazish bildirishnomalari",
     "Select a live channel first": "Avval jonli kanalni tanlang",
     "Select a stream type:<br>%1": "Oqim turini tanlang:<br>%1",
     "Select category to add channel":

@@ -921,6 +921,8 @@ var keyStrings = {
     "Restart player": "Qala kabusha isidlali",
     "Restart stream": "Qala kabusha ukusakaza",
     "Restart stream / Live": "Qala kabusha ukusakaza / Bukhoma",
+    "Resume archive after restart":
+        "Qhubeka enqolobaneni ngemva kokuqala kabusha",
     "Resume from archive?": "Qhubeka udlala usuka enqolobaneni?",
     Retry: "Zama futhi",
     "Retry EPG download": "Zama ukulanda i-EPG futhi",
@@ -969,6 +971,7 @@ var keyStrings = {
         "Ukufaka ukude okuvikelekile akukwazanga ukuqala. Sicela usebenzise ikhibhodi esesikrinini.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Ukufaka ukude okuvikelekile akutholakali kule divayisi. Sebenzisa ikhibhodi esesikrinini.",
+    "Seek notifications": "Izaziso zokuhambisa isikhathi sokudlala",
     "Select a live channel first": "Khetha kuqala isiteshi esibukhoma",
     "Select a stream type:<br>%1": "Khetha uhlobo lokusakaza:<br>%1",
     "Select category to add channel": "Khetha isigaba ozofaka kuso isiteshi",

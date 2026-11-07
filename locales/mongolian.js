@@ -907,6 +907,8 @@ var keyStrings = {
     "Restart player": "Тоглуулагчийг дахин эхлүүлэх",
     "Restart stream": "Урсгалыг дахин эхлүүлэх",
     "Restart stream / Live": "Урсгалыг дахин эхлүүлэх / Шууд эфир",
+    "Resume archive after restart":
+        "Дахин эхлүүлсний дараа архиваас үргэлжлүүлэх",
     "Resume from archive?": "Архиваас үргэлжлүүлэх үү?",
     Retry: "Дахин оролдох",
     "Retry EPG download": "EPG дахин татах",
@@ -953,6 +955,7 @@ var keyStrings = {
         "Алсаас аюулгүй оруулж эхэлсэнгүй. Дэлгэцийн гар ашиглана уу.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Энэ төхөөрөмж дээр алсаас аюулгүй оруулах боломжгүй. Дэлгэцийн гар ашиглана уу.",
+    "Seek notifications": "Хугацаа шилжүүлэх мэдэгдэл",
     "Select a live channel first": "Эхлээд шууд сувгийг сонгоно уу",
     "Select a stream type:<br>%1": "Урсгалын төрлийг сонгоно уу:<br>%1",
     "Select category to add channel": "Суваг нэмэх ангиллыг сонгоно уу",

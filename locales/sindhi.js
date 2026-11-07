@@ -888,6 +888,8 @@ var keyStrings = {
     "Restart player": "پليئر ٻيهر شروع ڪريو",
     "Restart stream": "اسٽريم ٻيهر شروع ڪريو",
     "Restart stream / Live": "اسٽريم ٻيهر شروع ڪريو / سڌي نشريات",
+    "Resume archive after restart":
+        "ٻيهر شروع ٿيڻ کان پوءِ آرڪائيو مان جاري رکو",
     "Resume from archive?": "آرڪائيو مان هلائڻ جاري رکجي؟",
     Retry: "ٻيهر ڪوشش ڪريو",
     "Retry EPG download": "EPG ڊائون لوڊ ٻيهر ڪريو",
@@ -934,6 +936,7 @@ var keyStrings = {
         "محفوظ پري کان ان پٽ شروع نه ٿيو. اسڪرين وارو ڪي بورڊ استعمال ڪريو.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "هن ڊوائيس تي محفوظ پري کان ان پٽ موجود ناهي. اسڪرين وارو ڪي بورڊ استعمال ڪريو.",
+    "Seek notifications": "اڳتي يا پوئتي وڃڻ جون اطلاعون",
     "Select a live channel first": "پهرين سڌي نشريات وارو چينل چونڊيو",
     "Select a stream type:<br>%1": "اسٽريم جو قسم چونڊيو:<br>%1",
     "Select category to add channel": "چينل شامل ڪرڻ لاءِ زمرو چونڊيو",

@@ -873,6 +873,7 @@ var keyStrings = {
     "Restart player": "รีสตาร์ทเครื่องเล่น",
     "Restart stream": "เริ่มสตรีมใหม่",
     "Restart stream / Live": "เริ่มสตรีมใหม่ / ถ่ายทอดสด",
+    "Resume archive after restart": "ดูรายการย้อนหลังต่อหลังรีสตาร์ท",
     "Resume from archive?": "ดูการออกอากาศที่ผ่านมาต่อหรือไม่",
     Retry: "ลองอีกครั้ง",
     "Retry EPG download": "ลองดาวน์โหลด EPG อีกครั้ง",
@@ -918,6 +919,7 @@ var keyStrings = {
         "ไม่สามารถเริ่มอินพุตระยะไกลแบบปลอดภัยได้ กรุณาใช้แป้นพิมพ์บนหน้าจอ",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "การป้อนข้อมูลระยะไกลที่ปลอดภัยไม่พร้อมใช้งานบนอุปกรณ์นี้ ใช้แป้นพิมพ์บนหน้าจอ",
+    "Seek notifications": "การแจ้งเตือนเมื่อเลื่อนเวลา",
     "Select a live channel first": "เลือกช่องถ่ายทอดสดก่อน",
     "Select a stream type:<br>%1": "เลือกประเภทสตรีม:<br>%1",
     "Select category to add channel": "เลือกหมวดหมู่ที่จะเพิ่มช่อง",

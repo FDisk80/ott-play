@@ -61,6 +61,15 @@
             transform-origin: right center;
             animation: remoteNotifyIn 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
         }
+        .notify.remote-notify.remote-notify-seek {
+            align-self: flex-end;
+            width: auto;
+        }
+        .notify.remote-notify.remote-notify-seek::before,
+        .remote-notify-seek > .remote-notify-icon,
+        .remote-notify-seek > .remote-notify-content {
+            animation-delay: 0ms, var(--ott-notify-fade-delay, 980ms);
+        }
         .notify.remote-notify.remote-notify-out {
             animation: remoteNotifyOut 320ms cubic-bezier(0.4, 0, 1, 1) both;
         }

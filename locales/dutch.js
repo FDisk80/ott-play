@@ -911,6 +911,7 @@ var keyStrings = {
     "Restart player": "Speler herstarten",
     "Restart stream": "Stream herstarten",
     "Restart stream / Live": "Stream herstarten / live",
+    "Resume archive after restart": "Hervatten vanuit archief na herstart",
     "Resume from archive?": "Hervatten vanuit archief?",
     Retry: "Opnieuw proberen",
     "Retry EPG download": "Probeer de download van EPG opnieuw",
@@ -957,6 +958,7 @@ var keyStrings = {
         "Beveiligde externe invoer kon niet starten. Gebruik het schermtoetsenbord.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Beveiligde invoer op afstand is niet beschikbaar op dit apparaat. Gebruik het schermtoetsenbord.",
+    "Seek notifications": "Meldingen bij spoelen",
     "Select a live channel first": "Selecteer eerst een livekanaal",
     "Select a stream type:<br>%1": "Kies een streamtype:<br>%1",
     "Select category to add channel":

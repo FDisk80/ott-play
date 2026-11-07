@@ -566,9 +566,9 @@ function classicPlaybackAnnounce(intent: PlaybackIntent): void {
         w.showChannelInfo(1, null);
     if (typeof w.showShift !== "function") return;
     if (intent.intent === "begin")
-        w.showShift(w._ ? w._("To begining") : "To beginning");
+        w.showShift(w._ ? w._("To begining") : "To beginning", true);
     else if (typeof w.formatSeekOffset === "function")
-        w.showShift(w.formatSeekOffset(intent.value || 0));
+        w.showShift(w.formatSeekOffset(intent.value || 0), true);
 }
 
 function classicPlaybackRuntime(): any {
@@ -579,7 +579,7 @@ function classicPlaybackRuntime(): any {
             if (plan.action === "seek") {
                 if (typeof w.stbSetPosTime === "function")
                     w.stbSetPosTime(plan.position);
-                classicPlaybackAnnounce(intent);
+                if (intent.intent !== "offset") classicPlaybackAnnounce(intent);
             } else if (plan.action === "open-archive") {
                 if (
                     classicPlaybackSnapshot().target?.kind === "live" &&
@@ -589,14 +589,15 @@ function classicPlaybackRuntime(): any {
                         Math.max(0, Date.now() / 1000 - plan.archiveStart)
                     );
                 else {
-                    classicPlaybackAnnounce(intent);
+                    if (intent.intent !== "offset")
+                        classicPlaybackAnnounce(intent);
                     w.playArchive(plan.archiveStart);
                 }
             } else if (plan.action === "go-live" || plan.action === "restart") {
                 if (typeof w.showShift === "function") {
                     var message =
                         plan.action === "go-live" ? "Live" : "Restart stream";
-                    w.showShift(w._ ? w._(message) : message);
+                    w.showShift(w._ ? w._(message) : message, true);
                 }
                 w.playChannel(w.catIndex, w.primaryIndex);
             }

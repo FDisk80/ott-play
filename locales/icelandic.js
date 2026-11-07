@@ -889,6 +889,7 @@ var keyStrings = {
     "Restart player": "Endurræsa spilara",
     "Restart stream": "Endurræsa straum",
     "Restart stream / Live": "Endurræsa straum / Beint",
+    "Resume archive after restart": "Halda áfram úr safni eftir endurræsingu",
     "Resume from archive?": "Halda áfram úr safni?",
     Retry: "Reyna aftur",
     "Retry EPG download": "Sækja EPG aftur",
@@ -935,6 +936,7 @@ var keyStrings = {
         "Ekki tókst að ræsa öruggan fjarinnslátt. Notaðu skjályklaborðið.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Öruggur fjarinnsláttur er ekki tiltækur í þessu tæki. Notaðu skjályklaborðið.",
+    "Seek notifications": "Tilkynningar um færslu spilunarstöðu",
     "Select a live channel first": "Veldu fyrst rás í beinni",
     "Select a stream type:<br>%1": "Veldu tegund straums:<br>%1",
     "Select category to add channel": "Veldu flokk til að bæta rásinni við",

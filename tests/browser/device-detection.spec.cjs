@@ -847,6 +847,7 @@ test.describe("webOS fullscreen remote navigation", () => {
             window.stbSetPosTime = (time) =>
                 window.__resumeEffects.seeks.push(time);
             window.sStopPlay = window.sInfoRew = 0;
+            window.sResumeArchiveAfterRestart = 1;
             if (window.sStopPlay !== 0 || window.sInfoRew !== 0)
                 throw new Error("Archive settings must be numeric zero");
             window.providerGetItem = (key) => stored.get(key) ?? null;
@@ -871,13 +872,10 @@ test.describe("webOS fullscreen remote navigation", () => {
             window.closeList();
             window.infoBarHide();
             if (!window.restoreContinueWatch())
-                throw new Error("Fresh archive bookmark was not offered");
+                throw new Error("Fresh archive bookmark was not restored");
             return start;
         });
-        await expect(page.locator("#dialogbox")).toContainText(
-            "Resume from archive?"
-        );
-        await page.keyboard.press("Enter");
+        await expect(page.locator("#dialogbox")).toBeHidden();
         await expect
             .poll(() => page.evaluate(() => window.__resumeEffects.seeks))
             .toEqual([25]);

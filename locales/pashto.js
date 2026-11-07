@@ -895,6 +895,7 @@ var keyStrings = {
     "Restart player": "میډیا پلیر بیا پیل کړئ",
     "Restart stream": "جریان بیا پیل کړئ",
     "Restart stream / Live": "خپرونه بیا پیل کړئ / ژوندۍ خپرونه",
+    "Resume archive after restart": "له بیا پیل وروسته له آرشیف څخه دوام ورکړئ",
     "Resume from archive?": "له آرشیف څخه غږونې ته دوام ورکړئ؟",
     Retry: "بیا هڅه وکړئ",
     "Retry EPG download": "د EPG ډاونلوډ بیا هڅه وکړئ",
@@ -941,6 +942,7 @@ var keyStrings = {
         "خوندي ریموټ ان پټ پیل نشو. مهرباني وکړئ پر پرده کیبورډ وکاروئ.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "خوندي ریموټ ان پټ په دې وسیله کې شتون نلري. آن پرده کیبورډ وکاروئ.",
+    "Seek notifications": "د مخکې او شاته تګ خبرتیاوې",
     "Select a live channel first": "لومړی یو ژوندی چینل وټاکئ",
     "Select a stream type:<br>%1": "د جریان ډول غوره کړئ: <br> %1",
     "Select category to add channel":

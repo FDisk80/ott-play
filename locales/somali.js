@@ -918,6 +918,7 @@ var keyStrings = {
     "Restart player": "Dib u bilow daaraha",
     "Restart stream": "Dib u bilow baahinta",
     "Restart stream / Live": "Dib u bilow baahinta / toos",
+    "Resume archive after restart": "Ka sii wad kaydka marka dib loo bilaabo",
     "Resume from archive?": "Ma laga sii wadaa kaydka?",
     Retry: "Mar kale isku day",
     "Retry EPG download": "Mar kale soo deji EPG",
@@ -966,6 +967,7 @@ var keyStrings = {
         "Gelinta fog ee sugan way bilaaban weyday. Fadlan isticmaal kiiboodhka shaashadda.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Gelinta fog ee sugan lagama heli karo qalabkan. Isticmaal kiiboodhka shaashadda.",
+    "Seek notifications": "Ogeysiisyada beddelka waqtiga",
     "Select a live channel first": "Marka hore dooro kanaal toos ah",
     "Select a stream type:<br>%1": "Dooro nooca baahinta:<br>%1",
     "Select category to add channel": "Dooro qayb aad kanaalka ku darto",

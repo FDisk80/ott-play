@@ -909,6 +909,7 @@ var keyStrings = {
     "Restart player": "Znova zaženite predstavnostni predvajalnik",
     "Restart stream": "Znova zaženi tok",
     "Restart stream / Live": "Znova zaženi tok / V živo",
+    "Resume archive after restart": "Nadaljuj iz arhiva po ponovnem zagonu",
     "Resume from archive?": "Nadaljujem predvajanje iz arhiva?",
     Retry: "Poskusite znova",
     "Retry EPG download": "Poskusite znova prenesti EPG",
@@ -956,6 +957,7 @@ var keyStrings = {
         "Varnega oddaljenega vnosa ni bilo mogoče zagnati. Uporabite zaslonsko tipkovnico.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Varen oddaljeni vnos v tej napravi ni na voljo. Uporabite zaslonsko tipkovnico.",
+    "Seek notifications": "Obvestila o premikanju predvajanja",
     "Select a live channel first": "Najprej izberite kanal v živo",
     "Select a stream type:<br>%1": "Izberite vrsto toka: <br>%1",
     "Select category to add channel": "Izberite kategorijo, da dodate kanal",

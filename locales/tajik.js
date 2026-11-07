@@ -905,6 +905,8 @@ var keyStrings = {
     "Restart player": "Плеерро аз нав оғоз кунед",
     "Restart stream": "Пахшро аз нав оғоз кунед",
     "Restart stream / Live": "Оғози дубораи пахш / Пахши зинда",
+    "Resume archive after restart":
+        "Пас аз оғози дубора аз бойгонӣ идома додан",
     "Resume from archive?": "Аз бойгонӣ идома дода шавад?",
     Retry: "Дубора кӯшиш кунед",
     "Retry EPG download": "Боргирии EPG-ро такрор кунед",
@@ -951,6 +953,7 @@ var keyStrings = {
         "Вуруди дурдасти бехатар оғоз нашуд. Лутфан клавиатураи экранро истифода баред.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Вуруди дурдасти бехатар дар ин дастгоҳ дастрас нест. Клавиатураи экранро истифода баред.",
+    "Seek notifications": "Огоҳиҳои гузаронидани вақт",
     "Select a live channel first":
         "Аввал канали пахши мустақимро интихоб кунед",
     "Select a stream type:<br>%1": "Навъи пахшро интихоб кунед:<br>%1",

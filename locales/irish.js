@@ -910,6 +910,8 @@ var keyStrings = {
     "Restart player": "Atosaigh an seinnteoir",
     "Restart stream": "Atosaigh an sruth",
     "Restart stream / Live": "Atosaigh an sruth / Beo",
+    "Resume archive after restart":
+        "Lean ar aghaidh ón gcartlann tar éis atosaithe",
     "Resume from archive?": "Lean ar aghaidh ón gcartlann?",
     Retry: "Bain triail eile as",
     "Retry EPG download": "Bain triail as íoslódáil EPG arís",
@@ -957,6 +959,7 @@ var keyStrings = {
         "Níorbh fhéidir cianionchur slán a thosú. Úsáid an méarchlár ar an scáileán.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Níl cianionchur slán ar fáil ar an ngléas seo. Úsáid an méarchlár ar an scáileán.",
+    "Seek notifications": "Fógraí faoi bhogadh san fhíseán",
     "Select a live channel first": "Roghnaigh cainéal beo ar dtús",
     "Select a stream type:<br>%1": "Roghnaigh cineál srutha:<br>%1",
     "Select category to add channel":

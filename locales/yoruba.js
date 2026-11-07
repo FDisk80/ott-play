@@ -887,6 +887,8 @@ var keyStrings = {
     "Restart player": "Tún ẹ̀rọ ìṣeré bẹ̀rẹ̀",
     "Restart stream": "Tún ìṣàn bẹ̀rẹ̀",
     "Restart stream / Live": "Tún ìṣàn bẹ̀rẹ̀ / Ìgbóhùnsáfẹ́fẹ́ tààrà",
+    "Resume archive after restart":
+        "Tẹ̀síwájú láti àkójọpọ̀ àtijọ́ lẹ́yìn títún bẹ̀rẹ̀",
     "Resume from archive?": "Tẹ̀síwájú láti àkójọpọ̀ àtijọ́?",
     Retry: "Tún gbìyànjú",
     "Retry EPG download": "Tún gbìyànjú gbígba EPG sílẹ̀",
@@ -933,6 +935,7 @@ var keyStrings = {
         "Títẹ ọ̀rọ̀ láti ọ̀nà jíjìn tí ó ní ààbò kò lè bẹ̀rẹ̀. Jọ̀wọ́ lo àtẹ bọ́tìnì lórí ibojú.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Títẹ ọ̀rọ̀ láti ọ̀nà jíjìn tí ó ní ààbò kò sí lárọ̀ọ́wọ́tó lórí ẹ̀rọ yìí. Lo àtẹ bọ́tìnì lórí ibojú.",
+    "Seek notifications": "Àwọn ìfitónilétí nígbà yíyí àkókò fídíò",
     "Select a live channel first": "Yan ikanni ìgbékalẹ̀ tààrà kọ́kọ́",
     "Select a stream type:<br>%1": "Yan irú ìṣàn:<br>%1",
     "Select category to add channel": "Yan ẹ̀ka láti fi ìkànnì kún un",

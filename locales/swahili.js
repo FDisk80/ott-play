@@ -912,6 +912,8 @@ var keyStrings = {
     "Restart player": "Anzisha tena kicheza media",
     "Restart stream": "Anzisha tena mtiririko",
     "Restart stream / Live": "Anzisha tena mtiririko / Moja kwa moja",
+    "Resume archive after restart":
+        "Endelea kutoka kwenye kumbukumbu baada ya kuanzisha tena",
     "Resume from archive?": "Ungependa kuendelea kutoka kwenye kumbukumbu?",
     Retry: "Jaribu tena",
     "Retry EPG download": "Jaribu tena kupakua EPG",
@@ -958,6 +960,7 @@ var keyStrings = {
         "Ingizo salama la mbali haikuweza kuanza. Tafadhali tumia kibodi ya skrini.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Ingizo la usalama la mbali halipatikani kwenye kifaa hiki. Tumia kibodi kwenye skrini.",
+    "Seek notifications": "Arifa za kusogeza muda wa video",
     "Select a live channel first": "Chagua kwanza kituo cha moja kwa moja",
     "Select a stream type:<br>%1": "Chagua aina ya mtiririko:<br>%1",
     "Select category to add channel": "Chagua kategoria ili kuongeza kituo",

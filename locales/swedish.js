@@ -899,6 +899,7 @@ var keyStrings = {
     "Restart player": "Starta om spelaren",
     "Restart stream": "Starta om strömmen",
     "Restart stream / Live": "Starta om strömmen / direktsändning",
+    "Resume archive after restart": "Fortsätt från arkivet efter omstart",
     "Resume from archive?": "Fortsätta från arkivet?",
     Retry: "Försök igen",
     "Retry EPG download": "Försök att ladda ner EPG igen",
@@ -945,6 +946,7 @@ var keyStrings = {
         "Säker fjärrinmatning kunde inte startas. Använd tangentbordet på skärmen.",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "Säker fjärrinmatning är inte tillgänglig på den här enheten. Använd tangentbordet på skärmen.",
+    "Seek notifications": "Aviseringar vid spolning",
     "Select a live channel first": "Välj först en direktsänd kanal",
     "Select a stream type:<br>%1": "Välj strömtyp:<br>%1",
     "Select category to add channel": "Välj kategori att lägga till kanalen i",

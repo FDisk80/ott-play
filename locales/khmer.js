@@ -882,6 +882,7 @@ var keyStrings = {
     "Restart player": "ចាប់ផ្តើមកម្មវិធីចាក់ឡើងវិញ",
     "Restart stream": "ចាប់ផ្តើមការផ្សាយឡើងវិញ",
     "Restart stream / Live": "ចាប់ផ្តើមការផ្សាយឡើងវិញ / បន្តផ្ទាល់",
+    "Resume archive after restart": "បន្តមើលកម្មវិធីកន្លងមកក្រោយពេលចាប់ផ្តើមឡើងវិញ",
     "Resume from archive?": "បន្តមើលការផ្សាយពីមុន?",
     Retry: "ព្យាយាមម្តងទៀត",
     "Retry EPG download": "ព្យាយាមទាញយក EPG ម្តងទៀត",
@@ -927,6 +928,7 @@ var keyStrings = {
         "ការបញ្ចូលពីចម្ងាយសុវត្ថិភាពមិនអាចចាប់ផ្តើមបានទេ។ សូមប្រើក្តារចុចលើអេក្រង់។",
     "Secure remote input is unavailable on this device. Use the on-screen keyboard.":
         "ការបញ្ចូលពីចម្ងាយសុវត្ថិភាពមិនមាននៅលើឧបករណ៍នេះទេ។ ប្រើក្តារចុចលើអេក្រង់។",
+    "Seek notifications": "ការជូនដំណឹងពេលរំកិលទៅមុខ/ថយក្រោយ",
     "Select a live channel first": "សូមជ្រើសរើសប៉ុស្តិ៍ផ្សាយផ្ទាល់ជាមុន",
     "Select a stream type:<br>%1": "ជ្រើសរើសប្រភេទស្ទ្រីម៖ <br>%1",
     "Select category to add channel": "ជ្រើសរើសប្រភេទដើម្បីបន្ថែមឆានែល",
