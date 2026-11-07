@@ -1,0 +1,101 @@
+--- a/rust-modules/src/app/ott_local.rs
++++ b/rust-modules/src/app/ott_local.rs
+@@ -118,6 +118,28 @@
+     check_root_path(&path, &file, &before)?;
+     let report = walk(off, profile, &file, cancel, &|| true, emit)?;
+     check_root_path(&path, &file, &before)?;
++    Ok(report)
++}
++
++/// Remove a known child at its real open boundary, independent of worker order.
++#[cfg(all(test, feature = "hostsim"))]
++pub(super) fn visit_with_lost_child_for_test(
++    off: &OffFrame, profile: &ProviderProfile, cancel: &AtomicBool,
++    emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
++) -> Result<ScanReport, &'static str> {
++    let path = root(profile)?;
++    let root = std::fs::File::open(&path).map_err(|_| "Local folder cannot be read")?;
++    let removed = AtomicBool::new(false);
++    let report = walk_with(off, profile, &root, cancel, &|| true, emit,
++        &|stage, relative, _| {
++            if stage == WalkStage::Open && relative == "Second" {
++                assert!(!removed.swap(true, Ordering::AcqRel), "child open must occur once");
++                std::fs::remove_dir_all(path.join(relative)).expect("remove fixture child before open");
++            }
++            Ok(())
++        })?;
++    assert!(removed.load(Ordering::Acquire), "fixture must reach the child open boundary");
++    assert_eq!(report.skipped, 1, "real missing-child open must be reported");
+     Ok(report)
+ }
+ 
+--- a/rust-modules/src/app/ott_catalog.rs
++++ b/rust-modules/src/app/ott_catalog.rs
+@@ -331,13 +331,22 @@
+     Ok(report.warning())
+ }
+ 
+-/// Exercise the production visitor/terminal mapping with deterministic changes
+-/// between batches. This permits child-loss tests without timing filesystem races.
++/// Exercise the production visitor/terminal mapping with changes between batches.
+ #[cfg(all(test, feature = "hostsim"))]
+ pub(super) fn visit_local_for_test(profile: &ProviderProfile, generation: u64,
+     cancel: &AtomicBool, emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+ ) -> Event {
+     scan_completion(generation, scan_local(&OffFrame::for_test(), profile, cancel, emit))
++}
++
++/// Missing-child fixture still uses the real walker, report and terminal mapping.
++#[cfg(all(test, feature = "hostsim"))]
++pub(super) fn visit_local_with_lost_child_for_test(profile: &ProviderProfile, generation: u64,
++    cancel: &AtomicBool, emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
++) -> Event {
++    let result = local::visit_with_lost_child_for_test(&OffFrame::for_test(), profile, cancel, emit)
++        .and_then(|report| local_completion(report, cancel));
++    scan_completion(generation, result)
+ }
+ 
+ fn scan(
+--- a/rust-modules/src/app/ott_runtime_tests/local_scan_completion.rs
++++ b/rust-modules/src/app/ott_runtime_tests/local_scan_completion.rs
+@@ -72,22 +72,24 @@
+     runtime.continuity.stop(runtime.generation);
+     let mut events = Vec::new();
+     let mut removed = false;
+-    let terminal = ott_catalog::visit_local_for_test(runtime.effective_profile().unwrap(),
+-        runtime.generation, &runtime.cancel, &mut |rows| {
+-            let category = rows[0].category.clone();
+-            events.push(ott_catalog::Event::Batch(runtime.generation, Catalog { hierarchy: None, entries: rows }));
+-            if !removed {
+-                removed = true;
+-                // Both siblings were queued by breadth-first traversal before
+-                // this callback. Remove exactly the not-yet-visited subtree.
+-                let victim = if whole_root { path.to_path_buf() } else {
+-                    path.join(if category == "First" { "Second" } else { "First" })
+-                };
+-                std::fs::remove_dir_all(victim).unwrap();
+-            }
+-            Ok(())
+-        });
+-    assert!(removed);
++    let mut emit = |rows| {
++        events.push(ott_catalog::Event::Batch(runtime.generation, Catalog { hierarchy: None, entries: rows }));
++        if whole_root && !removed {
++            removed = true;
++            std::fs::remove_dir_all(path).unwrap();
++        }
++        Ok(())
++    };
++    let terminal = if whole_root {
++        ott_catalog::visit_local_for_test(runtime.effective_profile().unwrap(),
++            runtime.generation, &runtime.cancel, &mut emit)
++    } else {
++        // Concurrent workers can already hold a sibling cursor when the first
++        // batch arrives. Delete Second at its open boundary, after discovery.
++        ott_catalog::visit_local_with_lost_child_for_test(runtime.effective_profile().unwrap(),
++            runtime.generation, &runtime.cancel, &mut emit)
++    };
++    assert!(if whole_root { removed } else { !path.join("Second").exists() });
+     events.push(terminal);
+     assert!(events.len() <= 4);
+     for event in events {
