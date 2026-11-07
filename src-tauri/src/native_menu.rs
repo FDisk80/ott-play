@@ -148,6 +148,18 @@ pub(crate) fn refresh<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+// Called after fullscreen intent and native style/focus have committed. Keep
+// the final menu refresh after constraint reconciliation, even when restoring
+// the same frame and focus produces no further window event.
+pub(crate) fn finish_fullscreen_transition(
+    reconcile: impl FnOnce() -> Result<(), String>,
+    refresh_menu: impl FnOnce(),
+) -> Result<(), String> {
+    reconcile()?;
+    refresh_menu();
+    Ok(())
+}
+
 pub(crate) fn on_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     if matches!(
         event,
@@ -296,6 +308,52 @@ mod tests {
         decorated.state.set(state);
         dispatch(ZOOM_ID, &decorated).unwrap();
         assert_eq!(*decorated.actions.borrow(), [ZoomAction::Maximize]);
+    }
+
+    #[test]
+    fn fullscreen_commit_refreshes_stale_eligibility_without_another_window_event() {
+        let target = Target::new();
+        let mut state = target.state.get();
+        state.fullscreen = true;
+        state.resizable = false;
+        target.state.set(state);
+        let cached_enabled = Cell::new(false);
+        let refresh_menu = || cached_enabled.set(target.zoom_state().unwrap().action().is_some());
+
+        // The last window-event refresh ran before fullscreen exit committed.
+        refresh_menu();
+        assert!(!cached_enabled.get());
+        state.fullscreen = false;
+        state.resizable = true;
+        target.state.set(state);
+
+        finish_fullscreen_transition(
+            || {
+                // Constraint reconciliation must complete before availability
+                // is published, with no extra focus or resize event required.
+                assert!(!cached_enabled.get());
+                Ok(())
+            },
+            refresh_menu,
+        )
+        .unwrap();
+
+        assert!(cached_enabled.get());
+        assert_eq!(target.reads.get(), 2);
+        assert!(target.actions.borrow().is_empty());
+    }
+
+    #[test]
+    fn failed_fullscreen_reconciliation_does_not_publish_menu_completion() {
+        let target = Target::new();
+        let cached_enabled = Cell::new(false);
+        let result = finish_fullscreen_transition(
+            || Err("constraint reconciliation failed".to_owned()),
+            || cached_enabled.set(target.zoom_state().unwrap().action().is_some()),
+        );
+        assert_eq!(result, Err("constraint reconciliation failed".to_owned()));
+        assert!(!cached_enabled.get());
+        assert_eq!(target.reads.get(), 0);
     }
 
     #[test]

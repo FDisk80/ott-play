@@ -629,8 +629,15 @@ pub fn apply_fullscreen(
         sync_window_queue(window)?;
         // Generic resize events can precede Tao's deferred style restoration.
         // Confirm the owned constraint after that transaction, before ACK.
-        crate::window_aspect::reconcile_initialized_after_fullscreen(window)?;
-        return Ok(());
+        return crate::native_menu::finish_fullscreen_transition(
+            || crate::window_aspect::reconcile_initialized_after_fullscreen(window),
+            || {
+                // Window events can refresh before MACOS_SIMPLE_FS is updated.
+                // Publish availability once after the complete native transaction.
+                let app = _app.clone();
+                dispatch2::DispatchQueue::main().exec_sync(move || crate::native_menu::refresh(&app));
+            },
+        );
     }
     #[cfg(not(target_os = "macos"))]
     {
