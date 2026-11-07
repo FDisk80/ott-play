@@ -542,3 +542,134 @@ test("vertical wrap stays in its column when the last row is incomplete", async 
     await page.keyboard.press("ArrowLeft");
     expect(await focus(page)).toBe(4);
 });
+
+test("footer clock and late audio badge remain inside the panel after scaling and resize", async ({
+    page,
+}) => {
+    const errors = [];
+    const requests = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+        if (message.type() === "error") errors.push(message.text());
+    });
+    await page.route("**/*", (route) => {
+        requests.push(route.request().url());
+        return route.abort("blockedbyclient");
+    });
+    await page.setContent("<!doctype html><body></body>");
+    await page.addStyleTag({ content: read("styles/player.css") });
+    // Import only the real footer and measurement node; no startup scripts,
+    // video element, provider, bundled player or external fonts are loaded.
+    await page.evaluate((html) => {
+        const source = new DOMParser().parseFromString(html, "text/html");
+        for (const id of ["info1", "testFont"])
+            document.body.appendChild(
+                document.importNode(source.getElementById(id), true)
+            );
+    }, read("index.html"));
+    await page.addScriptTag({ content: read("js/jquery-1.11.1.min.js") });
+    await page.evaluate(() => {
+        Object.assign(window, {
+            _: (value) => value,
+            $i1: $("#info1"),
+            fontFamilyList: [""],
+            isListVisible: false,
+            loadSubtitleAppearance() {},
+            setListPos() {},
+            settings: {
+                fontShift: 0,
+                fontSize: 0,
+                osdOpacity: 5,
+                pageSize: 15,
+                permanentTime: 0,
+            },
+            stbAudioTracksExists: () => window.footerHasAudio,
+            stbSetOsdOpacity() {},
+            tooltip: null,
+        });
+        $("#info1").show();
+        $("#channel_name").text("Fixture channel");
+        $("#current_t").text("23:58");
+        $("#current_s").text(":59");
+    });
+    await page.addScriptTag({
+        content:
+            declarations("src/utils/helpers.ts", ["uiFontScale"]) +
+            declarations("src/index.ts", ["setFontSize"]) +
+            declarations("src/ui/index.ts", ["refreshAudioBadge"]),
+    });
+    const measure = () =>
+        page.evaluate(() => {
+            const bounds = (id) => {
+                const { bottom, height, left, right, top, width } = document
+                    .getElementById(id)
+                    .getBoundingClientRect();
+                return { bottom, height, left, right, top, width };
+            };
+            const panel = document.getElementById("info1");
+            const style = getComputedStyle(panel);
+            return {
+                badge: bounds("audio_badge"),
+                clock: bounds("current_t"),
+                data: bounds("data"),
+                left:
+                    panel.getBoundingClientRect().left +
+                    parseFloat(style.paddingLeft),
+                panel: bounds("info1"),
+                right:
+                    panel.getBoundingClientRect().right -
+                    parseFloat(style.paddingRight),
+                seconds: bounds("current_s"),
+            };
+        });
+    for (const [width, height, fontScale] of [
+        [1280, 720, 100],
+        [1920, 1080, 200],
+        [640, 360, 150],
+        [360, 800, 200],
+        [3840, 2160, 100],
+        [1280, 720, 100],
+    ]) {
+        await page.setViewportSize({ height, width });
+        await page.evaluate((scale) => {
+            window.sUiFontScale = scale;
+            window.footerHasAudio = false;
+            refreshAudioBadge();
+            setFontSize();
+        }, fontScale);
+        const before = await measure();
+        expect(before.badge.width).toBe(0);
+        // Track discovery must fit without another setFontSize or resize.
+        await page.evaluate(() => {
+            window.footerHasAudio = true;
+            refreshAudioBadge();
+        });
+        const after = await measure();
+        for (const rect of [after.badge, after.clock, after.seconds]) {
+            expect(rect.width).toBeGreaterThan(0);
+            expect(rect.height).toBeGreaterThan(0);
+            expect(rect.left).toBeGreaterThanOrEqual(
+                Math.max(after.data.left, after.left) - 0.5
+            );
+            expect(rect.right).toBeLessThanOrEqual(
+                Math.min(after.data.right, after.right, width) + 0.5
+            );
+            expect(rect.top).toBeGreaterThanOrEqual(after.panel.top - 0.5);
+            expect(rect.bottom).toBeLessThanOrEqual(after.panel.bottom + 0.5);
+        }
+        expect(after.badge.right).toBeLessThanOrEqual(after.clock.left + 0.5);
+        expect(after.clock.right).toBeLessThanOrEqual(after.seconds.left + 0.5);
+        expect(
+            Math.abs(after.seconds.right - before.seconds.right)
+        ).toBeLessThanOrEqual(0.5);
+        await page.evaluate(() => {
+            window.footerHasAudio = false;
+            refreshAudioBadge();
+        });
+        expect(
+            Math.abs((await measure()).seconds.right - before.seconds.right)
+        ).toBeLessThanOrEqual(0.5);
+    }
+    expect(errors).toEqual([]);
+    expect(requests).toEqual([]);
+});

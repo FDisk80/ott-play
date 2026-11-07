@@ -586,10 +586,9 @@ body {
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
 }
-/* Only Classic content rows: keep frames, controls and Modern focus styling. */
-body.hide-list-separators:not(.interface-modern)
-    #listIn.content-list-rows
-    > .item {
+/* Shared row separators, including menus, settings and dialog lists.
+   Modern catalog cards keep their more specific border/focus styling. */
+body.hide-list-separators .item {
     box-shadow: none;
 }
 .progress_div {
@@ -2099,6 +2098,10 @@ body.interface-modern #listIn:not(.modern-catalog) .item {
     border-bottom: 1px solid var(--modern-surface);
     border-radius: 9px;
     box-shadow: none;
+}
+body.hide-list-separators.interface-modern #listIn:not(.modern-catalog) .item {
+    /* Retain the border's space so toggling never changes row geometry. */
+    border-bottom-color: transparent;
 }
 body.interface-modern #listIn:not(.modern-catalog) .item.ott-selected {
     color: #15171d !important;

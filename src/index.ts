@@ -1103,12 +1103,13 @@ function setFontSize(): void {
     $("#channel_number").css({ width: 70 * t + "px" });
     $("#progress_div").css({ margin: 6 * e + "px 0px " + 4 * e + "px 0px" });
     $("#progress, #progress_r").css({ height: 8 * e + "px" });
+    var dataFontPx = Math.min(22 * e, textCap) * fontScale;
     $("#data").css({
-        "font-size": 22 * e * fontScale + "px",
+        "font-size": dataFontPx + "px",
         width: 80 * t + "px",
     });
     $("#current_s, #video_res").css({
-        "font-size": 16 * e * fontScale + "px",
+        "font-size": (dataFontPx * 16) / 22 + "px",
     });
     $("#descr").css({
         margin: "0px 0px " + 20 * e + "px 0px",
@@ -1160,13 +1161,46 @@ function setFontSize(): void {
         var n = $("#testFont"),
             i = n.css("font-size");
         n.css("font-size", 22 * e * fontScale).text("9");
-        var a = n.width();
-        n.text("").css("font-size", i);
+        var a = n.width() || 22 * e * fontScale * 0.625;
         var o = a * 7;
+        n.css("font-size", dataFontPx).text("9");
+        var dataWidth = (n.width() || dataFontPx * 0.625) * 7;
+        // Reserve the full clock, including seconds, for proportional fonts.
+        for (var clockDigit = 0; clockDigit < 10; clockDigit++) {
+            var clockPair = String(clockDigit) + clockDigit;
+            n.text(clockPair + ":" + clockPair + ":" + clockPair);
+            dataWidth = Math.max(dataWidth, n.width() || 0);
+        }
+        // Audio tracks can arrive after layout. Measure a visible copy so the
+        // badge never pushes the clock offscreen when it appears later.
+        n.empty().append(
+            $("#audio_badge")
+                .clone()
+                .removeAttr("id")
+                .css("display", "inline-block")
+        );
+        dataWidth = Math.ceil(
+            dataWidth + (n.width() || dataFontPx * 2) + dataFontPx * 0.5
+        );
+        n.text("").css("font-size", i);
         if (o) {
-            $("#picon, #data, #listTime").css({ width: o + "px" });
-            $("#channel").css({ width: 1200 * t - o * 2 + "px" });
-            $("#descr").css({ padding: "0px " + (o + 20 * t) + "px" });
+            // A narrow portrait viewport may need a smaller picon, while the
+            // clock keeps the same font cap as the rest of the information bar.
+            var piconWidth = Math.min(o, Math.max(0, 1160 * t - dataWidth));
+            $("#picon").css({ width: piconWidth + "px" });
+            $("#listTime").css({ width: o + "px" });
+            $("#data").css({ width: dataWidth + "px" });
+            $("#channel").css({
+                width: 1200 * t - piconWidth - dataWidth + "px",
+            });
+            $("#descr").css({
+                padding:
+                    "0px " +
+                    (dataWidth + 20 * t) +
+                    "px 0px " +
+                    (piconWidth + 20 * t) +
+                    "px",
+            });
         }
     } catch (ex) {
         console.error(ex);
@@ -4908,7 +4942,7 @@ window.settingsLists = function (): void {
                 noyes
             ),
             choice(
-                label("Show list separators") + " (" + label("Classic") + ")",
+                label("Show list separators"),
                 "showListSeparators",
                 w.sShowListSeparators,
                 noyes
