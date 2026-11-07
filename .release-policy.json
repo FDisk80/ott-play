@@ -262,7 +262,12 @@
   "change_scope": {
     "documentation_paths": ["vendor/README.md"],
     "required_paths": ["docs/privacy-policy.md", "CHANGELOG.md"],
-    "always_validate_workflows": ["codeql.yml"]
+    "always_validate_workflows": ["codeql.yml"],
+    "automatic_release_test_paths": [
+      "tests/helpers/aspect-readiness-diagnostics.cjs",
+      "tests/test_hls_aspect_fixture.cjs",
+      "tests/test_native_local_media_siblings.py"
+    ]
   },
   "release_notes": "CHANGELOG.md",
   "fuzzing": {
