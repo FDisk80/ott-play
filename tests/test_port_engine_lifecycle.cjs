@@ -2137,6 +2137,43 @@ for (const trigger of ["nativeFallbacks", "engineStarts", "policy"]) {
     );
 }
 for (const detail of ["manifestLoadError", "manifestLoadTimeOut"]) {
+    test("HLS " + detail + " retry resumes advanced VOD playback", () => {
+        const { w, players } = fixture();
+        let retry;
+        w.setTimeout = (callback) => {
+            retry = callback;
+            return 1;
+        };
+        w.clearTimeout = () => {};
+        w.playerMode = 1;
+        w.stbPlay("https://source.invalid/movie.m3u8", 37);
+        players[0].events.manifest();
+        w.video.readyState = 4;
+        w.video.currentTime = 72;
+        players[0].hasEnoughToStart = true;
+        players[0].events.error(null, {
+            details: "levelParsingError",
+            fatal: true,
+            type: "network",
+        });
+        retry();
+        assert.equal(players[1].config.startPosition, 72);
+        retry = null;
+        players[1].events.error(null, {
+            details: detail,
+            fatal: true,
+            type: "network",
+        });
+        assert.equal(typeof retry, "function");
+        retry();
+        assert.equal(players[2].config.startPosition, 72);
+        w.video.paused = true;
+        const played = w.video.playCalls;
+        players[2].events.manifest();
+        assert.equal(w.video.playCalls, played + 1);
+        assert.equal(w.video.paused, false);
+        w.stbStop();
+    });
     test(
         "HLS startup " + detail + " schedules a real bounded source retry",
         () => {

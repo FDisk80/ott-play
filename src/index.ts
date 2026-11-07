@@ -3663,7 +3663,9 @@ if (typeof window.__TAURI__ !== "undefined") {
                 STRIP_ID +
                 " {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: " +
                 STRIP_H +
-                "px;\n  z-index: 2147483000;\n  pointer-events: auto;\n  cursor: grab;\n" +
+                // Video stays below the handle; OSD, notifications and capture
+                // controls keep their higher layers and receive pointer input.
+                "px;\n  z-index: 1;\n  pointer-events: auto;\n  cursor: grab;\n" +
                 "  background: transparent;\n  border: 0;\n" +
                 "  -webkit-app-region: no-drag !important;\n  app-region: no-drag !important;\n}\n" +
                 "html." +
