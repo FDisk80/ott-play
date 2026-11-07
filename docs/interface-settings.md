@@ -103,6 +103,14 @@ Native Capacitor players retain their existing tap behavior. Mouse-wheel and
 remote navigation, gestures outside the list and text editing are unchanged.
 There is no need to select an Android or Tizen device target to use touch input.
 
+## Seek preview
+
+While the seek dialog and information bar are visible, the timeline shows the
+selected destination. Files display elapsed media time; archives display the
+broadcast time. Enter or three seconds without another adjustment applies the
+offset. Back or Exit cancels it. The preview follows window resizing in Classic
+and Modern.
+
 ## Remote font size
 
 On an updated player, read or change the same saved preference through remote

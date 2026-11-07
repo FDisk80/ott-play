@@ -1,5 +1,6 @@
 import { openGlobalFavorites } from "../commands/global-favorites";
 import { createSettingsEditor } from "../settings/editor";
+import { formatClockTime, virtualTimeshiftProg } from "../ui/index";
 import {
     hasTmdbService,
     metadataCssUrl,
@@ -2673,6 +2674,121 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
     var context = w.__ottClassicPlayback.context();
     var finished = false;
     var revision = 0;
+    var previewNode: any = null;
+    var previewOwner = { refresh: renderPreview };
+    function clearPreview(): void {
+        if (previewNode && previewNode.__ottSeekPreviewOwner === previewOwner) {
+            delete previewNode.__ottSeekPreviewOwner;
+            previewNode.style.display = "";
+            var label = previewNode.querySelector("span");
+            if (label) label.style.left = "";
+        }
+        previewNode = null;
+    }
+    function renderPreview(): void {
+        if (
+            finished ||
+            w.dialogBoxKeyHandler !== handler ||
+            !context.isCurrent() ||
+            !submit.current()
+        ) {
+            finish(false);
+            return;
+        }
+        var bar = document.getElementById("progress_div");
+        var marker = document.getElementById("progress_span");
+        if (!bar || !marker || typeof bar.getBoundingClientRect !== "function")
+            return;
+        var rect = bar.getBoundingClientRect();
+        // Modern moves this shared bar out of #info1. Its actual geometry and
+        // visibility, rather than the Classic footer, determine admission.
+        if (
+            !(rect.width > 0 && rect.height > 0) ||
+            (w.getComputedStyle &&
+                w.getComputedStyle(bar).visibility === "hidden")
+        ) {
+            clearPreview();
+            return;
+        }
+        var preview = context.previewOffset(i);
+        // Decoder sampling and liveness reads can synchronously replace the
+        // source or dialog. Check local ownership after those host callbacks.
+        if (
+            !context.isCurrent() ||
+            !submit.current() ||
+            finished ||
+            w.dialogBoxKeyHandler !== handler
+        ) {
+            finish(false);
+            return;
+        }
+        var plan = preview && preview.plan;
+        var finite = plan && plan.action === "seek";
+        var target = finite
+            ? plan.position
+            : plan && plan.action === "open-archive"
+              ? plan.archiveStart
+              : plan && plan.action === "go-live"
+                ? preview.now
+                : NaN;
+        var programme = w._prog100;
+        if (!finite && !(programme && programme.time_to > programme.time))
+            programme = virtualTimeshiftProg(preview && preview.now);
+        var start = finite ? 0 : programme.time;
+        var end = finite ? preview.duration : programme.time_to;
+        if (
+            !isFinite(target) ||
+            !isFinite(start) ||
+            !isFinite(end) ||
+            end <= start
+        ) {
+            clearPreview();
+            return;
+        }
+        if (previewNode !== marker) clearPreview();
+        previewNode = marker;
+        previewNode.__ottSeekPreviewOwner = previewOwner;
+        var span = marker.querySelector("span");
+        if (!span) return;
+        var seconds = Math.round(target);
+        span.textContent = finite
+            ? (seconds >= 3600 ? Math.floor(seconds / 3600) + ":" : "") +
+              ("0" + Math.floor((seconds % 3600) / 60)).slice(-2) +
+              ":" +
+              ("0" + (seconds % 60)).slice(-2)
+            : formatClockTime(target);
+        span.style.left = "";
+        marker.style.display = "block";
+        var fraction = Math.max(
+            0,
+            Math.min(1, (target - start) / (end - start))
+        );
+        marker.style.top = rect.top - rect.height + "px";
+        marker.style.left =
+            Math.max(
+                rect.left,
+                Math.min(
+                    rect.right - marker.offsetWidth,
+                    rect.left + fraction * rect.width - marker.offsetWidth / 2
+                )
+            ) + "px";
+        var labelRect = span.getBoundingClientRect();
+        var labelLeft = labelRect.left;
+        var labelRight = labelRect.right;
+        // Modern's label is a block inside the small marker: its glyphs can
+        // extend beyond that block even though the text has no wrapping spaces.
+        var range = document.createRange();
+        range.selectNodeContents(span);
+        if (typeof range.getBoundingClientRect === "function") {
+            var textRect = range.getBoundingClientRect();
+            labelLeft = Math.min(labelLeft, textRect.left);
+            labelRight = Math.max(labelRight, textRect.right);
+        }
+        span.style.left =
+            Math.max(0, -labelLeft) -
+            Math.max(0, labelRight - w.innerWidth) +
+            "px";
+    }
     var submit = w.__ottClassicPlayback.guard(function (): void {
         shiftArchive(i);
     });
@@ -2681,18 +2797,26 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
         finished = true;
         revision++;
         clearTimeout(t);
+        if (w.removeEventListener)
+            w.removeEventListener("resize", renderPreview);
+        clearPreview();
         // A retired dialog cannot seek or hide a replacement dialog.
         if (w.dialogBoxKeyHandler !== handler || !context.isCurrent()) return;
         $("#dialogbox").hide();
-        if (w.tooltip) w.tooltip.style.display = "";
         if (apply) submit();
         else if (typeof w.infoBarHide === "function") w.infoBarHide();
         if (w.dialogBoxKeyHandler === handler) w.dialogBoxKeyHandler = null;
     }
     function r(delta: number): void {
         if (finished || w.dialogBoxKeyHandler !== handler) return;
+        if (!context.isCurrent() || !submit.current()) {
+            finish(false);
+            return;
+        }
         clearTimeout(t);
         i += delta;
+        renderPreview();
+        if (finished) return;
         var stepEl = document.getElementById("step");
         if (stepEl && typeof w.formatSeekOffset === "function")
             stepEl.innerHTML = w.formatSeekOffset(i);
@@ -2775,6 +2899,13 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
         }
     };
     w.dialogBoxKeyHandler = handler;
+    if (w.addEventListener) w.addEventListener("resize", renderPreview);
+    var screen =
+        w.__ottClassicScreenPort && w.__ottClassicScreenPort.screens.current();
+    if (screen && screen.kind === "dialog")
+        screen.own(function () {
+            finish(false);
+        });
     r(initialDelta);
 }
 

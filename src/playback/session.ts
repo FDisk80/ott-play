@@ -248,16 +248,22 @@ function createPlaybackSessionController(
         ): (...args: any[]) => void {
             var ticket = reset(true);
             var observed = accepts(ticket) ? ports.observe() : null;
-            return function (this: any): void {
-                if (
-                    !observed ||
-                    !accepts(ticket) ||
-                    !sameTarget(observed.target, ports.observe().target) ||
-                    (observed.isCurrent && !observed.isCurrent())
-                )
-                    return;
+            function current(): boolean {
+                return !!(
+                    observed &&
+                    accepts(ticket) &&
+                    sameTarget(observed.target, ports.observe().target) &&
+                    (!observed.isCurrent || observed.isCurrent()) &&
+                    accepts(ticket)
+                );
+            }
+            var guarded = function (this: any): void {
+                if (!current()) return;
                 if (complete(ticket)) callback.apply(this, arguments);
             };
+            // UI previews can observe retirement without consuming this guard.
+            (guarded as any).current = current;
+            return guarded;
         },
         observePosition: function (value: number): void {
             if (

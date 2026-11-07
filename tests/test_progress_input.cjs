@@ -570,3 +570,20 @@ console.log(
         " actual uiInit ES5 scenarios" +
         (bundle ? " from " + bundle : "")
 );
+check(
+    "pointer hover takes ownership from pending keyboard target",
+    {},
+    ({ w, send }) => {
+        const marker = w.document.getElementById("progress_span");
+        marker.__ottSeekPreviewOwner = {
+            refresh() {
+                throw Error("Retired keyboard owner");
+            },
+        };
+        marker.querySelector("span").style.left = "-40px";
+        send("mousemove", 110);
+        assert.equal(marker.__ottSeekPreviewOwner, undefined);
+        assert.equal(marker.querySelector("span").style.left, "");
+        assert.equal(marker.querySelector("span").textContent, "30:50");
+    }
+);

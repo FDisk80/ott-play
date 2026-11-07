@@ -736,6 +736,9 @@ export function uiInit(): void {
         if (!canSeekProgress()) return;
         var clientX = e.clientX;
         if (tooltipEl) {
+            // Pointer hover takes ownership from a pending keyboard preview.
+            delete (tooltipEl as any).__ottSeekPreviewOwner;
+            $("span", tooltipEl).css("left", "");
             tooltipEl.style.display = "block";
             tooltipEl.style.top =
                 $progressDiv.offset().top - $progressDiv.height() + "px";
@@ -795,14 +798,18 @@ export function hideInfoBarWhenReady(): void {
  * Immediately hide the info bar and clear the progress tooltip.
  *
  * @returns void
- * @sideeffect Clears `infoTimeout`. Hides `$infoBar`. Sets progress_span tooltip display to '' (shows it by clearing).
+ * @sideeffect Clears `infoTimeout`. Hides `$infoBar` and releases the progress tooltip.
  * @analysis Hides the info bar unconditionally, even if it is already hidden.
  */
 export function infoBarHide(): void {
     setInfoInteraction(false);
     try {
         var tooltip = document.getElementById("progress_span");
-        if (tooltip) tooltip.style.display = "";
+        if (tooltip) {
+            delete (tooltip as any).__ottSeekPreviewOwner;
+            tooltip.style.display = "";
+            $("span", tooltip).css("left", "");
+        }
     } catch (e) {
         console.error(e);
     }
@@ -2029,6 +2036,9 @@ export function initBackgroundIntervals(): void {
         updateClockText("list_t", timeStr);
         updateClockText("list_s", secStr);
         updateClockText("permanentTime", timeStr);
+        var seekPreview = document.getElementById("progress_span") as any;
+        if (seekPreview && seekPreview.__ottSeekPreviewOwner)
+            seekPreview.__ottSeekPreviewOwner.refresh();
         // Drive archive OSD progress bar (stbPlayer.js:1744-1746 tick).
         // Skip live mode (playType === 0) — showChannelInfo already covers it.
         var w_t = window as any;
