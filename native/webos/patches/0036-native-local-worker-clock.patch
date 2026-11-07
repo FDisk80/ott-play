@@ -1,0 +1,294 @@
+--- a/rust-modules/src/app/ott_local.rs
++++ b/rust-modules/src/app/ott_local.rs
+@@ -1,6 +1,7 @@
+ //! Read existing local media in bounded batches. Runs on the catalogue worker, never the UI.
+ //! No imports, thumbnails, duration probes or copies are made while walking the tree.
+ use plx_data::ott::{self, CatalogEntry, LocalFile, MediaLocator, ProviderKind, ProviderProfile};
++use plx_base::task::OffFrame;
+ use std::collections::VecDeque;
+ use std::path::{Path, PathBuf};
+ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+@@ -25,11 +26,12 @@
+ }
+ 
+ pub(super) fn visit(
++    off: &OffFrame,
+     profile: &ProviderProfile,
+     cancel: &AtomicBool,
+     emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+ ) -> Result<(), &'static str> {
+-    let report = visit_report(profile, cancel, emit)?;
++    let report = visit_report(off, profile, cancel, emit)?;
+     outcome(report)
+ }
+ 
+@@ -101,6 +103,7 @@
+ /// Do not collect or sort a whole directory before publishing the first media item.
+ /// IDs derive from relative names, not the filesystem's unspecified enumeration order.
+ pub(super) fn visit_report(
++    off: &OffFrame,
+     profile: &ProviderProfile,
+     cancel: &AtomicBool,
+     emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+@@ -113,7 +116,7 @@
+         .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK)
+         .open(&path).map_err(|_| "Local folder cannot be read")?;
+     check_root_path(&path, &file, &before)?;
+-    let report = walk(profile, &file, cancel, &|| true, emit)?;
++    let report = walk(off, profile, &file, cancel, &|| true, emit)?;
+     check_root_path(&path, &file, &before)?;
+     Ok(report)
+ }
+@@ -140,7 +143,7 @@
+     }
+     let root = observed.root_handle().ok_or("Local folder source is unavailable")?;
+     let file = root.file_if_live(off).ok_or("Local folder source is unavailable")?;
+-    let report = walk(profile, file, cancel, &|| source.is_live(), emit)?;
++    let report = walk(off, profile, file, cancel, &|| source.is_live(), emit)?;
+     if report.cancelled { return Ok(report); }
+     let after = source.observe(off, &mut || !cancel.load(Ordering::Acquire))
+         .map_err(|_| "Catalogue cancelled")?;
+@@ -166,13 +169,14 @@
+ /// it returns, even after cancellation; the enclosing catalogue cannot finish
+ /// and admit a replacement before that drain completes.
+ fn walk(
++    off: &OffFrame,
+     profile: &ProviderProfile,
+     root: &std::fs::File,
+     cancel: &AtomicBool,
+     live: &(dyn Fn() -> bool + Sync),
+     emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+ ) -> Result<ScanReport, &'static str> {
+-    walk_with(profile, root, cancel, live, emit, &|_, _, _| Ok(()))
++    walk_with(off, profile, root, cancel, live, emit, &|_, _, _| Ok(()))
+ }
+ 
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+@@ -231,6 +235,7 @@
+ 
+ // Fault fixtures intercept an actual operation, not a replacement traversal.
+ fn walk_with(
++    off: &OffFrame,
+     profile: &ProviderProfile,
+     root: &std::fs::File,
+     cancel: &AtomicBool,
+@@ -239,7 +244,8 @@
+     before: &(dyn Fn(WalkStage, &str, usize) -> Result<(), readonly::ReadError> + Sync),
+ ) -> Result<ScanReport, &'static str> {
+     use std::sync::{Arc, Mutex, mpsc};
+-    use std::time::{Duration, Instant};
++    use plx_base::task::time::Deadline;
++    use std::time::Duration;
+     const WORKERS: usize = 4;
+     const CURSORS: usize = 64;
+     let retired = AtomicBool::new(false);
+@@ -278,7 +284,8 @@
+         let mut report = ScanReport::default();
+         let mut files = Vec::with_capacity(BATCH_SIZE);
+         let mut terminal = None;
+-        let mut last_publish = Instant::now();
++        // Cadence belongs to this worker; it does not limit the scan lifetime.
++        let mut next_publish = Deadline::after(off, Duration::from_millis(100));
+         queue_walk(&mut queue, &mut queued_bytes, root_bytes,
+             WalkJob { path: String::new(), depth: 0, task: WalkTask::Open })?;
+         loop {
+@@ -286,12 +293,12 @@
+             if !live() { terminal = Some("Local source was withdrawn"); retired.store(true, Ordering::Release); }
+             // A ready next item must not wait for a full batch or unrelated I/O.
+             if !retired.load(Ordering::Acquire) && !files.is_empty()
+-                && last_publish.elapsed() >= Duration::from_millis(100) {
++                && next_publish.expired(off) {
+                 if let Err(error) = flush(profile, cancel, &mut report, &mut files, live, emit) {
+                     terminal = Some(error); retired.store(true, Ordering::Release);
+                 }
+                 if report.cancelled { retired.store(true, Ordering::Release); }
+-                last_publish = Instant::now();
++                next_publish = Deadline::after(off, Duration::from_millis(100));
+             }
+             if retired.load(Ordering::Acquire) {
+                 queue.clear(); queued_bytes = 0;
+@@ -373,7 +380,7 @@
+                                             retired.store(true, Ordering::Release);
+                                             return Err(error);
+                                         }
+-                                        last_publish = Instant::now();
++                                        next_publish = Deadline::after(off, Duration::from_millis(100));
+                                     }
+                                 }
+                             }
+@@ -525,7 +532,7 @@
+         }
+         let cancel = AtomicBool::new(false);
+         let mut batches = Vec::new();
+-        let report = visit_report(&f.profile(), &cancel, &mut |batch| {
++        let report = visit_report(&OffFrame::for_test(), &f.profile(), &cancel, &mut |batch| {
+             batches.push(batch);
+             cancel.store(true, Ordering::Release);
+             Ok(())
+@@ -553,7 +560,7 @@
+             std::os::unix::fs::symlink(&f.0, f.0.join("cycle")).unwrap();
+         }
+         let mut batches = Vec::new();
+-        let report = visit_report(&f.profile(), &AtomicBool::new(false), &mut |batch| {
++        let report = visit_report(&OffFrame::for_test(), &f.profile(), &AtomicBool::new(false), &mut |batch| {
+             batches.push(batch);
+             Ok(())
+         })
+@@ -579,7 +586,7 @@
+             let f = Fixture::new(); f.file("First/one.mp4"); f.file("Later/two.mp4");
+             let outside = Fixture::new(); outside.file("private.mp4");
+             let root = std::fs::File::open(&f.0).unwrap(); let hold = Hold::new(); let mut rows = Vec::new();
+-            let report = walk_with(&f.profile(), &root, &AtomicBool::new(false), &|| true,
++            let report = walk_with(&OffFrame::for_test(), &f.profile(), &root, &AtomicBool::new(false), &|| true,
+                 &mut |batch| {
+                     if rows.is_empty() {
+                         std::fs::remove_dir_all(f.0.join("Later")).unwrap();
+@@ -604,7 +611,7 @@
+         let f = Fixture::new();
+         f.file("one.mp4");
+         let mut rows = Vec::new();
+-        visit(&f.profile(), &AtomicBool::new(false), &mut |batch| {
++        visit(&OffFrame::for_test(), &f.profile(), &AtomicBool::new(false), &mut |batch| {
+             rows.extend(batch);
+             Ok(())
+         })
+@@ -619,21 +626,21 @@
+         }
+         let mut profile = f.profile();
+         profile.source.push_str("/missing");
+-        assert!(visit(&profile, &AtomicBool::new(false), &mut |_| Ok(())).is_err());
++        assert!(visit(&OffFrame::for_test(), &profile, &AtomicBool::new(false), &mut |_| Ok(())).is_err());
+     }
+ 
+     #[test]
+     fn pre_cancelled_scan_and_closed_receiver_do_not_read_remaining_tree() {
+         let f = Fixture::new();
+         f.file("one.mp4");
+-        let report = visit_report(&f.profile(), &AtomicBool::new(true), &mut |_| {
++        let report = visit_report(&OffFrame::for_test(), &f.profile(), &AtomicBool::new(true), &mut |_| {
+             panic!("cancelled scan published")
+         })
+         .unwrap();
+         assert!(report.cancelled);
+         assert_eq!(report.inspected, 0);
+         assert_eq!(
+-            visit(&f.profile(), &AtomicBool::new(false), &mut |_| Err(
++            visit(&OffFrame::for_test(), &f.profile(), &AtomicBool::new(false), &mut |_| Err(
+                 "receiver closed"
+             )),
+             Err("receiver closed")
+@@ -653,7 +660,7 @@
+         )
+         .unwrap();
+         let mut rows = Vec::new();
+-        let report = visit_report(&f.profile(), &AtomicBool::new(false), &mut |batch| {
++        let report = visit_report(&OffFrame::for_test(), &f.profile(), &AtomicBool::new(false), &mut |batch| {
+             rows.extend(batch);
+             Ok(())
+         })
+@@ -661,7 +668,7 @@
+         assert_eq!(report.videos, 2);
+         assert_eq!(report.skipped, 1);
+         assert_eq!(rows.len(), 2);
+-        assert!(visit(&f.profile(), &AtomicBool::new(false), &mut |_| Ok(())).is_err());
++        assert!(visit(&OffFrame::for_test(), &f.profile(), &AtomicBool::new(false), &mut |_| Ok(())).is_err());
+     }
+ 
+     fn folder_grant(f: &Fixture) -> crate::app::ott_local_root::LocalSource {
+@@ -761,7 +768,7 @@
+             std::thread::scope(|scope| {
+                 let (sent, received) = std::sync::mpsc::channel();
+                 let (profile, root, cancel, hold) = (&profile, &root, &cancel, &hold);
+-                let run = scope.spawn(move || walk_with(profile, root, cancel, &|| true,
++                let run = scope.spawn(move || walk_with(&OffFrame::for_test(), profile, root, cancel, &|| true,
+                     &mut |rows| { for row in rows { sent.send(row).unwrap(); } Ok(()) },
+                     &|operation, path, step| {
+                         let target = match stage {
+@@ -796,7 +803,7 @@
+         std::thread::scope(|scope| {
+             let (sent, received) = std::sync::mpsc::channel();
+             let (profile, root, cancel, hold) = (&profile, &root, &cancel, &hold);
+-            let run = scope.spawn(move || walk_with(profile, root, cancel, &|| true,
++            let run = scope.spawn(move || walk_with(&OffFrame::for_test(), profile, root, cancel, &|| true,
+                 &mut |rows| { sent.send(rows.len()).unwrap(); Ok(()) },
+                 &|stage, path, _| { if stage == WalkStage::Probe && path == "held.mp4" { hold.block()?; } Ok(()) }));
+             let entered = hold.wait_entered(1);
+@@ -823,7 +830,7 @@
+         std::thread::scope(|scope| {
+             let (sent, received) = std::sync::mpsc::channel();
+             let (profile, root, cancel, hold, chosen) = (&profile, &root, &cancel, &hold, &chosen);
+-            let run = scope.spawn(move || walk_with(profile, root, cancel, &|| true,
++            let run = scope.spawn(move || walk_with(&OffFrame::for_test(), profile, root, cancel, &|| true,
+                 &mut |_| Ok(()), &|stage, path, step| {
+                     if stage == WalkStage::Next && !path.is_empty() && step == 1 { hold.block()?; }
+                     if stage == WalkStage::Probe && path.ends_with("/ready.mp4")
+@@ -871,7 +878,7 @@
+             let hold = Hold::new(); let live = AtomicBool::new(true); let cancel = AtomicBool::new(false);
+             let published = std::sync::atomic::AtomicUsize::new(0);
+             std::thread::scope(|scope| {
+-                let run = scope.spawn(|| walk_with(&profile, &root, &cancel,
++                let run = scope.spawn(|| walk_with(&OffFrame::for_test(), &profile, &root, &cancel,
+                     &|| live.load(Ordering::Acquire), &mut |rows| { published.fetch_add(rows.len(), Ordering::Relaxed); Ok(()) },
+                     &|stage, path, _| { if stage == WalkStage::Probe && path == "held.mp4" { hold.block()?; } Ok(()) }));
+                 let entered = hold.wait_entered(1);
+@@ -894,7 +901,7 @@
+             for name in ["first.mp4", "last.mp4"] { f.file(&format!("{folder}{name}")); }
+             let root = std::fs::File::open(&f.0).unwrap();
+             let mut rows = Vec::new();
+-            let result = walk_with(&f.profile(), &root, &AtomicBool::new(false),
++            let result = walk_with(&OffFrame::for_test(), &f.profile(), &root, &AtomicBool::new(false),
+                 &|| true, &mut |batch| { rows.extend(batch); Ok(()) },
+                 &|stage, relative, step| {
+                     if stage == WalkStage::Next && relative == (if child { "child" } else { "" }) && step == 2 {
+@@ -919,7 +926,7 @@
+             let root = std::fs::File::open(&f.0).unwrap();
+             let live = AtomicBool::new(true); let cancel = AtomicBool::new(false); let first = Hold::new();
+             let mut rows = Vec::new();
+-            let result = walk_with(&f.profile(), &root, &cancel,
++            let result = walk_with(&OffFrame::for_test(), &f.profile(), &root, &cancel,
+                 &|| live.load(Ordering::Acquire), &mut |batch| { rows.extend(batch); first.release(); Ok(()) },
+                 &|stage, path, _| {
+                     if stage == WalkStage::Probe && path == "child/buffered.mp4" {
+--- a/rust-modules/src/app/ott_catalog.rs
++++ b/rust-modules/src/app/ott_catalog.rs
+@@ -314,11 +314,11 @@
+     }
+ }
+ 
+-fn scan_local(profile: &ProviderProfile, cancel: &AtomicBool,
++fn scan_local(worker: &OffFrame, profile: &ProviderProfile, cancel: &AtomicBool,
+     emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+ ) -> Result<Option<&'static str>, &'static str> {
+     profile.validate().map_err(|_| "Invalid provider profile")?;
+-    let report = local::visit_report(profile, cancel, emit)?;
++    let report = local::visit_report(worker, profile, cancel, emit)?;
+     local_completion(report, cancel)
+ }
+ 
+@@ -337,7 +337,7 @@
+ pub(super) fn visit_local_for_test(profile: &ProviderProfile, generation: u64,
+     cancel: &AtomicBool, emit: &mut dyn FnMut(Vec<CatalogEntry>) -> Result<(), &'static str>,
+ ) -> Event {
+-    scan_completion(generation, scan_local(profile, cancel, emit))
++    scan_completion(generation, scan_local(&OffFrame::for_test(), profile, cancel, emit))
+ }
+ 
+ fn scan(
+@@ -349,7 +349,7 @@
+ ) -> Result<Option<&'static str>, &'static str> {
+     profile.validate().map_err(|_| "Invalid provider profile")?;
+     if profile.kind == ProviderKind::Local && ott::http_url(&profile.source).is_none() {
+-        return scan_local(profile, cancel, &mut |rows| send(tx, generation, rows, cancel));
++        return scan_local(worker, profile, cancel, &mut |rows| send(tx, generation, rows, cancel));
+     }
+     if profile.kind == ProviderKind::VPortal {
+         vportal::visit_catalog(worker, profile, cancel, &mut |catalog|
+@@ -379,7 +379,7 @@
+         ProviderKind::Local if ott::http_url(&profile.source).is_some() => {
+             server_library::visit(worker, profile, cancel, emit)?
+         }
+-        ProviderKind::Local => local::visit(profile, cancel, emit)?,
++        ProviderKind::Local => local::visit(worker, profile, cancel, emit)?,
+         ProviderKind::Plex => super::ott_plex::visit(profile, cancel, emit)?,
+     }
+     Ok(())
