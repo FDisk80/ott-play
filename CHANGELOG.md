@@ -151,6 +151,16 @@
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
 
+## [1.1.67] - Development line
+
+- Avoid prefetching directory entries when checking whether a native Local
+  folder is available. Keep the existing source checks, cancellation and
+  timeout behavior, and retain ownership until the directory has closed.
+- Extend failure-only browser file-handle diagnostics with identity checks in
+  both directions within the existing time limit. Permission decisions and
+  failure results remain unchanged; the underlying timeout is still under
+  investigation.
+
 ## [1.1.66] - Development line
 
 - Account for the final interface fixes in Classic bundle limits. The initial
