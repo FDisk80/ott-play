@@ -412,6 +412,30 @@ test("both native style creators preserve the author nonce without script author
                 })
             );
             const strip = targets.querySelector("#ott-tauri-drag-strip");
+            let captureStopped = false;
+            w._ = (text) => text;
+            w.PLAYER_VERSION = "test";
+            w.createCommandServerTransport = () => ({});
+            w.installDiagnosticsController = (_host, options) => {
+                options.onStatus({ message: "ready", sessionId: "capture" });
+                return {
+                    stopSession() {
+                        captureStopped = true;
+                    },
+                };
+            };
+            w.eval(func("src/index.ts", "initRemoteDiagnostics"));
+            w.initRemoteDiagnostics();
+            const captureButton = w.document.getElementById(
+                "remoteDiagnosticsIndicator"
+            );
+            assert(
+                Number(w.getComputedStyle(captureButton).zIndex) >
+                    Number(w.getComputedStyle(strip).zIndex),
+                "the real stop-capture button must stay above the drag hit area"
+            );
+            captureButton.click();
+            assert.equal(captureStopped, true);
             for (const open of [false, true]) {
                 w.document.documentElement.classList.toggle(
                     "ott-tauri-overlay-open",

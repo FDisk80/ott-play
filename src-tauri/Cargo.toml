@@ -1,6 +1,6 @@
 [package]
 name = "ottplay-tauri"
-version = "1.1.67"
+version = "1.1.68"
 description = "Tauri desktop shell for ottplay-foss (Mode B), reusing ottplay-core"
 edition = "2021"
 authors = ["4alvit <4alvit@users.noreply.github.com>"]
