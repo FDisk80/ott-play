@@ -1272,6 +1272,28 @@ function classicPlaybackProgramme(): any {
             isCurrent: observation.isCurrent,
             isCurrentBackend: observation.isCurrentBackend,
             isCurrentSource: observation.isCurrentSource,
+            previewOffset: function (delta: number): any {
+                if (
+                    !isFinite(delta) ||
+                    (observation.isCurrent && !observation.isCurrent())
+                )
+                    return null;
+                // Sample the same owned decoder as a submitted seek, without
+                // scheduling or applying a transport command.
+                classicPlaybackCapture();
+                if (observation.isCurrent && !observation.isCurrent())
+                    return null;
+                var current: any = classicPlaybackObservation();
+                // The observation is a fresh value, separate from player state.
+                current.intent = "offset";
+                current.value = delta;
+                current.plan =
+                    classicPlaybackHost().OttPlayCore.playbackSeekPlan(
+                        current.target,
+                        current
+                    );
+                return current;
+            },
             sourceId: classicPlaybackSource(classicPlaybackHost()),
         };
     },

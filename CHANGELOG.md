@@ -156,6 +156,9 @@
 - Avoid prefetching directory entries when checking whether a native Local
   folder is available. Keep the existing source checks, cancellation and
   timeout behavior, and retain ownership until the directory has closed.
+- Restore the destination marker and time on the playback timeline while
+  choosing a seek offset, including archive and finite media. Keep cancellation
+  and source changes from leaving a stale preview.
 - Extend failure-only browser file-handle diagnostics with identity checks in
   both directions within the existing time limit. Permission decisions and
   failure results remain unchanged; the underlying timeout is still under

@@ -4,11 +4,9 @@ const vm = require("node:vm");
 const fixture = require("./helpers/guide-runtime-fixture.cjs");
 const { sourceFunctions } = require("./test_port_vod.cjs");
 
-const footerUi = sourceFunctions("src/ui/index.ts", [
-    "closeList",
-    "updateChannelInfo",
-    "virtualTimeshiftProg",
-]);
+const footerUi =
+    sourceFunctions("src/ui/index.ts", ["closeList", "updateChannelInfo"]) +
+    sourceFunctions("src/utils/helpers.ts", ["virtualTimeshiftProg"]);
 const results = [];
 function taggedEqual(actual, expected, assertionId, message) {
     try {

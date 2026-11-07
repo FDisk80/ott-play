@@ -819,6 +819,31 @@ for (const hook of ["onPreview", "onSchedule"]) {
     assert.equal(calls, 0, "guard must recheck ownership after observing");
 }
 
+{
+    const f = controllerFixture();
+    let calls = 0;
+    const callback = f.controller.guard(() => {
+        calls++;
+    });
+    assert.equal(callback.current(), true);
+    assert.equal(
+        callback.current(),
+        true,
+        "Liveness reads do not consume the guard"
+    );
+    f.onObserve = () => {
+        f.onObserve = null;
+        f.controller.cancel();
+    };
+    assert.equal(
+        callback.current(),
+        false,
+        "Liveness rechecks reentrant cancellation after observe"
+    );
+    callback();
+    assert.equal(calls, 0);
+}
+
 // Separate visible gestures from the 500ms transport debounce. The decoder
 // deliberately lags behind every submitted target in these cross-flush cases.
 {

@@ -30,6 +30,8 @@ import { textBoundary } from "../localization/unicode";
 import { epgTimeColorPair, epgTimeColors, settings } from "../settings";
 import { swopLoadValue } from "../swop";
 import {
+    formatClockTime,
+    formatPlaybackTime,
     formatTwoDigits,
     getThumbnail,
     getViewportHeightScale,
@@ -38,6 +40,13 @@ import {
     listRowHeight,
     packListRowBoxes,
     time2time,
+    virtualTimeshiftProg,
+} from "../utils/helpers";
+
+export {
+    formatClockTime,
+    formatPlaybackTime,
+    virtualTimeshiftProg,
 } from "../utils/helpers";
 
 declare var $: any;
@@ -666,18 +675,8 @@ export function uiInit(): void {
         var t = progressFraction(e.clientX);
         if (w.playType < 0) {
             var r = Math.max(Math.round(t * w.stbGetLen()), 0);
-            var hr = Math.floor(r / 3600);
-            var mn = Math.floor((r % 3600) / 60);
-            var sc = r % 60;
             if (typeof w.showShift === "function")
-                w.showShift(
-                    ">> " +
-                        (hr ? hr + ":" : "") +
-                        _t2(mn) +
-                        ":" +
-                        _t2(sc) +
-                        " <<"
-                );
+                w.showShift(">> " + formatPlaybackTime(r) + " <<");
             if (typeof w.stbSetPosTime === "function") w.stbSetPosTime(r);
             return;
         }
@@ -736,6 +735,10 @@ export function uiInit(): void {
         if (!canSeekProgress()) return;
         var clientX = e.clientX;
         if (tooltipEl) {
+            if (w.__ottSeekPreview) w.__ottSeekPreview.suspended = true;
+            // Pointer hover takes ownership from a pending keyboard preview.
+            delete (tooltipEl as any).__ottSeekPreviewOwner;
+            $("span", tooltipEl).css("left", "");
             tooltipEl.style.display = "block";
             tooltipEl.style.top =
                 $progressDiv.offset().top - $progressDiv.height() + "px";
@@ -745,10 +748,7 @@ export function uiInit(): void {
         var frac = progressFraction(clientX);
         if (w.playType < 0) {
             var r = Math.max(Math.round(frac * w.stbGetLen()), 0);
-            var hr = Math.floor(r / 3600);
-            var mn = Math.floor((r % 3600) / 60);
-            var sc = r % 60;
-            $tooltipSpan.text((hr ? hr + ":" : "") + _t2(mn) + ":" + _t2(sc));
+            $tooltipSpan.text(formatPlaybackTime(r));
         } else if (
             w._prog100 &&
             w._prog100.time_to != null &&
@@ -795,14 +795,20 @@ export function hideInfoBarWhenReady(): void {
  * Immediately hide the info bar and clear the progress tooltip.
  *
  * @returns void
- * @sideeffect Clears `infoTimeout`. Hides `$infoBar`. Sets progress_span tooltip display to '' (shows it by clearing).
+ * @sideeffect Clears `infoTimeout`. Hides `$infoBar` and releases the progress tooltip.
  * @analysis Hides the info bar unconditionally, even if it is already hidden.
  */
 export function infoBarHide(): void {
     setInfoInteraction(false);
+    var preview = (window as any).__ottSeekPreview;
+    if (preview) preview.suspended = false;
     try {
         var tooltip = document.getElementById("progress_span");
-        if (tooltip) tooltip.style.display = "";
+        if (tooltip) {
+            delete (tooltip as any).__ottSeekPreviewOwner;
+            tooltip.style.display = "";
+            $("span", tooltip).css("left", "");
+        }
     } catch (e) {
         console.error(e);
     }
@@ -1730,28 +1736,6 @@ export function showSelectBox(
  *             Progress percentage is clamped to 0-100.
  */
 
-/**
- * Virtual timeshift window when EPG is missing: 1 hour lookback on the left,
- * live playhead at ~80% (15 min headroom on the right).
- */
-export function virtualTimeshiftProg(nowSec?: number): {
-    name: string;
-    descr: string;
-    time: number;
-    time_to: number;
-} {
-    var now = nowSec != null ? nowSec : Date.now() / 1000;
-    var lookback = 3600;
-    var fill = 0.8;
-    var total = lookback / fill;
-    return {
-        descr: "",
-        name: "",
-        time: now - lookback,
-        time_to: now - lookback + total,
-    };
-}
-
 export function updateChannelInfo(channelId: number): void {
     // A retained live guide subscription can fire during archive or VOD.
     // Those modes own their programme, playhead and footer rendering.
@@ -2021,6 +2005,8 @@ export function initBackgroundIntervals(): void {
         updateClockText("list_t", timeStr);
         updateClockText("list_s", secStr);
         updateClockText("permanentTime", timeStr);
+        var seekPreview = host.__ottSeekPreview;
+        if (seekPreview) seekPreview.refresh();
         // Drive archive OSD progress bar (stbPlayer.js:1744-1746 tick).
         // Skip live mode (playType === 0) — showChannelInfo already covers it.
         var w_t = window as any;
@@ -2309,23 +2295,6 @@ function scheduleListDetailUpdate(): void {
 /* ---------------------------------------------------------------------------
  * Time / position helpers
  * --------------------------------------------------------------------------- */
-
-/**
- * Convert a Unix timestamp (seconds since epoch) to a "HH:MM:SS" time string.
- *
- * @param e - Unix timestamp in seconds.
- * @returns string — Formatted as "HH:MM:SS".
- */
-export function formatClockTime(e: number): string {
-    var t = new Date(e * 1e3);
-    return (
-        _t2(t.getHours()) +
-        ":" +
-        _t2(t.getMinutes()) +
-        ":" +
-        _t2(t.getSeconds())
-    );
-}
 
 /**
  * Convert a time offset in seconds to a human-readable string like ">> 5 m 30 s" or "<< 2 m".

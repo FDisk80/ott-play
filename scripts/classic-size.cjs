@@ -867,8 +867,18 @@ const TIMEZONE_LOCAL_STARTUP_ALLOWANCE = Object.freeze({
     appearance: Object.freeze({ bytes: 311, gzipBytes: 150 }),
     entry: Object.freeze({ bytes: 2670, gzipBytes: 1069 }),
 });
+// New bounded allocation for the keyboard seek target, ownership and timeline
+// lifecycle feature. The observed stock-to-CI net pair is not a controlled
+// feature-cost measurement; optimized and combined release builds still need
+// the unchanged strict size gates. Count entry once in each aggregate only.
+// Evidence: docs/evidence/seek-preview-size-20261107.json.
+const SEEK_PREVIEW_ENTRY_ALLOWANCE = Object.freeze({
+    bytes: 2560,
+    gzipBytes: 896,
+});
 const BUDGET = Object.freeze({
     bytes:
+        SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.bytes +
@@ -909,6 +919,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
         INTERFACE_NOTIFICATION_SETTINGS_ALLOWANCE.entry.gzipBytes +
@@ -1129,6 +1140,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.bytes +
@@ -1183,6 +1195,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.providerEdem.gzipBytes +
@@ -1408,6 +1421,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
@@ -1506,6 +1520,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
@@ -1842,6 +1857,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         providerBundles: sets,
         relativeSeekEntryAllowance: RELATIVE_SEEK_ENTRY_ALLOWANCE,
         schema: 1,
+        seekPreviewEntryAllowance: SEEK_PREVIEW_ENTRY_ALLOWANCE,
         shakaRetirementEntryAllowance: SHAKA_RETIREMENT_ENTRY_ALLOWANCE,
         shakaTracksEntryAllowance: SHAKA_TRACKS_ENTRY_ALLOWANCE,
         stbPlayerEntryAllowance: STB_PLAYER_ENTRY_ALLOWANCE,
@@ -2198,6 +2214,7 @@ function writeBuildBundleReport(
             run: label(process.env.GITHUB_RUN_ID),
             runAttempt: label(process.env.GITHUB_RUN_ATTEMPT),
             schema: 1,
+            seekPreviewEntryAllowance: SEEK_PREVIEW_ENTRY_ALLOWANCE,
             shakaRetirementEntryAllowance: SHAKA_RETIREMENT_ENTRY_ALLOWANCE,
             shakaTracksEntryAllowance: SHAKA_TRACKS_ENTRY_ALLOWANCE,
             source: label(context.source || process.env.GITHUB_SHA),
@@ -2325,6 +2342,7 @@ module.exports = {
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PROVIDER_BUDGET,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,
+    SEEK_PREVIEW_ENTRY_ALLOWANCE,
     SHAKA_RETIREMENT_ENTRY_ALLOWANCE,
     SHAKA_TRACKS_ENTRY_ALLOWANCE,
     STB_PLAYER_ENTRY_ALLOWANCE,

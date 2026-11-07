@@ -11,6 +11,192 @@ const origin = "http://127.0.0.1:4198";
 const nonce = "ottplay-channel-fixture";
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
+test("pending seek shows a bounded timeline target in Classic and Modern", async ({
+    page,
+}) => {
+    const { declarations } = require("../helpers/localized-keyboard.cjs");
+    const errors = [];
+    const requests = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) => {
+        requests.push(route.request().url());
+        return route.abort("blockedbyclient");
+    });
+    await page.setContent(
+        '<!doctype html><body><div id="info1"><div id="timelineFixture"></div></div><div id="dialogbox"></div></body>'
+    );
+    await page.addStyleTag({ content: read("styles/player.css") });
+    await page.evaluate((html) => {
+        const source = new DOMParser().parseFromString(html, "text/html");
+        document.getElementById("info1").style.display = "block";
+        const bar = document.importNode(
+            source.getElementById("progress_div"),
+            true
+        );
+        document.getElementById("timelineFixture").appendChild(bar);
+        Object.assign(document.getElementById("timelineFixture").style, {
+            bottom: "80px",
+            left: "24px",
+            position: "fixed",
+            right: "24px",
+        });
+        Object.assign(bar.style, { height: "8px", margin: "0" });
+        Object.assign(document.getElementById("progress_span").style, {
+            border: "3px solid yellow",
+            height: "12px",
+            width: "12px",
+        });
+    }, read("index.html"));
+    await page.addScriptTag({ content: read("js/jquery-1.11.1.min.js") });
+    await page.evaluate(() => {
+        Object.assign(window, {
+            _: (text) => text,
+            channels: { one: { rec: 24 } },
+            curList: ["one"],
+            fixtureEpoch: new Date(2026, 10, 7, 13, 0, 0).getTime() / 1000,
+            fixtureSeekCalls: [],
+            fixtureSeekMode: "vod",
+            fixtureSeekValid: true,
+            formatSeekOffset: (delta) => String(delta),
+            infoBarHide() {},
+            keys: { ENTER: 13, RETURN: 27, RIGHT: 39 },
+            playType: -1,
+            primaryIndex: 0,
+            shiftArchive: (delta) => window.fixtureSeekCalls.push(delta),
+            sInfoRew: false,
+        });
+        window._prog100 = { time: fixtureEpoch, time_to: fixtureEpoch + 1800 };
+        window.__ottClassicPlayback = {
+            context: () => ({
+                isCurrent: () => fixtureSeekValid,
+                previewOffset: (delta) => ({
+                    duration: 1000,
+                    now: fixtureEpoch + 1800,
+                    plan:
+                        fixtureSeekMode === "vod"
+                            ? {
+                                  action: "seek",
+                                  position: Math.max(
+                                      0,
+                                      Math.min(1000, 300 + delta)
+                                  ),
+                              }
+                            : {
+                                  action: "open-archive",
+                                  archiveStart: fixtureEpoch + 1800 + delta,
+                              },
+                }),
+            }),
+            guard: (callback) =>
+                Object.assign(callback, { current: () => fixtureSeekValid }),
+        };
+    });
+    // Only this dialog's timer ports are controlled; browser timers stay intact.
+    // Policy and commit timing have unit coverage; this case checks geometry.
+    await page.addScriptTag({
+        content:
+            "(function(setTimeout,clearTimeout){" +
+            declarations("src/utils/helpers.ts", [
+                "formatClockTime",
+                "formatPlaybackTime",
+                "formatTwoDigits",
+                "virtualTimeshiftProg",
+            ]) +
+            declarations("src/channels/index.ts", ["showPlaybackSeekDialog"]) +
+            "window.showPlaybackSeekDialog=showPlaybackSeekDialog;})(function(){return 1;},function(){});",
+    });
+    const geometry = () =>
+        page.evaluate(() => {
+            const marker = document.getElementById("progress_span");
+            const rect = (element) => {
+                const { left, right, width, height } =
+                    element.getBoundingClientRect();
+                return { height, left, right, width };
+            };
+            const textRange = document.createRange();
+            textRange.selectNodeContents(marker.querySelector("span"));
+            return {
+                bar: rect(document.getElementById("progress_div")),
+                glyphs: rect(textRange),
+                label: rect(marker.querySelector("span")),
+                marker: rect(marker),
+                visible: getComputedStyle(marker).display !== "none",
+            };
+        });
+    for (const modern of [false, true]) {
+        if (modern)
+            await page.evaluate(() => {
+                document.body.classList.add("interface-modern");
+                const container = document.createElement("div");
+                container.id = "modernPlayer";
+                document.body.appendChild(container);
+                container.appendChild(
+                    document.getElementById("timelineFixture")
+                );
+                document
+                    .getElementById("progress_div")
+                    .classList.add("modern-player-progress");
+                document.getElementById("info1").style.display = "none";
+            });
+        for (const width of [1280, 360]) {
+            await page.setViewportSize({ height: 720, width });
+            await page
+                .locator("#progress_span > span")
+                .evaluate((label, width) => {
+                    label.style.fontSize = width === 360 ? "24px" : "12px";
+                }, width);
+            for (const [mode, delta, expected] of [
+                ["vod", 10, "05:10"],
+                ["vod", -1000, "00:00"],
+                ["vod", 699, "16:39"],
+                ["archive", -660, "13:19:00"],
+                ["archive", -10, "13:29:50"],
+            ]) {
+                await page.evaluate(
+                    ({ mode, delta }) => {
+                        window.fixtureSeekMode = mode;
+                        window.playType = mode === "vod" ? -1 : 1;
+                        showPlaybackSeekDialog(delta);
+                    },
+                    { delta, mode }
+                );
+                await expect(page.locator("#progress_span > span")).toHaveText(
+                    expected
+                );
+                const g = await geometry();
+                expect(g.visible).toBe(true);
+                expect(g.marker.width).toBeGreaterThan(0);
+                expect(g.marker.height).toBeGreaterThan(0);
+                expect(g.marker.left).toBeGreaterThanOrEqual(g.bar.left - 0.5);
+                expect(g.marker.right).toBeLessThanOrEqual(g.bar.right + 0.5);
+                expect(g.label.left).toBeGreaterThanOrEqual(-0.5);
+                expect(g.label.right).toBeLessThanOrEqual(width + 0.5);
+                expect(g.glyphs.left).toBeGreaterThanOrEqual(-0.5);
+                expect(g.glyphs.right).toBeLessThanOrEqual(width + 0.5);
+                // Intrinsic label sizing must contain all glyphs in either skin.
+                expect(g.glyphs.left).toBeGreaterThanOrEqual(
+                    g.label.left - 0.5
+                );
+                expect(g.glyphs.right).toBeLessThanOrEqual(g.label.right + 0.5);
+                if (mode === "vod" && delta === 10) {
+                    await page.evaluate(() => dialogBoxKeyHandler(keys.RIGHT));
+                    await expect(
+                        page.locator("#progress_span > span")
+                    ).toHaveText("05:20");
+                    expect((await geometry()).marker.left).toBeGreaterThan(
+                        g.marker.left
+                    );
+                }
+                await page.evaluate(() => dialogBoxKeyHandler(keys.RETURN));
+                await expect(page.locator("#progress_span")).toBeHidden();
+                expect(await page.evaluate(() => fixtureSeekCalls)).toEqual([]);
+            }
+        }
+    }
+    expect(errors).toEqual([]);
+    expect(requests).toEqual([]);
+});
+
 function nativePolicy() {
     const security = JSON.parse(read("src-tauri/tauri.conf.json")).app.security;
     const disabled = security.dangerousDisableAssetCspModification;
@@ -6245,6 +6431,21 @@ test("Modern fullscreen timeline and audio picker preserve the playback owner", 
             progress.x + progress.width / 4,
             progress.y - progress.height / 2 + 0.5
         );
+        await expect(page.locator("#progress_span")).toBeVisible();
+        const hoverBounds = await page
+            .locator("#progress_span > span")
+            .evaluate((span) => {
+                const range = document.createRange();
+                range.selectNodeContents(span);
+                const glyphs = range.getBoundingClientRect();
+                const box = span.getBoundingClientRect();
+                return {
+                    left: glyphs.left - box.left,
+                    right: box.right - glyphs.right,
+                };
+            });
+        expect(hoverBounds.left).toBeGreaterThanOrEqual(-0.5);
+        expect(hoverBounds.right).toBeGreaterThanOrEqual(-0.5);
         await expect
             .poll(() => page.evaluate(() => __modernSeeks.length))
             .toBe(1);

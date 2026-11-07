@@ -8,10 +8,11 @@ const { classicName } = require("./helpers/english-source-fixture.cjs");
 const root = path.resolve(__dirname, "..");
 const bundle = process.argv[2];
 const runtimeName = (name) => (bundle ? classicName(name) : name);
-const source = fs.readFileSync(
-    bundle || path.join(root, "src/ui/index.ts"),
-    "utf8"
-);
+const source = bundle
+    ? fs.readFileSync(bundle, "utf8")
+    : ["src/ui/index.ts", "src/utils/helpers.ts"]
+          .map((file) => fs.readFileSync(path.join(root, file), "utf8"))
+          .join("\n");
 const ast = ts.createSourceFile(
     bundle || "ui.ts",
     source,
@@ -25,6 +26,8 @@ const names = [
     "virtualTimeshiftProg",
     "_t2",
     "formatClockTime",
+    "formatPlaybackTime",
+    "formatTwoDigits",
 ].map(runtimeName);
 const functions = ast.statements.filter(
     (n) => ts.isFunctionDeclaration(n) && names.includes(n.name.text)
@@ -569,4 +572,26 @@ console.log(
         passed +
         " actual uiInit ES5 scenarios" +
         (bundle ? " from " + bundle : "")
+);
+check(
+    "pointer hover takes ownership from pending keyboard target",
+    {},
+    ({ w, send }) => {
+        const marker = w.document.getElementById("progress_span");
+        const pending = {
+            refresh() {
+                throw Error("Retired keyboard owner");
+            },
+            suspended: false,
+        };
+        w.__ottSeekPreview = pending;
+        marker.__ottSeekPreviewOwner = pending;
+        marker.querySelector("span").style.left = "-40px";
+        send("mousemove", 110);
+        assert.equal(marker.__ottSeekPreviewOwner, undefined);
+        assert.equal(w.__ottSeekPreview, pending);
+        assert.equal(pending.suspended, true);
+        assert.equal(marker.querySelector("span").style.left, "");
+        assert.equal(marker.querySelector("span").textContent, "30:50");
+    }
 );

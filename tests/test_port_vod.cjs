@@ -288,6 +288,7 @@ function fixture() {
                 "coreCall",
                 "coreField",
             ]) +
+            sourceFunctions("src/utils/helpers.ts", ["virtualTimeshiftProg"]) +
             sourceFunctions("src/ui/index.ts", [
                 "setInfoInteraction",
                 "mediaPlaybackControls",
@@ -298,7 +299,6 @@ function fixture() {
                 "updateMediaInfo",
                 "finiteProgrammeClock",
                 "updateChannelInfo",
-                "virtualTimeshiftProg",
                 "initBackgroundIntervals",
                 "_t2",
             ]) +
@@ -667,7 +667,8 @@ if (require.main === module) {
         );
         c.document = dom.window.document;
         vm.runInContext(
-            sourceFunctions("src/ui/index.ts", ["renderButtonHint"]),
+            sourceFunctions("src/utils/helpers.ts", ["virtualTimeshiftProg"]) +
+                sourceFunctions("src/ui/index.ts", ["renderButtonHint"]),
             c
         );
         const port = c.__ottClassicScreenPort;
@@ -1195,6 +1196,9 @@ if (require.main === module) {
         };
         vm.runInContext(
             localizationRuntime() +
+                sourceFunctions("src/utils/helpers.ts", [
+                    "virtualTimeshiftProg",
+                ]) +
                 sourceFunctions("src/ui/index.ts", [
                     "confirmBox",
                     "localizedTextHtml",

@@ -1250,15 +1250,15 @@ check(
 );
 
 // Exercise the real list close/footer/clock with the guide owner and transport.
-const footerUi = require("./test_port_vod.cjs").sourceFunctions(
-    "src/ui/index.ts",
-    [
+const footerUi =
+    require("./test_port_vod.cjs").sourceFunctions("src/ui/index.ts", [
         "closeList",
         "updateChannelInfo",
-        "virtualTimeshiftProg",
         "initBackgroundIntervals",
-    ]
-);
+    ]) +
+    require("./test_port_vod.cjs").sourceFunctions("src/utils/helpers.ts", [
+        "virtualTimeshiftProg",
+    ]);
 function installFooterUi(f) {
     const h = f.host,
         query = h.$;
@@ -1435,16 +1435,16 @@ check(
     }
 );
 
-const liveFooter = require("./test_port_vod.cjs").sourceFunctions(
-    "src/ui/index.ts",
-    [
+const liveFooter =
+    require("./test_port_vod.cjs").sourceFunctions("src/ui/index.ts", [
         "_t2",
         "formatProgramDateTime",
         "initBackgroundIntervals",
         "updateChannelInfo",
+    ]) +
+    require("./test_port_vod.cjs").sourceFunctions("src/utils/helpers.ts", [
         "virtualTimeshiftProg",
-    ]
-);
+    ]);
 function installLiveFooter(f, paintLimit = 12) {
     const h = f.host;
     h.channels[1].rec = 0;

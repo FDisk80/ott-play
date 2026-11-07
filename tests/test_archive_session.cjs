@@ -291,8 +291,11 @@ for (const refusal of [
     vm.runInContext(
         require("./test_port_vod.cjs").sourceFunctions("src/ui/index.ts", [
             "updateChannelInfo",
-            "virtualTimeshiftProg",
-        ]),
+        ]) +
+            require("./test_port_vod.cjs").sourceFunctions(
+                "src/utils/helpers.ts",
+                ["virtualTimeshiftProg"]
+            ),
         c
     );
     c.epgArray = [
