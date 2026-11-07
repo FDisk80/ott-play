@@ -585,7 +585,17 @@ for (const refusal of [
     ])
         assert.equal(c.formatSeekOffset(input), expected);
 }
-for (const announce of [false, true]) {
+// The public callback retains the legacy timeShift ABI after ES5 lowering.
+{
+    const c = fixture();
+    assert.equal(c.replayFromLiveOffset, c.timeShift);
+    assert.equal(
+        c.replayFromLiveOffset.length,
+        1,
+        "legacy rewind callback arity"
+    );
+}
+for (const announce of [false, true, undefined]) {
     const c = fixture();
     include(c, ["formatSeekOffset"], "src/ui/index.ts");
     const offset = 60.0009999275207519531;
@@ -603,7 +613,7 @@ for (const announce of [false, true]) {
     );
     assert.deepEqual(
         c.effects.filter((e) => e[0] === "message"),
-        announce ? [["message", "<< 1 m "]] : [],
+        announce !== false ? [["message", "<< 1 m "]] : [],
         "the request owns its feedback choice across guide and PIN callbacks"
     );
 }
@@ -634,6 +644,11 @@ for (const announce of [false, true]) {
     assert.deepEqual(c.opens(), [["open", "archive:101:999970", 0]]);
     assert.equal(c.__ottClassicPlayback.snapshot().target.archiveStart, 999970);
     assert.equal(c.prevArr[0].ci, 101);
+    assert.deepEqual(
+        c.effects.filter((e) => e[0] === "message"),
+        [["message", "-30"]],
+        "the one-argument public callback still announces direct rewind"
+    );
 }
 {
     const c = fixture();
