@@ -2225,7 +2225,14 @@ function startCorePlayback(
                     // startLoad() would loop forever (no-EPG archive bad URL,
                     // purged segments, proxy HTML error pages).
                     var det = String((data && data.details) || "");
-                    if (!recovery.network(det)) {
+                    // startLoad resumes level/fragment controllers, but cannot
+                    // fetch a manifest that never loaded. Let the bounded outer
+                    // source retry create a fresh loader instead of waiting forever.
+                    if (
+                        det === "manifestLoadError" ||
+                        det === "manifestLoadTimeOut" ||
+                        !recovery.network(det)
+                    ) {
                         failHls(
                             window.OttPlayCore.playbackParsingFailure(det)
                                 ? "parse"

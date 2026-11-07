@@ -2136,6 +2136,58 @@ for (const trigger of ["nativeFallbacks", "engineStarts", "policy"]) {
         }
     );
 }
+for (const detail of ["manifestLoadError", "manifestLoadTimeOut"]) {
+    test(
+        "HLS startup " + detail + " schedules a real bounded source retry",
+        () => {
+            const { w, players } = fixture();
+            const timers = new Map();
+            let sequence = 0;
+            w.setTimeout = (callback) => {
+                timers.set(++sequence, callback);
+                return sequence;
+            };
+            w.clearTimeout = (id) => timers.delete(id);
+            w.playerMode = 1;
+            w.stbPlay("https://source.invalid/movie.m3u8", 37);
+            for (let attempt = 0; attempt < 3; attempt++) {
+                const player = players.at(-1);
+                assert.equal(player.url, "https://source.invalid/movie.m3u8");
+                assert.equal(player.config.startPosition, 37);
+                assert.equal(player.levels.length, 0);
+                player.events.error(null, {
+                    details: detail,
+                    fatal: true,
+                    type: "network",
+                });
+                assert.equal(
+                    player.destroyCalls,
+                    1,
+                    "a failed initial manifest must leave the stalled engine"
+                );
+                assert.deepEqual(
+                    player.startLoads,
+                    [],
+                    "startLoad has no playlist to resume before the manifest loads"
+                );
+                if (attempt === 2) {
+                    assert.equal(
+                        timers.size,
+                        0,
+                        "source retry budget is finite"
+                    );
+                } else {
+                    assert.equal(timers.size, 1);
+                    const [id, retry] = timers.entries().next().value;
+                    timers.delete(id);
+                    retry();
+                    assert.equal(players.length, attempt + 2);
+                }
+            }
+            w.stbStop();
+        }
+    );
+}
 test("HLS outer recovery samples the VOD position before destroy resets the media", () => {
     const { w, players } = fixture();
     let retry;
