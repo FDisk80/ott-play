@@ -153,6 +153,8 @@
 
 ## [1.1.67] - Development line
 
+- Return to the live stream when selecting the same channel from the channel
+  list during archive playback.
 - Avoid prefetching directory entries when checking whether a native Local
   folder is available. Keep the existing source checks, cancellation and
   timeout behavior, and retain ownership until the directory has closed.
