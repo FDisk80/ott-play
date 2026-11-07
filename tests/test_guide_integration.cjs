@@ -1820,6 +1820,44 @@ check(
     }
 );
 check(
+    "Archive footer follows the EPG label setting in every guide view",
+    () => {
+        for (const open of ["epgList", "epgListAlpha", "recordsList"]) {
+            const f = fixture(),
+                h = f.host;
+            h.sShowArchive = 0;
+            vm.runInContext(
+                fs.readFileSync(
+                    path.resolve(__dirname, "../locales/russian.js"),
+                    "utf8"
+                ),
+                h
+            );
+            h[open](0, 0, false);
+            f.tick();
+            f.complete([f.row(9900, 9950, "Past")]);
+            for (const rec of [48, 0]) {
+                h.channels[1].rec = rec;
+                for (const label of [undefined, 0, 1]) {
+                    h.sEpgArchiveLabel = label;
+                    h.renderEpgFooter();
+                    const footer = f.elements.listPodval.innerHTML;
+                    const visible = rec > 0 && label !== 0;
+                    assert.equal(
+                        footer.includes('class="epg-footer-archive"'),
+                        visible,
+                        open + ": archive=" + rec + ", label=" + label
+                    );
+                    assert.equal(
+                        footer.includes("Архив: ENTER на прошедшей передаче"),
+                        visible
+                    );
+                }
+            }
+        }
+    }
+);
+check(
     "Hiding the Archive word preserves programme identity and archive playback",
     () => {
         const f = fixture(),
@@ -1836,7 +1874,8 @@ check(
         assert(
             html.includes('class="btn green" role="img" aria-label="Archive"')
         );
-        h.selectEpg();
+        assert(!f.elements.listPodval.innerHTML.includes("epg-footer-archive"));
+        assert.equal(h.epgKeyHandler(h.keys.ENTER), true);
         assert(
             f.calls.some((call) => call[0] === "archive" && call[1] === 9900)
         );

@@ -1017,15 +1017,7 @@ export function showPage(presentationOnly = false): void {
     var modernLayout = modern
         ? modern.prepare(dataArr, getListItemFn, listInElement)
         : null;
-    // Bind separators to this formatter, never to a previous list or its caption.
     var rowFormatter = getListItemFn as any;
-    $(listInElement).toggleClass(
-        "content-list-rows",
-        !!(
-            rowFormatter &&
-            (rowFormatter.__ottContentRows || rowFormatter.__ottCatalog)
-        )
-    );
     var pageSz = modernLayout
         ? modernLayout.pageSize
         : listFitPageSize(settings.pageSize || 25);
