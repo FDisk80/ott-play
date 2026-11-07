@@ -153,7 +153,7 @@ export function applyTimezoneSetting(index: number): number {
  * @property epgArchiveLabel   - Show the Archive word beside the EPG marker (0/1).
  * @property epgTimeColor      - EPG time color (0 inherits theme, 1–5 legacy, 6–36466 custom HSV).
  * @property showScroll        - Show scrollbar (0/1).
- * @property showListSeparators - Show Classic content-list row separators (0/1).
+ * @property showListSeparators - Show list row separators across the interface (0/1).
  * @property showDescription   - Show programme description (0/1).
  * @property showProgram       - Show programme title (0/1).
  * @property preview           - Preview window mode (0/1/2).

@@ -321,3 +321,204 @@ test("hidden native sampling and transport polling continue without DOM work", (
         f.close();
     }
 });
+
+const footerLayout = functions("src/index.ts", ["setFontSize"]);
+const audioBadge = functions("src/ui/index.ts", ["refreshAudioBadge"]);
+
+function footerLayoutFixture() {
+    const dom = new JSDOM(
+        fs.readFileSync(path.join(root, "index.html"), "utf8"),
+        {
+            runScripts: "outside-only",
+        }
+    );
+    const w = dom.window;
+    w.eval(fs.readFileSync(path.join(root, "js/jquery-1.11.1.min.js"), "utf8"));
+    let hasAudio = false;
+    let scale = 1;
+    let proportional = false;
+    let unavailableMetrics = false;
+    const errors = [];
+    // jsdom has no layout. Supply font measurements only; the real setFontSize
+    // owns every width, font size and padding written to the actual footer DOM.
+    const width = w.$.fn.width;
+    const glyphWidth = (text, px) =>
+        Array.from(text).reduce((total, glyph) => {
+            const em =
+                glyph === ":"
+                    ? 0.3
+                    : glyph === " "
+                      ? 0.25
+                      : proportional && glyph !== "9"
+                        ? 0.8
+                        : 0.55;
+            return total + em * px;
+        }, 0);
+    const badgeWidth = (px) => px * (proportional ? 1.9 : 1.5);
+    w.$.fn.width = function (...args) {
+        if (args.length || this[0]?.id !== "testFont")
+            return width.apply(this, args);
+        if (unavailableMetrics) return 0;
+        const px = parseFloat(this[0].style.fontSize);
+        if (this[0].children.length) {
+            const badge = this[0].firstElementChild;
+            assert.equal(badge.className, "btn");
+            assert.equal(badge.style.display, "inline-block");
+            assert.equal(
+                badge.id,
+                "",
+                "The measurement must not duplicate an ID"
+            );
+            return badgeWidth(px);
+        }
+        return glyphWidth(this.text(), px);
+    };
+    Object.assign(w, {
+        _: (value) => value,
+        $i1: w.$("#info1"),
+        console: { error: (error) => errors.push(error) },
+        fontFamilyList: [""],
+        isListVisible: false,
+        loadSubtitleAppearance() {},
+        setListPos() {},
+        settings: {
+            fontShift: 0,
+            fontSize: 0,
+            osdOpacity: 5,
+            pageSize: 15,
+            permanentTime: 0,
+        },
+        stbAudioTracksExists: () => hasAudio,
+        stbSetOsdOpacity() {},
+        tooltip: null,
+        uiFontScale: () => scale,
+    });
+    w.eval(footerLayout + "\n" + audioBadge);
+    return {
+        close: () => dom.window.close(),
+        errors,
+        layout(viewport, fontScale, wideFont, missingMetrics = false) {
+            w.innerWidth = viewport[0];
+            w.innerHeight = viewport[1];
+            scale = fontScale;
+            proportional = wideFont;
+            unavailableMetrics = missingMetrics;
+            w.setFontSize();
+        },
+        requiredWidth() {
+            const px = parseFloat(w.$("#data").css("font-size"));
+            const secondsPx = parseFloat(w.$("#current_s").css("font-size"));
+            return (
+                badgeWidth(px) +
+                glyphWidth(" 23:58", px) +
+                glyphWidth(":58", secondsPx)
+            );
+        },
+        tracks(available) {
+            hasAudio = available;
+            w.refreshAudioBadge();
+        },
+        w,
+    };
+}
+
+test("footer reserves audio badge and complete clock across fonts, scales and resizes", () => {
+    const f = footerLayoutFixture();
+    try {
+        const { w } = f;
+        const badge = w.document.getElementById("audio_badge");
+        w.$("#current_t").text("23:58");
+        w.$("#current_s").text(":58");
+        for (const modern of [false, true]) {
+            w.document.body.className = modern ? "interface-modern" : "";
+            for (const viewport of [
+                [640, 360],
+                [1024, 768],
+                [1280, 720],
+                [1920, 1080],
+                [3840, 2160],
+                [722, 1230],
+                [360, 800],
+            ]) {
+                for (const scale of [0.2, 1, 1.5, 2, 1]) {
+                    for (const wideFont of [false, true]) {
+                        f.tracks(false);
+                        f.layout(viewport, scale, wideFont);
+                        const dataWidth = w.$("#data").width();
+                        assert.ok(
+                            dataWidth >= f.requiredWidth(),
+                            `Complete A/HH:MM:SS row fits: ${viewport}, ${scale}, ${wideFont}`
+                        );
+                        const occupied =
+                            w.$("#picon").width() +
+                            w.$("#channel").width() +
+                            parseFloat(w.$("#channel").css("padding-left")) +
+                            dataWidth +
+                            parseFloat(w.$("#info1").css("padding-left")) +
+                            parseFloat(w.$("#info1").css("padding-right"));
+                        assert.ok(
+                            occupied <= viewport[0],
+                            "All footer columns fit inside the viewport"
+                        );
+                        assert.ok(w.$("#channel").width() > 0);
+                        assert.ok(
+                            w.$("#picon").width() <= w.$("#listTime").width(),
+                            "A narrow screen may shrink the picon without changing the list clock"
+                        );
+                        if (viewport[0] >= viewport[1])
+                            assert.equal(
+                                w.$("#picon").width(),
+                                w.$("#listTime").width()
+                            );
+                        assert.equal(
+                            badge.style.display,
+                            "none",
+                            "Measuring cannot show the real badge"
+                        );
+                        f.tracks(true);
+                        assert.equal(badge.style.display, "inline-block");
+                        assert.equal(badge.title, "Switch sound track (S)");
+                        assert.equal(
+                            w.$("#data").width(),
+                            dataWidth,
+                            "Late audio tracks fit without another resize"
+                        );
+                        assert.equal(
+                            w.$("#current_t").text() + w.$("#current_s").text(),
+                            "23:58:58"
+                        );
+                        f.tracks(false);
+                        assert.equal(
+                            w.$("#data").width(),
+                            dataWidth,
+                            "Returning to single audio does not move the clock"
+                        );
+                        assert.equal(w.$("#testFont").text(), "");
+                        assert.equal(
+                            w.document.querySelectorAll("#audio_badge").length,
+                            1
+                        );
+                    }
+                }
+            }
+        }
+        assert.deepEqual(f.errors, []);
+    } finally {
+        f.close();
+    }
+});
+
+test("footer keeps a scaled badge reserve when font measurement is unavailable", () => {
+    const f = footerLayoutFixture();
+    try {
+        for (const scale of [0.2, 1, 2]) {
+            f.layout([1280, 720], scale, false, true);
+            f.tracks(true);
+            assert.ok(f.w.$("#data").width() >= f.requiredWidth());
+            assert.ok(f.w.$("#channel").width() > 0);
+        }
+        assert.deepEqual(f.errors, []);
+    } finally {
+        f.close();
+    }
+});

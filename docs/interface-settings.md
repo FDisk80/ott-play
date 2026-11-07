@@ -50,11 +50,13 @@ upstream links and the earlier OTT-play lineage in English.
   independent of the theme. The preview and its opaque mask use one shared
   rectangle. Resizing recalculates both row and logo/progress geometry.
   Classic details also stay below the header when reduced video is disabled.
-- **Row separators:** **Lists settings → Show list separators (Classic)**
-  hides or restores the thin lines between rows in Category selection, Channel
-  list, EPG and archive. The default is **yes**, preserving the current theme's
-  appearance; themes without these lines remain unchanged. The setting does not
-  change Modern mode, settings rows, dialogs, focus indicators, or outer borders.
+- **Row separators:** **Lists settings → Show list separators** hides or
+  restores the thin lines between rows throughout Classic and Modern interfaces,
+  including Menu, all Settings pages, Recordings, Category selection, Channel
+  list, EPG, archive, media lists and dialog lists. The default is **yes**,
+  preserving the current theme's appearance; themes without these lines remain
+  unchanged. Row sizes, focus indicators, catalog card outlines and outer borders
+  are preserved.
   It is saved for the client, applies immediately after Save, and survives
   provider changes and restarts. Cancel keeps the previous value. Backups and
   remote settings use `showListSeparators` (`1` = yes, `0` = no); resetting this

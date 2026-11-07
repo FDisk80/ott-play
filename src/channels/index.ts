@@ -1856,7 +1856,6 @@ export function renderGuideView(
                   return "&nbsp;&nbsp;" + metadataText(row.name);
               }
             : itemEPG;
-    w.getListItemFn.__ottContentRows = true;
     w.detailListAction = w.detailListActionFn = function () {
         detailEPG(channelId);
     };
@@ -1963,7 +1962,7 @@ export function renderEpgFooter(): void {
         '<span id="bTimer">' +
         w.renderButtonHint(w.keys.GREEN, "", "Timer", w.strTools, "8") +
         "</span>" +
-        (ch.rec
+        (ch.rec && w.sEpgArchiveLabel !== 0
             ? '<span class="epg-footer-archive">' +
               (w._
                   ? w._("Archive: ENTER on past programs")
@@ -3057,7 +3056,6 @@ export function bucketsList(
         );
     };
 
-    w.getListItemFn.__ottContentRows = true;
     var detailEl = document.getElementById("listDetail");
     if (detailEl) detailEl.innerHTML = "";
 

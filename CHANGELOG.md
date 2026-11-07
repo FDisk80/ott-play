@@ -163,6 +163,12 @@
   both directions within the existing time limit. Permission decisions and
   failure results remain unchanged; the underlying timeout is still under
   investigation.
+- Keep the full information-panel clock visible beside the audio-track
+  indicator across font scales and screen sizes.
+- Apply Show list separators to Menu, Settings, Recordings and shared lists
+  in Classic and Modern, preserving focus and row geometry.
+- Hide the archive keyboard hint when the EPG Archive label is disabled,
+  without changing archive playback.
 
 ### Upgrade
 

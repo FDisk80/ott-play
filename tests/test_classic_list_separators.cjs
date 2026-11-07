@@ -64,9 +64,11 @@ function fixture() {
     Object.assign(w, {
         _: (value) => value,
         $tooltipSpan: null,
+        accessMediaPlugin: () => null,
         bodyColor: "#fff",
         categoryRowsProjection: null,
         catIndex: 0,
+        catsArray: ["Fixture category"],
         channels: { 1: { channel_name: "Fixture" } },
         closeList() {},
         curColor: "gold",
@@ -77,7 +79,9 @@ function fixture() {
         epgKeyHandler() {},
         epgListMode: 0,
         epgreturn: false,
+        epgTimeColorDialog() {},
         favoritesArray: [],
+        formatEpgTime: () => "12:00",
         getListItemFn: null,
         getViewportHeightScale: () => 1,
         getViewportWidthScale: () => 1,
@@ -151,7 +155,15 @@ function fixture() {
                     "setListArrays",
                     "createSettingsPage",
                 ],
-                ["window.settingsLists", "window._setSetup"]
+                [
+                    "window.settingsLists",
+                    "window.settingsInfobar",
+                    "window.settingsChannels",
+                    "window.settingsButtons",
+                    "window.settingsMenu",
+                    "window.settingsManage",
+                    "window._setSetup",
+                ]
             )
         ),
         context
@@ -161,7 +173,13 @@ function fixture() {
         context
     );
     vm.runInContext(
-        compile(selected("src/ui/index.ts", ["epgTimeCssColor", "showPage"])),
+        compile(
+            selected("src/ui/index.ts", [
+                "epgTimeCssColor",
+                "popupList",
+                "showPage",
+            ])
+        ),
         context
     );
     vm.runInContext(
@@ -169,6 +187,7 @@ function fixture() {
             selected("src/channels/index.ts", [
                 "bucketsList",
                 "renderGuideView",
+                "renderCategoryRecordings",
             ])
         ),
         context
@@ -182,7 +201,11 @@ function fixture() {
     // Keep the real ScreenPort and its classic/typed formatter aliases.
     w.listCaptionElement = w.document.getElementById("listCaption");
     w.listFooter = w.document.getElementById("listPodval");
+    w.listFooterElement = w.listFooter;
     w.optionsArr = [{ action: w.settingsLists, name: "Lists settings" }];
+    w.toggleProviderSettingsVisibility = function () {};
+    w.popupActions = [w.optionsList, w.toggleProviderSettingsVisibility];
+    w.popupArray = ["Settings", "Provider settings"];
     w.__ottClassicGuide = { cancelConsumers() {}, encodeRows: (rows) => rows };
     w.settings.interfaceTheme = 0;
     w.setColor();
@@ -191,7 +214,19 @@ function fixture() {
         data,
         dom,
         render(kind) {
-            if (kind === "category") {
+            if (kind === "menu") {
+                w.popupList();
+            } else if (kind === "settings") {
+                w.optionsList();
+            } else if (kind.startsWith("settings")) {
+                w[kind]();
+            } else if (kind === "recordings") {
+                w.renderCategoryRecordings(0, {
+                    channelIds: { one: 1 },
+                    rows: [{ name: "One", programmeId: "one", time: 0 }],
+                    selectedId: "one",
+                });
+            } else if (kind === "category") {
                 w.bucketsList(0, undefined, {
                     key() {},
                     labels: ["One", "Two"],
@@ -317,90 +352,211 @@ test("separator setting keeps the existing default and rejects invalid values", 
     f.dom.window.close();
 });
 
-for (const kind of ["category", "channel", "epg", "archive"]) {
+const listKinds = [
+    "category",
+    "channel",
+    "epg",
+    "archive",
+    "recordings",
+    "menu",
+    "settings",
+    "settingsLists",
+    "settingsInfobar",
+    "settingsChannels",
+    "settingsButtons",
+    "settingsMenu",
+    "settingsManage",
+    "media",
+];
+
+function rowAppearance(w, row) {
+    const style = w.getComputedStyle(row);
+    return {
+        background: style.backgroundColor,
+        borderStyle: style.borderBottomStyle,
+        borderWidth: style.borderBottomWidth,
+        color: style.color,
+        height: style.height,
+        margin: style.margin,
+        padding: style.padding,
+        selected: row.classList.contains("ott-selected"),
+    };
+}
+
+for (const modern of [false, true]) {
+    for (const kind of listKinds) {
+        test(
+            (modern ? "Modern " : "Classic ") +
+                kind +
+                " toggles all row separators without changing geometry or selection",
+            () => {
+                const f = fixture();
+                const { w } = f;
+                if (modern) w.document.body.classList.add("interface-modern");
+                f.render(kind);
+                const rows = [...w.listInElement.querySelectorAll(".item")];
+                assert.ok(rows.length, "production screen renders rows");
+                assert.ok(
+                    rows.some((row) => row.classList.contains("ott-selected"))
+                );
+                const before = rows.map((row) => rowAppearance(w, row));
+                const borders = rows.map(
+                    (row) => w.getComputedStyle(row).borderBottomColor
+                );
+                const frames = ["listCaption", "listDetail", "dialogbox"].map(
+                    (id) =>
+                        w.getComputedStyle(w.document.getElementById(id)).border
+                );
+                if (!modern)
+                    rows.forEach((row) => assert.match(f.shadow(row), /inset/));
+                assert.equal(w.saveSettings({ showListSeparators: 0 }), true);
+                rows.forEach((row, index) => {
+                    assert.equal(f.shadow(row), "none");
+                    if (modern)
+                        assert.equal(
+                            w.getComputedStyle(row).borderBottomColor,
+                            "rgba(0, 0, 0, 0)"
+                        );
+                    assert.deepEqual(rowAppearance(w, row), before[index]);
+                });
+                assert.deepEqual(
+                    ["listCaption", "listDetail", "dialogbox"].map(
+                        (id) =>
+                            w.getComputedStyle(w.document.getElementById(id))
+                                .border
+                    ),
+                    frames
+                );
+                assert.equal(
+                    f.shadow(w.document.querySelector("#dialogbox .item")),
+                    "none"
+                );
+                // A rerender and navigation must obey the saved preference too.
+                f.render("menu");
+                assert.equal(f.shadow(f.row()), "none");
+                f.render(kind);
+                assert.equal(f.shadow(f.row()), "none");
+                assert.equal(w.saveSettings({ showListSeparators: 1 }), true);
+                [...w.listInElement.querySelectorAll(".item")].forEach(
+                    (row, index) => {
+                        if (modern)
+                            assert.equal(
+                                w.getComputedStyle(row).borderBottomColor,
+                                borders[index]
+                            );
+                        else assert.match(f.shadow(row), /inset/);
+                    }
+                );
+                assert.match(
+                    f.shadow(w.document.querySelector("#dialogbox .item")),
+                    /inset/
+                );
+                f.dom.window.close();
+            }
+        );
+    }
+}
+
+test("navigation between content, settings, menu and recordings keeps separators hidden", () => {
+    const f = fixture();
+    f.w.saveSettings({ showListSeparators: 0 });
+    for (const kind of [
+        "category",
+        "settingsLists",
+        "menu",
+        "recordings",
+        "media",
+        "channel",
+    ]) {
+        f.render(kind);
+        assert.equal(f.shadow(f.row()), "none", kind);
+    }
+    f.w.settingsLists();
+    f.w.listKeyHandlerFn(f.w.keys.RETURN);
+    assert.equal(f.w.listCaptionElement.textContent, "Settings");
+    assert.equal(f.shadow(f.row()), "none");
+    f.dom.window.close();
+});
+
+test("Modern catalog card outlines and selected focus shadows are preserved", () => {
+    const f = fixture();
+    const { w } = f;
+    w.document.body.classList.add("interface-modern");
+    f.render("channel");
+    w.listInElement.classList.add("modern-catalog");
+    for (const kind of ["modern-card", "modern-channel"]) {
+        f.row().className = "item " + kind + " ott-selected";
+        const baseline = w.getComputedStyle(f.row());
+        const appearance = [
+            baseline.boxShadow,
+            baseline.border,
+            baseline.backgroundColor,
+        ];
+        assert.notEqual(
+            appearance[0],
+            "none",
+            "selected catalog item has focus styling"
+        );
+        w.saveSettings({ showListSeparators: 0 });
+        const after = w.getComputedStyle(f.row());
+        assert.deepEqual(
+            [after.boxShadow, after.border, after.backgroundColor],
+            appearance
+        );
+        w.saveSettings({ showListSeparators: 1 });
+    }
+    f.dom.window.close();
+});
+
+for (const interfaceTheme of [1, 2]) {
     test(
-        kind +
-            " hides only row separators without changing row geometry or selection",
+        "theme " +
+            interfaceTheme +
+            " keeps its existing separator-free appearance",
         () => {
             const f = fixture();
-            f.render(kind);
-            const height = f.row().style.height;
-            const border = f.w.getComputedStyle(
-                f.w.document.getElementById("listCaption")
-            ).borderBottom;
-            assert.match(f.shadow(f.row()), /inset/);
-            assert.equal(f.w.saveSettings({ showListSeparators: 0 }), true);
+            f.w.saveSettings({ interfaceTheme });
+            f.render("menu");
+            const before = rowAppearance(f.w, f.row());
             assert.equal(f.shadow(f.row()), "none");
-            assert.equal(f.row().style.height, height);
-            assert.equal(f.row().classList.contains("ott-selected"), true);
-            assert.equal(
-                f.w.getComputedStyle(f.w.document.getElementById("listCaption"))
-                    .borderBottom,
-                border
-            );
-            assert.match(
-                f.shadow(f.w.document.querySelector("#dialogbox .item")),
-                /inset/
-            );
-            assert.equal(f.w.saveSettings({ showListSeparators: 1 }), true);
-            assert.match(f.shadow(f.row()), /inset/);
+            for (const showListSeparators of [0, 1]) {
+                f.w.saveSettings({ showListSeparators });
+                assert.equal(f.shadow(f.row()), "none");
+                assert.deepEqual(rowAppearance(f.w, f.row()), before);
+            }
             f.dom.window.close();
         }
     );
 }
 
-test("switching to a non-content list clears the previous content marker", () => {
-    const f = fixture();
-    f.w.saveSettings({ showListSeparators: 0 });
-    f.render("category");
-    assert.equal(f.shadow(f.row()), "none");
-    f.w.settingsLists();
-    assert.equal(
-        f.w.listInElement.classList.contains("content-list-rows"),
-        false
+for (const modern of [false, true]) {
+    test(
+        (modern ? "Modern" : "Classic") +
+            " new settings pages retain selection and hide separators",
+        () => {
+            const f = fixture();
+            const { w } = f;
+            if (modern) w.document.body.classList.add("interface-modern");
+            w.settingsLists();
+            const firstRow = f.row();
+            w.saveSettings({ showListSeparators: 0 });
+            w.settings.pageSize = 1;
+            w.selIndex = 2;
+            w.showPage(true);
+            const row = w.document.getElementById("it2");
+            assert.equal(firstRow.isConnected, false);
+            assert.equal(w.selIndex, 2);
+            assert.equal(row.classList.contains("ott-selected"), true);
+            assert.equal(f.shadow(row), "none");
+            if (modern)
+                assert.equal(
+                    w.getComputedStyle(row).borderBottomColor,
+                    "rgba(0, 0, 0, 0)"
+                );
+            f.dom.window.close();
+        }
     );
-    assert.match(f.shadow(f.row()), /inset/);
-    f.w.listKeyHandlerFn(f.w.keys.RETURN);
-    assert.equal(f.w.listCaptionElement.textContent, "Settings");
-    assert.equal(
-        f.w.listInElement.classList.contains("content-list-rows"),
-        false
-    );
-    assert.match(f.shadow(f.row()), /inset/);
-    f.dom.window.close();
-});
-
-test("legacy media and folder rows retain separators", () => {
-    const f = fixture();
-    f.w.saveSettings({ showListSeparators: 0 });
-    f.render("media");
-    assert.equal(
-        f.w.listInElement.classList.contains("content-list-rows"),
-        false
-    );
-    assert.match(f.shadow(f.row()), /inset/);
-    f.dom.window.close();
-});
-
-test("Modern rows retain their own borders and shadows", () => {
-    const f = fixture();
-    f.w.document.body.classList.add("interface-modern");
-    f.render("channel");
-    const before = f.w.getComputedStyle(f.row());
-    const baseline = [before.boxShadow, before.borderBottom];
-    f.w.saveSettings({ showListSeparators: 0 });
-    const after = f.w.getComputedStyle(f.row());
-    assert.deepEqual([after.boxShadow, after.borderBottom], baseline);
-    assert.equal(
-        f
-            .row()
-            .matches(
-                "body.hide-list-separators:not(.interface-modern) #listIn.content-list-rows > .item"
-            ),
-        false
-    );
-    f.dom.window.close();
-});
+}
 
 test("Lists settings Cancel discards a draft and Save applies it immediately", () => {
     const f = fixture();
@@ -408,7 +564,7 @@ test("Lists settings Cancel discards a draft and Save applies it immediately", (
     let row = f.w.listArray.find(
         (item) => item.settingId === "showListSeparators"
     );
-    assert.equal(row.name, "Show list separators (Classic)");
+    assert.equal(row.name, "Show list separators");
     row.val = 0;
     f.w.listKeyHandlerFn(f.w.keys.RETURN);
     assert.equal(f.w.settings.showListSeparators, 1);
