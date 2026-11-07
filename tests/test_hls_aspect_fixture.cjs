@@ -304,6 +304,87 @@ test("a readiness result after the diagnostic deadline still succeeds unchanged"
     assert.equal(f.page.listenerCount("crash"), 0);
 });
 
+test("successful Video.js transition retains events received after a pending snapshot", async () => {
+    const f = readinessObservationFixture();
+    const external = () => {};
+    f.page.on("console", external);
+    let resolve;
+    const pending = new Promise((resolveOperation) => {
+        resolve = resolveOperation;
+    });
+    const result = f.observe(
+        f.page,
+        { engine: "video.js", phase: "open-channels" },
+        () => pending
+    );
+    const emit = (step) =>
+        f.page.emit("console", {
+            text: () =>
+                "Plex channel transition: " +
+                JSON.stringify({ media: null, step }),
+        });
+    emit(0);
+    f.advance(14999);
+    assert.deepEqual(f.records, []);
+    f.advance(1);
+    assert.equal(f.records.length, 1);
+    assert.equal(f.records[0].event, "pending");
+    emit(1);
+    assert.equal(f.records.length, 1);
+    const value = {};
+    resolve(value);
+    assert.equal(await result, value);
+    assert.deepEqual(
+        f.records.map((record) => record.event),
+        ["pending", "resolved"]
+    );
+    assert.deepEqual(
+        f.records[0].transition.map((row) => row.step),
+        [0]
+    );
+    assert.deepEqual(
+        f.records[1].transition.map((row) => row.step),
+        [0, 1]
+    );
+    assert.equal(f.timers.size, 0);
+    assert.deepEqual(f.page.listeners("console"), [external]);
+    assert.equal(f.page.listenerCount("crash"), 0);
+    f.advance(60000);
+    assert.equal(f.records.length, 2);
+});
+
+test("failed success reporting preserves the transition result and cleanup", async () => {
+    const f = readinessObservationFixture({ brokenReporter: true });
+    const value = {};
+    assert.equal(
+        await f.observe(
+            f.page,
+            { engine: "video.js", phase: "open-channels" },
+            () => value
+        ),
+        value
+    );
+    assert.deepEqual(f.records, []);
+    assert.equal(f.timers.size, 0);
+    assert.equal(f.page.listenerCount("console"), 0);
+    assert.equal(f.page.listenerCount("crash"), 0);
+});
+
+test("success reports stay scoped to Video.js channel transitions", async () => {
+    for (const labels of [
+        { engine: "hls.js", phase: "open-channels" },
+        { engine: "video.js", phase: "initial" },
+    ]) {
+        const f = readinessObservationFixture();
+        const value = {};
+        assert.equal(await f.observe(f.page, labels, () => value), value);
+        assert.deepEqual(f.records, []);
+        assert.equal(f.timers.size, 0);
+        assert.equal(f.page.listenerCount("console"), 0);
+        assert.equal(f.page.listenerCount("crash"), 0);
+    }
+});
+
 function channelOpeningFixture({
     brokenLogger = false,
     error,
@@ -437,7 +518,29 @@ test("channel opening observes the original single-evaluate transition without c
     assert.equal(f.unrefed(), 1);
     assert.equal(f.timers.size, 0);
     assert.deepEqual(f.page.listeners("crash"), [external]);
-    assert.deepEqual(f.records, []);
+    assert.equal(f.records.length, 1);
+    assert.equal(f.records[0].event, "resolved");
+    assert.equal(f.records[0].phase, "open-channels");
+    assert.deepEqual(
+        f.records[0].transition.map((row) => row.step),
+        [0, 1, 2, 3, 4, 5, 6, 7]
+    );
+    assert.deepEqual(f.records[0].transition[0].media, {
+        bufferedRangeCount: 1,
+        currentTime: 2.5,
+        duration: 10,
+        ended: false,
+        errorCode: null,
+        lastBufferEnd: 6,
+        networkState: 2,
+        paused: false,
+        readyState: 3,
+        sourcePresent: true,
+    });
+    assert.ok(!JSON.stringify(f.records).includes("private"));
+    assert.equal(f.page.listenerCount("console"), 0);
+    f.advance(60000);
+    assert.equal(f.records.length, 1);
 });
 
 test("channel opening crash retains the original error and identifies the pre-playback phase", async () => {
