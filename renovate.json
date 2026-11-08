@@ -23,6 +23,24 @@
   ],
   "packageRules": [
     {
+      "description": "Keep the API 22 flavor on Capacitor 6; Capacitor 8 calls API 24 during bridge startup. Review Android 5.1/6 support before a major upgrade.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["android/compat/package.json"],
+      "matchPackageNames": [
+        "@capacitor/android",
+        "@capacitor/app",
+        "@capacitor/core"
+      ],
+      "allowedVersions": "<7"
+    },
+    {
+      "description": "Keep AGP 8 until a separate Gradle 9 and built-in Kotlin migration is validated for both Android distributions.",
+      "matchManagers": ["gradle"],
+      "matchFileNames": ["android/build.gradle"],
+      "matchPackageNames": ["com.android.tools.build:gradle"],
+      "allowedVersions": "/^8\\./"
+    },
+    {
       "description": "Keep the API 22 flavor on AppCompat 1.7.1; 1.8 requires API 23. Review the AAR manifests before changing this compatibility boundary.",
       "matchManagers": ["gradle"],
       "matchFileNames": ["android/compat/variables.gradle"],
