@@ -249,7 +249,7 @@ test("new selected rows and EPG nodes receive literal important rules independen
         const light = { priority: "important", value: "rgb(250, 250, 250)" };
         assert.deepEqual(
             ownedRules(w, player.firstChild, "background").at(-1),
-            light
+            { priority: "important", value: "rgba(250, 250, 250, 0.72)" }
         );
         const panelRule = Array.from(
             w.document.getElementById("ott-interface-colors-style").sheet

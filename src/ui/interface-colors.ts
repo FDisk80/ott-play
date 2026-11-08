@@ -171,19 +171,17 @@ export function interfaceColorRules(raw: string, opacity: number): string {
             "#mediaPlaybackControls",
         colors.surface
     );
-    // The playback panel has an opaque dark gradient, not just a color fill.
-    // An explicit surface replaces that entire background; omission preserves it.
-    rule(
-        modern + "#modernPlayer .modern-player-panel",
-        "background",
-        colors.surface
-    );
     var osd = colors.surface || colors.background;
-    if (osd)
-        background(
-            " .osd",
-            "rgba(" + interfaceColorRgb(osd) + "," + opacity / 100 + ")"
+    if (osd) {
+        var rgb = interfaceColorRgb(osd);
+        // Keep video visible through the panel without fading its contents.
+        rule(
+            modern + "#modernPlayer .modern-player-panel",
+            "background",
+            "rgba(" + rgb + ",0.72)"
         );
+        background(" .osd", "rgba(" + rgb + "," + opacity / 100 + ")");
+    }
     color(
         ", #list, #listCaption, #listDetail, #listAbout, #listEdit, #listEdit .osk-cap, #listEdit input#editvar, #listIn .item:not(.ott-selected) .btn, #listPopUp, #dialogbox, #numprog, #info1, #modernPlayer, #modernHero, #listIn .item:not(.ott-selected)," +
             modern +

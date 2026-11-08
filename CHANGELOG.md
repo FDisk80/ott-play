@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep the Modern playback panel translucent with default and custom colours,
+  without dimming its text, icons or controls.
+
 - Align Modern playback with the native LG bottom-sheet layout, current-item
   information and explicit control focus. Preserve PC playback shortcuts,
   shared Favorites and track selection across web, Tauri and Capacitor.

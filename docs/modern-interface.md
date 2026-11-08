@@ -64,6 +64,9 @@ card selection treatment and surface shapes.
   confirmation and cancellation controls. Context menus, dialogs, track
   selection and the playback OSD use the same surfaces and focus treatment.
 - Playback uses an inset bottom sheet following the native LG presentation.
+  Its background is 72% opaque, so the video remains visible underneath while
+  text, icons and controls stay fully visible. Custom surface colours keep the
+  same transparency.
   Context and a two-line title sit above one line of next-programme information
   or, when that is absent, the synopsis. A horizontal transport row sits below
   the metadata; the focused control expands to show its label. The timeline
