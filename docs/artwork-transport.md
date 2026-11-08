@@ -23,6 +23,11 @@ disposed. This command participates in the instance's BackgroundWork cancellatio
 standby rejects new requests and drops in-flight network work. There is no separate
 per-request IPC cancellation command; superseded work remains bounded by its deadline.
 The existing `proxy_http` and `proxy_fetch` APIs remain text-only.
+Setting `OTTPLAY_WEB_URL` changes the loaded page, not its native permissions.
+Remote pages outside the existing capability origins cannot invoke this command.
+An explicitly configured hosted image-directory mapping is used before native
+IPC, including when that hosted page runs inside Tauri. An unavailable or denied
+native request is terminal; it is not retried through an unrestricted image URL.
 
 ## Local OTT-server (Mode A)
 
@@ -48,8 +53,12 @@ until its bounded deadline. No server request cancellation endpoint is provided.
 - Request body: 8 KiB; URL: 4096 bytes, HTTP(S), no userinfo or fragment.
 - Response: 4 MiB, checked both before and during reading; 10 seconds for the whole
   operation including DNS, up to five redirects and body reads.
-- Existing shared proxy admission: at most eight active requests, immediate busy
-  rejection rather than an unbounded queue. DNS has its own existing bounded slots.
+- Existing shared proxy admission: at most eight active requests, with at most
+  four used by artwork. Artwork alone cannot exhaust the capacity needed by
+  playlists, even during rapid replacement. Busy requests are rejected immediately
+  rather than queued.
+  Blocking DNS retains its artwork admission until lookup exits, including after
+  cancellation; DNS also has its own existing bounded slots.
 - Every redirect must retain the original origin and contain no userinfo or
   fragment. Every hop uses checked, pinned DNS addresses. Ambient proxies are ignored.
 - Private destinations are denied by default. Existing `OTTPLAY_PROXY_LAN_ORIGINS`
@@ -88,3 +97,6 @@ and retains at most 16 images / 8 MiB in memory. It revokes temporary Blob URLs,
 rejects retired-view results and cancels obsolete local-server XHRs. Capacitor
 retains its configured native direct-image path; this change does not add a binary
 Capacitor bridge or prove compatibility with every device network policy.
+Inline image data has a separate length limit (the Base64 size of 4 MiB plus
+128 characters for its prefix), so it is not rejected by the 4096-character
+network URL limit. Inline data is rendered directly without a bridge request.

@@ -2,15 +2,17 @@
 //! answers; redirects and environment proxies cannot bypass that check.
 use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs};
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
 use reqwest::{header::HeaderMap, redirect, Client, Url};
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use super::background_work::WorkLease;
 
 const MAX_BYTES: usize = 16 * 1024 * 1024;
 const MAX_REQUESTS: usize = 8;
+const MAX_ARTWORK_REQUESTS: usize = 4;
 const MAX_REDIRECTS: usize = 5;
 const TIMEOUT: Duration = Duration::from_secs(15);
 // Playlist generation can exceed the short portal/API budget even for modest
@@ -18,6 +20,11 @@ const TIMEOUT: Duration = Duration::from_secs(15);
 const PLAYLIST_TIMEOUT: Duration = Duration::from_secs(60);
 static REQUESTS: Semaphore = Semaphore::const_new(MAX_REQUESTS);
 static DNS_REQUESTS: Semaphore = Semaphore::const_new(MAX_REQUESTS);
+// Artwork shares the total budget but cannot exhaust playlist admission. Its
+// permit also outlives cancelled async requests with blocking DNS still active.
+static ARTWORK_REQUESTS: LazyLock<Arc<Semaphore>> =
+    LazyLock::new(|| Arc::new(Semaphore::new(MAX_ARTWORK_REQUESTS)));
+type ArtworkPermit = Arc<OwnedSemaphorePermit>;
 
 #[derive(Clone, Default)]
 struct Policy {
@@ -143,20 +150,21 @@ impl Policy {
     }
 
     async fn resolve(&self, url: &Url) -> Result<Vec<SocketAddr>, String> {
-        self.resolve_tracked(url, None).await
+        self.resolve_tracked(url, None, None).await
     }
 
     async fn resolve_tracked(
         &self,
         url: &Url,
         work: Option<WorkLease>,
+        artwork: Option<ArtworkPermit>,
     ) -> Result<Vec<SocketAddr>, String> {
         let port = url.port_or_known_default().ok_or("Invalid proxy port")?;
         let addresses = if let Some(ip) = literal_ip(url) {
             vec![SocketAddr::new(ip, port)]
         } else {
             let host = url.host_str().ok_or("Invalid proxy host")?.to_string();
-            dns_lookup_tracked(work, move || {
+            dns_lookup_tracked(work, artwork, move || {
                 (host.as_str(), port)
                     .to_socket_addrs()
                     .map(|answers| answers.take(33).collect())
@@ -170,6 +178,7 @@ impl Policy {
 
 async fn dns_lookup_tracked<F>(
     work: Option<WorkLease>,
+    artwork: Option<ArtworkPermit>,
     lookup: F,
 ) -> Result<Vec<SocketAddr>, String>
 where
@@ -181,11 +190,13 @@ where
     let permit = DNS_REQUESTS
         .try_acquire()
         .map_err(|_| "Proxy DNS is busy; retry later")?;
-    // Dropping the async request cannot stop libc DNS. Keep both its admission
-    // slot and instance lease in the blocking task until lookup actually exits.
+    // Dropping the async request cannot stop libc DNS. Keep its DNS/artwork
+    // slots and instance lease until lookup exits. Drop the lease last so idle
+    // notification cannot precede release of the resource permits.
     tokio::task::spawn_blocking(move || {
-        let _permit = permit;
         let _work = work;
+        let _artwork = artwork;
+        let _permit = permit;
         if let Some(work) = &_work {
             work.check().map_err(str::to_string)?;
         }
@@ -301,6 +312,25 @@ async fn limited<T>(
         .map_err(|_| "Proxy request timed out")?
 }
 
+async fn artwork_limited<T, F, Fut>(
+    artwork: &Arc<Semaphore>,
+    requests: &Semaphore,
+    timeout: Duration,
+    work: F,
+) -> Result<T, String>
+where
+    F: FnOnce(ArtworkPermit) -> Fut,
+    Fut: Future<Output = Result<T, String>>,
+{
+    let permit = Arc::new(
+        artwork
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| "Proxy is busy; retry later")?,
+    );
+    limited(requests, timeout, async { work(permit.clone()).await }).await
+}
+
 pub(crate) async fn fetch(raw: &str, ua: &str) -> Result<(HeaderMap, Vec<u8>), String> {
     limited(&REQUESTS, PLAYLIST_TIMEOUT, async {
         let url = http_url(raw)?;
@@ -351,16 +381,22 @@ where
 }
 
 pub(crate) async fn fetch_artwork(url: Url, work: Option<WorkLease>) -> Result<Vec<u8>, String> {
-    limited(&REQUESTS, super::artwork::TIMEOUT, async {
-        let policy =
-            Policy::parse(&std::env::var("OTTPLAY_PROXY_LAN_ORIGINS").unwrap_or_default())?;
-        artwork_checked(url, |url| {
-            let policy = policy.clone();
-            let work = work.clone();
-            async move { policy.resolve_tracked(&url, work).await }
-        })
-        .await
-    })
+    artwork_limited(
+        &ARTWORK_REQUESTS,
+        &REQUESTS,
+        super::artwork::TIMEOUT,
+        |permit| async move {
+            let policy =
+                Policy::parse(&std::env::var("OTTPLAY_PROXY_LAN_ORIGINS").unwrap_or_default())?;
+            artwork_checked(url, |url| {
+                let policy = policy.clone();
+                let work = work.clone();
+                let permit = permit.clone();
+                async move { policy.resolve_tracked(&url, work, Some(permit)).await }
+            })
+            .await
+        },
+    )
     .await
 }
 
@@ -838,6 +874,163 @@ mod tests {
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 
     #[tokio::test]
+    async fn overlapping_artwork_preserves_playlist_request_capacity() {
+        let artwork = Arc::new(Semaphore::new(MAX_ARTWORK_REQUESTS));
+        let requests = Arc::new(Semaphore::new(MAX_REQUESTS));
+        let mut held = Vec::new();
+        for _ in 0..MAX_ARTWORK_REQUESTS {
+            let artwork = artwork.clone();
+            let requests = requests.clone();
+            let (started, ready) = tokio::sync::oneshot::channel();
+            let (release, blocked) = tokio::sync::oneshot::channel();
+            let request = tokio::spawn(async move {
+                artwork_limited(&artwork, &requests, TIMEOUT, |_| async move {
+                    let _ = started.send(());
+                    blocked.await.map_err(|_| "fixture released".to_string())
+                })
+                .await
+            });
+            tokio::time::timeout(Duration::from_secs(2), ready)
+                .await
+                .unwrap()
+                .unwrap();
+            held.push((release, request));
+        }
+        assert_eq!(artwork.available_permits(), 0);
+        assert_eq!(
+            requests.available_permits(),
+            MAX_REQUESTS - MAX_ARTWORK_REQUESTS
+        );
+        let rejected: Result<(), String> =
+            artwork_limited(&artwork, &requests, TIMEOUT, |_| async {
+                panic!("Artwork overload must not start work")
+            })
+            .await;
+        assert_eq!(rejected.unwrap_err(), "Proxy is busy; retry later");
+        let (address, playlist) = fixture(
+            b"HTTP/1.1 200 OK\r\nContent-Type: application/x-mpegURL\r\nContent-Length: 56\r\nConnection: close\r\n\r\n#EXTM3U\n#EXTINF:-1,Fixture\nhttp://media.invalid/live.ts\n",
+        )
+        .await;
+        let url = http_url(&format!(
+            "http://playlist-fixture.invalid:{}/list.m3u",
+            address.port()
+        ))
+        .unwrap();
+        // Exercise the production playlist HTTP path while all artwork slots
+        // remain occupied. Only DNS is replaced with the existing fixture seam;
+        // real destination policy and LAN configuration are never relaxed.
+        let (_, bytes) = limited(
+            &requests,
+            PLAYLIST_TIMEOUT,
+            fetch_checked(
+                url,
+                "playlist-capacity-fixture",
+                |_| async { Ok(vec![address]) },
+                MAX_BYTES,
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            bytes,
+            b"#EXTM3U\n#EXTINF:-1,Fixture\nhttp://media.invalid/live.ts\n"
+        );
+        let wire = playlist.await.unwrap();
+        assert!(wire.starts_with("GET /list.m3u HTTP/1.1\r\n"));
+        assert!(wire
+            .to_ascii_lowercase()
+            .contains("user-agent: playlist-capacity-fixture"));
+        assert_eq!(artwork.available_permits(), 0);
+        // The artwork reservation never bypasses the existing total ceiling.
+        let rest = requests
+            .try_acquire_many((MAX_REQUESTS - MAX_ARTWORK_REQUESTS) as u32)
+            .unwrap();
+        assert_eq!(requests.available_permits(), 0);
+        drop(rest);
+        for (release, request) in held {
+            release.send(()).unwrap();
+            request.await.unwrap().unwrap();
+        }
+        assert_eq!(artwork.available_permits(), MAX_ARTWORK_REQUESTS);
+        assert_eq!(requests.available_permits(), MAX_REQUESTS);
+    }
+
+    #[tokio::test]
+    async fn cancelled_artwork_retains_admission_until_blocking_dns_exits() {
+        let artwork = Arc::new(Semaphore::new(1));
+        let requests = Arc::new(Semaphore::new(MAX_REQUESTS));
+        let (started, ready) = tokio::sync::oneshot::channel();
+        let (release, blocked) = std::sync::mpsc::channel();
+        let request = {
+            let artwork = artwork.clone();
+            let requests = requests.clone();
+            tokio::spawn(async move {
+                artwork_limited(&artwork, &requests, TIMEOUT, |permit| async move {
+                    // Mode A has no instance WorkLease; DNS must still retain the
+                    // artwork admission after an HTTP request is cancelled.
+                    dns_lookup_tracked(None, Some(permit), move || {
+                        let _ = started.send(());
+                        blocked
+                            .recv()
+                            .map_err(|_| std::io::Error::other("fixture released"))?;
+                        Ok(vec!["8.8.8.8:80".parse().unwrap()])
+                    })
+                    .await
+                })
+                .await
+            })
+        };
+        tokio::time::timeout(Duration::from_secs(2), ready)
+            .await
+            .unwrap()
+            .unwrap();
+        request.abort();
+        assert!(request.await.unwrap_err().is_cancelled());
+        assert_eq!(requests.available_permits(), MAX_REQUESTS);
+        assert_eq!(artwork.available_permits(), 0);
+        let rejected: Result<(), String> =
+            artwork_limited(&artwork, &requests, TIMEOUT, |_| async {
+                panic!("Replacement artwork must not overrun pending DNS")
+            })
+            .await;
+        assert_eq!(rejected.unwrap_err(), "Proxy is busy; retry later");
+        assert_eq!(
+            limited(&requests, PLAYLIST_TIMEOUT, async { Ok(7) }).await,
+            Ok(7)
+        );
+        release.send(()).unwrap();
+        let returned =
+            tokio::time::timeout(Duration::from_secs(2), artwork.clone().acquire_owned())
+                .await
+                .unwrap()
+                .unwrap();
+        drop(returned);
+        assert_eq!(artwork.available_permits(), 1);
+    }
+
+    #[tokio::test]
+    async fn artwork_deadline_and_failure_release_both_request_budgets() {
+        let artwork = Arc::new(Semaphore::new(1));
+        let requests = Semaphore::new(1);
+        let result =
+            artwork_limited::<(), _, _>(&artwork, &requests, Duration::from_millis(10), |_| {
+                std::future::pending()
+            })
+            .await;
+        assert_eq!(result.unwrap_err(), "Proxy request timed out");
+        assert_eq!(artwork.available_permits(), 1);
+        assert_eq!(requests.available_permits(), 1);
+        let occupied = requests.try_acquire().unwrap();
+        let result: Result<(), String> = artwork_limited(&artwork, &requests, TIMEOUT, |_| async {
+            panic!("Shared overload must not start artwork")
+        })
+        .await;
+        assert_eq!(result.unwrap_err(), "Proxy is busy; retry later");
+        assert_eq!(artwork.available_permits(), 1);
+        drop(occupied);
+    }
+
+    #[tokio::test]
     async fn artwork_dns_keeps_instance_pending_after_standby_cancels_the_request() {
         let background = super::super::background_work::BackgroundWork::default();
         let lease = background.enter().unwrap();
@@ -845,7 +1038,7 @@ mod tests {
         let (release, blocked) = std::sync::mpsc::channel();
         let request = tokio::spawn(async move {
             lease
-                .run(dns_lookup_tracked(Some(lease.clone()), move || {
+                .run(dns_lookup_tracked(Some(lease.clone()), None, move || {
                     let _ = started.send(());
                     // Deterministic libc-DNS stand-in: cancellation cannot interrupt
                     // this blocking operation. Dropping the sender also unblocks it
@@ -885,7 +1078,10 @@ mod tests {
         let lease = background.enter().unwrap();
         background.set_standby(true);
         assert_eq!(
-            dns_lookup_tracked(Some(lease), || panic!("Cancelled artwork started DNS")).await,
+            dns_lookup_tracked(Some(lease), None, || panic!(
+                "Cancelled artwork started DNS"
+            ))
+            .await,
             Err("Player background work cancelled".into())
         );
         assert!(background.status().quiescent);

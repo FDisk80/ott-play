@@ -8322,3 +8322,147 @@ for (const profile of ["server", "tauri", "capacitor"]) {
         });
     }
 }
+
+test("Modern short shelves keep 200% text and card actions reachable", async ({
+    browser,
+}) => {
+    const fixture = await fixturePage(
+        {
+            newContext: (options) =>
+                browser.newContext({
+                    ...options,
+                    viewport: { height: 220, width: 640 },
+                }),
+        },
+        "server",
+        { interfaceTheme: 2 },
+        undefined,
+        "Initial safe description"
+    );
+    const { page } = fixture;
+    try {
+        await seedModernCategoryShelves(page, "catalog");
+        await page.evaluate(() => {
+            saveSettings({ uiFontScale: 200 });
+            setFontSize();
+            __ottModernUi.refresh();
+            document.getElementById("it0").focus();
+        });
+        expect(await page.evaluate(() => sUiFontScale)).toBe(200);
+        await expect(page.locator("#listIn")).toHaveClass(
+            /modern-shelf-compact/
+        );
+        const selection = () =>
+            page.evaluate(() => {
+                const shelves = __shelfView();
+                return {
+                    category: shelves.groups.find(
+                        (group) => group.id === shelves.selected
+                    ).name,
+                    index: selIndex,
+                };
+            });
+        const visibleCard = async () => {
+            const geometry = await page.evaluate(() => {
+                const list = document.getElementById("listIn");
+                const card = list.querySelector(".item.ott-selected");
+                const title = card.querySelector(".modern-title");
+                const art = card.querySelector(".modern-art");
+                const range = document.createRange();
+                range.selectNodeContents(title);
+                const box = card.getBoundingClientRect();
+                const glyphs = range.getBoundingClientRect();
+                const play = getComputedStyle(art, "::before");
+                return {
+                    art: art.getBoundingClientRect().toJSON(),
+                    card: box.toJSON(),
+                    cards: list.querySelectorAll(".modern-card").length,
+                    glyphs: glyphs.toJSON(),
+                    hit: card.contains(
+                        document.elementFromPoint(
+                            box.x + box.width / 2,
+                            glyphs.y + glyphs.height / 2
+                        )
+                    ),
+                    list: list.getBoundingClientRect().toJSON(),
+                    play: {
+                        content: play.content,
+                        height: parseFloat(play.height),
+                        width: parseFloat(play.width),
+                    },
+                    rows: list.querySelectorAll(".modern-shelf").length,
+                    title: title.getBoundingClientRect().toJSON(),
+                };
+            });
+            expect(geometry.list.height).toBeGreaterThan(72);
+            expect(geometry.list.height).toBeLessThanOrEqual(110);
+            expect(geometry.rows).toBe(1);
+            expect(geometry.cards).toBeGreaterThan(0);
+            expect(geometry.cards).toBeLessThanOrEqual(8);
+            expect(geometry.card.top).toBeGreaterThanOrEqual(
+                geometry.list.top - 0.5
+            );
+            expect(geometry.card.bottom).toBeLessThanOrEqual(
+                geometry.list.bottom + 0.5
+            );
+            expect(geometry.title.height).toBeGreaterThan(0);
+            expect(geometry.glyphs.top).toBeGreaterThanOrEqual(
+                geometry.card.top
+            );
+            expect(geometry.glyphs.bottom).toBeLessThanOrEqual(
+                geometry.card.bottom
+            );
+            expect(geometry.hit).toBe(true);
+            expect(geometry.play.content).not.toBe("none");
+            expect(geometry.play.width).toBeLessThanOrEqual(geometry.art.width);
+            expect(geometry.play.height).toBeLessThanOrEqual(
+                geometry.art.height
+            );
+        };
+        await visibleCard();
+        await page.keyboard.press("ArrowRight");
+        await page.keyboard.press("ArrowRight");
+        await expect
+            .poll(selection)
+            .toEqual({ category: "First category", index: 2 });
+        await visibleCard();
+        await page.locator("#it2").hover();
+        await page.mouse.wheel(0, 120);
+        await expect
+            .poll(selection)
+            .toEqual({ category: "Short category", index: 0 });
+        await visibleCard();
+        await page.keyboard.press("ArrowDown");
+        await expect
+            .poll(selection)
+            .toEqual({ category: "Third category", index: 0 });
+        await visibleCard();
+        await page.keyboard.press("ArrowUp");
+        await page.keyboard.press("ArrowUp");
+        await expect
+            .poll(selection)
+            .toEqual({ category: "First category", index: 2 });
+        await visibleCard();
+        expect(await page.evaluate(() => __shelfDecoderEffects)).toEqual([]);
+        const screenshots = process.env.OTTP_MODERN_SCREENSHOTS;
+        if (screenshots) {
+            fs.mkdirSync(screenshots, { recursive: true });
+            await page.screenshot({
+                caret: "initial",
+                path: path.join(
+                    screenshots,
+                    `category-shelves-short-font200-${test.info().project.name}.png`
+                ),
+            });
+        }
+        await page.keyboard.press("Enter");
+        await expect
+            .poll(() => page.evaluate(() => __shelfActivations))
+            .toEqual([102]);
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+        expect(await page.evaluate(() => __fixtureViolations)).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});

@@ -55,17 +55,16 @@ function createModernArtwork(w: any) {
         return selected;
     }
     function route(source: string): any {
+        var inline = /^data:image\/(?:png|jpe?g|webp|gif|avif|svg\+xml);/i.test(
+            source
+        );
         if (
             !source ||
-            source.length > 4096 ||
+            source.length > (inline ? Math.ceil(limit / 3) * 4 + 128 : 4096) ||
             /[\u0000-\u001f\u007f]/.test(source)
         )
             return null;
-        if (
-            /^(blob:|data:image\/(?:png|jpe?g|webp|gif|avif|svg\+xml);)/i.test(
-                source
-            )
-        )
+        if (inline || /^blob:/i.test(source))
             return { kind: "direct", url: source };
         try {
             var url = new w.URL(source, w.location.href);
@@ -78,6 +77,8 @@ function createModernArtwork(w: any) {
                 return null;
             if (url.protocol === "https:")
                 return { kind: "direct", url: url.href };
+            var mapped = hosted(url);
+            if (mapped) return { kind: "direct", url: mapped };
             var native = nativeApi();
             if (native) return { kind: "native", url: url.href };
             if (
@@ -86,8 +87,6 @@ function createModernArtwork(w: any) {
                 w.Capacitor?.isNativePlatform?.() === true
             )
                 return { kind: "direct", url: url.href };
-            var mapped = hosted(url);
-            if (mapped) return { kind: "direct", url: mapped };
             if (
                 !w.__OTTPLAY_HOSTED__ &&
                 w.location.protocol === "https:" &&

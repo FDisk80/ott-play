@@ -1744,7 +1744,34 @@ test("Modern metadata without the shared renderer remains safely escaped", () =>
     }
 });
 
-function categoryShelfFixture(large = false, normal = false) {
+test("Modern fallback summary keeps quoted untrusted text and its text node across refresh", () => {
+    const f = shellFixture();
+    try {
+        delete f.w.getMediaDescr;
+        f.w.selIndex = 0;
+        const description =
+            'A "quoted" plot & <img src=x onerror="window.changed=1">';
+        f.formatter.__ottCatalog.row = () => ({
+            __ottMediaItem: { description },
+            channel_name: "Film",
+        });
+        f.api.prepare(["film"], f.formatter, f.container);
+        const summary = f.doc.querySelector(".modern-hero-summary");
+        const originalText = summary.firstChild;
+        assert.equal(summary.textContent, description);
+        assert.equal(originalText.nodeType, f.w.Node.TEXT_NODE);
+        for (let index = 0; index < 3; index++) {
+            f.api.refresh();
+            assert.equal(summary.firstChild, originalText);
+        }
+        assert.equal(summary.querySelector("img"), null);
+        assert.equal(f.w.changed, undefined);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+function categoryShelfFixture(large = false, normal = false, options = {}) {
     const f = shellFixture();
     const groups = [
         {
@@ -1825,7 +1852,8 @@ function categoryShelfFixture(large = false, normal = false) {
             foreground: () => state.owner === owner && !state.covered,
             model: {},
         };
-        const formatter = () => "Classic item";
+        const formatter = (id, index) =>
+            options.format ? options.format(id, index, f.w) : "Classic item";
         state.owner = owner;
         state.formatter = formatter;
         state.selected = groupId;
@@ -1833,6 +1861,7 @@ function categoryShelfFixture(large = false, normal = false) {
             kind: "catalog",
             row(id) {
                 state.metadataReads++;
+                if (options.row) return options.row(id);
                 return {
                     __ottMediaItem: {
                         description: "Shared description",
@@ -1907,6 +1936,228 @@ function categoryShelfFixture(large = false, normal = false) {
             return { handled, prevented: event.defaultPrevented };
         },
     };
+}
+
+test("category shelves mark every playing occurrence including inactive rows and clear on repaint", () => {
+    const f = categoryShelfFixture();
+    try {
+        let playing = "first-0";
+        f.state.formatter.__ottCatalog.playing = (id) => id === playing;
+        f.repaint();
+        const playingCards = () => [
+            ...f.container.querySelectorAll(".ott-playing"),
+        ];
+        assert.deepEqual(
+            playingCards().map((card) =>
+                card.getAttribute("data-modern-shelf")
+            ),
+            ["first", "short"]
+        );
+        assert.equal(playingCards()[1].classList.contains("item"), false);
+        playing = "first-1";
+        f.repaint();
+        assert.equal(playingCards().length, 1);
+        assert.equal(
+            playingCards()[0].getAttribute("data-modern-position"),
+            "1"
+        );
+        playing = null;
+        f.repaint();
+        assert.equal(playingCards().length, 0);
+        assert.deepEqual(f.effects, []);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+function liveShelfFixture() {
+    const channels = Object.fromEntries(
+        Array.from({ length: 8 }, (_, index) => {
+            const id = "first-" + index;
+            return [
+                id,
+                index === 1
+                    ? { channel_name: "Live station" }
+                    : { __ottMediaItem: { name: id }, channel_name: id },
+            ];
+        })
+    );
+    const formatted = [],
+        details = [];
+    const f = categoryShelfFixture(false, false, {
+        format(id, index, host) {
+            formatted.push([id, index]);
+            if (!channels[id]?.__ottMediaItem)
+                host.__ottClassicGuide?.current(id, host.updateChannelListRow);
+            return "Host row";
+        },
+        row: (id) => channels[id],
+    });
+    f.groups[2].members[0] = "first-1";
+    const timers = new Map(),
+        requests = [];
+    let nextTimer = 0;
+    f.state.now = 100000;
+    Object.assign(f.w, {
+        channels,
+        clearTimeout: (id) => timers.delete(id),
+        epgCacheCapacity: 8,
+        fetchChannelGuide(id, done) {
+            requests.push({ done, id });
+            return () => {};
+        },
+        p_pref: "mixed-source",
+        setTimeout(callback, delay) {
+            const id = ++nextTimer;
+            timers.set(id, { at: f.state.now + delay, callback });
+            return id;
+        },
+        updateChannelListRow: (id) => details.push(id),
+    });
+    require("./helpers/shared-core-runtime.cjs")(f.dom.getInternalVMContext(), {
+        vendorOnly: true,
+    });
+    const runtime = require("./helpers/private-runtime.cjs");
+    runtime(f.dom.getInternalVMContext(), "src/guide/service.ts");
+    runtime(f.dom.getInternalVMContext(), "src/guide/classic-service.ts");
+    f.repaint();
+    return {
+        ...f,
+        channels,
+        details,
+        flush() {
+            for (let count = 0; count < 100; count++) {
+                const due = [...timers].find(
+                    ([, timer]) => timer.at <= f.state.now
+                );
+                if (!due) return;
+                timers.delete(due[0]);
+                due[1].callback();
+            }
+            assert.fail("guide callbacks did not settle");
+        },
+        formatted,
+        programme: () => [...f.container.querySelectorAll(".modern-programme")],
+        publish(name = 'News <img src=x onerror="window.changed=1">') {
+            f.w.__ottClassicGuide.publish("first-1", [
+                { name, time: 90, time_to: 110 },
+            ]);
+        },
+        requests,
+    };
+}
+
+test("live shelf cards retain the host formatter and update duplicate occurrences through the real guide", () => {
+    const f = liveShelfFixture();
+    try {
+        f.flush();
+        assert.equal(
+            f.requests.length,
+            1,
+            "duplicate live cards share one owned guide request"
+        );
+        assert.equal(f.requests[0].id, "first-1");
+        assert.equal(f.programme().length, 2);
+        assert.equal(
+            new Set(
+                [...f.container.querySelectorAll("[id]")].map((node) => node.id)
+            ).size,
+            f.container.querySelectorAll("[id]").length
+        );
+        assert(
+            f.formatted.some(([id]) => id === "first-0"),
+            "mounted media still uses the host formatter contract"
+        );
+        f.details.length = 0;
+        f.publish();
+        f.flush();
+        assert.deepEqual(
+            f.programme().map((node) => node.textContent),
+            [
+                'News <img src=x onerror="window.changed=1">',
+                'News <img src=x onerror="window.changed=1">',
+            ]
+        );
+        assert.deepEqual(
+            [...f.container.querySelectorAll(".modern-progress > span")].map(
+                (node) => node.style.width
+            ),
+            ["50%", "50%"]
+        );
+        assert.deepEqual(
+            f.details,
+            ["first-1"],
+            "one host detail refresh per shared guide publication"
+        );
+        assert.equal(f.container.querySelector(".modern-programme img"), null);
+        assert.equal(f.w.changed, undefined);
+        const old = f.programme();
+        f.w.__ottClassicGuide.cancelConsumers();
+        f.repaint();
+        f.publish("Updated programme");
+        f.flush();
+        assert.deepEqual(
+            f.programme().map((node) => node.textContent),
+            ["Updated programme", "Updated programme"]
+        );
+        assert(
+            old.every(
+                (node) =>
+                    !node.isConnected && node.textContent.startsWith("News")
+            )
+        );
+        assert.equal(
+            f.requests.length,
+            1,
+            "warm repaint does not refetch the same schedule"
+        );
+        f.w._ = (value) =>
+            value === "no epg at current time" ? "No current schedule" : value;
+        f.w.__ottClassicGuide.publish("first-1", []);
+        f.flush();
+        assert.deepEqual(
+            f.programme().map((node) => node.textContent),
+            ["No current schedule", "No current schedule"]
+        );
+        assert.deepEqual(
+            [...f.container.querySelectorAll(".modern-progress > span")].map(
+                (node) => node.style.width
+            ),
+            ["0%", "0%"]
+        );
+        assert.deepEqual(f.effects, []);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+for (const guard of ["source", "owner", "formatter", "channel", "classic"]) {
+    test("live shelf guide callback rejects retired " + guard, () => {
+        const f = liveShelfFixture();
+        try {
+            f.flush();
+            f.publish("Before retirement");
+            f.flush();
+            f.details.length = 0;
+            f.publish("Queued after retirement");
+            if (guard === "source")
+                f.state.formatter.__ottCatalog.shelves.source = {};
+            else if (guard === "owner") f.state.covered = true;
+            else if (guard === "formatter")
+                f.state.owner.model.render = () => "Replacement";
+            else if (guard === "channel")
+                f.channels["first-1"] = { channel_name: "Replacement" };
+            else f.w.settings.interfaceMode = 0;
+            f.flush();
+            assert.deepEqual(
+                f.programme().map((node) => node.textContent),
+                ["Before retirement", "Before retirement"]
+            );
+            assert.deepEqual(f.details, []);
+        } finally {
+            f.dom.window.close();
+        }
+    });
 }
 
 test("channel shelves resolve the captured category index before filtering empty groups", () => {

@@ -918,11 +918,13 @@ function createModernInterface(w: any) {
         var summary = shell.querySelector(".modern-hero-summary")!;
         // Use the shared, allowlisted description renderer. Provider formatting
         // is metadata, not literal title text or arbitrary executable HTML.
-        var description =
-            typeof w.getMediaDescr === "function"
-                ? w.getMediaDescr({ description: row.summary })
-                : escape(row.summary);
-        if (summary.innerHTML !== description) summary.innerHTML = description;
+        if (typeof w.getMediaDescr === "function") {
+            var description = w.getMediaDescr({ description: row.summary });
+            if (summary.innerHTML !== description)
+                summary.innerHTML = description;
+        } else if (summary.textContent !== String(row.summary)) {
+            summary.textContent = String(row.summary);
+        }
         var art = shell.querySelector(".modern-hero-art")!;
         var existing = art.querySelector("img");
         var heroImage = row.backdrop || row.image;
@@ -1001,7 +1003,8 @@ function createModernInterface(w: any) {
             "modern-grid",
             "modern-live",
             "modern-options",
-            "modern-shelves"
+            "modern-shelves",
+            "modern-shelf-compact"
         );
         container.style.display = "";
         container.style.gridTemplateColumns = "";
@@ -1111,6 +1114,59 @@ function createModernInterface(w: any) {
         if (!layout?.shelves) return false;
         var current = shelfIndex();
         if (current < 0) return false;
+        var paintFormatter = formatter,
+            paintSource = shelfSource,
+            liveCards: any[] = [];
+        function currentGuidePaint(): boolean {
+            return (
+                formatter === paintFormatter &&
+                shelfSource === paintSource &&
+                shelfCurrent(owner)
+            );
+        }
+        function updateProgramme(entry: any): boolean {
+            if (
+                !container.contains(entry.card) ||
+                paintFormatter.__ottCatalog.row(entry.id) !== entry.channel
+            )
+                return false;
+            var channel = entry.channel,
+                now = Date.now() / 1000,
+                programme = entry.card.querySelector(".modern-programme"),
+                progress = entry.card.querySelector(".modern-progress > span");
+            if (programme)
+                programme.textContent = channel.outdated
+                    ? typeof w._ === "function"
+                        ? w._("no epg at current time")
+                        : "no epg at current time"
+                    : channel.time_to >= now
+                      ? text(channel.name)
+                      : "";
+            if (progress)
+                progress.style.width =
+                    (channel.time_to > channel.time
+                        ? Math.max(
+                              0,
+                              Math.min(
+                                  100,
+                                  ((now - channel.time) /
+                                      (channel.time_to - channel.time)) *
+                                      100
+                              )
+                          )
+                        : 0) + "%";
+            return true;
+        }
+        function guideChanged(id: any): void {
+            if (!currentGuidePaint()) return;
+            var updated = false;
+            liveCards.forEach(function (entry) {
+                if (entry.id === id && updateProgramme(entry)) updated = true;
+            });
+            // Preserve the host's selected-channel detail refresh. Every shelf
+            // occurrence has its own DOM IDs; the host owns the guide consumer.
+            if (updated) w.updateChannelListRow?.(id);
+        }
         var count = Math.min(layout.shelfCount, shelfGroups.length),
             start = Math.max(
                 0,
@@ -1176,14 +1232,37 @@ function createModernInterface(w: any) {
                 if (active) card.setAttribute("data-idx", String(i));
                 card.tabIndex = active && i === position ? 0 : -1;
                 card.style.height = layout.cellHeight + "px";
-                card.innerHTML = render(group.members[i], i) || "";
+                var item = group.members[i],
+                    catalog = paintFormatter.__ottCatalog,
+                    channel = catalog?.row(item),
+                    live = channel && !channel.__ottMediaItem;
+                // current() retains the first callback for this channel until
+                // showPage cancels the old page. Register before the formatter
+                // so duplicate visible occurrences share one guarded update.
+                if (live) w.__ottClassicGuide?.current(item, guideChanged);
+                paintFormatter(item, i);
+                card.innerHTML = render(item, i) || "";
                 card.classList.toggle("ott-selected", active && i === position);
+                card.classList.toggle(
+                    "ott-playing",
+                    !!catalog?.playing?.(item)
+                );
+                if (live) {
+                    var programme = card.querySelector(".modern-programme"),
+                        progress = card.querySelector(
+                            ".modern-progress > span"
+                        );
+                    if (programme) programme.id = card.id + "Programme";
+                    if (progress) progress.id = card.id + "Progress";
+                    liveCards.push({ card: card, channel: channel, id: item });
+                }
                 track.appendChild(card);
             }
             section.appendChild(heading);
             section.appendChild(track);
             container.appendChild(section);
         }
+        liveCards.forEach(updateProgramme);
         decorateArtwork(container);
         w.listPageSize = layout.columns;
         w.__ottListRowH = layout.cellHeight;
@@ -1389,6 +1468,12 @@ function createModernInterface(w: any) {
         if (grid && !home)
             cellHeight = Math.min(cellHeight, Math.ceil(preferredHeight));
         var shelfHeadingHeight = 32 * scale;
+        // The shared category heading still names this single visible shelf.
+        // Give a short viewport to its cards instead of clipping them below a
+        // duplicate heading, especially at the largest interface text scale.
+        var compactShelf =
+            categoryShelves && height < shelfHeadingHeight + 110 * scale;
+        if (compactShelf) shelfHeadingHeight = 0;
         var shelfCount = categoryShelves
             ? Math.max(
                   1,
@@ -1404,12 +1489,13 @@ function createModernInterface(w: any) {
             : 0;
         if (categoryShelves)
             cellHeight = Math.max(
-                72,
+                1,
                 Math.floor(
                     (height - gap * (shelfCount - 1)) / shelfCount -
                         shelfHeadingHeight
                 )
             );
+        container.classList.toggle("modern-shelf-compact", !!compactShelf);
         layout = {
             cellHeight: cellHeight,
             cellWidth: cellWidth,

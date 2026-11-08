@@ -2482,6 +2482,23 @@ body.interface-modern #listIn.modern-shelves .modern-card {
     min-width: 0;
     line-height: normal;
 }
+body.interface-modern #listIn.modern-shelf-compact .modern-card {
+    flex-direction: row;
+}
+body.interface-modern #listIn.modern-shelf-compact .modern-art {
+    flex: 0 0 30%;
+}
+body.interface-modern #listIn.modern-shelf-compact .modern-art::before {
+    max-width: calc(100% - 8px);
+    max-height: calc(100% - 8px);
+}
+body.interface-modern #listIn.modern-shelf-compact .modern-copy {
+    flex: 1 1 auto;
+    align-self: center;
+}
+body.interface-modern #listIn.modern-shelf-compact .modern-meta {
+    display: none;
+}
 body.interface-modern .modern-view-library.modern-screen-grid #modernHero {
     display: none;
 }

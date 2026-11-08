@@ -744,17 +744,17 @@
             "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
           },
           "modern": {
-            "bytes": 68641,
-            "gzipBytes": 21710,
-            "sha256": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291"
+            "bytes": 69934,
+            "gzipBytes": 22151,
+            "sha256": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477"
           },
           "legacyTotal": {
             "bytes": 1462579,
             "gzipBytes": 457522
           },
           "total": {
-            "bytes": 1946794,
-            "gzipBytes": 603537
+            "bytes": 1948087,
+            "gzipBytes": 603978
           },
           "assets": {
             "player.js": {
@@ -843,9 +843,9 @@
               "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
             },
             "modern-interface.js": {
-              "bytes": 68641,
-              "gzipBytes": 21710,
-              "sha256": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291"
+              "bytes": 69934,
+              "gzipBytes": 22151,
+              "sha256": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477"
             },
             "perf-capture.js": {
               "bytes": 21591,
@@ -914,17 +914,17 @@
             "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
           },
           "modern": {
-            "bytes": 68641,
-            "gzipBytes": 21710,
-            "sha256": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291"
+            "bytes": 69934,
+            "gzipBytes": 22151,
+            "sha256": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477"
           },
           "legacyTotal": {
             "bytes": 1462541,
             "gzipBytes": 457578
           },
           "total": {
-            "bytes": 1946756,
-            "gzipBytes": 603593
+            "bytes": 1948049,
+            "gzipBytes": 604034
           },
           "assets": {
             "player.js": {
@@ -1013,9 +1013,9 @@
               "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
             },
             "modern-interface.js": {
-              "bytes": 68641,
-              "gzipBytes": 21710,
-              "sha256": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291"
+              "bytes": 69934,
+              "gzipBytes": 22151,
+              "sha256": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477"
             },
             "perf-capture.js": {
               "bytes": 21591,
@@ -1084,17 +1084,17 @@
             "sha256": "ebed15144be661da7d56a9a2850920d4167700d99fdcad5fc2959eeadf976db7"
           },
           "modern": {
-            "bytes": 68641,
-            "gzipBytes": 21710,
-            "sha256": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291"
+            "bytes": 69934,
+            "gzipBytes": 22151,
+            "sha256": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477"
           },
           "legacyTotal": {
             "bytes": 1462541,
             "gzipBytes": 457578
           },
           "total": {
-            "bytes": 1946756,
-            "gzipBytes": 603593
+            "bytes": 1948049,
+            "gzipBytes": 604034
           },
           "assets": {
             "player.js": {
@@ -1183,9 +1183,9 @@
               "sha256": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1"
             },
             "modern-interface.js": {
-              "bytes": 68641,
-              "gzipBytes": 21710,
-              "sha256": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291"
+              "bytes": 69934,
+              "gzipBytes": 22151,
+              "sha256": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477"
             },
             "perf-capture.js": {
               "bytes": 21591,
@@ -1266,12 +1266,12 @@
     ],
     "diagnosticBinding": {
       "path": "build/reports/classic-size-diagnostics.json",
-      "sha256": "e17ae6dfccf810770398172e83648a02b3314f02672f82605cffb4d9c96c0f9e",
-      "sourceBase": "b7f51f93a190355419e6c3d1667ea8c702190426",
+      "sha256": "e05ae789d9a71f247bad5696f1574cbbb2e95a6cc14470cbf678d1f29f7f0669",
+      "sourceBase": "74ffa0306472770616559c74a2950a76a5bd0428",
       "complete": true
     },
     "inputHashes": {
-      "scripts/classic-size.cjs": "cabae683dcdfc4d37d2f2e975e36576e6725b84f6656b175497c992e9cbad798",
+      "reviewed-pre-allocation-budget-policy": "cabae683dcdfc4d37d2f2e975e36576e6725b84f6656b175497c992e9cbad798",
       "scripts/play-system-icons.cjs": "0d2adac364da1fe44d3025868cda8f448094074019c4a2cd9105416fa58bd21a",
       "scripts/native-runtime.cjs": "406f80c4cf6a0fc5f729f4aad3da908e1bf9cde1976fed5b3b2b6173b348056e",
       "vite.config.ts": "7089cad56b5fdd50198c61e1610cbf45586ba1879f0cdfaff430cdb3d85adcaf",
@@ -1292,7 +1292,7 @@
       "dist/local-drop.js": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e",
       "dist/local-media-ui.js": "c4c18b2f85861fd37fd6fe8d6d694f0eb13eb8027f7dbb304f0e868e74dd3926",
       "dist/media-companion.js": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1",
-      "dist/modern-interface.js": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291",
+      "dist/modern-interface.js": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477",
       "dist/perf-capture.js": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576",
       "dist/remote-local-runner.js": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541",
       "dist/remote-provider-fields.js": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3",
@@ -1319,7 +1319,7 @@
       "src-tauri/frontend/dist/local-drop.js": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e",
       "src-tauri/frontend/dist/local-media-ui.js": "c4c18b2f85861fd37fd6fe8d6d694f0eb13eb8027f7dbb304f0e868e74dd3926",
       "src-tauri/frontend/dist/media-companion.js": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1",
-      "src-tauri/frontend/dist/modern-interface.js": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291",
+      "src-tauri/frontend/dist/modern-interface.js": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477",
       "src-tauri/frontend/dist/perf-capture.js": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576",
       "src-tauri/frontend/dist/remote-local-runner.js": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541",
       "src-tauri/frontend/dist/remote-provider-fields.js": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3",
@@ -1346,7 +1346,7 @@
       "dist-mobile/dist/local-drop.js": "7f10156c4acb25f6156404ed75999be09c54c4cf3b09b916fc18a32c12fc936e",
       "dist-mobile/dist/local-media-ui.js": "c4c18b2f85861fd37fd6fe8d6d694f0eb13eb8027f7dbb304f0e868e74dd3926",
       "dist-mobile/dist/media-companion.js": "ed158cce01e9cb1fd0aa9a48852c2289ab36df234856e340fca080f42683b2f1",
-      "dist-mobile/dist/modern-interface.js": "8b7b7b8b6ef9ff63f80831ddf02f0c3af88349398e6541121a2f706d15bb3291",
+      "dist-mobile/dist/modern-interface.js": "160665e2404931778f833c20e5ca8f2e08503e560abfb1a342e97f2c50aca477",
       "dist-mobile/dist/perf-capture.js": "0e11ac20d6b80c7f804828fdafc261e923c403c673b177fb8e6073d01c072576",
       "dist-mobile/dist/remote-local-runner.js": "95d74e9293b0163f6557169203d193554ebba23cfb27b41f58de204549906541",
       "dist-mobile/dist/remote-provider-fields.js": "4aa7e64c91a9055c8c688c0dece5df35821c7587f14a71f3a9aeb01da8e03ea3",
@@ -1356,13 +1356,13 @@
       "dist-mobile/dist/runtime-debug-details.js": "03331c9f297ec91756b01359962fd2a4743875105e8f46ed6fd1d1d5749295ce",
       "dist-mobile/dist/shaka-tracks.js": "5b6c13f17f9848fda41410fc880620979b7978acc3b8d52c0a1aca278f5fed29",
       "dist-mobile/dist/subtitle-appearance.js": "bd6ee99df9a6aba7be11ff6567243145a70f7b5bebf0719d32190ee6c2093ef6",
-      "build/reports/classic-size-diagnostics.json": "e17ae6dfccf810770398172e83648a02b3314f02672f82605cffb4d9c96c0f9e"
+      "build/reports/classic-size-diagnostics.json": "e05ae789d9a71f247bad5696f1574cbbb2e95a6cc14470cbf678d1f29f7f0669"
     }
   },
   "allowances": {
     "MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE": {
-      "bytes": 15407,
-      "gzipBytes": 5149
+      "bytes": 16700,
+      "gzipBytes": 5590
     },
     "PLEX_HOST_LIFECYCLE_ALLOWANCE": {
       "bytes": 545,
@@ -1485,12 +1485,12 @@
         "gzipBytes": 457620
       },
       "BASE_TOTAL_BUDGET": {
-        "bytes": 1937661,
-        "gzipBytes": 599658
+        "bytes": 1938954,
+        "gzipBytes": 600099
       },
       "TOTAL_BUDGET": {
-        "bytes": 1947941,
-        "gzipBytes": 603686
+        "bytes": 1949234,
+        "gzipBytes": 604127
       },
       "PROVIDER_BUDGET": {
         "bytes": 863400,
@@ -1530,8 +1530,8 @@
           "gzipBytes": 4110
         },
         "modern-interface": {
-          "bytes": 68664,
-          "gzipBytes": 21741
+          "bytes": 69957,
+          "gzipBytes": 22182
         },
         "perf-capture": {
           "bytes": 22200,

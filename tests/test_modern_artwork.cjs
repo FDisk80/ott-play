@@ -112,6 +112,31 @@ test("HTTPS artwork stays direct and unchanged; unmapped HTTP never auto-upgrade
     }
 });
 
+test("inline image data has a separate bounded allowance from network URLs", () => {
+    const f = fixture();
+    try {
+        f.native();
+        const image = f.image();
+        const data =
+            "data:image/png;base64," + Buffer.alloc(6000).toString("base64");
+        assert(data.length > 4096);
+        f.loader.bind(image, data);
+        assert.equal(image.getAttribute("src"), data);
+        assert.equal(f.calls.length, 0);
+        f.loader.bind(image, "https://images.example/" + "a".repeat(4096));
+        assert.equal(image.hasAttribute("src"), false);
+        f.loader.bind(
+            image,
+            "data:image/png;base64," +
+                "A".repeat(Math.ceil((4 * 1024 * 1024) / 3) * 4 + 128)
+        );
+        assert.equal(image.hasAttribute("src"), false);
+        assert.equal(f.calls.length, 0);
+    } finally {
+        f.close();
+    }
+});
+
 test("hosted artwork maps only explicit origin/directory/filename pairs", () => {
     const f = fixture();
     try {
@@ -152,6 +177,62 @@ test("hosted artwork maps only explicit origin/directory/filename pairs", () => 
             false,
             "ambiguous route denied"
         );
+    } finally {
+        f.close();
+    }
+});
+
+test("hosted mappings work inside Tauri without requesting native permissions", async () => {
+    const f = fixture("https://player.example/");
+    try {
+        f.native();
+        f.w.__OTTPLAY_HOSTED__ = {
+            artwork: {
+                routes: [
+                    {
+                        path: "/vportal/artwork/provider-1/l/",
+                        upstream: "http://posters.example/posters/l/",
+                    },
+                ],
+            },
+            version: 1,
+        };
+        const image = f.image();
+        f.loader.bind(image, "http://posters.example/posters/l/a.jpg");
+        await tick();
+        assert.equal(
+            image.getAttribute("src"),
+            "/vportal/artwork/provider-1/l/a.jpg"
+        );
+        assert.equal(f.calls.length, 0);
+        f.loader.reset();
+        assert.equal(image.hasAttribute("src"), false);
+    } finally {
+        f.close();
+    }
+});
+
+test("native rejection never retries a direct HTTP image even on debug HTTP pages", async () => {
+    const f = fixture("http://127.0.0.1:8443/");
+    try {
+        f.native();
+        const image = f.image();
+        for (const reason of [
+            "origin denied",
+            "private destination",
+            "unsupported raster",
+            "standby",
+        ]) {
+            const count = f.calls.length;
+            f.loader.bind(image, "http://images.example/" + count + ".jpg");
+            await tick();
+            assert.equal(f.calls.length, count + 1);
+            f.calls[count].reject(new Error(reason));
+            await tick();
+            assert.equal(image.hasAttribute("src"), false, reason);
+            assert.equal(image.style.display, "none", reason);
+            assert.equal(f.created.length, 0);
+        }
     } finally {
         f.close();
     }

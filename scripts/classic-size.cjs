@@ -655,8 +655,8 @@ const MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE = Object.freeze({
 // Exact accepted-beta.6 deltas; no generic provider/other optional cap changes.
 // Evidence: docs/evidence/modern-vportal-artwork-size-20261108.json.
 const MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE = Object.freeze({
-    bytes: 15407,
-    gzipBytes: 5149,
+    bytes: 16700,
+    gzipBytes: 5590,
 });
 // Bind the lazy Plex library callbacks to their host when opened by Modern.
 // Count this exact provider delta once in legacy and complete totals only.
