@@ -8053,7 +8053,14 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     confirmBox("Keep this row?", () => {})
                 );
                 await expect(page.locator("#dialogbox")).toBeVisible();
-                await page.keyboard.press("ArrowDown");
+                expect(
+                    await page.evaluate(() =>
+                        __ottClassicScreenPort.listOwner().foreground()
+                    )
+                ).toBe(false);
+                // Expire the previous wheel's throttle so only the dialog's
+                // foreground ownership can block this background input.
+                await page.waitForTimeout(180);
                 await page.evaluate(() =>
                     document.getElementById("listIn").dispatchEvent(
                         new WheelEvent("wheel", {
@@ -8064,10 +8071,17 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     )
                 );
                 await expectSelection("Third category", 1);
-                await page.evaluate(() => {
-                    __ottClassicScreenPort.close("dialog");
-                    $("#dialogbox").hide();
-                });
+                await expect(page.locator("#dialogbox")).toBeVisible();
+                // confirmBox cancels on any non-ENTER key. That cancelling
+                // key belongs to the dialog, not the newly restored list.
+                await page.keyboard.press("ArrowDown");
+                await expect(page.locator("#dialogbox")).toBeHidden();
+                expect(
+                    await page.evaluate(() =>
+                        __ottClassicScreenPort.listOwner().foreground()
+                    )
+                ).toBe(true);
+                await expectSelection("Third category", 1);
                 await expect(page.locator("#it1")).toBeFocused();
                 await page.keyboard.press("ArrowDown");
                 await expectSelection("Large category", 0);
