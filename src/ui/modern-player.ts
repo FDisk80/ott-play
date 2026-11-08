@@ -1189,7 +1189,11 @@ function createModernPlayer(w: any) {
                           : ""
                     : group === "actions"
                       ? id === "down"
-                          ? "timeline"
+                          ? timelineElement?.hidden &&
+                            infoButton &&
+                            !infoButton.hidden
+                              ? "info"
+                              : "timeline"
                           : ""
                       : group === "info" && id === "down"
                         ? "info"

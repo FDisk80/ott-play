@@ -1891,6 +1891,67 @@ test("native action/timeline/Info navigation uses the shared current-description
     }
 });
 
+test("native Down reaches Info when a live stream has no timeline", () => {
+    const f = fixture();
+    try {
+        f.w.ott_device = "webos";
+        f.w.showPlaybackInfo = () => f.calls.push(["showPlaybackInfo"]);
+        f.w.__ottClassicPlayback.context = () => ({
+            isCurrent: () => true,
+            previewOffset: () => ({ plan: { action: "restart" } }),
+        });
+        for (const id of [
+            "begin_time",
+            "end_time",
+            "programm_name",
+            "programm_descr",
+        ])
+            f.w.document.getElementById(id).textContent = "";
+        f.w._prog100 = null;
+        f.api.refresh();
+        f.w.document.getElementById("info1").style.display = "block";
+        f.api.sync();
+        const key = (name) => f.api.handleKey({ keyCode: f.w.keys[name] });
+        const info = f.w.document.querySelector(
+            '[data-modern-player-action="info"]'
+        );
+        assert.equal(
+            f.w.document.querySelector(".modern-player-timeline").hidden,
+            true
+        );
+        assert.equal(info.hidden, false, "channel metadata still offers Info");
+        assert.equal(f.api.state().group, "actions");
+        key("DOWN");
+        assert.equal(f.api.state().group, "info");
+        assert.equal(f.w.document.activeElement, info);
+        key("DOWN");
+        assert.equal(
+            f.w.document.activeElement,
+            info,
+            "the lower tab edge retains focus"
+        );
+        key("ENTER");
+        assert.equal(
+            f.calls.filter(([name]) => name === "showPlaybackInfo").length,
+            1
+        );
+        key("UP");
+        assert.equal(f.api.state().group, "actions");
+        assert.equal(
+            f.w.document.activeElement.closest(".modern-player-actions") !==
+                null,
+            true
+        );
+        assert.equal(
+            f.calls.some(([name]) => name === "infoBarHide"),
+            false
+        );
+    } finally {
+        f.api.destroy();
+        f.dom.window.close();
+    }
+});
+
 test("library return restores the active global Favorites before provider browsing", () => {
     const f = fixture();
     try {

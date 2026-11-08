@@ -643,13 +643,13 @@ const MODERN_PLAYER_OPTIONAL_ALLOWANCE = Object.freeze({
 });
 // LG playback structure, owned current-item Info and capability-gated controls
 // remain in the lazy Modern asset. Node 22.23.4 / gzip level 9 measures the
-// accepted beta.4 asset at 38314/12236 and this candidate at 52591/16395.
+// accepted beta.4 asset at 38314/12236 and this candidate at 52638/16400.
 // Count the exact delta once in Modern and complete totals, preserving prior
 // headroom; entry, legacy, provider and other optional caps remain unchanged.
 // Evidence: docs/evidence/modern-lg-playback-size-20261107.json.
 const MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE = Object.freeze({
-    bytes: 14277,
-    gzipBytes: 4159,
+    bytes: 14324,
+    gzipBytes: 4164,
 });
 // Native-style Home/Library shell, artwork and guarded selected-item actions,
 // including final focus ownership and finite playback-time presentation fixes.

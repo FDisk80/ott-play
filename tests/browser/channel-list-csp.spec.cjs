@@ -6697,6 +6697,16 @@ test("Modern bottom HUD removes seek controls when the live source has no archiv
         await expect(
             page.locator(".modern-player-actions button:focus")
         ).toBeVisible();
+        await enterModernHudToolbar(page);
+        const info = page.locator('[data-modern-player-action="info"]');
+        await page.keyboard.press("ArrowDown");
+        await expect(info).toBeFocused();
+        await page.keyboard.press("ArrowDown");
+        await expect(info).toBeFocused();
+        await page.keyboard.press("ArrowUp");
+        await expect(
+            page.locator(".modern-player-actions button:focus")
+        ).toBeVisible();
         expect(await page.evaluate(() => __hudEffects)).toEqual([]);
         expect(fixture.errors).toEqual([]);
         expect(fixture.unexpectedRequests).toEqual([]);
