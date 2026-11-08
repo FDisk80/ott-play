@@ -117,6 +117,29 @@ function ownedRules(w, element, property) {
         }));
 }
 
+test("RGB conversion preserves channel order, leading zeros and high bits", () => {
+    const { w } = fixture();
+    try {
+        for (const [hex, expected] of [
+            ["#000000", "0,0,0"],
+            ["#ffffff", "255,255,255"],
+            ["#ff0000", "255,0,0"],
+            ["#00ff00", "0,255,0"],
+            ["#0000ff", "0,0,255"],
+            ["#010203", "1,2,3"],
+            ["#008001", "0,128,1"],
+            ["#7f80fe", "127,128,254"],
+            ["#807ffe", "128,127,254"],
+            ["#feff80", "254,255,128"],
+            ["#ABCDEF", "171,205,239"],
+        ]) {
+            assert.equal(w.interfaceColorRgb(hex), expected, hex);
+        }
+    } finally {
+        w.close();
+    }
+});
+
 test("empty/reset retains all three themes, opacity, separators and video styles", () => {
     const { w } = fixture();
     try {

@@ -215,11 +215,13 @@ function createPlexList(ports: any): any {
     function open(target: any): boolean {
         if (!isPlex()) return false;
         var driver = w.__ottActiveProviderDriver;
-        if (
+        var targetIsCatalog =
             target !== -1 &&
             target !== -2 &&
             target !== "submenu" &&
-            !(typeof target === "string" && /^(cmd:info|alert)/.test(target)) &&
+            !(typeof target === "string" && /^(cmd:info|alert)/.test(target));
+        if (
+            targetIsCatalog &&
             !ports.context &&
             driver &&
             driver.id === "plex" &&
@@ -238,10 +240,7 @@ function createPlexList(ports: any): any {
             ports.context &&
             ports.context.catalog &&
             isPlex() &&
-            target !== -1 &&
-            target !== -2 &&
-            target !== "submenu" &&
-            !(typeof target === "string" && /^(cmd:info|alert)/.test(target))
+            targetIsCatalog
         ) {
             var records = ports.context.catalog();
             if (
@@ -545,8 +544,7 @@ function createPlexList(ports: any): any {
                                 !group ||
                                 groupId === "system:favorites" ||
                                 typeof index !== "number" ||
-                                !isFinite(index) ||
-                                index % 1 ||
+                                index % 1 !== 0 ||
                                 index < 0 ||
                                 index >= group.members.length
                             )

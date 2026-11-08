@@ -962,6 +962,45 @@ check(
             host.__ottPlexList.create(ports).render({ frame, revision: 1 }),
             true
         );
+        // Exercise the provider capability directly, before Modern validates it.
+        const rawShelves = host.getListItemFn.__ottCatalog.shelves;
+        const originalFormatter = host.getListItemFn;
+        const highlightsBefore = highlighted.length;
+        const nonNumber = {
+            valueOf() {
+                assert.fail("Plex shelf indices must not coerce objects");
+            },
+        };
+        for (const index of [
+            NaN,
+            Infinity,
+            -Infinity,
+            -1,
+            -0.5,
+            0.5,
+            2,
+            "0",
+            undefined,
+            null,
+            false,
+            true,
+            [],
+            nonNumber,
+            Symbol("index"),
+            0n,
+        ])
+            assert.equal(rawShelves.focus("folder:films", index), false);
+        assert.equal(host.getListItemFn, originalFormatter);
+        assert.equal(highlighted.length, highlightsBefore);
+        assert.deepEqual(selected, []);
+        assert.equal(rawShelves.focus("folder:films", -0), true);
+        assert.equal(host.selIndex, 0);
+        assert.equal(host.listArray[host.selIndex], "plex-row-1");
+        assert.deepEqual(
+            selected,
+            [],
+            "index validation never starts playback"
+        );
         const before = getShelves();
         assert.equal(before.source, frame);
         before.groups.find(
