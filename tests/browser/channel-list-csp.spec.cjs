@@ -6387,6 +6387,489 @@ for (const mode of [0, 1]) {
     });
 }
 
+async function modernHudFixture(browser, profile, viewport) {
+    const fixture = await fixturePage(browser, profile, { interfaceTheme: 2 });
+    const { page } = fixture;
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => {
+        stbInit();
+        window.__hudEffects = [];
+        window.__hudPosition = 250;
+        const media = document.getElementById("video");
+        Object.defineProperties(media, {
+            currentTime: { configurable: true, get: () => __hudPosition },
+            duration: { configurable: true, get: () => 1000 },
+            paused: { configurable: true, get: () => false },
+        });
+        const progress = document.getElementById("progress_div");
+        window.__hudOriginalProgress = progress;
+        window.__hudOriginalParent = progress.parentNode;
+        window.__hudOriginalAttributes = Array.from(progress.attributes)
+            .filter(({ name }) => /^(role|tabindex|aria-)/.test(name))
+            .map(({ name, value }) => [name, value]);
+        window.__hudBackend = __ottCoreBackend().current();
+        for (const name of ["stbPlay", "stbStop"])
+            window[name] = () => __hudEffects.push([name]);
+        window.catIndex = 0;
+        window.primaryIndex = 0;
+        window.curList = cats.Fixture;
+        __ottClassicPlayback.command({ channelId: "one", type: "live" });
+        __ottClassicPlayback.command({
+            duration: 1000,
+            type: "finite-channel",
+        });
+        __ottClassicPlayback.command({ type: "playing" });
+        __ottClassicPlayback.programme = () => ({
+            collection: "Fixture collection",
+            duration: 1000,
+            nextStartedAt: 1700001000,
+            nextTitle: "The next programme has a deliberately long title",
+            position: __hudPosition,
+            startedAt: 1700000000,
+            title: "Northern Passage: a long programme title that must remain inside the playback controls",
+        });
+        saveSettings({ interfaceMode: 1 });
+        stbBindKeyHandler();
+        closeList();
+        updateMediaInfo();
+        showChannelInfo(30);
+        $("#info1").finish();
+    });
+    await expect(page.locator("#modernPlayer")).toBeVisible();
+    return fixture;
+}
+
+// Programmatic focus establishes a starting point; the real Tab press is what
+// admits desktop toolbar navigation. Merely displaying INFO must not do so.
+async function enterModernHudToolbar(page) {
+    const actions = page.locator(
+        ".modern-player-actions button:visible:enabled"
+    );
+    await actions.first().focus();
+    await page.keyboard.press("Tab");
+    await expect(actions.nth(1)).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect(actions.first()).toBeFocused();
+    return actions;
+}
+
+for (const scenario of [
+    { profile: "server", views: [{ height: 1080, width: 1920 }] },
+    { profile: "tauri", views: [{ height: 720, width: 1280 }] },
+    {
+        profile: "capacitor",
+        views: [
+            { height: 844, width: 390 },
+            { height: 390, width: 844 },
+        ],
+    },
+]) {
+    test(`Modern bottom HUD keeps its focused controls reachable and restores Classic (${scenario.profile})`, async ({
+        browser,
+    }) => {
+        const fixture = await modernHudFixture(
+            browser,
+            scenario.profile,
+            scenario.views[0]
+        );
+        const { page } = fixture;
+        try {
+            await attachModernRuntimeIdentity(page, browser);
+            await expect(page.locator("#progress_div")).toHaveAttribute(
+                "role",
+                "slider"
+            );
+            await expect(page.locator("#progress_div")).toHaveAttribute(
+                "aria-valuenow",
+                "25"
+            );
+            for (const viewport of scenario.views) {
+                await page.setViewportSize(viewport);
+                await page.evaluate(() => {
+                    showChannelInfo(30);
+                    $("#info1").finish();
+                    __ottModernPlayer.sync();
+                });
+                const panel = page.locator(".modern-player-panel");
+                await expect(panel).toHaveCSS("animation-name", "none");
+                const bounds = await panel.boundingBox();
+                expect(bounds.x).toBeGreaterThan(0);
+                expect(bounds.y).toBeGreaterThanOrEqual(-1);
+                expect(bounds.x + bounds.width).toBeLessThan(viewport.width);
+                expect(bounds.y + bounds.height).toBeLessThan(viewport.height);
+                await expect(page.locator("#modernPlayerTitle")).toBeVisible();
+                await expect(page.locator("#progress_div")).toBeVisible();
+                const heading = await page
+                    .locator(".modern-player-heading")
+                    .boundingBox();
+                const toolbar = await page
+                    .locator(".modern-player-actions")
+                    .boundingBox();
+                const timeline = await page
+                    .locator(".modern-player-timeline")
+                    .boundingBox();
+                expect(heading.y + heading.height).toBeLessThanOrEqual(
+                    toolbar.y + 1
+                );
+                expect(toolbar.y + toolbar.height).toBeLessThanOrEqual(
+                    timeline.y + 1
+                );
+                const actions = await enterModernHudToolbar(page);
+                const count = await actions.count();
+                expect(count).toBeGreaterThan(3);
+                for (let index = 0; index < count; index++) {
+                    const action = actions.nth(index);
+                    await expect(action).toBeFocused();
+                    await expectVisibleControlsWithinViewport(
+                        page,
+                        ".modern-player-actions button:focus"
+                    );
+                    const size = await action.boundingBox();
+                    expect(size.width).toBeGreaterThanOrEqual(44);
+                    expect(size.height).toBeGreaterThanOrEqual(44);
+                    const rows = await actions.evaluateAll((buttons) =>
+                        buttons.map((button) => {
+                            const rect = button.getBoundingClientRect();
+                            return rect.top + rect.height / 2;
+                        })
+                    );
+                    expect(
+                        Math.max(...rows) - Math.min(...rows)
+                    ).toBeLessThanOrEqual(1);
+                    if (index + 1 < count)
+                        await page.keyboard.press("ArrowRight");
+                }
+                await page.screenshot({
+                    path: test
+                        .info()
+                        .outputPath(
+                            `modern-bottom-hud-${viewport.width}x${viewport.height}.png`
+                        ),
+                });
+            }
+            await page.evaluate(() => saveSettings({ interfaceMode: 0 }));
+            await expect(page.locator("#modernPlayer")).toHaveCount(0);
+            await expect(page.locator("#info1")).toBeVisible();
+            expect(
+                await page.evaluate(() => ({
+                    attributes: Array.from(__hudOriginalProgress.attributes)
+                        .filter(({ name }) =>
+                            /^(role|tabindex|aria-)/.test(name)
+                        )
+                        .map(({ name, value }) => [name, value]),
+                    backend: __ottCoreBackend().current() === __hudBackend,
+                    effects: __hudEffects,
+                    parent:
+                        __hudOriginalProgress.parentNode ===
+                        __hudOriginalParent,
+                    progress:
+                        document.getElementById("progress_div") ===
+                        __hudOriginalProgress,
+                }))
+            ).toEqual({
+                attributes: await page.evaluate(() => __hudOriginalAttributes),
+                backend: true,
+                effects: [],
+                parent: true,
+                progress: true,
+            });
+            expect(fixture.errors).toEqual([]);
+            expect(fixture.unexpectedRequests).toEqual([]);
+        } finally {
+            await fixture.close();
+        }
+    });
+}
+
+test("Modern bottom HUD permits scrolling to Info on a short landscape screen", async ({
+    browser,
+}) => {
+    const fixture = await modernHudFixture(browser, "server", {
+        height: 220,
+        width: 640,
+    });
+    const { page } = fixture;
+    try {
+        await page.evaluate(() => {
+            document.getElementById("programm_name").textContent =
+                "A long current programme title that occupies both available lines";
+            showChannelInfo(30);
+            $("#info1").finish();
+            __ottModernPlayer.sync();
+        });
+        const panel = page.locator(".modern-player-panel");
+        await expect(panel).toHaveCSS("overflow-y", "auto");
+        const dimensions = await panel.evaluate((element) => ({
+            content: element.scrollHeight,
+            visible: element.clientHeight,
+        }));
+        expect(dimensions.content).toBeGreaterThan(dimensions.visible);
+        const bounds = await panel.boundingBox();
+        await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 8);
+        await page.mouse.wheel(0, 600);
+        await expect
+            .poll(() => panel.evaluate((element) => element.scrollTop))
+            .toBeGreaterThan(0);
+        const info = page.locator('[data-modern-player-action="info"]');
+        await expect(info).toBeInViewport();
+        await info.click();
+        await expect(page.locator(".playback-info-card")).toBeVisible();
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});
+
+test("Modern bottom HUD keeps desktop playback shortcuts until Tab owns the toolbar", async ({
+    browser,
+}) => {
+    const fixture = await modernHudFixture(browser, "server", {
+        height: 720,
+        width: 1280,
+    });
+    const { page } = fixture;
+    try {
+        await page.evaluate(() => {
+            settings.auFun = 15;
+            settings.adFun = 16;
+            window.sVolumeStep = 5;
+            window.changeVolume = (delta) =>
+                __hudEffects.push(["volume", delta]);
+            window.shiftArchive = (delta) => __hudEffects.push(["seek", delta]);
+            window.playChannel = (category, index) => {
+                __hudEffects.push(["channel", category, index]);
+                window.primaryIndex = index;
+            };
+        });
+        for (const interactive of [false, true]) {
+            await page.evaluate((interactive) => {
+                infoBarHide();
+                $("#info1").finish();
+                __ottModernPlayer.sync();
+                showChannelInfo(30, interactive);
+                $("#info1").finish();
+                __ottModernPlayer.sync();
+                window.__hudEffects = [];
+                window.primaryIndex = 0;
+            }, interactive);
+            for (const key of [
+                "ArrowLeft",
+                "ArrowRight",
+                "ArrowUp",
+                "ArrowDown",
+            ])
+                await page.keyboard.press(key);
+            expect(await page.evaluate(() => __hudEffects)).toEqual([
+                ["volume", -5],
+                ["volume", 5],
+                ["channel", 0, 1],
+                ["channel", 0, 0],
+            ]);
+        }
+        const actions = await enterModernHudToolbar(page);
+        await page.evaluate(() => {
+            window.__hudEffects = [];
+        });
+        await page.keyboard.press("ArrowRight");
+        await expect(actions.nth(1)).toBeFocused();
+        for (const modifier of ["Alt", "Control", "Meta"])
+            await page.keyboard.press(modifier + "+ArrowRight");
+        expect(await page.evaluate(() => __hudEffects)).toEqual([
+            ["seek", 10],
+            ["seek", 10],
+            ["seek", 10],
+        ]);
+        await expect(actions.nth(1)).toBeFocused();
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});
+
+test("Modern bottom HUD removes seek controls when the live source has no archive", async ({
+    browser,
+}) => {
+    const fixture = await modernHudFixture(browser, "server", {
+        height: 720,
+        width: 1280,
+    });
+    const { page } = fixture;
+    try {
+        const rewind = page.locator('[data-modern-player-action="rewind"]');
+        const forward = page.locator('[data-modern-player-action="forward"]');
+        await expect(rewind).toBeVisible();
+        await expect(forward).toBeVisible();
+        const actions = await enterModernHudToolbar(page);
+        for (let step = 0; step < (await actions.count()); step++) {
+            if (
+                await rewind.evaluate(
+                    (element) => element === document.activeElement
+                )
+            )
+                break;
+            await page.keyboard.press("ArrowRight");
+        }
+        await expect(rewind).toBeFocused();
+        await page.evaluate(() => {
+            channels.one.rec = 0;
+            __ottClassicPlayback.command({ channelId: "one", type: "live" });
+            __ottClassicPlayback.command({ type: "playing" });
+            window.__hudPosition = 0;
+            Object.defineProperty(
+                document.getElementById("video"),
+                "duration",
+                {
+                    configurable: true,
+                    get: () => Infinity,
+                }
+            );
+            window._prog100 = null;
+            for (const id of ["begin_time", "end_time", "nprogramm_name"])
+                document.getElementById(id).textContent = "";
+            __ottModernPlayer.sync();
+        });
+        await expect(rewind).toBeHidden();
+        await expect(forward).toBeHidden();
+        await expect(page.locator(".modern-player-timeline")).toBeHidden();
+        await expect(
+            page.locator(".modern-player-actions button:focus")
+        ).toBeVisible();
+        await enterModernHudToolbar(page);
+        const info = page.locator('[data-modern-player-action="info"]');
+        await page.keyboard.press("ArrowDown");
+        await expect(info).toBeFocused();
+        await page.keyboard.press("ArrowDown");
+        await expect(info).toBeFocused();
+        await page.keyboard.press("ArrowUp");
+        await expect(
+            page.locator(".modern-player-actions button:focus")
+        ).toBeVisible();
+        expect(await page.evaluate(() => __hudEffects)).toEqual([]);
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});
+
+test("Modern playback Info shows the playing item and returns to the same decoder", async ({
+    browser,
+}) => {
+    const fixture = await modernHudFixture(browser, "tauri", {
+        height: 720,
+        width: 1280,
+    });
+    const { page } = fixture;
+    try {
+        const expected = await page.evaluate(() => {
+            const poster = (color) =>
+                "data:image/svg+xml;charset=utf-8," +
+                encodeURIComponent(
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="180"><rect width="120" height="180" fill="${color}"/></svg>`
+                );
+            document.getElementById("_name").textContent =
+                "Previously browsed film";
+            document.getElementById("_descr").textContent =
+                "Previous catalogue description";
+            const oldArt = document.createElement("img");
+            oldArt.src = poster("red");
+            document.getElementById("_descr").appendChild(oldArt);
+            const title = "The currently playing film";
+            const description = "Current playback description. ".repeat(120);
+            document.getElementById("programm_name").textContent = title;
+            const source = document.getElementById("programm_descr");
+            source.textContent = description;
+            const art = document.createElement("img");
+            art.src = poster("navy");
+            source.appendChild(art);
+            __ottModernPlayer.sync();
+            return { description: description.trim(), poster: art.src, title };
+        });
+        await page.locator('[data-modern-player-action="info"]').click();
+        const dialog = page.locator("#dialogbox");
+        await expect(dialog).toBeVisible();
+        await expect(page.locator("#modernPlayer")).toBeHidden();
+        const placement = await dialog.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+                bottom: rect.bottom,
+                height: innerHeight,
+                left: rect.left,
+                offsetX: Math.abs(rect.left + rect.width / 2 - innerWidth / 2),
+                offsetY: Math.abs(rect.top + rect.height / 2 - innerHeight / 2),
+                right: rect.right,
+                top: rect.top,
+                width: innerWidth,
+            };
+        });
+        expect(placement.left).toBeGreaterThanOrEqual(0);
+        expect(placement.top).toBeGreaterThanOrEqual(0);
+        expect(placement.right).toBeLessThanOrEqual(placement.width);
+        expect(placement.bottom).toBeLessThanOrEqual(placement.height);
+        expect(placement.offsetX).toBeLessThanOrEqual(placement.width * 0.05);
+        expect(placement.offsetY).toBeLessThanOrEqual(placement.height * 0.05);
+        await expect(dialog.locator("h2")).toHaveText(expected.title);
+        await expect(dialog.locator("p")).toHaveText(expected.description);
+        await expect(dialog.locator(".playback-info-art")).toHaveAttribute(
+            "src",
+            expected.poster
+        );
+        await expect(dialog).not.toContainText("Previously browsed film");
+        const copy = dialog.locator(".playback-info-copy");
+        await expect(copy).toBeFocused();
+        await page.keyboard.press("ArrowDown");
+        await expect
+            .poll(() => copy.evaluate((element) => element.scrollTop))
+            .toBeGreaterThan(0);
+        await page.keyboard.press("ArrowUp");
+        await expect(dialog).toBeVisible();
+        await expectVisibleControlsWithinViewport(page, ".playback-info-close");
+        await page.screenshot({
+            path: test.info().outputPath("modern-playback-info.png"),
+        });
+        const close = dialog.locator(".playback-info-close");
+        const infoActions = dialog.locator(
+            ".playback-info-actions button:visible"
+        );
+        for (let index = 0; index < (await infoActions.count()); index++) {
+            await page.keyboard.press("Tab");
+            await expect(infoActions.nth(index)).toBeFocused();
+            await expect(infoActions.nth(index)).toHaveClass(
+                /playback-info-(restart|close)/
+            );
+        }
+        await expect(close).toBeFocused();
+        await page.keyboard.press("Tab");
+        await expect(copy).toBeFocused();
+        await page.keyboard.press("Shift+Tab");
+        await expect(close).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(dialog).toBeHidden();
+        await expect(page.locator("#modernPlayer")).toBeVisible();
+        // Returning to INFO twice must request an open HUD, not advance the
+        // shared info button's description/toggle cycle to a hidden footer.
+        await page.locator('[data-modern-player-action="info"]').click();
+        await expect(dialog).toBeVisible();
+        await expect(page.locator("#modernPlayer")).toBeHidden();
+        await close.click();
+        await expect(dialog).toBeHidden();
+        await expect(page.locator("#modernPlayer")).toBeVisible();
+        expect(
+            await page.evaluate(() => ({
+                backend: __ottCoreBackend().current() === __hudBackend,
+                effects: __hudEffects,
+            }))
+        ).toEqual({ backend: true, effects: [] });
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});
+
 test("Modern fullscreen timeline and audio picker preserve the playback owner", async ({
     browser,
 }) => {
@@ -6666,13 +7149,7 @@ for (const profile of ["server", "tauri", "capacitor"]) {
                     $("#info1").finish();
                 });
                 await expect(aspect).toBeVisible();
-                if (
-                    await page.evaluate(
-                        () => __ottModernPlayer.state().group !== "timeline"
-                    )
-                )
-                    await page.keyboard.press("ArrowUp");
-                await page.keyboard.press("ArrowDown");
+                await enterModernHudToolbar(page);
                 for (let step = 0; step < 12; step++) {
                     if (
                         await aspect.evaluate(

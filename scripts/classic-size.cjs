@@ -641,6 +641,16 @@ const MODERN_PLAYER_OPTIONAL_ALLOWANCE = Object.freeze({
     bytes: 17600,
     gzipBytes: 5100,
 });
+// LG playback structure, owned current-item Info and capability-gated controls
+// remain in the lazy Modern asset. Node 22.23.4 / gzip level 9 measures the
+// accepted beta.4 asset at 38314/12236 and this candidate at 53234/16561.
+// Count the exact delta once in Modern and complete totals, preserving prior
+// headroom; entry, legacy, provider and other optional caps remain unchanged.
+// Evidence: docs/evidence/modern-lg-playback-size-20261107.json.
+const MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE = Object.freeze({
+    bytes: 14920,
+    gzipBytes: 4325,
+});
 // Native-style Home/Library shell, artwork and guarded selected-item actions,
 // including final focus ownership and finite playback-time presentation fixes.
 // Paired e7f18/current optional builds retain the existing raw/gzip headroom.
@@ -1337,12 +1347,14 @@ const OPTIONAL_BUDGETS = Object.freeze({
     }),
     "modern-interface": Object.freeze({
         bytes:
+            MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.bytes +
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.bytes +
             MODERN_INTERFACE_OPTIONAL_ALLOWANCE.bytes +
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.bytes +
             MODERN_EXPERIENCE_ALLOWANCE.renderer.bytes,
         gzipBytes:
+            MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_REPAINT_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.gzipBytes +
@@ -1430,6 +1442,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.bytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.bytes +
@@ -1529,6 +1542,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.gzipBytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.gzipBytes +
@@ -1845,6 +1859,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
             MIXED_GLOBAL_FAVORITES_PROVIDER_ALLOWANCE,
         modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+        modernLgPlaybackOptionalAllowance:
+            MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE,
         modernNativeShellOptionalAllowance:
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
         modernPlayerOptionalAllowance: MODERN_PLAYER_OPTIONAL_ALLOWANCE,
@@ -2203,6 +2219,8 @@ function writeBuildBundleReport(
             mode: label(context.mode || "standard"),
             modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
             modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
+            modernLgPlaybackOptionalAllowance:
+                MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE,
             modernNativeShellOptionalAllowance:
                 MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
             nativeWindowControlsEntryAllowance:
@@ -2338,6 +2356,7 @@ module.exports = {
     MODERN_INTERFACE_ENTRY_ALLOWANCE,
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
+    MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE,
     MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     MODERN_REPAINT_OPTIONAL_ALLOWANCE,

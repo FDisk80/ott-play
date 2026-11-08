@@ -77,6 +77,7 @@ const CLASSIC_MODULES = [
     "build/ui/live-recovery.js",
     "build/ui/interface-mode.js",
     "build/ui/modern-actions.js",
+    "build/ui/playback-info.js",
     "build/ui/modern-player.js",
     "build/ui/modern.js",
     "build/ui/index.js",
@@ -312,7 +313,11 @@ const CLASSIC_OPTIONAL_BUNDLES = Object.freeze({
     ],
     "local-media-ui": ["build/plugins/local-media-ui.js"],
     "media-companion": ["build/plugins/media-companion.js"],
-    "modern-interface": ["build/ui/modern-player.js", "build/ui/modern.js"],
+    "modern-interface": [
+        "build/ui/playback-info.js",
+        "build/ui/modern-player.js",
+        "build/ui/modern.js",
+    ],
 
     "perf-capture": [
         "build/plugins/perf-sensors.js",
@@ -558,6 +563,7 @@ const CLASSIC_PRIVATE_MODULES = Object.freeze({
         "window.__ottModernUi",
         "window.__ottModernUiFactory",
     ]),
+    "build/ui/playback-info.js": Object.freeze(["window.showPlaybackInfo"]),
     "build/ui/screen-controller.js": Object.freeze([
         "window.__ottScreenController",
     ]),
