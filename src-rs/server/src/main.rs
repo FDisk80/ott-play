@@ -1,3 +1,4 @@
+mod artwork_api;
 mod debug_api;
 mod companion;
 mod control_discovery;
@@ -399,6 +400,8 @@ async fn main() -> anyhow::Result<()> {
         // Operator-local overrides (gitignored); 404 if directory missing
         .nest_service("/local", ServeDir::new("local"))
         .layer(cors)
+        // Arbitrary artwork URLs are local-only and must not inherit asset CORS.
+        .merge(artwork_api::routes())
         // Installation-authenticated relay must not inherit permissive asset CORS.
         .merge(swop::routes_from_env()?)
         .merge(normalization::routes_from_env(&cli.host).await?)

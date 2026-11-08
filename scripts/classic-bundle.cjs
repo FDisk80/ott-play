@@ -314,6 +314,7 @@ const CLASSIC_OPTIONAL_BUNDLES = Object.freeze({
     "local-media-ui": ["build/plugins/local-media-ui.js"],
     "media-companion": ["build/plugins/media-companion.js"],
     "modern-interface": [
+        "build/ui/modern-artwork.js",
         "build/ui/playback-info.js",
         "build/ui/modern-player.js",
         "build/ui/modern.js",

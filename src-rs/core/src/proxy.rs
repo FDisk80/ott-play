@@ -7,6 +7,8 @@ use std::time::Duration;
 use reqwest::{header::HeaderMap, redirect, Client, Url};
 use tokio::sync::Semaphore;
 
+use super::background_work::WorkLease;
+
 const MAX_BYTES: usize = 16 * 1024 * 1024;
 const MAX_REQUESTS: usize = 8;
 const MAX_REDIRECTS: usize = 5;
@@ -141,29 +143,56 @@ impl Policy {
     }
 
     async fn resolve(&self, url: &Url) -> Result<Vec<SocketAddr>, String> {
+        self.resolve_tracked(url, None).await
+    }
+
+    async fn resolve_tracked(
+        &self,
+        url: &Url,
+        work: Option<WorkLease>,
+    ) -> Result<Vec<SocketAddr>, String> {
         let port = url.port_or_known_default().ok_or("Invalid proxy port")?;
         let addresses = if let Some(ip) = literal_ip(url) {
             vec![SocketAddr::new(ip, port)]
         } else {
             let host = url.host_str().ok_or("Invalid proxy host")?.to_string();
-            let permit = DNS_REQUESTS
-                .try_acquire()
-                .map_err(|_| "Proxy DNS is busy; retry later")?;
-            // A timed-out request cannot cancel libc DNS. Keep its separate slot
-            // inside the blocking job until lookup really finishes.
-            tokio::task::spawn_blocking(move || {
-                let _permit = permit;
+            dns_lookup_tracked(work, move || {
                 (host.as_str(), port)
                     .to_socket_addrs()
                     .map(|answers| answers.take(33).collect())
             })
-            .await
-            .map_err(|_| "Proxy DNS lookup failed")?
-            .map_err(|_| "Proxy DNS lookup failed")?
+            .await?
         };
         self.check_addresses(url, &addresses)?;
         Ok(addresses)
     }
+}
+
+async fn dns_lookup_tracked<F>(
+    work: Option<WorkLease>,
+    lookup: F,
+) -> Result<Vec<SocketAddr>, String>
+where
+    F: FnOnce() -> std::io::Result<Vec<SocketAddr>> + Send + 'static,
+{
+    if let Some(work) = &work {
+        work.check().map_err(str::to_string)?;
+    }
+    let permit = DNS_REQUESTS
+        .try_acquire()
+        .map_err(|_| "Proxy DNS is busy; retry later")?;
+    // Dropping the async request cannot stop libc DNS. Keep both its admission
+    // slot and instance lease in the blocking task until lookup actually exits.
+    tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        let _work = work;
+        if let Some(work) = &_work {
+            work.check().map_err(str::to_string)?;
+        }
+        lookup().map_err(|_| "Proxy DNS lookup failed".to_string())
+    })
+    .await
+    .map_err(|_| "Proxy DNS lookup failed")?
 }
 
 fn pinned_client(url: &Url, addresses: &[SocketAddr], title_case: bool) -> Result<Client, String> {
@@ -286,6 +315,50 @@ pub(crate) async fn fetch(raw: &str, ua: &str) -> Result<(HeaderMap, Vec<u8>), S
             },
             MAX_BYTES,
         )
+        .await
+    })
+    .await
+}
+
+async fn artwork_checked<F, Fut>(url: Url, mut check: F) -> Result<Vec<u8>, String>
+where
+    F: FnMut(Url) -> Fut,
+    Fut: Future<Output = Result<Vec<SocketAddr>, String>>,
+{
+    let origin = url.origin();
+    let (_, bytes) = fetch_checked(
+        url,
+        "OTT-play-FOSS/1.0",
+        |url| {
+            let valid =
+                super::artwork::validate_url(url.as_str()).is_ok() && url.origin() == origin;
+            // Validate before invoking the resolver so rejected hops cannot cause DNS work.
+            let resolved = valid.then(|| check(url));
+            async move {
+                match resolved {
+                    Some(resolved) => resolved.await,
+                    None => Err(
+                        "Artwork redirect must remain on the same origin without credentials"
+                            .into(),
+                    ),
+                }
+            }
+        },
+        super::artwork::MAX_IMAGE_BYTES,
+    )
+    .await?;
+    Ok(bytes)
+}
+
+pub(crate) async fn fetch_artwork(url: Url, work: Option<WorkLease>) -> Result<Vec<u8>, String> {
+    limited(&REQUESTS, super::artwork::TIMEOUT, async {
+        let policy =
+            Policy::parse(&std::env::var("OTTPLAY_PROXY_LAN_ORIGINS").unwrap_or_default())?;
+        artwork_checked(url, |url| {
+            let policy = policy.clone();
+            let work = work.clone();
+            async move { policy.resolve_tracked(&url, work).await }
+        })
         .await
     })
     .await
@@ -763,6 +836,130 @@ async fn companion_response_bytes(
 mod tests {
     use super::*;
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn artwork_dns_keeps_instance_pending_after_standby_cancels_the_request() {
+        let background = super::super::background_work::BackgroundWork::default();
+        let lease = background.enter().unwrap();
+        let (started, ready) = tokio::sync::oneshot::channel();
+        let (release, blocked) = std::sync::mpsc::channel();
+        let request = tokio::spawn(async move {
+            lease
+                .run(dns_lookup_tracked(Some(lease.clone()), move || {
+                    let _ = started.send(());
+                    // Deterministic libc-DNS stand-in: cancellation cannot interrupt
+                    // this blocking operation. Dropping the sender also unblocks it
+                    // if an assertion fails, so the test runtime cannot hang.
+                    blocked
+                        .recv()
+                        .map_err(|_| std::io::Error::other("fixture released"))?;
+                    Ok(vec!["8.8.8.8:80".parse().unwrap()])
+                }))
+                .await
+        });
+        tokio::time::timeout(Duration::from_secs(2), ready)
+            .await
+            .unwrap()
+            .unwrap();
+        background.set_standby(true);
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(2), request)
+                .await
+                .unwrap()
+                .unwrap(),
+            Err("Player background work cancelled")
+        );
+        assert_eq!(background.status().pending, 1);
+        assert!(!background.status().quiescent);
+        release.send(()).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), background.wait_for_idle())
+            .await
+            .unwrap();
+        assert_eq!(background.status().pending, 0);
+        assert!(background.status().quiescent);
+    }
+
+    #[tokio::test]
+    async fn artwork_dns_never_starts_for_a_revoked_instance_lease() {
+        let background = super::super::background_work::BackgroundWork::default();
+        let lease = background.enter().unwrap();
+        background.set_standby(true);
+        assert_eq!(
+            dns_lookup_tracked(Some(lease), || panic!("Cancelled artwork started DNS")).await,
+            Err("Player background work cancelled".into())
+        );
+        assert!(background.status().quiescent);
+    }
+
+    #[tokio::test]
+    async fn artwork_redirects_recheck_pinned_dns_and_preserve_binary_bytes() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            for hop in 0..2 {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let request = read_request(&mut socket).await.to_lowercase();
+                assert!(!request.contains("authorization:"));
+                assert!(!request.contains("cookie:"));
+                let response: &[u8] = if hop == 0 {
+                    b"HTTP/1.1 302 Found\r\nLocation: /final.jpg\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                } else {
+                    // The declared content type cannot turn binary bytes into text.
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\nConnection: close\r\n\r\n\xff\xd8\xff\x00\xfe"
+                };
+                socket.write_all(response).await.unwrap();
+            }
+        });
+        let url = http_url(&format!(
+            "http://images.invalid:{}/first.jpg",
+            address.port()
+        ))
+        .unwrap();
+        let mut resolved = 0;
+        let bytes = artwork_checked(url, |_| {
+            resolved += 1;
+            async move { Ok(vec![address]) }
+        })
+        .await
+        .unwrap();
+        assert_eq!(resolved, 2);
+        assert_eq!(bytes, b"\xff\xd8\xff\x00\xfe");
+        assert_eq!(
+            super::super::artwork::raster_content_type(&bytes),
+            Some("image/jpeg")
+        );
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn artwork_rejects_redirect_scope_changes_before_dns_and_enforces_image_budget() {
+        for response in [
+            b"HTTP/1.1 302 Found\r\nLocation: http://other.invalid/final\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".as_slice(),
+            b"HTTP/1.1 302 Found\r\nLocation: http://user:secret@images.invalid/final\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            b"HTTP/1.1 302 Found\r\nLocation: /final#fragment\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+        ] {
+            let (address, server) = fixture(response).await;
+            let mut resolved = 0;
+            let result = artwork_checked(http_url("http://images.invalid/first").unwrap(), |_| {
+                resolved += 1;
+                async move { Ok(vec![address]) }
+            }).await;
+            assert_eq!(result.unwrap_err(), "Artwork redirect must remain on the same origin without credentials");
+            assert_eq!(resolved, 1);
+            server.await.unwrap();
+        }
+        let (address, server) =
+            fixture(b"HTTP/1.1 200 OK\r\nContent-Length: 4194305\r\nConnection: close\r\n\r\n")
+                .await;
+        let error = artwork_checked(
+            http_url("http://images.invalid/oversized").unwrap(),
+            |_| async move { Ok(vec![address]) },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error, "Proxy response exceeds byte limit");
+        server.await.unwrap();
+    }
 
     #[tokio::test]
     async fn stalker_headers_are_preserved_and_cross_origin_redirects_are_rejected() {

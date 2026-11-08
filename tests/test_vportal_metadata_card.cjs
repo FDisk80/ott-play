@@ -51,6 +51,10 @@ const record = collect({
     img: "../posters/episode.jpg",
 });
 assert(record.description.endsWith("КОНЕЦ ОПИСАНИЯ"));
+assert.equal(
+    record.description.slice(record.__ottMediaSynopsisOffset),
+    synopsis
+);
 assert.equal(record.__ottMediaDescription, undefined);
 assert.equal(
     record.logo_30x30,
@@ -58,6 +62,42 @@ assert.equal(
 );
 assert.equal(record.request.id, "exact");
 assert.equal(record.request.cmd, "play");
+for (const [item, parent, expected, plot] of [
+    [
+        {
+            __ottMediaSynopsisOffset: "untrusted",
+            agelimit: 18,
+            description: "Same & <plot>\nSecond 😀",
+            duration: "1 < 2",
+            title: "Same & <plot>",
+            year: 2026,
+        },
+        { description: "Unused parent synopsis" },
+        "<b>Same &amp; &lt;plot&gt;</b><br>2026<br>1 &lt; 2<br>18<br>Same &amp; &lt;plot&gt;\nSecond 😀",
+        "Same &amp; &lt;plot&gt;\nSecond 😀",
+    ],
+    [
+        { description: "" },
+        { description: "Parent 'plot'\r\nSecond \"line\"", year: 2024 },
+        "<b>Episode</b><br>2024<br>Parent &#39;plot&#39;\r\nSecond &quot;line&quot;",
+        "Parent &#39;plot&#39;\r\nSecond &quot;line&quot;",
+    ],
+    [{ year: 2026 }, {}, "<b>Episode</b><br>2026", null],
+    [{ description: "" }, { description: "" }, "<b>Episode</b>", null],
+    [{ description: [] }, {}, "<b>Episode</b><br>", null],
+]) {
+    const row = collect(item, parent);
+    assert.equal(row.description, expected, "full description stays unchanged");
+    const offset = row.__ottMediaSynopsisOffset;
+    assert(Number.isSafeInteger(offset));
+    if (plot === null) assert.equal(offset, -1);
+    else {
+        assert(offset >= 0 && offset < row.description.length);
+        assert.equal(offset, expected.length - plot.length);
+        assert.equal(row.description.slice(offset), plot);
+    }
+    assert.equal(row.__ottMediaDescription, undefined);
+}
 assert.equal(
     collect({ imglr: "javascript:bad()" }, { img: "/covers/parent.jpg" })
         .logo_30x30,
@@ -150,15 +190,21 @@ vm.runInContext(
     ctx
 );
 const bounded = {
+    __ottMediaSynopsisOffset: 0,
     description: "full",
     request: { id: "stable" },
 };
 ctx.known.key = bounded;
 ctx.retain("key", bounded);
 assert.equal(bounded.description, undefined);
+assert.equal(bounded.__ottMediaSynopsisOffset, undefined);
 assert.equal(bounded.__ottMediaDescription, undefined);
 assert.equal(bounded.request.id, "stable");
 assert(ctx.retainedBytes < 67108864);
+const subsequent = { __ottMediaSynopsisOffset: 0, description: "next" };
+ctx.retain("next", subsequent);
+assert.equal(subsequent.description, undefined);
+assert.equal(subsequent.__ottMediaSynopsisOffset, undefined);
 const helperNames = [
     "metadataText",
     "metadataImageUrl",

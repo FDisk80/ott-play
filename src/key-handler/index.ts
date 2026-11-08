@@ -1124,6 +1124,7 @@ var nativeListTouch: {
     rowHeight: number;
     rowStride: number;
     grid: boolean;
+    shelves: any;
     axis: "" | "vertical" | "horizontal";
     moved: boolean;
     cancelled: boolean;
@@ -1626,9 +1627,12 @@ function cancelNativeListInertia(): void {
 function nativeListLayoutMatches(
     gesture: NonNullable<typeof nativeListTouch>
 ): boolean {
-    var metrics = (window as any).__ottModernUi?.touchMetrics?.(gesture.owner);
+    var w = window as any;
+    var metrics = w.__ottModernUi?.touchMetrics?.(gesture.owner);
     return (
         !!metrics === gesture.grid &&
+        !!(metrics && metrics.shelves) === !!gesture.shelves &&
+        (!gesture.shelves || gesture.shelves.current(gesture)) &&
         (metrics
             ? metrics.stride === gesture.rowStride &&
               metrics.height === gesture.rowHeight
@@ -1638,7 +1642,13 @@ function nativeListLayoutMatches(
 
 function startNativeListInertia(): void {
     var gesture = nativeListTouch;
-    if (!gesture || gesture.cancelled || gesture.axis !== "vertical") return;
+    if (
+        !gesture ||
+        gesture.shelves ||
+        gesture.cancelled ||
+        gesture.axis !== "vertical"
+    )
+        return;
     var start = performance.now();
     if (
         start - gesture.samples[gesture.samples.length - 1][1] > 120 ||
@@ -1739,6 +1749,7 @@ function startNativeListTouch(e: any): void {
         rowStride: metrics ? metrics.stride : 1,
         rows: rows,
         samples: [[touch.clientY, performance.now()]],
+        shelves: metrics && metrics.shelves ? metrics : null,
         startX: touch.clientX,
         startY: touch.clientY,
         target: target,
@@ -1781,6 +1792,15 @@ function moveNativeListTouch(touch: any): boolean {
         gesture.moved = true;
         gesture.axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
     }
+    if (gesture.shelves)
+        return gesture.shelves.move(
+            gesture,
+            touch,
+            touch_min_sensX,
+            function () {
+                return nativeListTouch === gesture;
+            }
+        );
     if (gesture.axis === "horizontal") return false;
     if (gesture.axis !== "vertical") return true;
     var now = performance.now();

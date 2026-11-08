@@ -7802,3 +7802,523 @@ for (const profile of ["server", "tauri", "capacitor"]) {
         }
     );
 }
+
+async function seedModernCategoryShelves(page, sourceKind) {
+    if (sourceKind === "plex")
+        await page.evaluate(
+            () =>
+                new Promise((resolve, reject) => {
+                    __ottProviderAssets.classic.ensure(
+                        "plex",
+                        "",
+                        "fixture",
+                        { active: () => true, own: () => () => {} },
+                        resolve,
+                        reject
+                    );
+                })
+        );
+    await page.evaluate((sourceKind) => {
+        const groups = [
+            { count: 8, id: "shelf-first", name: "First category" },
+            { count: 0, id: "shelf-short", name: "Short category" },
+            { count: 6, id: "shelf-third", name: "Third category" },
+            {
+                count: sourceKind === "plex" ? 100 : 10000,
+                id: "shelf-large",
+                name: "Large category",
+            },
+        ];
+        const records = [];
+        const art =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUAAAAC0CAIAAABqhmJGAAADy0lEQVR42u3TzakUURRG0Q7BoRGYgUPDMAZzMwOzU3gggqhtdf3texZsqHF996zH+0+fJUV7mEACWBLAkgCWAJYEsCSAJQEsASwJYEkASwBLAlgSwJIAlgCWBLAkgCUBLAEsCWBJAGulvnz7ui2ApRjayZgB1oJ05zAGWGu6HSIZYK1Pd2HGAGsK3SUZA6xxelcyDLDG0V2JMcCaq3cBwwBrtN66YYA1mm6dMcCiN2wYYNEbNgyw6A0bBlj0hg0DLIABlhbSGzIMsOgNGwZY9IYNAyyAARa9DAMsehkGWAADLNF7b8PvPnwEWAD3AP+g+xbAojdm+KdegAVwCfCvdAEWwBnAv9MFWPQ2DP9JL8AC+NaA/0IXYNF7X8P/pAuwAL4p4Cf1AiyA7wX4eboAC+AbAf5fugCL3rsY3qYXYAF8MeDNdAEWwFcCfpEuwAL4MsC76AVYAJ8NeC+6AAvgUwHvSxdgAXwe4CP0AiyADwd8EF2ABfCxgA+lC7AAPhDwCXoBFsD7Az6HLsACeGfAZ9IFWADvCfh8vQAL4B0AX0IXYAH8KuAL6QIsgF8CfLlegAXwlu5AF2ABHKYLsABu6wVYDFfpAiyAw3QBFsBtvQAL4CpdgMVwmC7AAritF2AxXKULsAAO0wVYALf1Aqy5hut0AdZQwGvQBVgTDa+kF2ANArwYXYA1xfCSdAHWCMML6wVYKwNemy7AWtbwBLoAa03Dc/QCrKUMj6ILsNYBPJAuwFrE8Fi9AKtteDJdgBU2jC7AqhrmFmAlGRMLsJKGWQVYVcOgAqwkY0QBVtIwnACrypjMZwG/fZyUbsKYyS2AMdblkml8FTDDuioU9wGMsdDNA8ZY6OYBMyx624AxFrp5wBgL3TxghkVvGzDGQjcPGGOhmwfMsOhtA8ZY6OYBYyx084AZFk5twBijqzxgjNFVHjDD9KoNGGN0lQeMMbrKA2aYXrUBY4yu8oAxRld5wAzTqzZgjNFVHjDG6CoPmGF61QaMMbrKA8YYXeUBM0yv2oAxRld5wBijqzxghulVGzDG6CoPGGN0lQfMML1qA8YYXeUBY4yuHgv8A670AowxugIYY3QFMMP0aijgUYxdMMAr/x66AphhegUwxugK4LGMHaumA+4adqkCOMnYjQrgJGPXKYCrhp2mAE4y9hwCOMnYEwjgqmHjC+AkY4ML4CRjIwvgqmHzCuAkY5MK4CRjMwrgqmEDCuAkY6MJ4CRjQwngqmETCeAkY7MI4CRjUwjgqmEjCGBJAEsASwJYEsCSAJYAlgSwJIClmX0HZrzeFo/O2fQAAAAASUVORK5CYII=";
+        groups.forEach((group) => {
+            for (let i = 0; i < group.count; i++) {
+                const categories = [{ id: group.id, name: group.name }];
+                if (group.id === "shelf-first" && i === 0)
+                    categories.push({
+                        id: "shelf-short",
+                        name: "Short category",
+                    });
+                const header =
+                    sourceKind === "catalog"
+                        ? group.name +
+                          " film " +
+                          (i + 1) +
+                          "<br>2025<br>118 min<br>"
+                        : "";
+                records.push({
+                    __ottMediaCategories: categories,
+                    __ottMediaSynopsisOffset: header.length,
+                    description:
+                        header +
+                        "A complete shared description for " +
+                        group.name +
+                        ".",
+                    id: records.length + 100,
+                    logo_30x30: art,
+                    poster: art,
+                    stream_url:
+                        "https://example.invalid/shelf-" +
+                        records.length +
+                        ".mp4",
+                    title: group.name + " film " + (i + 1),
+                });
+            }
+        });
+        window.__shelfActivations = [];
+        window.__shelfDecoderEffects = [];
+        window.stbPlay = () => __shelfDecoderEffects.push("play");
+        window.stbStop = () => __shelfDecoderEffects.push("stop");
+        window.channelsList = window._channelsList;
+        window.sPreview = 0;
+        window.stbBindKeyHandler();
+        if (sourceKind === "plex") {
+            window.catIndex = window.primaryIndex = 0;
+            window.curList = window.cList = window.cats.Fixture;
+            window.__shelfAmbient = Object.fromEntries(
+                [
+                    "channels",
+                    "cats",
+                    "catsArray",
+                    "cList",
+                    "curList",
+                    "catIndex",
+                    "primaryIndex",
+                ].map((key) => [key, window[key]])
+            );
+            __ottMedia.useSource({
+                catalog: () => records.slice(),
+                client: {
+                    cancel() {},
+                    load(_target, done) {
+                        window.mediaRecords = records;
+                        window.mediaName = "Plex";
+                        done();
+                    },
+                    resolve(item) {
+                        __shelfActivations.push(item.id);
+                    },
+                },
+                library: { id: "shelf-library", title: "Shelf library" },
+                read: () => null,
+                sourceId: "plex@shelf-fixture",
+                title: "Plex",
+                write() {},
+            });
+            __ottMedia.open(null);
+        } else {
+            window.providerGetItem = () => null;
+            window.providerSetItem = () => {};
+            window.favoritesArray = [];
+            window.channels = window.chanels = {};
+            window.cList = records.map((record) => {
+                channels[record.id] = {
+                    __ottMediaCategories: record.__ottMediaCategories,
+                    __ottMediaItem: record,
+                    category: { name: record.__ottMediaCategories[0].name },
+                    channel_name: record.title,
+                    icon: art,
+                };
+                return record.id;
+            });
+            window.catIndex = 0;
+            window.primaryIndex = 1;
+            window.curList = cList;
+            __ottChannels.mount(window);
+            _channelsList(__ottChannels.index("system:all"), 0);
+            window.playChannel = (_category, index) =>
+                __shelfActivations.push(listArray[index]);
+        }
+    }, sourceKind);
+    await expect
+        .poll(() =>
+            page.evaluate((sourceKind) => {
+                const catalog = getListItemFn?.__ottCatalog;
+                return !!(sourceKind === "plex"
+                    ? catalog?.shelves
+                    : catalog?.channelSource);
+            }, sourceKind)
+        )
+        .toBe(true);
+    await page.evaluate((sourceKind) => {
+        window.__shelfView = () => {
+            const catalog = getListItemFn.__ottCatalog;
+            return catalog.channelSource
+                ? {
+                      groups: catalog.channelSource.groups,
+                      selected: __ottChannels.group(catalog.categoryIndex),
+                  }
+                : catalog.shelves;
+        };
+        // Fixture setup uses the production host route. All tested input below
+        // traverses the optional Modern wrapper and its captured owner checks.
+        window.__shelfFocus = (id, index) => {
+            if (getListItemFn.__ottCatalog.channelSource) {
+                const category = __ottChannels.index(id);
+                if (category < 0) return false;
+                channelsList(category, index);
+                return true;
+            }
+            return getListItemFn.__ottCatalog.shelves.focus(id, index);
+        };
+        const capability = __shelfView();
+        if (!capability)
+            throw new Error(
+                "Production shelf projection missing for " + sourceKind
+            );
+        window.__shelfGroupIds = Object.fromEntries(
+            capability.groups.map((group) => [group.name, group.id])
+        );
+        const first = capability.groups.find(
+            (group) => group.name === "First category"
+        );
+        if (!first || __shelfFocus(first.id, 0) !== true)
+            throw new Error("Production shelf focus failed for " + sourceKind);
+        saveSettings({ interfaceMode: 1 });
+    }, sourceKind);
+    await expect(page.locator("#listIn")).toHaveClass(/modern-shelves/);
+}
+
+for (const profile of ["server", "tauri", "capacitor"]) {
+    for (const sourceKind of ["catalog", "plex"]) {
+        test(`Modern category shelves preserve owned navigation and bounded rows (${profile}, ${sourceKind})`, async ({
+            browser,
+            browserName,
+        }) => {
+            const fixture = await fixturePage(
+                browser,
+                profile,
+                { interfaceTheme: 2 },
+                undefined,
+                "Initial safe description"
+            );
+            const { page } = fixture;
+            const lastIndex = sourceKind === "plex" ? 99 : 9999;
+            try {
+                await seedModernCategoryShelves(page, sourceKind);
+                const selection = () =>
+                    page.evaluate(() => {
+                        const shelves = __shelfView();
+                        return {
+                            category: shelves.groups.find(
+                                (group) => group.id === shelves.selected
+                            ).name,
+                            index: selIndex,
+                        };
+                    });
+                const expectSelection = async (category, index) =>
+                    expect.poll(selection).toEqual({ category, index });
+                const cards = page.locator("#listIn .modern-card");
+                expect(await cards.count()).toBeGreaterThan(0);
+                expect(await cards.count()).toBeLessThanOrEqual(24);
+                await expectSelection("First category", 0);
+                await page.evaluate(() =>
+                    document.getElementById("it0").focus()
+                );
+                await page.keyboard.press("ArrowRight");
+                await page.keyboard.press("ArrowRight");
+                await expectSelection("First category", 2);
+                await page.keyboard.press("ArrowDown");
+                await expectSelection("Short category", 0);
+                await page.keyboard.press("ArrowRight");
+                await expectSelection("Short category", 0);
+                await page.keyboard.press("ArrowDown");
+                await expectSelection("Third category", 0);
+                await page.keyboard.press("ArrowRight");
+                await expectSelection("Third category", 1);
+                await page.keyboard.press("ArrowUp");
+                await page.keyboard.press("ArrowUp");
+                await expectSelection("First category", 2);
+                await expect(page.locator("#it2")).toBeFocused();
+                const selected = page.locator("#it2");
+                await selected.hover();
+                const wheel = async () => {
+                    // Playwright cannot synthesize hardware wheel input in
+                    // mobile WebKit; dispatch its real DOM event contract.
+                    if (profile === "capacitor" && browserName === "webkit")
+                        await page.locator("#listIn").dispatchEvent("wheel", {
+                            bubbles: true,
+                            cancelable: true,
+                            deltaY: 120,
+                        });
+                    else await page.mouse.wheel(0, 120);
+                };
+                await wheel();
+                await expectSelection("Short category", 0);
+                await page.waitForTimeout(180);
+                await wheel();
+                await expectSelection("Third category", 1);
+                await page.evaluate(() =>
+                    confirmBox("Keep this row?", () => {})
+                );
+                await expect(page.locator("#dialogbox")).toBeVisible();
+                await page.keyboard.press("ArrowDown");
+                await page.evaluate(() =>
+                    document.getElementById("listIn").dispatchEvent(
+                        new WheelEvent("wheel", {
+                            bubbles: true,
+                            cancelable: true,
+                            deltaY: 120,
+                        })
+                    )
+                );
+                await expectSelection("Third category", 1);
+                await page.evaluate(() => {
+                    __ottClassicScreenPort.close("dialog");
+                    $("#dialogbox").hide();
+                });
+                await expect(page.locator("#it1")).toBeFocused();
+                await page.keyboard.press("ArrowDown");
+                await expectSelection("Large category", 0);
+                await page.evaluate((lastIndex) => {
+                    const shelves = __shelfView();
+                    if (!__shelfFocus(shelves.selected, lastIndex))
+                        throw new Error("Cannot focus the large row tail");
+                    document.getElementById("it" + lastIndex).focus();
+                }, lastIndex);
+                await expectSelection("Large category", lastIndex);
+                await expect(page.locator("#it" + lastIndex)).toBeVisible();
+                await page.keyboard.press("ArrowRight");
+                await page.keyboard.press("ArrowDown");
+                await expectSelection("Large category", lastIndex);
+                expect(await cards.count()).toBeLessThanOrEqual(24);
+                const geometry = await cards.evaluateAll((nodes) =>
+                    nodes.map((node) => {
+                        const box = node.getBoundingClientRect();
+                        return {
+                            bottom: box.bottom,
+                            left: box.left,
+                            right: box.right,
+                            top: box.top,
+                        };
+                    })
+                );
+                for (const box of geometry) {
+                    expect(box.left).toBeGreaterThanOrEqual(-1);
+                    expect(box.right).toBeLessThanOrEqual(1281);
+                    expect(box.top).toBeGreaterThanOrEqual(-1);
+                    expect(box.bottom).toBeLessThanOrEqual(721);
+                }
+                await page.locator('[data-modern-action="library"]').click();
+                await expect(page.locator("#listIn")).not.toHaveClass(
+                    /modern-shelves/
+                );
+                await expectSelection("Large category", lastIndex);
+                await page.locator('[data-modern-action="home"]').click();
+                await expect(page.locator("#listIn")).toHaveClass(
+                    /modern-shelves/
+                );
+                await expectSelection("Large category", lastIndex);
+                await page.evaluate(() => saveSettings({ interfaceMode: 0 }));
+                await expect(page.locator("#modernShell")).toHaveCount(0);
+                await expectSelection("Large category", lastIndex);
+                await page.evaluate(() => saveSettings({ interfaceMode: 1 }));
+                await expect(page.locator("#listIn")).toHaveClass(
+                    /modern-shelves/
+                );
+                await page.evaluate(
+                    (lastIndex) =>
+                        document.getElementById("it" + lastIndex).focus(),
+                    lastIndex
+                );
+                await page.keyboard.press("ArrowUp");
+                await expectSelection("Third category", 1);
+                await page.keyboard.press("ArrowUp");
+                await expectSelection("Short category", 0);
+                const firstId = await page.evaluate(
+                    () => __shelfGroupIds["First category"]
+                );
+                const duplicate = page.locator(
+                    '[data-modern-shelf="' +
+                        firstId +
+                        '"][data-modern-position="0"] .modern-title'
+                );
+                await expect(duplicate).toBeVisible();
+                await duplicate.click();
+                await expectSelection("First category", 0);
+                expect(await page.evaluate(() => __shelfActivations)).toEqual(
+                    []
+                );
+                await expect(page.locator("#it0")).toBeFocused();
+                const screenshotDirectory = process.env.OTTP_MODERN_SCREENSHOTS;
+                if (sourceKind === "catalog") {
+                    const geometry = [];
+                    for (const viewport of [
+                        { height: 720, width: 1280 },
+                        { height: 800, width: 360 },
+                        { height: 900, width: 600 },
+                    ]) {
+                        await page.setViewportSize(viewport);
+                        await page.evaluate(() => __ottModernUi.refresh());
+                        await expect(page.locator("#it0")).toBeVisible();
+                        const layout = await page.evaluate(() => {
+                            const summary = document.querySelector(
+                                ".modern-hero-summary"
+                            );
+                            const walker = document.createTreeWalker(
+                                summary,
+                                NodeFilter.SHOW_TEXT
+                            );
+                            let node;
+                            let plot = null;
+                            while ((node = walker.nextNode())) {
+                                if (
+                                    !node.textContent.includes(
+                                        "A complete shared description"
+                                    )
+                                )
+                                    continue;
+                                const range = document.createRange();
+                                range.selectNodeContents(node);
+                                plot = range.getBoundingClientRect().toJSON();
+                            }
+                            return {
+                                actions: document
+                                    .querySelector(".modern-hero-actions")
+                                    .getBoundingClientRect()
+                                    .toJSON(),
+                                buttons: Array.from(
+                                    document.querySelectorAll(
+                                        ".modern-hero-actions button"
+                                    ),
+                                    (button) =>
+                                        button.getBoundingClientRect().toJSON()
+                                ),
+                                columns: document.querySelector(
+                                    ".modern-shelf-track"
+                                )?.children.length,
+                                copy: document
+                                    .querySelector(".modern-hero-copy")
+                                    .getBoundingClientRect()
+                                    .toJSON(),
+                                heading: document
+                                    .querySelector("#modernLibraryHeading")
+                                    .getBoundingClientRect()
+                                    .toJSON(),
+                                plot,
+                                rows: document.querySelectorAll(".modern-shelf")
+                                    .length,
+                                summary: summary
+                                    .getBoundingClientRect()
+                                    .toJSON(),
+                                text: summary.textContent,
+                            };
+                        });
+                        geometry.push({ ...viewport, ...layout });
+                        expect(layout.text).toBe(
+                            "A complete shared description for First category."
+                        );
+                        expect(layout.rows).toBe(2);
+                        expect(layout.plot).not.toBeNull();
+                        expect(layout.plot.top).toBeGreaterThanOrEqual(
+                            layout.summary.top - 1
+                        );
+                        expect(layout.plot.bottom).toBeLessThanOrEqual(
+                            layout.summary.bottom + 1
+                        );
+                        expect(layout.actions.bottom).toBeLessThanOrEqual(
+                            layout.heading.top
+                        );
+                        expect(layout.actions.bottom).toBeLessThanOrEqual(
+                            layout.copy.bottom + 1
+                        );
+                        expect(layout.buttons.length).toBeGreaterThan(0);
+                        for (const button of layout.buttons) {
+                            expect(button.top).toBeGreaterThanOrEqual(
+                                layout.actions.top - 1
+                            );
+                            expect(button.bottom).toBeLessThanOrEqual(
+                                layout.actions.bottom + 1
+                            );
+                            expect(button.left).toBeGreaterThanOrEqual(
+                                layout.actions.left - 1
+                            );
+                            expect(button.right).toBeLessThanOrEqual(
+                                layout.actions.right + 1
+                            );
+                        }
+                        if (viewport.width === 360)
+                            expect(layout.columns).toBeLessThanOrEqual(3);
+                    }
+                    if (screenshotDirectory) {
+                        fs.mkdirSync(screenshotDirectory, { recursive: true });
+                        fs.writeFileSync(
+                            path.join(
+                                screenshotDirectory,
+                                `category-shelves-${profile}-${test.info().project.name}-geometry.json`
+                            ),
+                            JSON.stringify(geometry, null, 2) + "\n"
+                        );
+                    }
+                    await page.setViewportSize({ height: 720, width: 1280 });
+                    await page.evaluate(() => __ottModernUi.refresh());
+                    await expect(page.locator("#it0")).toBeVisible();
+                    await page.locator("#it0").focus();
+                }
+                if (sourceKind === "plex")
+                    expect(
+                        await page.evaluate(() =>
+                            Object.keys(__shelfAmbient).every(
+                                (key) => window[key] === __shelfAmbient[key]
+                            )
+                        )
+                    ).toBe(true);
+                expect(
+                    await page.evaluate(() => __shelfDecoderEffects)
+                ).toEqual([]);
+                await page.keyboard.press("Enter");
+                await expect
+                    .poll(() => page.evaluate(() => __shelfActivations))
+                    .toEqual([100]);
+                if (sourceKind === "catalog" && profile === "server") {
+                    await page.evaluate(() => {
+                        __shelfFocus(__shelfGroupIds["Short category"], 0);
+                        window.ott_device = "lg/webos";
+                    });
+                    await duplicate.click();
+                    await expect
+                        .poll(() => page.evaluate(() => __shelfActivations))
+                        .toEqual([100, 100]);
+                    await page.evaluate(() => {
+                        window.ott_device = "pc";
+                    });
+                }
+                expect(fixture.errors).toEqual([]);
+                expect(fixture.unexpectedRequests).toEqual([]);
+                expect(await page.evaluate(() => __fixtureViolations)).toEqual(
+                    []
+                );
+                if (screenshotDirectory) {
+                    // Keep visual evidence after the application/CSP checks:
+                    // WebKit's screenshot synchronization injects an unnonced
+                    // style element even when caret hiding is disabled.
+                    await seedModernCategoryShelves(page, sourceKind);
+                    fs.mkdirSync(screenshotDirectory, { recursive: true });
+                    const viewports =
+                        sourceKind === "catalog"
+                            ? [
+                                  { height: 720, width: 1280 },
+                                  { height: 800, width: 360 },
+                                  { height: 900, width: 600 },
+                              ]
+                            : [{ height: 720, width: 1280 }];
+                    for (const viewport of viewports) {
+                        await page.setViewportSize(viewport);
+                        await page.evaluate(() => __ottModernUi.refresh());
+                        await expect(page.locator("#it0")).toBeVisible();
+                        await page.screenshot({
+                            caret: "initial",
+                            path: path.join(
+                                screenshotDirectory,
+                                `category-shelves-${profile}-${sourceKind}-${test.info().project.name}-${viewport.width}.png`
+                            ),
+                        });
+                    }
+                }
+            } finally {
+                await fixture.close();
+            }
+        });
+    }
+}

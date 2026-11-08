@@ -6,6 +6,7 @@ use serde_json::Value as JsonValue;
 use tokio::sync::RwLock;
 use tokio::time::{interval, Duration};
 
+pub mod artwork;
 pub mod audio_normalization;
 pub mod local_compatibility;
 pub mod background_work;

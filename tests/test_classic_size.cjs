@@ -30,6 +30,9 @@ let {
     MODERN_INTERFACE_OPTIONAL_ALLOWANCE,
     MODERN_INTERFACE_RELATED_ALLOWANCES,
     MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE,
+    MODERN_CATALOG_ENTRY_ALLOWANCE,
+    MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE,
+    PLEX_HOST_LIFECYCLE_ALLOWANCE,
     MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_REPAINT_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
@@ -174,9 +177,147 @@ function capsWithoutAllowances(names) {
         );
     return baseline.exports;
 }
+// Keep immutable earlier receipts on their original caps. Live inspectors below
+// still restore latestCaps, including this independently measured feature cost.
+const modernCatalogNames = [
+    "MODERN_CATALOG_ENTRY_ALLOWANCE",
+    "MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE",
+    "PLEX_HOST_LIFECYCLE_ALLOWANCE",
+];
+const preModernCatalogCaps = capsWithoutAllowances(modernCatalogNames);
+function capsBeforeModernCatalog(names) {
+    return capsWithoutAllowances([...modernCatalogNames, ...names]);
+}
+{
+    const evidence = require("../docs/evidence/modern-vportal-artwork-size-20261108.json");
+    const actual = require("../scripts/classic-size.cjs");
+    assert.equal(evidence.status, "FINAL_MEASURED_PROPOSAL");
+    assert.deepEqual(evidence.toolchain, {
+        gzipLevel: 9,
+        node: "22.23.4",
+        zlib: "1.3.1-e00f703",
+    });
+    assert.deepEqual(evidence.remainingViolationsAfterProposal, []);
+    assert.deepEqual(evidence.vportalProviderDelta, { bytes: 0, gzipBytes: 0 });
+    assert.equal(
+        evidence.baseline.archive.sha256,
+        evidence.baseline.archive.manifestBinding.sha256
+    );
+    assert.equal(
+        evidence.baseline.archive.bytes,
+        evidence.baseline.archive.manifestBinding.size
+    );
+    assert.deepEqual(
+        evidence.candidate.platforms.map((item) => item.entry),
+        [...ARTIFACTS]
+    );
+    assert(evidence.baseline.derivedNative.method.includes("Derived baseline"));
+    assert.equal(
+        Object.keys(evidence.baseline.derivedNative.unchangedTransformInputs)
+            .length,
+        3
+    );
+    assert(
+        evidence.baseline.derivedNative.currentWebToNativeChecks.every(
+            (item) => item.byteEqual === true
+        )
+    );
+    const entry = MODERN_CATALOG_ENTRY_ALLOWANCE,
+        modern = MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE,
+        plex = PLEX_HOST_LIFECYCLE_ALLOWANCE;
+    for (const name of modernCatalogNames) {
+        assert(Object.isFrozen(actual[name]));
+        assert.deepEqual(actual[name], evidence.allowances[name]);
+    }
+    assert.deepEqual(
+        Object.keys(evidence.allowances).sort(),
+        [...modernCatalogNames].sort()
+    );
+    for (const metric of ["bytes", "gzipBytes"]) {
+        assert.equal(
+            entry[metric],
+            Math.max(
+                ...evidence.candidate.entryDeltaByMatchedPlatform.map(
+                    (item) => item[metric]
+                )
+            )
+        );
+        for (const item of evidence.candidate.platforms) {
+            const baseline =
+                item.entry === "dist/player.js"
+                    ? evidence.baseline.measurements
+                    : evidence.baseline.derivedNative.measurements;
+            const matched = evidence.candidate.entryDeltaByMatchedPlatform.find(
+                (value) => value.entry === item.entry
+            );
+            assert.equal(
+                matched[metric],
+                item.measurements.entry[metric] - baseline.entry[metric]
+            );
+            assert.equal(
+                item.measurements.modern[metric] - baseline.modern[metric],
+                modern[metric]
+            );
+            assert.equal(
+                item.measurements.plex[metric] - baseline.plex[metric],
+                plex[metric]
+            );
+            assert.equal(
+                item.measurements.vportal[metric] - baseline.vportal[metric],
+                0
+            );
+        }
+        for (const [name, amount] of [
+            ["BUDGET", entry[metric]],
+            ["LEGACY_TOTAL_BUDGET", entry[metric] + plex[metric]],
+            [
+                "BASE_TOTAL_BUDGET",
+                entry[metric] + plex[metric] + modern[metric],
+            ],
+            ["TOTAL_BUDGET", entry[metric] + plex[metric] + modern[metric]],
+        ])
+            assert.equal(
+                actual[name][metric] - preModernCatalogCaps[name][metric],
+                amount,
+                name + " counts each feature once"
+            );
+        assert.equal(
+            actual.OPTIONAL_BUDGETS["modern-interface"][metric] -
+                preModernCatalogCaps.OPTIONAL_BUDGETS["modern-interface"][
+                    metric
+                ],
+            modern[metric]
+        );
+    }
+    for (const name of Object.keys(evidence.budgets.before)) {
+        assert.deepEqual(
+            preModernCatalogCaps[name],
+            evidence.budgets.before[name]
+        );
+        assert.deepEqual(actual[name], evidence.budgets.after[name]);
+    }
+    for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
+        assert.deepEqual(actual[name], preModernCatalogCaps[name]);
+    for (const [name, cap] of Object.entries(
+        preModernCatalogCaps.OPTIONAL_BUDGETS
+    ))
+        if (name !== "modern-interface")
+            assert.deepEqual(
+                actual.OPTIONAL_BUDGETS[name],
+                cap,
+                name + " remains protected"
+            );
+}
+({
+    BUDGET,
+    BASE_TOTAL_BUDGET,
+    LEGACY_TOTAL_BUDGET,
+    OPTIONAL_BUDGETS,
+    TOTAL_BUDGET,
+} = preModernCatalogCaps);
 // The LG playback delta belongs only to Modern and its complete payload.
 // Keep older receipts on their original caps and retain current live gates.
-const preModernLgCaps = capsWithoutAllowances([
+const preModernLgCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
 ]);
 {
@@ -226,14 +367,18 @@ const preModernLgCaps = capsWithoutAllowances([
             [
                 "modern",
                 preModernLgCaps.OPTIONAL_BUDGETS["modern-interface"],
-                latestCaps.OPTIONAL_BUDGETS["modern-interface"],
+                preModernCatalogCaps.OPTIONAL_BUDGETS["modern-interface"],
             ],
             [
                 "baseTotal",
                 preModernLgCaps.BASE_TOTAL_BUDGET,
-                latestCaps.BASE_TOTAL_BUDGET,
+                preModernCatalogCaps.BASE_TOTAL_BUDGET,
             ],
-            ["total", preModernLgCaps.TOTAL_BUDGET, latestCaps.TOTAL_BUDGET],
+            [
+                "total",
+                preModernLgCaps.TOTAL_BUDGET,
+                preModernCatalogCaps.TOTAL_BUDGET,
+            ],
         ]) {
             assert.equal(before[metric], evidence.budgets.before[name][metric]);
             assert.equal(after[metric], evidence.budgets.after[name][metric]);
@@ -258,20 +403,20 @@ const preModernLgCaps = capsWithoutAllowances([
         ["OPTIONAL_BUDGET", "genericOptional"],
     ]) {
         assert.deepEqual(
-            require("../scripts/classic-size.cjs")[name],
+            preModernCatalogCaps[name],
             preModernLgCaps[name],
             name + " is unchanged"
         );
         assert.deepEqual(preModernLgCaps[name], evidence.protectedCaps[key]);
     }
     assert.deepEqual(
-        Object.keys(latestCaps.OPTIONAL_BUDGETS),
+        Object.keys(preModernCatalogCaps.OPTIONAL_BUDGETS),
         Object.keys(preModernLgCaps.OPTIONAL_BUDGETS)
     );
     for (const [name, cap] of Object.entries(preModernLgCaps.OPTIONAL_BUDGETS))
         if (name !== "modern-interface") {
             assert.deepEqual(
-                latestCaps.OPTIONAL_BUDGETS[name],
+                preModernCatalogCaps.OPTIONAL_BUDGETS[name],
                 cap,
                 name + " is unchanged"
             );
@@ -279,7 +424,7 @@ const preModernLgCaps = capsWithoutAllowances([
         }
 }
 // Only the newly measured lazy settings asset receives this shortfall correction.
-const prePlaybackNotificationCaps = capsWithoutAllowances([
+const prePlaybackNotificationCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
 ]);
@@ -358,7 +503,7 @@ const prePlaybackNotificationCaps = capsWithoutAllowances([
                 name + " is unchanged"
             );
 }
-const preSeekCaps = capsWithoutAllowances([
+const preSeekCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -408,7 +553,7 @@ const preSeekCaps = capsWithoutAllowances([
         );
 }
 
-const preStartupCaps = capsWithoutAllowances([
+const preStartupCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -591,10 +736,7 @@ const preStartupCaps = capsWithoutAllowances([
         }
     }
     for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
-        assert.deepEqual(
-            require("../scripts/classic-size.cjs")[name],
-            preStartupCaps[name]
-        );
+        assert.deepEqual(preModernCatalogCaps[name], preStartupCaps[name]);
     assert.deepEqual(
         Object.keys(preSeekCaps.OPTIONAL_BUDGETS),
         Object.keys(preStartupCaps.OPTIONAL_BUDGETS)
@@ -605,8 +747,8 @@ const preStartupCaps = capsWithoutAllowances([
 }
 
 // CSP font previews were measured after the color evidence. Keep that evidence
-// on its original caps; the live boundary tests still use latestCaps.
-const preFontCspCaps = capsWithoutAllowances([
+// on its original caps; the live boundary tests still use preModernCatalogCaps.
+const preFontCspCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -772,7 +914,7 @@ const preFontCspCaps = capsWithoutAllowances([
 }
 // Structural accounting only. The paired hosted inventory supplies the actual
 // per-family measurements; old receipts must not inherit these new allowances.
-const preClientColorsCaps = capsWithoutAllowances([
+const preClientColorsCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -830,7 +972,7 @@ for (const [name, modules] of Object.entries(preClientColorsOptionalBundles))
     assert.deepEqual(latestOptionalBundles[name], modules, name);
 for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
     assert.deepEqual(
-        require("../scripts/classic-size.cjs")[name],
+        preModernCatalogCaps[name],
         preClientColorsCaps[name],
         name + " does not change for client colors"
     );
@@ -904,7 +1046,7 @@ CLASSIC_OPTIONAL_BUNDLES = preClientColorsOptionalBundles;
 // Observed net payload accounting preserves the previous headroom. The two
 // artifacts use different identities; never relabel them as an isolated experiment.
 const notificationEvidence = require("../docs/evidence/interface-notification-settings-size-20261106.json");
-const preNotificationCaps = capsWithoutAllowances([
+const preNotificationCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -1116,10 +1258,7 @@ for (const [name, before] of Object.entries(notificationEvidence.caps_before)) {
     }
 }
 for (const name of ["PROVIDER_BUDGET", "OPTIONAL_BUDGET"])
-    assert.deepEqual(
-        require("../scripts/classic-size.cjs")[name],
-        preNotificationCaps[name]
-    );
+    assert.deepEqual(preModernCatalogCaps[name], preNotificationCaps[name]);
 assert.deepEqual(
     Object.keys(preClientColorsCaps.OPTIONAL_BUDGETS).sort(),
     Object.keys(preNotificationCaps.OPTIONAL_BUDGETS).sort()
@@ -1128,11 +1267,11 @@ for (const [name, cap] of Object.entries(preClientColorsCaps.OPTIONAL_BUDGETS))
     if (name !== "subtitle-appearance")
         assert.deepEqual(cap, preNotificationCaps.OPTIONAL_BUDGETS[name], name);
 // Old receipts are immutable and predate this named feature. Keep their
-// projections separate; the later live-inspector section restores latestCaps.
+// projections separate; the later live-inspector section restores preModernCatalogCaps.
 
 // The queue is a separately emitted optional chunk. Keep its measured increment
 // out of older receipts and never treat the version-mismatched entry delta as cost.
-const preQueueCaps = capsWithoutAllowances([
+const preQueueCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -1280,7 +1419,7 @@ for (const [name, cap] of Object.entries(preNotificationCaps.OPTIONAL_BUDGETS))
 // The paired presentation/settings receipt includes all three platform
 // inventories. Allocate the largest per-platform delta, never their sum.
 const presentationEvidence = require("../docs/evidence/classic-presentation-settings-size-20261105.json");
-const presentationBaseline = capsWithoutAllowances([
+const presentationBaseline = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -1432,7 +1571,7 @@ for (const [name, cap] of Object.entries(preQueueCaps.OPTIONAL_BUDGETS))
 
 // Qualify desktop startup and its new optional asset independently. Earlier
 // receipts predate both; remove them only from the historical cap projections.
-const desktopBaseline = capsWithoutAllowances([
+const desktopBaseline = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -1504,7 +1643,7 @@ CLASSIC_OPTIONAL_BUNDLES = Object.fromEntries(
 // The Auto and earlier receipts also predate the presentation/settings delta.
 // Remove only those named features from historical projections. Live checks
 // below retain the complete merged caps and restore the full asset inventory.
-const preRecoveryCaps = capsWithoutAllowances([
+const preRecoveryCaps = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -1517,7 +1656,7 @@ const preRecoveryCaps = capsWithoutAllowances([
     "DESKTOP_DROP_ALLOWANCE",
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
-const withoutAutoRecovery = capsWithoutAllowances([
+const withoutAutoRecovery = capsBeforeModernCatalog([
     "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
     "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
     "SEEK_PREVIEW_ENTRY_ALLOWANCE",
@@ -1528,7 +1667,7 @@ const withoutAutoRecovery = capsWithoutAllowances([
     "AUTO_RELAY_STALL_RECOVERY_ENTRY_ALLOWANCE",
 ]);
 function historicalCapsWithoutAllowances(names) {
-    return capsWithoutAllowances([
+    return capsBeforeModernCatalog([
         "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
         "PLAYBACK_NOTIFICATION_APPEARANCE_ALLOWANCE",
         "SEEK_PREVIEW_ENTRY_ALLOWANCE",

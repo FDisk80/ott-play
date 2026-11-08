@@ -249,6 +249,7 @@ function channelLibraryPublish(host: any): void {
         },
         all: snapshot.all.slice(),
         canonicalIds: (host.cList || []).slice(),
+        generation: channelLibraryGeneration,
         groups: channelLibraryView.map(function (group) {
             return {
                 id: group.id,

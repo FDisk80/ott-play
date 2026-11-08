@@ -2392,6 +2392,8 @@ function _channelsList(catIdx: number, channelIdx: number, view?: any): void {
     // Typed projection for optional renderers. Tying it to this formatter
     // prevents a subsequent settings/category screen reading a stale catalogue.
     (channelItemFormatter as any).__ottCatalog = {
+        categoryIndex: catIdx,
+        channelSource: !view && wglob.__ottChannels?.remoteCatalog(),
         kind:
             view && view.id === "system:global-favorites" ? "mixed" : "catalog",
         picon: function (id: string): string {
@@ -2417,6 +2419,7 @@ function _channelsList(catIdx: number, channelIdx: number, view?: any): void {
                 : playType >= 0 && String(id) === String(curList[primaryIndex]);
         },
         row: channelRow,
+        shelves: view && view.shelves,
     };
     getListItemFn = channelItemFormatter;
     wglob.applyChannelListStyles = function (container: HTMLElement): void {

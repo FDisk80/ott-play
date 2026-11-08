@@ -2329,6 +2329,7 @@ body.interface-modern .modern-rail-icon svg {
 body.interface-modern .modern-library-actions,
 body.interface-modern .modern-hero-actions {
     display: flex;
+    flex: 0 0 auto;
     gap: 0.5em;
     align-items: center;
     pointer-events: auto;
@@ -2427,6 +2428,59 @@ body.interface-modern .modern-view-home #listIn {
 }
 body.interface-modern .modern-view-home #modernLibraryHeading {
     top: 63vh;
+}
+body.interface-modern .modern-view-home.modern-has-shelves #modernHero {
+    bottom: 62vh;
+}
+body.interface-modern .modern-view-home.modern-has-shelves .modern-hero-copy {
+    bottom: 2vh;
+    max-height: 25vh;
+}
+body.interface-modern
+    .modern-view-home.modern-has-shelves
+    #modernLibraryHeading {
+    top: 39vh !important;
+}
+body.interface-modern .modern-view-home.modern-has-shelves #listIn {
+    top: 45vh !important;
+}
+body.interface-modern #listIn.modern-shelves {
+    flex-direction: column;
+    overflow: hidden;
+}
+body.interface-modern .modern-shelf {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+body.interface-modern .modern-shelf-heading {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95em;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--modern-text);
+    white-space: nowrap;
+}
+body.interface-modern .modern-shelf-heading > span {
+    flex-shrink: 0;
+    font-size: 0.75em;
+    font-weight: 400;
+    color: var(--modern-muted);
+}
+body.interface-modern .modern-shelf-track {
+    display: grid;
+    min-width: 0;
+}
+body.interface-modern #listIn.modern-shelves .modern-card {
+    width: 100%;
+    min-width: 0;
+    line-height: normal;
 }
 body.interface-modern .modern-view-library.modern-screen-grid #modernHero {
     display: none;

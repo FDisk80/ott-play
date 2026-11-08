@@ -43,7 +43,9 @@ card selection treatment and surface shapes.
   heading. Available navigation follows the same provider and access rules
   as Classic.
 - Media catalogues open in **Home**: a large selected-item backdrop, title,
-  collection and available description above one row of media cards. Play
+  collection and available description above horizontal category shelves. Each
+  source category keeps its own row and position; the All row also includes
+  items without a category. Play
   and Description actions appear when the current screen supplies those
   actions. **Media library** switches to a poster grid of the same catalogue;
   it preserves selection and does not reload the source or start playback.
@@ -53,12 +55,19 @@ card selection treatment and surface shapes.
   logo when available, programme text and progress. The focused row and the
   playing channel have distinct indicators.
 - Media catalogues and mixed Favorites share both views. Home cards use a
-  16:9 artwork frame; Media library uses 2:3 posters. A title, available
+  landscape artwork frame; Media library uses 2:3 posters. A title, available
   collection metadata and distinct playing/focus indicators identify each
   card. Plex uses `thumb` for posters and `art` for backdrops, with the other
   image as fallback; the access token is resolved at paint time and is never
   stored in catalogue records. Missing or failed artwork leaves a readable
   title and a simple letter placeholder.
+  HTTP-only posters use the bounded native artwork bridge in Tauri and the
+  local server bridge on HTTPS loopback pages. Hosted deployments need explicit
+  HTTPS image-directory mappings. The visible window requests at most four
+  bridged images at once and keeps a bounded, memory-only cache; leaving the
+  source discards pending results. See [artwork transport](artwork-transport.md).
+  VPortal previews show the synopsis rather than repeating the title, year and
+  duration above it; Description keeps the full formatted source metadata.
 - Settings and categories use a spacious single-column list inside the same
   navigation shell. Search and text entry use a scrollable editor with visible
   confirmation and cancellation controls. Context menus, dialogs, track
@@ -105,6 +114,15 @@ column count. At list boundaries the selection stays within the available
 items. Enter/OK activates the selected item through the same action as Classic.
 Back, category selection, search and context actions retain their existing
 behavior. Channel catalogues retain their linear navigation.
+
+Home uses the categories supplied by channel-backed media catalogues and Plex.
+Left/Right stay within the current category; Up/Down and the mouse wheel move
+between category rows. Returning to a row restores its previous position.
+Touch swipes follow the same row and card navigation. Clicking a different card
+selects its exact category occurrence; clicking the selected card or pressing
+Enter/OK activates the existing host action. No decoder is started merely by
+changing the presentation. Mixed global Favorites keeps its own shared list,
+and screens without a category projection retain the single-row Home view.
 
 Up from the first visible grid row enters the top navigation. In Home it
 first reaches the selected item's Play/Description actions when available;
@@ -166,8 +184,11 @@ for every item in a large local, Plex or VPortal catalogue. Existing background
 catalogue loading and source availability rules still apply.
 
 Column and row capacity adapt to the available catalogue area and interface
-font scale. Home mounts one row of at most eight cards; Media library mounts
-at most two rows and sixteen cards. The top navigation becomes more compact
+font scale. Category Home mounts at most two rows of eight cards, advancing the
+visible window as the selection moves; single-row sources mount at most eight
+cards. Media library mounts at most two rows and sixteen cards. Category
+membership is retained by the host rather than flattened or copied on repaint.
+The top navigation becomes more compact
 on narrow windows; text editors and dialogs remain scrollable. Modern does
 not overwrite the saved Classic row count. The
 existing font family and **Font size, %** setting continue to apply; subtitle

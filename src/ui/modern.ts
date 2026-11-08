@@ -1,3 +1,147 @@
+/** Lazy presentation capability; the host still owns category and item selection. */
+function createModernCatalogShelves(host: any) {
+    var cachedRender: any = null,
+        cachedOwner: any = null,
+        cachedSource: any = null,
+        cachedCategory: any,
+        cached: any;
+    return function (render: any): any {
+        var owner = host.__ottClassicScreenPort?.listOwner(),
+            catalog = render?.__ottCatalog;
+        if (
+            !catalog ||
+            !owner ||
+            owner.model.render !== render ||
+            host.getListItemFn !== render
+        )
+            return;
+        var channels = host.__ottChannels,
+            channelSource = catalog.channelSource,
+            source = channelSource
+                ? channels?.remoteCatalog?.()
+                : catalog.shelves,
+            groups = source?.groups,
+            identity = channelSource ? source : source?.source,
+            category = catalog.categoryIndex,
+            channelRows: any,
+            entries: any = Object.create(null);
+        if (!Array.isArray(groups)) return;
+        function channelRowsCurrent(): boolean {
+            return !!(
+                channelRows &&
+                host.listCatIndex === category &&
+                host.listArray === channelRows &&
+                host.listDataArray === channelRows &&
+                host.cats[host.catsArray[category]] === channelRows &&
+                owner.model.items === channelRows &&
+                owner.model.rows === channelRows &&
+                typeof host.channelsKeyHandler === "function" &&
+                owner.model.handler === host.channelsKeyHandler &&
+                host.listKeyHandler === host.channelsKeyHandler
+            );
+        }
+        if (channelSource) {
+            if (source !== channelSource) {
+                if (
+                    typeof source.generation !== "number" ||
+                    source.generation !== channelSource.generation
+                )
+                    return;
+                category = host.listCatIndex;
+            }
+            channelRows = host.cats?.[host.catsArray?.[category]];
+            if (!source.active() || !channelRowsCurrent()) return;
+        }
+        if (
+            cachedRender === render &&
+            cachedOwner === owner &&
+            cachedSource === source &&
+            cachedCategory === category &&
+            cached?.source === identity
+        )
+            return cached;
+        cachedRender = render;
+        cachedOwner = owner;
+        cachedSource = source;
+        cachedCategory = category;
+        cached = undefined;
+        groups.forEach(function (group: any) {
+            if (
+                group &&
+                typeof group.id === "string" &&
+                Array.isArray(group.members)
+            )
+                entries[group.id] = { group: group, members: group.members };
+        });
+        function admitted(): boolean {
+            return !!(
+                owner === host.__ottClassicScreenPort?.listOwner() &&
+                owner.foreground() &&
+                owner.model.render === render &&
+                host.getListItemFn === render &&
+                render.__ottCatalog === catalog &&
+                !host.__ottKiosk?.enabled?.() &&
+                !host.__ottKiosk?.locked?.() &&
+                source.groups === groups &&
+                (channelSource
+                    ? catalog.channelSource === channelSource &&
+                      channels === host.__ottChannels &&
+                      channels.remoteCatalog() === source &&
+                      source.active() &&
+                      channelRowsCurrent()
+                    : catalog.shelves === source && source.source === identity)
+            );
+        }
+        return (cached = {
+            focus: function (groupId: string, index: number): boolean {
+                var entry = entries[groupId];
+                if (
+                    !entry ||
+                    groupId === "system:favorites" ||
+                    typeof index !== "number" ||
+                    !isFinite(index) ||
+                    index % 1 ||
+                    index < 0 ||
+                    index >= entry.members.length
+                )
+                    return false;
+                var members = entry.members,
+                    id = members[index];
+                if (
+                    id == null ||
+                    !admitted() ||
+                    entry.group.id !== groupId ||
+                    entry.group.members !== members ||
+                    members[index] !== id
+                )
+                    return false;
+                if (!channelSource)
+                    return (
+                        typeof source.focus === "function" &&
+                        source.focus(groupId, index) === true
+                    );
+                var category = channels.index(groupId),
+                    currentMembers = host.cats[host.catsArray[category]];
+                if (
+                    category < 0 ||
+                    !currentMembers ||
+                    currentMembers[index] !== id ||
+                    !admitted() ||
+                    entry.group.members !== members ||
+                    members[index] !== id ||
+                    typeof host.channelsList !== "function"
+                )
+                    return false;
+                host.channelsList(category, index);
+                return true;
+            },
+            groups: groups,
+            selected: channelSource ? groups[category]?.id : source.selected,
+            source: identity,
+        });
+    };
+}
+
 /** Selected-item buttons use the same owned commands as the current list. */
 function createModernSelectedActions(host: any) {
     return function () {
@@ -78,9 +222,95 @@ function createModernSelectedActions(host: any) {
     };
 }
 
+/** Variable-length shelves navigate through their current owned presentation. */
+function createModernShelfTouch(w: any) {
+    function admitted(gesture: any, owner: any, metrics: any): boolean {
+        return !!(
+            gesture.shelves.source != null &&
+            w.__ottModernUi === gesture.shelves.modern &&
+            owner === w.__ottClassicScreenPort?.listOwner() &&
+            owner?.foreground() &&
+            w.isListVisible &&
+            metrics?.shelves &&
+            metrics.source === gesture.shelves.source &&
+            !w.__ottKiosk?.locked?.() &&
+            !w.__ottKiosk?.enabled?.() &&
+            !w.__ottKiosk?.strict?.()
+        );
+    }
+    return {
+        moveTouch: function (
+            gesture: any,
+            touch: any,
+            minX: number,
+            isCurrent: () => boolean
+        ): boolean {
+            if (!gesture.axis) return true;
+            var horizontal = gesture.axis === "horizontal";
+            var threshold = horizontal ? Math.max(8, minX) : gesture.rowHeight;
+            var travel = horizontal
+                ? gesture.startX - touch.clientX
+                : gesture.referenceY - touch.clientY;
+            if (Math.abs(travel) < threshold) return true;
+            // Coalesced movement advances one shelf/card. Discard overscroll so
+            // reversing at either boundary responds without a long dead zone.
+            gesture.startX = touch.clientX;
+            gesture.referenceY = touch.clientY;
+            var handled = gesture.shelves.modern.navigation?.(
+                {
+                    id: horizontal
+                        ? travel > 0
+                            ? "right"
+                            : "left"
+                        : travel > 0
+                          ? "down"
+                          : "up",
+                },
+                gesture.owner
+            );
+            if (!isCurrent()) return true;
+            var owner = w.__ottClassicScreenPort?.listOwner();
+            var metrics = w.__ottModernUi?.touchMetrics?.(owner);
+            var rows = w.listDataArray?.length ? w.listDataArray : w.listArray;
+            if (
+                !handled ||
+                !admitted(gesture, owner, metrics) ||
+                !(metrics.height > 0) ||
+                !isFinite(metrics.height) ||
+                !rows?.length
+            ) {
+                gesture.cancelled = gesture.moved = true;
+                return true;
+            }
+            // Only this admitted synchronous transition may replace capture.
+            gesture.owner = owner;
+            gesture.rows = rows;
+            gesture.rowHeight = metrics.height;
+            gesture.rowStride = metrics.stride;
+            return true;
+        },
+        touchCurrent: function (gesture: any): boolean {
+            return admitted(
+                gesture,
+                gesture.owner,
+                w.__ottModernUi?.touchMetrics?.(gesture.owner)
+            );
+        },
+    };
+}
+
 /** Optional presentation adapter. Catalogues, actions and playback stay owned by the host. */
 function createModernInterface(w: any) {
-    var defaultSelectedActions = createModernSelectedActions(w),
+    var artworkLoader =
+            typeof w.__ottModernArtworkFactory === "function"
+                ? w.__ottModernArtworkFactory(w)
+                : null,
+        defaultSelectedActions = createModernSelectedActions(w),
+        catalogShelves = createModernCatalogShelves(w),
+        shelfTouch = createModernShelfTouch(w),
+        artworkSource: any = null,
+        shelfInputTarget: HTMLElement | null = null,
+        shelfInputParent: HTMLElement | null = null,
         rows: any[] = [],
         formatter: any = null,
         layout: any = null,
@@ -95,7 +325,13 @@ function createModernInterface(w: any) {
         view = "home",
         heroActions: any[] = [],
         heroContext: any = {},
-        heroFocus = -1;
+        heroFocus = -1,
+        shelfSource: any = null,
+        shelfGroups: any[] = [],
+        shelfPositions: any = Object.create(null),
+        shelfWheelAt = 0,
+        shelfWheelEventAt = 0,
+        shelfWheelDelta = 0;
     function supported(): boolean {
         if (w.CSS && typeof w.CSS.supports === "function")
             return w.CSS.supports("display", "grid");
@@ -152,6 +388,22 @@ function createModernInterface(w: any) {
               : null;
         if (!channel && !media) return null;
         var mixed = catalog && catalog.kind === "mixed";
+        var summary = media
+            ? media.description || media.summary || media.plot || ""
+            : channel.description || channel.descr || "";
+        var synopsisOffset = media?.__ottMediaSynopsisOffset;
+        // The source identifies its synopsis within the full description. Keep
+        // its title/year/duration in Details without duplicating long plot text.
+        if (
+            typeof summary === "string" &&
+            typeof synopsisOffset === "number" &&
+            isFinite(synopsisOffset) &&
+            synopsisOffset % 1 === 0 &&
+            synopsisOffset >= -1 &&
+            synopsisOffset <= summary.length
+        )
+            summary =
+                synopsisOffset === -1 ? "" : summary.slice(synopsisOffset);
         return {
             backdrop: artwork(
                 (media &&
@@ -178,11 +430,7 @@ function createModernInterface(w: any) {
                       : channel.modernMeta || channel.name || ""
             ),
             playing: !!(catalog && catalog.playing && catalog.playing(item)),
-            summary: text(
-                media
-                    ? media.description || media.summary || media.plot || ""
-                    : channel.description || channel.descr || ""
-            ),
+            summary: summary,
             title: text(
                 channel
                     ? channel.modernTitle || channel.channel_name
@@ -241,6 +489,8 @@ function createModernInterface(w: any) {
         return !!(w.__ottKiosk?.locked?.() || w.__ottKiosk?.enabled?.());
     }
     function removeShell(): void {
+        bindShelfInput(null);
+        artworkLoader?.reset();
         railFocus = -1;
         heroFocus = -1;
         actions = [];
@@ -258,6 +508,7 @@ function createModernInterface(w: any) {
                 "modern-empty",
                 "modern-rail-focused",
                 "modern-has-controls",
+                "modern-has-shelves",
                 "modern-view-home",
                 "modern-view-library"
             );
@@ -322,7 +573,7 @@ function createModernInterface(w: any) {
             shell.innerHTML =
                 '<nav id="modernRail"><div class="modern-rail-actions"></div></nav>' +
                 '<nav class="modern-account-actions"></nav>' +
-                '<section id="modernHero"><div class="modern-hero-art"></div><div class="modern-hero-copy"><span class="modern-eyebrow"></span><h1 class="modern-hero-title"></h1><div class="modern-hero-meta"></div><p class="modern-hero-summary"></p><div class="modern-hero-actions"></div></div></section>' +
+                '<section id="modernHero"><div class="modern-hero-art"></div><div class="modern-hero-copy"><span class="modern-eyebrow"></span><h1 class="modern-hero-title"></h1><div class="modern-hero-meta"></div><div class="modern-hero-summary"></div><div class="modern-hero-actions"></div></div></section>' +
                 '<header id="modernLibraryHeading"><span class="modern-library-title"></span><div class="modern-library-actions"></div><span class="modern-library-count"></span></header>';
             shell
                 .querySelector("#modernRail")!
@@ -664,25 +915,31 @@ function createModernInterface(w: any) {
                   : label("Channels");
         shell.querySelector(".modern-hero-title")!.textContent = row.title;
         shell.querySelector(".modern-hero-meta")!.textContent = row.meta;
-        shell.querySelector(".modern-hero-summary")!.textContent = row.summary;
+        var summary = shell.querySelector(".modern-hero-summary")!;
+        // Use the shared, allowlisted description renderer. Provider formatting
+        // is metadata, not literal title text or arbitrary executable HTML.
+        var description =
+            typeof w.getMediaDescr === "function"
+                ? w.getMediaDescr({ description: row.summary })
+                : escape(row.summary);
+        if (summary.innerHTML !== description) summary.innerHTML = description;
         var art = shell.querySelector(".modern-hero-art")!;
         var existing = art.querySelector("img");
         var heroImage = row.backdrop || row.image;
         if (
-            (existing && existing.getAttribute("src")) !== (heroImage || null)
+            (existing && existing.getAttribute("data-modern-artwork")) !==
+            (heroImage || null)
         ) {
             art.textContent = "";
             if (heroImage) {
                 var image = w.document.createElement("img");
                 image.alt = "";
                 image.decoding = "async";
-                image.src = heroImage;
-                image.onerror = function () {
-                    image.hidden = true;
-                };
+                image.setAttribute("data-modern-artwork", heroImage);
                 art.appendChild(image);
             }
         }
+        decorateArtwork(art as HTMLElement);
         hero.classList.toggle("modern-hero-with-art", !!heroImage);
     }
     function focusHero(index: number): void {
@@ -743,18 +1000,297 @@ function createModernInterface(w: any) {
             "modern-catalog",
             "modern-grid",
             "modern-live",
-            "modern-options"
+            "modern-options",
+            "modern-shelves"
         );
         container.style.display = "";
         container.style.gridTemplateColumns = "";
         container.style.gridAutoRows = "";
         container.style.gap = "";
     }
+    function shelves(): any {
+        return homeView() && catalogShelves(formatter);
+    }
+    function prepareShelves(): boolean {
+        var capability = shelves();
+        if (!capability || !Array.isArray(capability.groups)) {
+            shelfGroups = [];
+            return false;
+        }
+        if (shelfSource !== capability.source) {
+            shelfSource = capability.source;
+            shelfPositions = Object.create(null);
+            shelfWheelAt = shelfWheelEventAt = shelfWheelDelta = 0;
+        }
+        // Membership arrays belong to the source. Only category descriptors are
+        // projected here; a repaint never walks/copies every media item.
+        shelfGroups = capability.groups.filter(function (group: any) {
+            return (
+                group &&
+                typeof group.id === "string" &&
+                group.id !== "system:favorites" &&
+                Array.isArray(group.members) &&
+                group.members.length > 0
+            );
+        });
+        return shelfGroups.some(function (group) {
+            return group.id === capability.selected;
+        });
+    }
+    function shelfIndex(): number {
+        var current = shelves();
+        return shelfGroups.findIndex(function (group) {
+            return group.id === current?.selected;
+        });
+    }
+    function shelfCurrent(owner: any): boolean {
+        return !!(
+            layout?.shelves &&
+            enabled() &&
+            !locked() &&
+            owner &&
+            owner === foreground() &&
+            owner.model.render === formatter &&
+            shelves()?.source === shelfSource
+        );
+    }
+    function selectShelf(group: any, position: number, activate = false): void {
+        var owner = foreground();
+        if (!shelfCurrent(owner) || !group?.members.length) return;
+        var capability = shelves(),
+            source = capability.source,
+            index = Math.max(0, Math.min(group.members.length - 1, position)),
+            item = group.members[index];
+        shelfPositions[group.id] = index;
+        // The host selects the occurrence, including its category and owned
+        // detail/action callbacks. Modern never starts a decoder itself.
+        if (capability.focus(group.id, index) !== true) return;
+        var nextOwner = foreground(),
+            next = shelves();
+        if (
+            !shelfCurrent(nextOwner) ||
+            next.source !== source ||
+            next.selected !== group.id ||
+            rows[w.selIndex] !== item ||
+            w.selIndex !== index
+        )
+            return;
+        focusContent();
+        if (activate && typeof w._doKey === "function") w._doKey(w.keys.ENTER);
+    }
+    function moveShelf(horizontal: number, vertical: number): void {
+        var current = shelfIndex();
+        if (current < 0) return;
+        var group = shelfGroups[current];
+        shelfPositions[group.id] = Math.max(0, Number(w.selIndex) || 0);
+        if (horizontal) {
+            var position = Math.max(
+                0,
+                Math.min(
+                    group.members.length - 1,
+                    shelfPositions[group.id] + horizontal
+                )
+            );
+            if (position !== shelfPositions[group.id])
+                selectShelf(group, position);
+        } else if (vertical) {
+            var next = Math.max(
+                0,
+                Math.min(shelfGroups.length - 1, current + vertical)
+            );
+            if (next === current) return;
+            group = shelfGroups[next];
+            selectShelf(group, shelfPositions[group.id] || 0);
+        }
+    }
+    function paintShelves(
+        container: HTMLElement,
+        owner: any,
+        restoreFocus = false
+    ): boolean {
+        if (!layout?.shelves) return false;
+        var current = shelfIndex();
+        if (current < 0) return false;
+        var count = Math.min(layout.shelfCount, shelfGroups.length),
+            start = Math.max(
+                0,
+                Math.min(
+                    current > 0 ? current - 1 : 0,
+                    shelfGroups.length - count
+                )
+            );
+        if (current >= start + count) start = current;
+        container.classList.add("modern-shelves");
+        container.style.display = "flex";
+        container.style.gridTemplateColumns = "";
+        container.style.gridAutoRows = "";
+        container.textContent = "";
+        for (
+            var g = start;
+            g < Math.min(shelfGroups.length, start + count);
+            g++
+        ) {
+            var group = shelfGroups[g],
+                active = g === current,
+                position = Math.min(
+                    group.members.length - 1,
+                    active
+                        ? Math.max(0, Number(w.selIndex) || 0)
+                        : shelfPositions[group.id] || 0
+                ),
+                first = Math.floor(position / layout.columns) * layout.columns;
+            shelfPositions[group.id] = position;
+            var section = w.document.createElement("section"),
+                heading = w.document.createElement("h2"),
+                track = w.document.createElement("div");
+            section.className = "modern-shelf";
+            section.setAttribute("role", "group");
+            section.setAttribute("aria-label", text(group.name));
+            heading.className = "modern-shelf-heading";
+            heading.style.height = layout.shelfHeadingHeight + "px";
+            heading.textContent = text(group.name);
+            var counter = w.document.createElement("span");
+            counter.textContent = position + 1 + " / " + group.members.length;
+            heading.appendChild(counter);
+            track.className = "modern-shelf-track";
+            track.style.gridTemplateColumns =
+                "repeat(" + layout.columns + ",minmax(0,1fr))";
+            track.style.gap = layout.gap + "px";
+            for (
+                var i = first;
+                i < Math.min(first + layout.columns, group.members.length);
+                i++
+            ) {
+                var card = w.document.createElement("div");
+                card.id = active ? "it" + i : "modernShelf" + g + "Item" + i;
+                card.className = "modern-card" + (active ? " item" : "");
+                card.setAttribute("role", "option");
+                card.setAttribute("aria-posinset", String(i + 1));
+                card.setAttribute("aria-setsize", String(group.members.length));
+                card.setAttribute(
+                    "aria-selected",
+                    String(active && i === position)
+                );
+                card.setAttribute("data-modern-shelf", group.id);
+                card.setAttribute("data-modern-position", String(i));
+                if (active) card.setAttribute("data-idx", String(i));
+                card.tabIndex = active && i === position ? 0 : -1;
+                card.style.height = layout.cellHeight + "px";
+                card.innerHTML = render(group.members[i], i) || "";
+                card.classList.toggle("ott-selected", active && i === position);
+                track.appendChild(card);
+            }
+            section.appendChild(heading);
+            section.appendChild(track);
+            container.appendChild(section);
+        }
+        decorateArtwork(container);
+        w.listPageSize = layout.columns;
+        w.__ottListRowH = layout.cellHeight;
+        w.__ottAccessibility?.select(container, w.selIndex, restoreFocus);
+        syncScreen();
+        return true;
+    }
+    function shelfPointer(event: any, activate: boolean): boolean {
+        if (!layout?.shelves || !enabled()) return false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var owner = foreground();
+        if (!shelfCurrent(owner)) return true;
+        var node = event.target?.closest?.("[data-modern-shelf]");
+        if (!node || !w.document.getElementById("listIn")?.contains(node))
+            return true;
+        var id = node.getAttribute("data-modern-shelf"),
+            position = Number(node.getAttribute("data-modern-position")),
+            group = shelfGroups.find(function (row) {
+                return row.id === id;
+            });
+        if (
+            !group ||
+            position < 0 ||
+            position >= group.members.length ||
+            position % 1
+        )
+            return true;
+        selectShelf(
+            group,
+            position,
+            activate || (id === shelves().selected && position === w.selIndex)
+        );
+        return true;
+    }
+    function shelfWheel(event: any): boolean {
+        if (!layout?.shelves || !enabled()) return false;
+        if (event.ctrlKey) return true;
+        event.preventDefault();
+        event.stopPropagation();
+        if (!shelfCurrent(foreground())) return true;
+        var delta =
+            Number(event.deltaY || event.detail || -event.wheelDelta) || 0;
+        if (!delta) return true;
+        var now = Date.now();
+        if (now - shelfWheelAt < 160) return true;
+        if (
+            now - shelfWheelEventAt > 600 ||
+            Math.sign(delta) !== Math.sign(shelfWheelDelta)
+        )
+            shelfWheelDelta = 0;
+        shelfWheelEventAt = now;
+        shelfWheelDelta +=
+            delta *
+            (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1);
+        if (Math.abs(shelfWheelDelta) >= 24) {
+            shelfWheelAt = now;
+            moveShelf(0, shelfWheelDelta > 0 ? 1 : -1);
+            shelfWheelDelta = 0;
+        }
+        return true;
+    }
+    function shelfInput(event: any): void {
+        if (
+            !shelfInputTarget?.contains(event.target) ||
+            w.__ottTauriSuppressClick
+        )
+            return;
+        if (/wheel|DOMMouseScroll/.test(event.type)) {
+            if (shelfWheel(event)) event.stopImmediatePropagation();
+        } else if (
+            event.type === "click" ||
+            event.keyCode === 13 ||
+            event.keyCode === 32
+        ) {
+            shelfPointer(
+                event,
+                event.type === "keydown" ||
+                    event.ottNativeListTap === true ||
+                    w.ott_device === "lg/webos" ||
+                    w.ott_device === "lg/netcast"
+            );
+        }
+    }
+    function bindShelfInput(container: HTMLElement | null): void {
+        var parent = container?.parentElement || null;
+        if (shelfInputTarget === container && shelfInputParent === parent)
+            return;
+        ["click", "keydown", "wheel", "mousewheel", "DOMMouseScroll"].forEach(
+            function (name) {
+                shelfInputParent?.removeEventListener(name, shelfInput, true);
+                parent?.addEventListener(name, shelfInput, true);
+            }
+        );
+        shelfInputTarget = container;
+        shelfInputParent = parent;
+    }
     function prepare(
         items: any[],
         render: any,
         container: HTMLElement | null
     ): any {
+        var nextArtworkSource = render?.__ottCatalog?.channelSource
+            ? catalogShelves(render)?.source || render
+            : render?.__ottCatalog?.shelves?.source || render;
+        if (artworkSource !== nextArtworkSource) artworkLoader?.reset();
+        artworkSource = nextArtworkSource;
         reset(container);
         rows = items;
         formatter = render;
@@ -762,6 +1298,7 @@ function createModernInterface(w: any) {
             removeShell();
             return null;
         }
+        bindShelfInput(container);
         var menu = !(render.__ottCatalog || render.__ottMediaRows);
         // Choose one shape per source formatter, never from selection. Mixed
         // Favorites must not jump between rows and cards on page changes.
@@ -778,6 +1315,8 @@ function createModernInterface(w: any) {
         }
         syncScreen();
         var grid = !menu && shapeGrid;
+        var categoryShelves = grid && prepareShelves();
+        shellParent?.classList.toggle("modern-has-shelves", !!categoryShelves);
         var scale = Math.max(
             0.7,
             Math.min(2, Number(w.sUiFontScale || 100) / 100)
@@ -849,6 +1388,28 @@ function createModernInterface(w: any) {
         );
         if (grid && !home)
             cellHeight = Math.min(cellHeight, Math.ceil(preferredHeight));
+        var shelfHeadingHeight = 32 * scale;
+        var shelfCount = categoryShelves
+            ? Math.max(
+                  1,
+                  Math.min(
+                      2,
+                      shelfGroups.length,
+                      Math.floor(
+                          (height + gap) /
+                              (110 * scale + shelfHeadingHeight + gap)
+                      )
+                  )
+              )
+            : 0;
+        if (categoryShelves)
+            cellHeight = Math.max(
+                72,
+                Math.floor(
+                    (height - gap * (shelfCount - 1)) / shelfCount -
+                        shelfHeadingHeight
+                )
+            );
         layout = {
             cellHeight: cellHeight,
             cellWidth: cellWidth,
@@ -858,6 +1419,9 @@ function createModernInterface(w: any) {
             home: home,
             menu: menu,
             pageSize: columns * count,
+            shelfCount: shelfCount,
+            shelfHeadingHeight: shelfHeadingHeight,
+            shelves: categoryShelves,
         };
         if (menu) container.classList.add("modern-options");
         else
@@ -877,7 +1441,7 @@ function createModernInterface(w: any) {
         var row = project(item);
         if (!row) return null;
         var image = row.image
-            ? '<img alt="" loading="lazy" decoding="async" src="' +
+            ? '<img alt="" loading="lazy" decoding="async" data-modern-artwork="' +
               escape(row.image) +
               '">'
             : "";
@@ -911,6 +1475,19 @@ function createModernInterface(w: any) {
                 : "")
         );
     }
+    function decorateArtwork(container: HTMLElement): void {
+        if (artworkLoader) artworkLoader.decorate(container);
+        else {
+            var images = container.querySelectorAll("img[data-modern-artwork]");
+            for (var i = 0; i < images.length; i++) {
+                var image = images[i] as HTMLImageElement;
+                image.onerror = function () {
+                    this.style.display = "none";
+                };
+                image.src = image.getAttribute("data-modern-artwork") || "";
+            }
+        }
+    }
     function decorate(
         container: HTMLElement,
         start: number,
@@ -935,11 +1512,6 @@ function createModernInterface(w: any) {
             element.style.maxHeight = layout.cellHeight + "px";
             element.style.lineHeight = "normal";
             if (layout.menu) continue;
-            var image = element.querySelector(".modern-art img");
-            if (image)
-                image.onerror = function () {
-                    this.style.display = "none";
-                };
             if (!row.media && row.channel) {
                 var channel = row.channel,
                     fill = element.querySelector(".modern-progress > span");
@@ -958,6 +1530,7 @@ function createModernInterface(w: any) {
                             : 0) + "%";
             }
         }
+        decorateArtwork(container);
     }
     function beforeDetail(): HTMLElement | null {
         var row =
@@ -1052,6 +1625,16 @@ function createModernInterface(w: any) {
         );
     }
     function touchMetrics(owner: any): any {
+        if (shelfCurrent(owner))
+            return {
+                current: shelfTouch.touchCurrent,
+                height: layout.cellHeight + layout.gap,
+                modern: w.__ottModernUi,
+                move: shelfTouch.moveTouch,
+                shelves: true,
+                source: shelfSource,
+                stride: 1,
+            };
         return activeGrid(owner)
             ? { height: layout.cellHeight + layout.gap, stride: layout.columns }
             : null;
@@ -1114,6 +1697,41 @@ function createModernInterface(w: any) {
             return command.id === "up";
         }
         var selected = Math.max(0, Number(w.selIndex) || 0);
+        if (shelfCurrent(owner)) {
+            if (command.id === "up" && shelfIndex() === 0) {
+                if (heroActions.length) focusHero(0);
+                else focusRail(0);
+                return true;
+            }
+            if (
+                [
+                    "left",
+                    "right",
+                    "up",
+                    "down",
+                    "channel-up",
+                    "channel-down",
+                    "forward",
+                    "rewind",
+                    "next",
+                    "previous",
+                ].indexOf(command.id) >= 0
+            ) {
+                var horizontal =
+                    command.id === "left" ? -1 : command.id === "right" ? 1 : 0;
+                moveShelf(
+                    horizontal,
+                    horizontal
+                        ? 0
+                        : ["up", "channel-up", "rewind", "previous"].indexOf(
+                                command.id
+                            ) >= 0
+                          ? -1
+                          : 1
+                );
+                return true;
+            }
+        }
         var pageSize = Math.max(
             1,
             layout?.pageSize || Number(w.listPageSize) || 1
@@ -1175,16 +1793,23 @@ function createModernInterface(w: any) {
         decorate: decorate,
         detail: detail,
         hide: function (): void {
+            bindShelfInput(null);
+            artworkLoader?.reset();
             railFocus = -1;
             heroFocus = -1;
             shellParent?.classList.remove("modern-rail-focused");
         },
+        moveTouch: shelfTouch.moveTouch,
         navigation: navigation,
+        paintShelves: paintShelves,
         prepare: prepare,
         refresh: refresh,
         render: render,
+        shelfPointer: shelfPointer,
+        shelfWheel: shelfWheel,
         supported: supported,
         syncScreen: syncScreen,
+        touchCurrent: shelfTouch.touchCurrent,
         touchMetrics: touchMetrics,
     };
 }

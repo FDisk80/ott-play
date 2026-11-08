@@ -435,7 +435,7 @@ function createPlexList(ports: any): any {
                 close
             );
         }
-        function showChannels(): void {
+        function showChannels(focusedIndex?: number): void {
             if (
                 groups[groupIndex].id === "system:favorites" &&
                 w.openGlobalFavorites &&
@@ -444,7 +444,10 @@ function createPlexList(ports: any): any {
                 return;
             var token = ++screenToken;
             var members = groups[groupIndex].members;
-            var index = members.indexOf("plex-row-" + selectedFrameIndex);
+            var index =
+                focusedIndex === undefined
+                    ? members.indexOf("plex-row-" + selectedFrameIndex)
+                    : focusedIndex;
             paint(function () {
                 native.show({
                     categoryName: groups[groupIndex].name,
@@ -532,6 +535,46 @@ function createPlexList(ports: any): any {
                     },
                     rows: members,
                     selected: Math.max(0, index),
+                    shelves: {
+                        focus: function (
+                            groupId: string,
+                            index: number
+                        ): boolean {
+                            var group = byGroup[groupId];
+                            if (
+                                !group ||
+                                groupId === "system:favorites" ||
+                                typeof index !== "number" ||
+                                !isFinite(index) ||
+                                index % 1 ||
+                                index < 0 ||
+                                index >= group.members.length
+                            )
+                                return false;
+                            var members = group.members,
+                                id = members[index],
+                                entry = entries[id];
+                            if (
+                                !entry ||
+                                !valid(token) ||
+                                w.__ottKiosk?.enabled?.() ||
+                                w.__ottKiosk?.locked?.() ||
+                                group.members !== members ||
+                                members[index] !== id ||
+                                frame!.items[entry.index] !== entry.item
+                            )
+                                return false;
+                            groupIndex = groups.indexOf(group);
+                            if (groupIndex < 0) return false;
+                            plexCategoryId = group.id;
+                            selectedFrameIndex = entry.index;
+                            showChannels(index);
+                            return true;
+                        },
+                        groups: groups,
+                        selected: groups[groupIndex].id,
+                        source: frame,
+                    },
                 });
             });
             detail();

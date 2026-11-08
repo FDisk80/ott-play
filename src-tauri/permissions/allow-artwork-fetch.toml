@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-artwork-fetch"
+description = "Enables bounded raster artwork fetching for trusted local player windows."
+commands.allow = ["artwork_fetch"]

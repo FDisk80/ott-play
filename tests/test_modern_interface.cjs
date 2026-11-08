@@ -314,6 +314,7 @@ function rendererFixture() {
         settings: { interfaceMode: 1 },
         sUiFontScale: 100,
     });
+    w.eval(compile("src/ui/modern-artwork.ts"));
     w.eval(compile("src/ui/modern.ts"));
     const ids = Array.from({ length: 10000 }, (_, index) => "item-" + index);
     let reads = 0;
@@ -524,6 +525,7 @@ test("live artwork comes from the same provider projection as the Classic list",
         const layout = f.api.prepare(["station"], f.formatter, f.container);
         assert.equal(layout.grid, false);
         f.container.innerHTML = f.api.render("station", 0);
+        f.api.decorate(f.container, 0, 1);
         assert.equal(
             f.container.querySelector("img").src,
             "https://example.invalid/provider-logo.png"
@@ -579,6 +581,114 @@ function shellFixture() {
         owner,
     };
 }
+
+test("Modern preserves artwork requests across source-owned formatter replacement and retires another source", async () => {
+    const f = shellFixture();
+    try {
+        const calls = [],
+            blobs = [];
+        f.w.__TAURI__ = {
+            core: {
+                invoke: (command, args) =>
+                    new Promise((resolve) =>
+                        calls.push({ args, command, resolve })
+                    ),
+            },
+        };
+        f.w.URL.createObjectURL = (blob) => {
+            blobs.push(blob);
+            return "blob:fixture-" + blobs.length;
+        };
+        f.w.URL.revokeObjectURL = () => {};
+        const tick = () => new Promise((resolve) => setImmediate(resolve));
+        let currentSource;
+        function snapshot(generation) {
+            const value = {
+                active: () => currentSource === value,
+                generation,
+                groups: [{ id: "system:all", members: f.ids, name: "All" }],
+            };
+            return value;
+        }
+        const source = snapshot(1);
+        f.w.__ottChannels = { remoteCatalog: () => currentSource };
+        f.w.channelsKeyHandler = () => {};
+        f.w.listKeyHandler = f.owner.model.handler = f.w.channelsKeyHandler;
+        f.w.cats = { All: f.ids };
+        f.w.catsArray = ["All"];
+        f.w.listCatIndex = 0;
+        f.w.listArray = f.w.listDataArray = f.ids;
+        f.owner.model.items = f.owner.model.rows = f.ids;
+        function mount(identity, poster) {
+            currentSource = identity;
+            const render = () => "Classic";
+            render.__ottCatalog = {
+                categoryIndex: 0,
+                channelSource: identity,
+                row: () => ({
+                    __ottMediaItem: { poster },
+                    channel_name: "Film",
+                }),
+            };
+            f.owner.model.render = render;
+            f.w.getListItemFn = render;
+            f.api.prepare(f.ids, render, f.container);
+        }
+        mount(source, "http://images.example/a.jpg");
+        await tick();
+        assert.equal(calls.length, 1);
+        mount(source, "http://images.example/a.jpg");
+        await tick();
+        assert.equal(
+            calls.length,
+            1,
+            "same source retains the pending request"
+        );
+        calls[0].resolve({ bodyBase64: "/9j/4A==", contentType: "image/jpeg" });
+        await tick();
+        assert.equal(blobs.length, 1);
+        mount(source, "http://images.example/b.jpg");
+        await tick();
+        mount(source, "http://images.example/a.jpg");
+        await tick();
+        assert.equal(
+            calls.length,
+            2,
+            "returning to an earlier card uses the bounded cache"
+        );
+        mount(snapshot(2), "http://images.example/b.jpg");
+        await tick();
+        assert.equal(
+            calls.length,
+            3,
+            "another source cannot reuse retired work"
+        );
+        const before = blobs.length;
+        calls[1].resolve({ bodyBase64: "/9j/4A==", contentType: "image/jpeg" });
+        await tick();
+        assert.equal(
+            blobs.length,
+            before,
+            "retired source completion cannot paint"
+        );
+        calls[2].resolve({ bodyBase64: "/9j/4A==", contentType: "image/jpeg" });
+        await tick();
+        assert.equal(blobs.length, before + 1);
+        const formatter = f.w.getListItemFn;
+        currentSource = snapshot(2);
+        f.api.prepare(f.ids, formatter, f.container);
+        await tick();
+        assert.equal(f.w.getListItemFn, formatter);
+        assert.equal(
+            calls.length,
+            4,
+            "republished normal snapshot retires artwork even with the same formatter"
+        );
+    } finally {
+        f.api.hide();
+        f.dom.window.close();
+    }
+});
 
 test("Modern mounts one shared shell with typed selected-item information and removes it on Classic", () => {
     const f = shellFixture();
@@ -1453,4 +1563,606 @@ test("Modern host navigation uses shared routing and rejects stale or covered ac
     );
     locked = true;
     assert.equal(get().length, 0);
+});
+
+function installSharedMetadataRenderer(w) {
+    const declarations = [];
+    for (const [file, names] of [
+        [
+            "src/utils/helpers.ts",
+            ["metadataText", "metadataImageUrl", "metadataHtml"],
+        ],
+        ["src/channels/index.ts", ["getMediaDescr"]],
+    ]) {
+        const source = ts.createSourceFile(
+            file,
+            fs.readFileSync(path.join(root, file), "utf8"),
+            ts.ScriptTarget.Latest,
+            true
+        );
+        for (const name of names) {
+            const declaration = source.statements.find(
+                (node) =>
+                    ts.isFunctionDeclaration(node) && node.name?.text === name
+            );
+            assert(declaration, name);
+            declarations.push(
+                declaration.getText(source).replace(/^export\s+/, "")
+            );
+        }
+    }
+    w.eval(
+        ts.transpileModule(declarations.join("\n"), {
+            compilerOptions: {
+                module: ts.ModuleKind.None,
+                target: ts.ScriptTarget.ES5,
+            },
+        }).outputText
+    );
+}
+
+test("Modern shows the source-owned synopsis while keeping full metadata intact", () => {
+    const f = shellFixture();
+    try {
+        installSharedMetadataRenderer(f.w);
+        const prefix = "<b>Film</b><br>2026<br>118<br>";
+        const plot = "The actual plot &amp; its next sentence. &lt;literal&gt;";
+        const media = {
+            __ottMediaSynopsisOffset: prefix.length,
+            description: prefix + plot,
+        };
+        f.w.selIndex = 0;
+        f.formatter.__ottCatalog.row = () => ({
+            __ottMediaItem: media,
+            channel_name: "Film",
+        });
+        f.api.prepare(["film"], f.formatter, f.container);
+        const summary = f.doc.querySelector(".modern-hero-summary");
+        assert.equal(
+            summary.textContent,
+            "The actual plot & its next sentence. <literal>"
+        );
+        assert.equal(
+            media.description,
+            prefix + plot,
+            "Details still has the entire source description"
+        );
+        media.__ottMediaSynopsisOffset = -1;
+        f.api.detail();
+        assert.equal(
+            summary.textContent,
+            "",
+            "missing synopsis does not repeat title/year/duration"
+        );
+        for (const invalid of [
+            -2,
+            0.5,
+            Infinity,
+            media.description.length + 1,
+        ]) {
+            media.__ottMediaSynopsisOffset = invalid;
+            f.api.detail();
+            assert(
+                summary.textContent.startsWith("Film2026118"),
+                "invalid metadata preserves the safe full-description fallback"
+            );
+        }
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Modern VPortal descriptions preserve shared safe formatting and entities", () => {
+    const f = shellFixture();
+    try {
+        installSharedMetadataRenderer(f.w);
+        f.w.selIndex = 0;
+        f.formatter.__ottCatalog.row = () => ({
+            __ottMediaItem: {
+                description:
+                    '<b onclick="window.changed=1">A &amp; B</b><br>2025<br/>118<br />A complete description. &lt;literal&gt;<script>window.changed=1</script><style>body{display:none}</style><img src="javascript:alert(1)" onerror="window.changed=1">',
+            },
+            channel_name: "A film",
+        });
+        f.api.prepare(["film"], f.formatter, f.container);
+        const summary = f.doc.querySelector(".modern-hero-summary");
+        assert.equal(summary.querySelector("b").textContent, "A & B");
+        assert.equal(summary.querySelectorAll("br").length, 3);
+        assert(
+            summary.textContent.includes("A complete description. <literal>")
+        );
+        assert(!summary.textContent.includes("<br"));
+        assert.equal(
+            summary.querySelectorAll("script,style,img,[onclick],[onerror]")
+                .length,
+            0
+        );
+        assert.equal(f.w.changed, undefined);
+        const first = summary.firstChild;
+        f.api.detail();
+        assert.equal(
+            summary.firstChild,
+            first,
+            "unchanged metadata must not rebuild its DOM"
+        );
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Modern resolves lazy descriptions only for the selected hero, not every rendered card", () => {
+    const f = shellFixture();
+    try {
+        installSharedMetadataRenderer(f.w);
+        let calls = 0;
+        f.w.selIndex = 0;
+        f.formatter.__ottCatalog.row = () => ({
+            __ottMediaItem: {
+                description: () => {
+                    calls++;
+                    return "<b>First</b><br>Second";
+                },
+            },
+            channel_name: "Film",
+        });
+        f.api.prepare(["first", "second"], f.formatter, f.container);
+        assert.equal(
+            f.doc.querySelector(".modern-hero-summary b").textContent,
+            "First"
+        );
+        assert(calls > 0);
+        const selectedCalls = calls;
+        f.api.render("first", 0);
+        f.api.render("second", 1);
+        assert.equal(calls, selectedCalls);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("Modern metadata without the shared renderer remains safely escaped", () => {
+    const f = shellFixture();
+    try {
+        delete f.w.getMediaDescr;
+        f.w.selIndex = 0;
+        f.formatter.__ottCatalog.row = () => ({
+            __ottMediaItem: {
+                description: '<img src=x onerror="window.changed=1">',
+            },
+            channel_name: "Film",
+        });
+        f.api.prepare(["film"], f.formatter, f.container);
+        const summary = f.doc.querySelector(".modern-hero-summary");
+        assert.equal(summary.querySelector("img"), null);
+        assert.equal(
+            summary.textContent,
+            '<img src=x onerror="window.changed=1">'
+        );
+        assert.equal(f.w.changed, undefined);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+function categoryShelfFixture(large = false, normal = false) {
+    const f = shellFixture();
+    const groups = [
+        {
+            id: "first",
+            members: Array.from(
+                { length: large ? 10000 : 8 },
+                (_, i) => "first-" + i
+            ),
+            name: "First category",
+        },
+        { id: "empty", members: [], name: "Empty category" },
+        { id: "short", members: ["first-0"], name: "Short category" },
+        {
+            id: "third",
+            members: Array.from({ length: 6 }, (_, i) => "third-" + i),
+            name: "Third category",
+        },
+    ];
+    const state = {
+        covered: false,
+        focus: [],
+        formatter: null,
+        layout: null,
+        memberReads: 0,
+        metadataReads: 0,
+        now: 1000,
+        owner: null,
+        selected: "first",
+        source: {},
+    };
+    if (normal) {
+        const source = { active: () => state.source === source, groups };
+        state.source = source;
+        f.w.channelsKeyHandler = () => {};
+        f.w.__ottChannels = {
+            index: (id) => groups.findIndex((group) => group.id === id),
+            remoteCatalog: () => state.source,
+        };
+        f.w.catsArray = groups.map((group) => group.name);
+        f.w.cats = Object.fromEntries(
+            groups.map((group) => [group.name, group.members])
+        );
+        f.w.channelsList = (index, position) => {
+            state.focus.push([groups[index].id, position]);
+            mount(groups[index].id, position);
+        };
+    }
+    if (large)
+        groups[0].members = new Proxy(groups[0].members, {
+            get(target, key, receiver) {
+                if (typeof key === "string" && /^\d+$/.test(key))
+                    state.memberReads++;
+                return Reflect.get(target, key, receiver);
+            },
+        });
+    f.w.Date.now = () => state.now;
+    f.w.keys = { ENTER: 13 };
+    f.w.__ottClassicScreenPort.listOwner = () => state.owner;
+    f.w._doKey = (key) =>
+        f.effects.push([
+            key,
+            state.selected,
+            f.w.selIndex,
+            f.w.listArray[f.w.selIndex],
+        ]);
+    function repaint() {
+        f.container.textContent = "";
+        state.layout = f.api.prepare(
+            f.w.listArray,
+            state.formatter,
+            f.container
+        );
+        if (state.layout?.shelves) f.api.paintShelves(f.container, state.owner);
+    }
+    function mount(groupId, index) {
+        const group = groups.find((entry) => entry.id === groupId);
+        const owner = {
+            foreground: () => state.owner === owner && !state.covered,
+            model: {},
+        };
+        const formatter = () => "Classic item";
+        state.owner = owner;
+        state.formatter = formatter;
+        state.selected = groupId;
+        formatter.__ottCatalog = {
+            kind: "catalog",
+            row(id) {
+                state.metadataReads++;
+                return {
+                    __ottMediaItem: {
+                        description: "Shared description",
+                        name: id,
+                    },
+                    channel_name: id,
+                };
+            },
+            shelves: {
+                focus(id, position) {
+                    if (!owner.foreground() || state.formatter !== formatter)
+                        return false;
+                    state.focus.push([id, position]);
+                    mount(id, position);
+                    return true;
+                },
+                groups,
+                selected: groupId,
+                source: state.source,
+            },
+        };
+        if (normal) {
+            formatter.__ottCatalog.categoryIndex = groups.indexOf(group);
+            formatter.__ottCatalog.channelSource = state.source;
+            delete formatter.__ottCatalog.shelves;
+        }
+        owner.model.render = formatter;
+        if (normal) {
+            owner.model.items = owner.model.rows = group.members;
+            owner.model.handler = f.w.listKeyHandler = f.w.channelsKeyHandler;
+            f.w.listCatIndex = groups.indexOf(group);
+        }
+        f.w.getListItemFn = formatter;
+        f.w.listArray = f.w.listDataArray = group.members;
+        f.w.selIndex = index;
+        repaint();
+    }
+    f.w.showPage = repaint;
+    mount("first", 0);
+    return {
+        ...f,
+        groups,
+        key: (id, owner = state.owner) => f.api.navigation({ id }, owner),
+        mount,
+        pointer(groupId, position, activate = false) {
+            const card = f.container.querySelector(
+                '[data-modern-shelf="' +
+                    groupId +
+                    '"][data-modern-position="' +
+                    position +
+                    '"]'
+            );
+            assert(card, "the requested shelf occurrence is mounted");
+            const event = new f.w.MouseEvent("click", { cancelable: true });
+            Object.defineProperty(event, "target", {
+                value: card.querySelector(".modern-title") || card,
+            });
+            assert.equal(f.api.shelfPointer(event, activate), true);
+            assert.equal(event.defaultPrevented, true);
+            return card;
+        },
+        repaint,
+        state,
+        wheel(deltaY, extras = {}) {
+            state.now += 200;
+            const event = new f.w.WheelEvent("wheel", {
+                cancelable: true,
+                deltaY,
+                ...extras,
+            });
+            const handled = f.api.shelfWheel(event);
+            return { handled, prevented: event.defaultPrevented };
+        },
+    };
+}
+
+test("channel shelves resolve the captured category index before filtering empty groups", () => {
+    const f = categoryShelfFixture(false, true);
+    try {
+        assert.equal(f.state.layout.shelves, true);
+        assert.equal(f.state.formatter.__ottCatalog.categoryIndex, 0);
+        assert.equal(f.key("down"), true);
+        assert.equal(f.state.selected, "short");
+        assert.equal(f.state.formatter.__ottCatalog.categoryIndex, 2);
+        assert.equal(f.key("down"), true);
+        assert.equal(f.state.selected, "third");
+        assert.equal(f.state.formatter.__ottCatalog.categoryIndex, 3);
+        assert.deepEqual(
+            f.effects,
+            [],
+            "category focus does not start playback"
+        );
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("category shelves traverse actual groups and restore each row cursor across replaced owners", () => {
+    const f = categoryShelfFixture();
+    try {
+        assert.equal(f.state.layout.shelves, true);
+        assert(!f.container.textContent.includes("Empty category"));
+        const initialOwner = f.state.owner;
+        for (let i = 0; i < 7; i++) assert.equal(f.key("right"), true);
+        assert.equal(f.w.selIndex, 7);
+        assert.equal(f.key("right"), true);
+        assert.equal(
+            f.w.selIndex,
+            7,
+            "Right clamps without crossing categories"
+        );
+        assert.equal(f.key("down"), true);
+        assert.equal(f.state.selected, "short");
+        assert.equal(f.w.selIndex, 0);
+        assert.notEqual(f.state.owner, initialOwner);
+        f.key("right");
+        assert.equal(f.w.selIndex, 0, "a one-item row cannot wrap");
+        f.key("next");
+        assert.equal(f.state.selected, "third");
+        f.key("right");
+        f.key("right");
+        f.key("down");
+        assert.equal(
+            f.state.selected,
+            "third",
+            "bottom navigation is consumed"
+        );
+        assert.equal(f.w.selIndex, 2);
+        f.key("previous");
+        f.key("up");
+        assert.equal(f.state.selected, "first");
+        assert.equal(f.w.selIndex, 7);
+        f.key("down");
+        f.key("down");
+        assert.equal(f.w.selIndex, 2, "each category retains its own cursor");
+        assert.equal(f.key("left", initialOwner), false);
+        assert.equal(
+            f.w.selIndex,
+            2,
+            "retired owners cannot move the current row"
+        );
+        assert.deepEqual(f.effects, [], "navigation never activates playback");
+        assert.equal(f.doc.activeElement.id, "it2");
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("category shelves bound 10000-item DOM and metadata reads without copying memberships", () => {
+    const f = categoryShelfFixture(true);
+    try {
+        const members = f.groups[0].members;
+        assert.equal(f.w.listArray, members);
+        f.state.metadataReads = 0;
+        f.state.memberReads = 0;
+        f.repaint();
+        const cards = f.container.querySelectorAll(".modern-card").length;
+        assert(cards > 0 && cards <= 24);
+        assert(
+            f.state.metadataReads <= 32,
+            "repaint only projects mounted cards and the hero"
+        );
+        assert(
+            f.state.memberReads <= 64,
+            "repaint cannot copy or scan all category members"
+        );
+        assert.equal(f.w.listArray, members);
+        assert.equal(members.length, 10000);
+        assert.equal(
+            new Set(
+                Array.from(
+                    f.container.querySelectorAll("[id]"),
+                    (node) => node.id
+                )
+            ).size,
+            f.container.querySelectorAll("[id]").length
+        );
+        f.mount("first", 9999);
+        assert(f.container.querySelector("#it9999"));
+        assert(f.container.querySelectorAll(".modern-card").length <= 24);
+        assert.equal(f.key("right"), true);
+        assert.equal(f.w.selIndex, 9999);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("category shelf wheel moves rows, accumulates small deltas and consumes boundaries", () => {
+    const f = categoryShelfFixture();
+    try {
+        assert.deepEqual(f.wheel(-120), { handled: true, prevented: true });
+        assert.equal(f.state.selected, "first");
+        f.state.now += 10000;
+        assert.deepEqual(f.wheel(10), { handled: true, prevented: true });
+        f.wheel(10);
+        assert.equal(f.state.selected, "first");
+        f.wheel(10);
+        assert.equal(f.state.selected, "short");
+        const immediate = new f.w.WheelEvent("wheel", {
+            cancelable: true,
+            deltaY: 120,
+        });
+        assert.equal(f.api.shelfWheel(immediate), true);
+        assert.equal(
+            f.state.selected,
+            "short",
+            "one wheel burst cannot skip rows"
+        );
+        f.wheel(2, { deltaMode: 1 });
+        assert.equal(f.state.selected, "third");
+        f.wheel(120);
+        assert.equal(f.state.selected, "third");
+        f.wheel(-120);
+        assert.equal(f.state.selected, "short");
+        assert.deepEqual(f.effects, []);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("category shelf pointer selects the exact duplicate occurrence and Enter activates it once", () => {
+    const f = categoryShelfFixture();
+    try {
+        const old = f.pointer("short", 0);
+        assert.equal(f.state.selected, "short");
+        assert.equal(f.w.listArray[0], "first-0");
+        assert.deepEqual(f.effects, [], "first desktop click only selects");
+        assert.equal(old.isConnected, false);
+        const stale = new f.w.MouseEvent("click", { cancelable: true });
+        Object.defineProperty(stale, "target", { value: old });
+        assert.equal(f.api.shelfPointer(stale, true), true);
+        assert.deepEqual(f.effects, [], "detached occurrence cannot activate");
+        f.pointer("short", 0, true);
+        assert.deepEqual(f.effects, [[13, "short", 0, "first-0"]]);
+        assert.equal(f.doc.activeElement.id, "it0");
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+for (const guard of ["modal", "locked", "enabled", "source", "formatter"]) {
+    test(
+        "category shelf pointer and wheel reject " + guard + " ownership",
+        () => {
+            const f = categoryShelfFixture();
+            try {
+                if (guard === "modal") f.state.covered = true;
+                else if (guard === "source")
+                    f.state.formatter.__ottCatalog.shelves.source = {};
+                else if (guard === "formatter")
+                    f.state.owner.model.render = () => "replacement";
+                else f.w.__ottKiosk[guard] = () => true;
+                f.pointer("short", 0, true);
+                assert.deepEqual(f.wheel(120), {
+                    handled: true,
+                    prevented: true,
+                });
+                assert.equal(f.state.selected, "first");
+                assert.equal(f.w.selIndex, 0);
+                assert.deepEqual(f.state.focus, []);
+                assert.deepEqual(f.effects, []);
+            } finally {
+                f.dom.window.close();
+            }
+        }
+    );
+}
+
+test("category shelves restore their selection through Library and Classic without host routing", () => {
+    const f = categoryShelfFixture();
+    try {
+        f.key("right");
+        f.key("right");
+        const members = f.w.listArray;
+        const owner = f.state.owner;
+        const focused = f.state.focus.length;
+        f.doc.querySelector('[data-modern-action="library"]').click();
+        assert.equal(f.state.layout.shelves, false);
+        assert.equal(f.api.paintShelves(f.container, owner), false);
+        assert.equal(f.api.shelfWheel(new f.w.WheelEvent("wheel")), false);
+        f.doc.querySelector('[data-modern-action="home"]').click();
+        assert.equal(f.state.layout.shelves, true);
+        assert(f.container.querySelector("#it2"));
+        assert.equal(f.w.listArray, members);
+        assert.equal(f.state.owner, owner);
+        assert.equal(f.state.focus.length, focused);
+        f.w.settings.interfaceMode = 0;
+        f.api.refresh();
+        assert.equal(f.api.shelfWheel(new f.w.WheelEvent("wheel")), false);
+        assert.equal(f.doc.getElementById("modernShell"), null);
+        assert.equal(f.w.selIndex, 2);
+        assert.equal(f.w.listArray, members);
+        assert.equal(f.state.focus.length, focused);
+        assert.deepEqual(f.effects, []);
+    } finally {
+        f.dom.window.close();
+    }
+});
+
+test("category shelf capture precedes Classic row input and detaches when Classic returns", () => {
+    const f = categoryShelfFixture();
+    try {
+        let legacy = 0;
+        const count = () => legacy++;
+        f.container.addEventListener("click", count, true);
+        f.container.addEventListener("keydown", count, true);
+        f.w.ott_device = "lg/webos";
+        f.container.querySelector('[data-modern-shelf="short"]').click();
+        assert.deepEqual(f.effects, [[13, "short", 0, "first-0"]]);
+        assert.equal(
+            legacy,
+            0,
+            "LG pointer activation cannot reach Classic capture"
+        );
+        f.w.ott_device = "pc";
+        f.doc.getElementById("it0").dispatchEvent(
+            new f.w.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Enter",
+                keyCode: 13,
+            })
+        );
+        assert.equal(f.effects.length, 2, "Enter dispatches exactly once");
+        assert.equal(legacy, 0);
+        f.w.settings.interfaceMode = 0;
+        f.api.refresh();
+        f.container.appendChild(f.doc.createElement("button")).click();
+        assert.equal(legacy, 1, "Classic input keeps its original route");
+    } finally {
+        f.dom.window.close();
+    }
 });

@@ -345,13 +345,19 @@ export function createVPortalClient(
         }
     }
 
-    function description(item: any, parent: any): string {
+    function description(item: any, parent: any, record: any): string {
         var parts = ["<b>" + metadataText(item.title || "") + "</b>"];
+        record.__ottMediaSynopsisOffset = -1;
         ["year", "duration", "agelimit", "description"].forEach(
             function (field) {
                 var value = item[field] || (parent && parent[field]);
-                if (value !== undefined && value !== null && value !== "")
-                    parts.push(metadataText(value));
+                if (value !== undefined && value !== null && value !== "") {
+                    var text = metadataText(value);
+                    if (field === "description" && text)
+                        record.__ottMediaSynopsisOffset =
+                            parts.join("<br>").length + 4;
+                    parts.push(text);
+                }
             }
         );
         return parts.join("<br>");
@@ -409,10 +415,10 @@ export function createVPortalClient(
         if (parent && parent.type === "multistream" && parent.title)
             title = String(parent.title) + " - " + title;
         var record: any = {
-            description: description(item, parent),
             logo_30x30: artwork(item, parent),
             title: title,
         };
+        record.description = description(item, parent, record);
         if (item.type === "multistream") record.__ottMediaFilterable = true;
         sourceTarget(record);
         // Portable identity is attested here, before raw provider fields are discarded.
@@ -1162,6 +1168,7 @@ export function createVPortalClient(
             if (!whole) return;
             if (descriptionsOmitted) {
                 delete record.description;
+                delete record.__ottMediaSynopsisOffset;
             }
             var size = utf8Size(record);
             var nextSize = retainedBytes - (sizes[key] || 0) + size;
@@ -1171,10 +1178,12 @@ export function createVPortalClient(
                 Object.keys(sizes).forEach(function (retainedKey) {
                     var retained = known[retainedKey];
                     delete retained.description;
+                    delete retained.__ottMediaSynopsisOffset;
                     sizes[retainedKey] = utf8Size(retained);
                     retainedBytes += sizes[retainedKey];
                 });
                 delete record.description;
+                delete record.__ottMediaSynopsisOffset;
                 size = utf8Size(record);
                 nextSize = retainedBytes - (sizes[key] || 0) + size;
             }

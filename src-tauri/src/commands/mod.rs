@@ -1,3 +1,4 @@
+pub mod artwork;
 pub mod background;
 pub mod companion;
 pub mod native_hls;

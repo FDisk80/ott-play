@@ -135,6 +135,7 @@ pub fn run() {
             commands::m3u::match_channels,
             commands::m3u::match_logos,
             commands::tmdb::tmdb_proxy,
+            commands::artwork::artwork_fetch,
             commands::tauri_commands::proxy_fetch,
             commands::http::proxy_http,
             commands::plex_auth::open_plex_sign_in,
