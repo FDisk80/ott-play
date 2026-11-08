@@ -1,0 +1,244 @@
+{
+  "schema": 1,
+  "scope": "LG playback structure in the optional Modern asset: capability-gated Previous/Next through the existing shared order, current-item Info with artwork, remote/desktop input ownership, Favorites integration and the existing shared seek route. Only the Modern optional and complete-payload allowances change.",
+  "measurement": "Read the manifest-verified accepted beta.4 web archive directly without extracting files. Measure its Modern asset and the completed candidate assets with the same pinned Node runtime and gzip level 9. This receipt measures existing production bytes; it does not rebuild either input.",
+  "reproduction": [
+    "Verify the SHA-256 and byte length of the accepted v1.1.68-beta.4 ottplay-foss-dist.tar.gz against release-manifest.json.",
+    "Read ./build-info.json and ./dist/modern-interface.js from that archive; verify the Modern asset against optionalBundles['modern-interface'].",
+    "With Node 22.23.4 and zlib 1.3.1-e00f703, record Buffer.length, gzipSync(buffer, { level: 9 }).length and SHA-256 for both that asset and each candidate Modern asset.",
+    "Compare scripts/classic-size.cjs exported caps before and after: only modern-interface, BASE_TOTAL_BUDGET and TOTAL_BUDGET increase by the exact measured delta.",
+    "Run node tests/test_classic_size.cjs, node tests/test_classic_size_diagnostics.cjs and node scripts/classic-size.cjs with the pinned runtime."
+  ],
+  "toolchain": {
+    "node": "22.23.4",
+    "zlib": "1.3.1-e00f703",
+    "typescript": "5.9.3",
+    "terser": "5.51.2",
+    "gzipLevel": 9
+  },
+  "baseline": {
+    "release": "v1.1.68-beta.4",
+    "version": "1.1.68-beta.4",
+    "revision": "50a484cff135b0b51763fb795dc5efde1146a4c2",
+    "archive": {
+      "name": "ottplay-foss-dist.tar.gz",
+      "bytes": 6441014,
+      "sha256": "c3c7e92a7f075fbaa6575506415e98c107b766451f8a179e2f5c8fee9ab0be90",
+      "manifestBinding": {
+        "name": "ottplay-foss-dist.tar.gz",
+        "sha256": "c3c7e92a7f075fbaa6575506415e98c107b766451f8a179e2f5c8fee9ab0be90",
+        "size": 6441014
+      }
+    },
+    "assetBinding": {
+      "buildInfo": "./build-info.json",
+      "key": "optionalBundles.modern-interface",
+      "file": "dist/modern-interface.js",
+      "bytes": 38314,
+      "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9"
+    },
+    "output": {
+      "bytes": 38314,
+      "gzipBytes": 12236,
+      "sha256": "b2fc7f0613712f943ef69855a6d22ae36b386939f1cd80873d5693f3c6738fa9"
+    }
+  },
+  "candidate": {
+    "inputs": {
+      "src/ui/playback-info.ts": "82b588142ab8a432705a56f223a9c333731122c0248236bc66db993b9f6363cd",
+      "src/ui/modern-player.ts": "b6afbaf143447f1530476cda3aa734977ff7644934602c4a38fc3fa0e3f6ec3e",
+      "src/ui/modern.ts": "9544e2444b88ecfbb5433f2f1bc4623444c6a2d4b7a6f3532c7c4992146443c4",
+      "scripts/classic-bundle.cjs": "00581f6ac39f7f1caff2ed5dc3bb458b41817a6d0e6dc8da28f1d5f968662316",
+      "package-lock.json": "1819744ceaf294df6f1ea9b842e0b032e0ef0514b214bc6deb6c6d0fc2d9eb3c"
+    },
+    "output": {
+      "bytes": 52591,
+      "gzipBytes": 16395,
+      "sha256": "44edc5985fcbd7ccd2d1dd09f7908aa54812be5a1fc312867b909fd48f07b845"
+    },
+    "platforms": [
+      {
+        "entry": "dist/player.js",
+        "modern": {
+          "bytes": 52591,
+          "gzipBytes": 16395,
+          "path": "dist/modern-interface.js",
+          "sha256": "44edc5985fcbd7ccd2d1dd09f7908aa54812be5a1fc312867b909fd48f07b845"
+        },
+        "legacyTotal": {
+          "bytes": 1461356,
+          "gzipBytes": 457104
+        },
+        "total": {
+          "bytes": 1929521,
+          "gzipBytes": 597804
+        }
+      },
+      {
+        "entry": "src-tauri/frontend/dist/player.js",
+        "modern": {
+          "bytes": 52591,
+          "gzipBytes": 16395,
+          "path": "src-tauri/frontend/dist/modern-interface.js",
+          "sha256": "44edc5985fcbd7ccd2d1dd09f7908aa54812be5a1fc312867b909fd48f07b845"
+        },
+        "legacyTotal": {
+          "bytes": 1461318,
+          "gzipBytes": 457160
+        },
+        "total": {
+          "bytes": 1929483,
+          "gzipBytes": 597860
+        }
+      },
+      {
+        "entry": "dist-mobile/dist/player.js",
+        "modern": {
+          "bytes": 52591,
+          "gzipBytes": 16395,
+          "path": "dist-mobile/dist/modern-interface.js",
+          "sha256": "44edc5985fcbd7ccd2d1dd09f7908aa54812be5a1fc312867b909fd48f07b845"
+        },
+        "legacyTotal": {
+          "bytes": 1461318,
+          "gzipBytes": 457160
+        },
+        "total": {
+          "bytes": 1929483,
+          "gzipBytes": 597860
+        }
+      }
+    ],
+    "diagnosticReport": "build/reports/classic-size-diagnostics.json",
+    "preFinalAllowanceDiagnostics": {
+      "sizeViolations": 3,
+      "inputErrors": 0,
+      "scope": "Three Modern raw asset violations against the earlier provisional 52568-byte cap. Final navigation uses the shared current-slot fast path without full-list copying or scans, and repeated Tab traversal renews the HUD timeout. No entry, legacy, provider, other optional or complete-total failures.",
+      "reportToolchain": {
+        "node": "22.23.4",
+        "zlib": "1.3.1-e00f703"
+      }
+    }
+  },
+  "allowance": {
+    "name": "MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE",
+    "bytes": 14277,
+    "gzipBytes": 4159
+  },
+  "allocation": "Add the exact candidate-minus-baseline delta once to the Modern optional cap and once to BASE_TOTAL_BUDGET; TOTAL_BUDGET inherits it. Preserve the existing 23 raw / 31 gzip Modern headroom with no new reserve. Do not multiply by the three staged platforms or by the two validation scopes.",
+  "budgets": {
+    "before": {
+      "modern": {
+        "bytes": 38337,
+        "gzipBytes": 12267
+      },
+      "baseTotal": {
+        "bytes": 1906172,
+        "gzipBytes": 589819
+      },
+      "total": {
+        "bytes": 1916452,
+        "gzipBytes": 593847
+      }
+    },
+    "after": {
+      "modern": {
+        "bytes": 52614,
+        "gzipBytes": 16426
+      },
+      "baseTotal": {
+        "bytes": 1920449,
+        "gzipBytes": 593978
+      },
+      "total": {
+        "bytes": 1930729,
+        "gzipBytes": 598006
+      }
+    }
+  },
+  "protectedCaps": {
+    "entry": {
+      "bytes": 1217686,
+      "gzipBytes": 372982
+    },
+    "legacy": {
+      "bytes": 1462786,
+      "gzipBytes": 457255
+    },
+    "provider": {
+      "bytes": 863400,
+      "gzipBytes": 268490
+    },
+    "genericOptional": {
+      "bytes": 7800,
+      "gzipBytes": 3300
+    },
+    "otherOptional": {
+      "color-appearance": {
+        "bytes": 10444,
+        "gzipBytes": 4378
+      },
+      "control-transport": {
+        "bytes": 6027,
+        "gzipBytes": 2010
+      },
+      "favorites-transfer": {
+        "bytes": 258069,
+        "gzipBytes": 66730
+      },
+      "local-compatibility": {
+        "bytes": 9450,
+        "gzipBytes": 3550
+      },
+      "local-drop": {
+        "bytes": 5807,
+        "gzipBytes": 2369
+      },
+      "local-media-ui": {
+        "bytes": 8500,
+        "gzipBytes": 3400
+      },
+      "media-companion": {
+        "bytes": 11681,
+        "gzipBytes": 4110
+      },
+      "perf-capture": {
+        "bytes": 22200,
+        "gzipBytes": 8528
+      },
+      "remote-local-runner": {
+        "bytes": 2700,
+        "gzipBytes": 1300
+      },
+      "remote-provider-fields": {
+        "bytes": 18000,
+        "gzipBytes": 6200
+      },
+      "remote-settings": {
+        "bytes": 17500,
+        "gzipBytes": 5800
+      },
+      "remote-settings-extras": {
+        "bytes": 7000,
+        "gzipBytes": 2800
+      },
+      "remote-settings-lifecycle": {
+        "bytes": 33218,
+        "gzipBytes": 10785
+      },
+      "runtime-debug-details": {
+        "bytes": 3800,
+        "gzipBytes": 1900
+      },
+      "shaka-tracks": {
+        "bytes": 1200,
+        "gzipBytes": 640
+      },
+      "subtitle-appearance": {
+        "bytes": 9632,
+        "gzipBytes": 4176
+      }
+    }
+  },
+  "limits": "The optional asset contains no release/version stamp. This allocation does not relax source binding, inventory, optimizer or input validation. A release still requires a final complete build and all existing platform gates. The older delivery-beta4/local-web/retained convenience tree was not used as the baseline."
+}

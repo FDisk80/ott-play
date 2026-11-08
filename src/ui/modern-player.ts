@@ -17,6 +17,7 @@ function createModernPlayer(w: any) {
     var trackSlot: HTMLElement | null = null;
     var timelineElement: HTMLElement | null = null;
     var rail: HTMLElement | null = null;
+    var infoButton: HTMLElement | null = null;
     var actions: any[] = [];
     var progress: HTMLElement | null = null;
     var progressMarker: Comment | null = null;
@@ -30,6 +31,18 @@ function createModernPlayer(w: any) {
     var scheduled: any = null;
     var iconCache: { [key: string]: string } = {};
     var actionsFocusClass = "modern-player-actions-focus";
+    var desktopControls = false;
+    var tabIntent = false;
+    var playbackOwner = "";
+    var playbackDriver: any = null;
+    var playbackLoad: any = null;
+    var infoReturn: any = null;
+    var favorite: boolean | null = null;
+    var favoriteBusy = false;
+    var favoriteReading = false;
+    var favoriteRevision = 0;
+    var favoriteChecked = 0;
+    var favoriteSequence: any = null;
 
     var ICONS: { [key: string]: string } = {
         aspect: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-4 2 2 3-4 2 6"/>',
@@ -37,13 +50,19 @@ function createModernPlayer(w: any) {
         close: '<path d="M6 6l12 12M18 6L6 18"/>',
         details:
             '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>',
+        favorite:
+            '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/>',
+        favoriteOn:
+            '<path fill="currentColor" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/>',
         forward:
             '<path d="M4 12a8 8 0 1 0 2.34-5.66"/><path d="M4 4v5h5"/><text x="10" y="16">10</text>',
         list: '<rect x="4" y="5" width="16" height="4" rx="1"/><rect x="4" y="11" width="16" height="4" rx="1"/><rect x="4" y="17" width="16" height="3" rx="1"/>',
         menu: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
         mute: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/>',
+        next: '<path d="m5 5 10 7-10 7zM19 5v14"/>',
         pause: '<rect x="7" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>',
         play: '<path d="M8 5l11 7-11 7z"/>',
+        previous: '<path d="m19 5-10 7 10 7zM5 5v14"/>',
         rewind: '<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/><text x="8" y="16">10</text>',
         subtitles:
             '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M6 14h4M13 14h5M6 10h5M14 10h4"/>',
@@ -105,6 +124,201 @@ function createModernPlayer(w: any) {
     function playing(): boolean {
         return !!(w.stbIsPlaying && w.stbIsPlaying());
     }
+    function desktop(): boolean {
+        return (
+            /^pc(?:2)?$/.test(w.ott_device || "") && !w.__ottRemoteInputActive
+        );
+    }
+    function identity(): string {
+        var state = w.__ottClassicPlayback?.snapshot?.();
+        var target = state && state.target;
+        return JSON.stringify([
+            w.__ottSourceIdentity?.current?.(w),
+            state && state.generation,
+            target && target.sourceId,
+            target && target.channelId,
+            target && target.kind,
+        ]);
+    }
+    function syncOwner(): void {
+        var current = identity();
+        if (
+            current === playbackOwner &&
+            playbackDriver === w.__ottActiveProviderDriver &&
+            playbackLoad === w.__ottCommandChannelLoad
+        )
+            return;
+        playbackOwner = current;
+        playbackDriver = w.__ottActiveProviderDriver;
+        playbackLoad = w.__ottCommandChannelLoad;
+        infoReturn = null;
+        desktopControls = tabIntent = false;
+        favorite = null;
+        favoriteSequence = null;
+        favoriteBusy = favoriteReading = false;
+        favoriteChecked = 0;
+        favoriteRevision++;
+    }
+    // The shared seek planner owns retention, finite bounds and live admission.
+    // Preview samples the owned decoder without issuing a transport command.
+    function seekCapabilities(): any {
+        var result = { backward: false, forward: false };
+        var playback = w.__ottClassicPlayback;
+        if (typeof w.shiftArchive !== "function") return result;
+        if (!playback || typeof playback.context !== "function") {
+            result.backward = result.forward = playbackKind() !== "live";
+            return result;
+        }
+        try {
+            var context = playback.context();
+            if (!context || typeof context.previewOffset !== "function")
+                return result;
+            function admitted(delta: number): boolean {
+                if (context.isCurrent && !context.isCurrent()) return false;
+                var preview = context.previewOffset(delta);
+                return !!(
+                    preview &&
+                    preview.plan &&
+                    /^(seek|open-archive|go-live)$/.test(preview.plan.action) &&
+                    (!context.isCurrent || context.isCurrent())
+                );
+            }
+            result.backward = admitted(-10);
+            result.forward = admitted(10);
+        } catch (_) {}
+        return result;
+    }
+    function favoriteAllowed(): boolean {
+        return !!(
+            w.sFavorites !== -1 &&
+            !kioskBlocked() &&
+            !w.__ottStandby?.blocked?.() &&
+            !w.__ottParental?.needs?.("providers") &&
+            !w.__ottParental?.needs?.("settings") &&
+            w.__ottClassicPlayback?.snapshot?.()?.target &&
+            (w.__ottGlobalFavorites?.toggle || w.__ottEnsureGlobalFavorites)
+        );
+    }
+    function refreshFavorite(): void {
+        var host = w.__ottGlobalFavorites;
+        if (
+            !host?.currentItem ||
+            !host.store?.snapshot ||
+            !host.codec?.identity ||
+            favoriteReading ||
+            favoriteBusy ||
+            Date.now() - favoriteChecked < 1000
+        )
+            return;
+        favoriteReading = true;
+        favoriteChecked = Date.now();
+        var revision = favoriteRevision;
+        var owner = playbackOwner;
+        function current(): boolean {
+            return (
+                active &&
+                revision === favoriteRevision &&
+                owner === identity() &&
+                host === w.__ottGlobalFavorites &&
+                favoriteAllowed()
+            );
+        }
+        Promise.resolve()
+            .then(function (): any {
+                return Promise.all([host.currentItem(), host.store.snapshot()]);
+            })
+            .then(function (values: any[]): void {
+                if (!current()) return;
+                var item = values[0],
+                    snapshot = values[1];
+                if (!item?.current?.() || !snapshot?.current?.()) return;
+                favoriteSequence = {
+                    current: function (): boolean {
+                        return (
+                            current() && item.current() && snapshot.current()
+                        );
+                    },
+                    host: host,
+                    snapshot: snapshot,
+                };
+                var selected = item.entry && host.codec.identity(item.entry);
+                favorite = selected
+                    ? snapshot.entries.some(function (entry: any): boolean {
+                          return (
+                              host.codec.identity({
+                                  locator: entry.locator,
+                                  origin: entry.origin,
+                                  title: entry.title,
+                              }) === selected
+                          );
+                      })
+                    : null;
+            })
+            .catch(function (): void {
+                if (current()) favorite = favoriteSequence = null;
+            })
+            .then(function (): void {
+                if (revision !== favoriteRevision) return;
+                favoriteReading = false;
+                if (current()) updateActions();
+            });
+    }
+    function toggleFavorite(): void {
+        syncOwner();
+        if (favoriteBusy || !favoriteAllowed()) return;
+        favoriteBusy = true;
+        favoriteReading = false;
+        var revision = ++favoriteRevision;
+        var owner = playbackOwner;
+        var driver = w.__ottActiveProviderDriver;
+        var channelLoad = w.__ottCommandChannelLoad;
+        function current(): boolean {
+            return (
+                active &&
+                revision === favoriteRevision &&
+                owner === identity() &&
+                driver === w.__ottActiveProviderDriver &&
+                channelLoad === w.__ottCommandChannelLoad &&
+                favoriteAllowed()
+            );
+        }
+        function finished(error?: any): void {
+            if (!current()) return;
+            favoriteBusy = false;
+            favoriteChecked = 0;
+            if (error && typeof w.showShift === "function")
+                w.showShift(
+                    translate("Favorites") + ": " + translate("Unavailable")
+                );
+            refreshFavorite();
+            updateActions();
+        }
+        function ready(error?: any): void {
+            if (!current()) return;
+            var host = w.__ottGlobalFavorites;
+            if (error || !host?.toggle) {
+                finished(error || true);
+                return;
+            }
+            Promise.resolve()
+                .then(function (): any {
+                    return current()
+                        ? host.toggle(undefined, function (): boolean {
+                              return (
+                                  current() && host === w.__ottGlobalFavorites
+                              );
+                          })
+                        : null;
+                })
+                .then(function (): void {
+                    finished();
+                }, finished);
+        }
+        updateActions();
+        keepAlive();
+        if (w.__ottGlobalFavorites?.toggle) ready();
+        else w.__ottEnsureGlobalFavorites(ready);
+    }
     function formatDuration(value: any): string {
         var numeric = Number(value);
         if (!isFinite(numeric)) return "";
@@ -124,9 +338,153 @@ function createModernPlayer(w: any) {
     function video(): HTMLVideoElement | null {
         return w.document.getElementById("video") as HTMLVideoElement | null;
     }
+    function channelNavigationPosition(list: any, id: any): any {
+        if (!list?.active?.() || typeof list.neighbours !== "function")
+            return null;
+        var category = list.category?.();
+        var order = w.cats?.[w.catsArray?.[category]];
+        // Publication binds curList to this live category array. Prove the
+        // current slot before neighbours() so its full-list fallback is never
+        // needed on the playback repaint timer.
+        if (
+            !(category >= 0) ||
+            category !== w.catIndex ||
+            !order ||
+            order !== w.curList ||
+            String(order[w.primaryIndex]) !== String(id)
+        )
+            return null;
+        var position = list.neighbours(id);
+        return position &&
+            position.index === w.primaryIndex &&
+            position.length === order.length &&
+            String(position.id) === String(id)
+            ? position
+            : null;
+    }
+    // Read only the current owner's existing order. The shared adapters retain
+    // dispatch, authorization, repeat policy and asynchronous transition guards.
+    function navigationCapabilities(): any {
+        var state = w.__ottClassicPlayback?.snapshot?.();
+        var target = state && state.target;
+        if (
+            !target ||
+            /^(idle|stopped)$/.test(state.phase) ||
+            w.__ottStandby?.blocked?.() ||
+            kioskBlocked()
+        )
+            return null;
+        var navigation = w.__ottGlobalFavorites?.navigation;
+        if (navigation?.active?.()) {
+            var favorites = favoriteSequence;
+            if (
+                !favorites ||
+                favorites.host !== w.__ottGlobalFavorites ||
+                !favorites.current() ||
+                typeof navigation.move !== "function"
+            )
+                return null;
+            var rows = favorites.snapshot.entries;
+            var selected = navigation.currentId?.(rows);
+            if (!selected || !navigation.isPlaying?.(selected, rows))
+                return null;
+            return {
+                next: rows.length > 1,
+                previous: rows.length > 1,
+                run: function (direction: number): void {
+                    navigation.move(direction);
+                },
+            };
+        }
+        var media = w.__ottMedia;
+        var current = media?.current?.();
+        if (
+            target.kind === "vod" &&
+            current?.ref &&
+            target.sourceId &&
+            current.ref.sourceId === target.sourceId &&
+            current.ref.itemId === target.channelId &&
+            media.sourceId?.() === target.sourceId &&
+            typeof media.skip === "function"
+        ) {
+            var sequence = current.sequence;
+            if (!sequence || sequence.placeholder) return null;
+            if (sequence.channel) {
+                var channel = sequence.channel;
+                var position = channelNavigationPosition(
+                    channel.list,
+                    channel.id
+                );
+                if (!position) return null;
+                return {
+                    next: position.length > 1,
+                    previous: position.length > 1,
+                    run: function (direction: number): void {
+                        media.skip(direction);
+                    },
+                };
+            }
+            var items = sequence.items;
+            var index = sequence.index;
+            var item = items && items[index];
+            if (
+                !item?.ref ||
+                item.ref.sourceId !== target.sourceId ||
+                item.ref.itemId !== target.channelId
+            )
+                return null;
+            return {
+                next:
+                    items.length > 1 &&
+                    (sequence.repeat !== "off" || index < items.length - 1),
+                previous:
+                    items.length > 1 &&
+                    (sequence.repeat !== "off" || index > 0),
+                run: function (direction: number): void {
+                    media.skip(direction);
+                },
+            };
+        }
+        var source = w.__ottSourceIdentity?.current?.(w);
+        var channels = w.curList;
+        var selectedId = channels && channels[w.primaryIndex];
+        if (
+            !source ||
+            source !== target.sourceId ||
+            selectedId == null ||
+            !(w.catIndex >= 0) ||
+            !w.channels?.[selectedId] ||
+            (target.kind === "vod"
+                ? target.channelId !== "channel:" + selectedId
+                : !/^(live|archive)$/.test(target.kind) ||
+                  String(selectedId) !== target.channelId) ||
+            typeof w.plusProg !== "function" ||
+            typeof w.minusProg !== "function"
+        )
+            return null;
+        var captured = w.__ottChannels?.capture?.(w.catIndex);
+        var position = channelNavigationPosition(captured, selectedId);
+        if (!position) return null;
+        return {
+            next: position.length > 1,
+            previous: position.length > 1,
+            run: function (direction: number): void {
+                if (direction < 0) w.minusProg();
+                else w.plusProg();
+            },
+        };
+    }
+    function navigate(direction: number): void {
+        var capability = navigationCapabilities();
+        if (!capability || !capability[direction < 0 ? "previous" : "next"])
+            return;
+        capability.run(direction);
+        keepAlive();
+    }
     function createButton(id: string, label: string): any {
         var button = w.document.createElement("button");
         button.type = "button";
+        button.tabIndex = 0;
         button.className = "modern-player-action";
         button.setAttribute("data-modern-player-action", id);
         button.setAttribute("aria-label", label);
@@ -158,6 +516,9 @@ function createModernPlayer(w: any) {
     }
     function actionSpecs(): any[] {
         var isPlaying = playing();
+        var seeking = seekCapabilities();
+        var canSeek = seeking.backward || seeking.forward;
+        var navigation = navigationCapabilities();
         var volume = video();
         var muted = !!(volume && (volume.muted || !volume.volume));
         var tracks = !!(w.stbAudioTracksExists && w.stbAudioTracksExists());
@@ -173,6 +534,7 @@ function createModernPlayer(w: any) {
         );
         return [
             {
+                hidden: playbackKind() === "live" && !canSeek,
                 icon: isPlaying ? "pause" : "play",
                 id: "play",
                 label: translate(isPlaying ? "Pause" : "Play"),
@@ -180,6 +542,28 @@ function createModernPlayer(w: any) {
                 run: togglePlayback,
             },
             {
+                disabled: !navigation?.previous,
+                hidden: !navigation,
+                icon: "previous",
+                id: "previous",
+                label: translate("Previous"),
+                run: function (): void {
+                    navigate(-1);
+                },
+            },
+            {
+                disabled: !navigation?.next,
+                hidden: !navigation,
+                icon: "next",
+                id: "next",
+                label: translate("Next TV program"),
+                run: function (): void {
+                    navigate(1);
+                },
+            },
+            {
+                disabled: !seeking.backward,
+                hidden: !canSeek,
                 icon: "rewind",
                 id: "rewind",
                 label: translate("Rewind"),
@@ -188,6 +572,8 @@ function createModernPlayer(w: any) {
                 },
             },
             {
+                disabled: !seeking.forward,
+                hidden: !canSeek,
                 icon: "forward",
                 id: "forward",
                 label: translate("10 Seconds"),
@@ -241,12 +627,20 @@ function createModernPlayer(w: any) {
                 hidden: !canDetails,
                 icon: "details",
                 id: "details",
-                label: translate("Info"),
+                label: translate("Playback") + " · " + translate("Information"),
                 run: function (): void {
                     var details = w.document.getElementById("video_res");
                     close();
                     if (details) (details as HTMLElement).click();
                 },
+            },
+            {
+                disabled: favoriteBusy,
+                hidden: !favoriteAllowed(),
+                icon: favorite ? "favoriteOn" : "favorite",
+                id: "favorite",
+                label: translate("Favorites"),
+                run: toggleFavorite,
             },
             {
                 icon: "list",
@@ -269,6 +663,19 @@ function createModernPlayer(w: any) {
                 label: translate("Back"),
                 run: close,
             },
+            {
+                hidden:
+                    typeof w.showPlaybackInfo !== "function" ||
+                    !(
+                        field("programm_name") ||
+                        field("channel_name") ||
+                        field("programm_descr")
+                    ),
+                icon: "details",
+                id: "info",
+                label: translate("Info"),
+                run: openInfo,
+            },
         ];
     }
     function buildPanel(): void {
@@ -286,16 +693,17 @@ function createModernPlayer(w: any) {
             '      <span class="modern-player-kicker"></span>' +
             '      <h1 class="modern-player-title" id="modernPlayerTitle"></h1>' +
             '      <span class="modern-player-meta"></span>' +
+            '      <p class="modern-player-summary"></p>' +
+            '      <div class="modern-player-next"></div>' +
             "    </div>" +
             '    <div class="modern-player-actions" role="toolbar"></div>' +
             "  </div>" +
-            '  <p class="modern-player-summary"></p>' +
             '  <div class="modern-player-timeline">' +
             '    <span class="modern-player-elapsed"></span>' +
             '    <div class="modern-player-track"></div>' +
             '    <span class="modern-player-remaining"></span>' +
             "  </div>" +
-            '  <div class="modern-player-next"></div>' +
+            '  <div class="modern-player-tabs"></div>' +
             '  <div class="modern-player-status" role="status"></div>' +
             "</section>";
         panel = node.querySelector(
@@ -352,19 +760,24 @@ function createModernPlayer(w: any) {
             "touchstart",
             function (event: Event): void {
                 event.stopPropagation();
+                ownControl(event.target);
                 keepAlive();
             },
             true
         );
         node.addEventListener(
             "mousedown",
-            function (): void {
+            function (event: Event): void {
+                ownControl(event.target);
                 keepAlive();
             },
             true
         );
         node.addEventListener("focusin", function (event: FocusEvent): void {
             if (!opened) return;
+            var fromTab = tabIntent;
+            tabIntent = false;
+            if (fromTab) desktopControls = true;
             var promote = !interactive;
             var target = event.target;
             var visible = visibleActions();
@@ -376,9 +789,10 @@ function createModernPlayer(w: any) {
             }
             if (target === progress) group = "timeline";
             if (target === statusElement) group = "status";
+            if (target === infoButton) group = "info";
             node.classList.toggle(actionsFocusClass, group === "actions");
             setInteractive(true);
-            if (promote) keepAlive();
+            if (promote || fromTab) keepAlive();
         });
         node.addEventListener("touchmove", function (event: Event): void {
             event.stopPropagation();
@@ -390,8 +804,14 @@ function createModernPlayer(w: any) {
             if (action.primary)
                 entry.button.classList.add("modern-player-primary");
             entry.button.hidden = !!action.hidden;
+            entry.button.disabled = !!action.disabled;
             paintIcon(entry, action.icon);
-            rail!.appendChild(entry.button);
+            if (action.id === "info") {
+                infoButton = entry.button;
+                node.querySelector(".modern-player-tabs")!.appendChild(
+                    entry.button
+                );
+            } else rail!.appendChild(entry.button);
         });
         var target = w.document.getElementById("list");
         if (target && target.parentNode)
@@ -440,7 +860,53 @@ function createModernPlayer(w: any) {
         progressMarker = null;
     }
     function close(): void {
+        infoReturn = null;
+        desktopControls = tabIntent = false;
         if (typeof w.infoBarHide === "function") w.infoBarHide();
+    }
+    function openInfo(): void {
+        var returning = {
+            controls: desktopControls,
+            driver: playbackDriver,
+            load: playbackLoad,
+            owner: playbackOwner,
+            root: root,
+        };
+        infoReturn = returning;
+        var accepted = w.showPlaybackInfo(function (): void {
+            if (infoReturn !== returning) return;
+            infoReturn = null;
+            if (
+                !active ||
+                !enabled() ||
+                kioskBlocked() ||
+                screenOpen() ||
+                modalOpen() ||
+                returning.root !== root ||
+                returning.owner !== identity() ||
+                returning.driver !== w.__ottActiveProviderDriver ||
+                returning.load !== w.__ottCommandChannelLoad ||
+                editingTarget(w.document.activeElement)
+            )
+                return;
+            syncVisibility();
+            if (!opened || !infoButton || infoButton.hidden) return;
+            desktopControls = returning.controls;
+            setGroup("info");
+        });
+        if (accepted === false && infoReturn === returning) infoReturn = null;
+    }
+    function ownControl(target: any): void {
+        syncOwner();
+        if (!opened || !target || !root) return;
+        if (
+            (progress && progress.contains(target)) ||
+            (target.closest &&
+                target.closest(
+                    ".modern-player-action,.modern-player-status-action"
+                ))
+        )
+            desktopControls = true;
     }
     function setInteractive(value: boolean | null): void {
         if (value === null) return;
@@ -449,6 +915,8 @@ function createModernPlayer(w: any) {
         if (!root) return;
         var focused = w.document.activeElement;
         if (!value) {
+            if (!modalOpen()) infoReturn = null;
+            desktopControls = tabIntent = false;
             group = "timeline";
             root.classList.remove(actionsFocusClass);
             if (focused && root.contains(focused)) focused.blur();
@@ -469,6 +937,8 @@ function createModernPlayer(w: any) {
     function togglePlayback(): void {
         var kind = playbackKind();
         if (kind === "live") {
+            var capability = seekCapabilities();
+            if (!capability.backward && !capability.forward) return;
             if (typeof w.pauseLivePlayback === "function")
                 w.pauseLivePlayback();
             keepAlive();
@@ -503,38 +973,73 @@ function createModernPlayer(w: any) {
             var epoch =
                 state && state.target ? state.target.archiveStart : w.playType;
             var position =
-                state && state.target ? state.target.position : w.playTime || 0;
+                state && state.target ? state.position : w.playTime || 0;
             w.playArchive(epoch + position - (w.s10resum ? 10 : 0));
         }
     }
     function seek(delta: number): void {
+        var capability = seekCapabilities();
+        if (!(delta < 0 ? capability.backward : capability.forward)) return;
         if (typeof w.shiftArchive === "function") w.shiftArchive(delta);
         keepAlive();
     }
     function openChannels(): void {
         close();
+        if (
+            w.__ottGlobalFavorites?.navigation?.active?.() &&
+            typeof w.openGlobalFavorites === "function"
+        ) {
+            w.openGlobalFavorites();
+            return;
+        }
         if (w.__ottActiveProviderDriver?.catalogBrowser?.restore()) return;
         if (w.__ottChannels?.restoreBrowsing?.()) return;
         if (typeof w.channelsList === "function")
             w.channelsList(w.catIndex, w.primaryIndex);
     }
     function invoke(id: string): void {
+        if (
+            !active ||
+            !enabled() ||
+            !opened ||
+            kioskBlocked() ||
+            screenOpen() ||
+            modalOpen()
+        )
+            return;
+        var stale =
+            playbackOwner !== identity() ||
+            playbackDriver !== w.__ottActiveProviderDriver ||
+            playbackLoad !== w.__ottCommandChannelLoad;
+        syncOwner();
+        if ((id === "previous" || id === "next") && stale) {
+            updateActions();
+            return;
+        }
         var action = actions.filter(function (candidate: any): boolean {
             return candidate.id === id;
         })[0];
-        if (!action || action.entry.button.hidden) return;
-        group = "actions";
+        var spec = actionSpecs().filter(function (candidate: any): boolean {
+            return candidate.id === id;
+        })[0];
+        if (!action || !spec || spec.hidden || spec.disabled) return;
+        group = id === "info" ? "info" : "actions";
         var visible = visibleActions();
         var index = visible.indexOf(action);
         if (index >= 0) railFocus = index;
-        if (typeof action.run === "function") action.run();
+        if (typeof spec.run === "function") spec.run();
     }
     function visibleActions(): any[] {
         return actions.filter(function (action: any): boolean {
-            return !action.entry.button.hidden;
+            return (
+                action.id !== "info" &&
+                !action.entry.button.hidden &&
+                !action.entry.button.disabled
+            );
         });
     }
     function setGroup(next: string): void {
+        if (next === "timeline" && timelineElement?.hidden) next = "actions";
         group = next;
         if (!root) return;
         root.classList.toggle(actionsFocusClass, next === "actions");
@@ -554,6 +1059,8 @@ function createModernPlayer(w: any) {
                             Math.max(0, box.right - bounds.right + 8))
                 );
             }
+        } else if (next === "info" && infoButton && !infoButton.hidden) {
+            infoButton.focus();
         } else if (next === "status" && statusElement) {
             statusElement.focus();
         } else if (progress) {
@@ -563,7 +1070,10 @@ function createModernPlayer(w: any) {
     function moveRail(direction: number): void {
         var visible = visibleActions();
         if (!visible.length) return;
-        railFocus = (railFocus + direction + visible.length) % visible.length;
+        railFocus = Math.max(
+            0,
+            Math.min(visible.length - 1, railFocus + direction)
+        );
         setGroup("actions");
     }
     function activateRail(): void {
@@ -614,6 +1124,19 @@ function createModernPlayer(w: any) {
             syncVisibility();
             return false;
         }
+        syncOwner();
+        if (opened && (event.key === "Tab" || Number(event.keyCode) === 9)) {
+            tabIntent = true;
+            w.setTimeout(function (): void {
+                tabIntent = false;
+            }, 0);
+            // Keep the browser's native Tab / Shift+Tab traversal, but do not
+            // let the shared playback handler cancel its default action.
+            if (event.stopPropagation) event.stopPropagation();
+            if (event.stopImmediatePropagation)
+                event.stopImmediatePropagation();
+            return true;
+        }
         var statusSpace =
             group === "status" &&
             statusElement === w.document.activeElement &&
@@ -626,6 +1149,22 @@ function createModernPlayer(w: any) {
         // focused instead of falling through to background channel navigation.
         if (editingTarget(w.document.activeElement)) return !event.target;
         if (!opened) return false;
+        // Window capture runs before the shared document capture. Leaving
+        // desktop arrows unhandled delegates exactly one successful action to
+        // that helper (or keyHandler for native/CLI delivery).
+        if (desktop() && /^(left|right|up|down)$/.test(id)) {
+            if (
+                event.altKey ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                event.isComposing ||
+                Number(event.keyCode) === 229
+            )
+                return false;
+            if (!desktopControls || !root?.contains(w.document.activeElement))
+                return false;
+        }
         if (!interactive) {
             if (id !== "accept") return false;
             setInteractive(true);
@@ -641,14 +1180,31 @@ function createModernPlayer(w: any) {
         if (event.stopImmediatePropagation) event.stopImmediatePropagation();
         if (id === "back") close();
         else if (id === "up" || id === "down") {
-            if ((id === "up") === (group === "timeline")) close();
+            var next =
+                group === "timeline"
+                    ? id === "up"
+                        ? "actions"
+                        : infoButton && !infoButton.hidden
+                          ? "info"
+                          : ""
+                    : group === "actions"
+                      ? id === "down"
+                          ? "timeline"
+                          : ""
+                      : group === "info" && id === "down"
+                        ? "info"
+                        : id === "up"
+                          ? "timeline"
+                          : "";
+            if (!next) close();
             else {
-                setGroup(id === "up" ? "timeline" : "actions");
+                setGroup(next);
                 keepAlive();
             }
         } else if (id === "left" || id === "right") {
             var direction = id === "left" ? -1 : 1;
             if (group === "timeline") seek(direction * 10);
+            else if (group === "info") keepAlive();
             else {
                 moveRail(direction);
                 keepAlive();
@@ -656,6 +1212,7 @@ function createModernPlayer(w: any) {
         } else if (id === "accept") {
             if (group === "timeline") togglePlayback();
             else if (group === "status" && statusElement) statusElement.click();
+            else if (group === "info" && infoButton) infoButton.click();
             else activateRail();
         }
         return true;
@@ -753,6 +1310,7 @@ function createModernPlayer(w: any) {
     }
     function render(): void {
         if (!active || !root || !opened) return;
+        syncOwner();
         var kind = playbackKind();
         var channel = field("channel_name");
         var number = field("channel_number");
@@ -776,7 +1334,7 @@ function createModernPlayer(w: any) {
         var summary = field("programm_descr");
         if (summaryElement) {
             summaryElement.textContent = summary;
-            summaryElement.hidden = !summary;
+            summaryElement.hidden = !summary || !!field("nprogramm_name");
         }
         var next = field("nprogramm_name");
         var nextTime = field("nbegin_time");
@@ -788,7 +1346,10 @@ function createModernPlayer(w: any) {
         }
         updateTimeline(kind);
         updateActions();
+        if (progress === w.document.activeElement && timelineElement?.hidden)
+            setGroup("actions");
         updateStatus();
+        refreshFavorite();
     }
     function progressPercent(kind: string): number {
         var percent: number | null = null;
@@ -895,6 +1456,20 @@ function createModernPlayer(w: any) {
         actions.forEach(function (action: any): void {
             var spec = specById[action.id] || action;
             action.entry.button.hidden = !!spec.hidden;
+            action.entry.button.disabled = !!spec.disabled;
+            if (action.id === "favorite") {
+                action.entry.button.setAttribute(
+                    "aria-busy",
+                    String(favoriteBusy)
+                );
+                if (favorite === null)
+                    action.entry.button.removeAttribute("aria-pressed");
+                else
+                    action.entry.button.setAttribute(
+                        "aria-pressed",
+                        String(favorite)
+                    );
+            }
             if (action.entry.button.hidden) return;
             paintIcon(action.entry, spec.icon || action.icon);
             if (action.entry.label.textContent !== (spec.label || action.label))
@@ -980,6 +1555,8 @@ function createModernPlayer(w: any) {
                     if (opened) render();
                 }, 500);
         } else {
+            if (!modalOpen()) infoReturn = null;
+            desktopControls = tabIntent = false;
             root.setAttribute("hidden", "hidden");
             root.setAttribute("aria-hidden", "true");
             (w.document.body || w.document.documentElement).classList.remove(
@@ -1044,6 +1621,13 @@ function createModernPlayer(w: any) {
         if (!active) return;
         active = false;
         opened = false;
+        infoReturn = null;
+        desktopControls = tabIntent = false;
+        favoriteRevision++;
+        favoriteBusy = favoriteReading = false;
+        favorite = null;
+        favoriteSequence = null;
+        favoriteChecked = 0;
         if (scheduled) w.clearTimeout(scheduled);
         scheduled = null;
         if (ticker) w.clearInterval(ticker);
@@ -1071,6 +1655,7 @@ function createModernPlayer(w: any) {
             timelineElement =
             rail =
                 null;
+        infoButton = null;
         actions = [];
         iconCache = {};
     }
@@ -1088,6 +1673,7 @@ function createModernPlayer(w: any) {
         state: function (): any {
             return {
                 active: active,
+                desktopControls: desktopControls,
                 group: group,
                 interactive: interactive,
                 open: opened,

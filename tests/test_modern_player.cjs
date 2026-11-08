@@ -50,6 +50,10 @@ function fixture() {
         _: (value) => value,
         __ottClassicPlayback: {
             command: record("command"),
+            context: () => ({
+                isCurrent: () => true,
+                previewOffset: () => ({ plan: { action: "seek" } }),
+            }),
             snapshot: () => ({
                 phase: "playing",
                 target: { archiveStart: 0, channelId: "7", kind: "live" },
@@ -115,8 +119,50 @@ function fixture() {
     };
 }
 
+// Tab traversal is deliberate ownership; opening INFO or automatic focus is not.
+function ownControls(f) {
+    f.progress.blur();
+    f.api.handleKey({ key: "Tab", target: f.w.document.body });
+    f.progress.focus();
+}
+
 // Exercise native _doKey delivery as well as DOM events through the real shared
 // handler: Android and remote controls do not dispatch a browser keydown.
+test("Modern Tab traversal remains native before shared playback key cancellation", () => {
+    const f = fixture();
+    try {
+        f.w.document.getElementById("info1").style.display = "block";
+        f.api.refresh();
+        let playbackKeys = 0;
+        f.w.document.addEventListener("keydown", (event) => {
+            playbackKeys++;
+            event.preventDefault();
+        });
+        for (const shiftKey of [false, true]) {
+            const event = new f.w.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Tab",
+                shiftKey,
+            });
+            f.w.document.body.dispatchEvent(event);
+            assert.equal(event.defaultPrevented, false);
+            assert.equal(playbackKeys, 0);
+        }
+        f.w.document.body.dispatchEvent(
+            new f.w.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "q",
+            })
+        );
+        assert.equal(playbackKeys, 1, "unrelated keys still reach playback");
+    } finally {
+        f.api.destroy();
+        f.dom.window.close();
+    }
+});
+
 function sharedInput(f, platform) {
     const { w, api, calls } = f;
     const file = "src/key-handler/index.ts";
@@ -396,7 +442,7 @@ for (const delivery of ["nativeKey", "domKey"]) {
     });
 }
 
-test("explicit info promotes an already visible passive footer before its observer runs", async () => {
+test("explicit info preserves PC arrows until deliberate control focus", async () => {
     const f = automaticInfoFixture();
     try {
         f.nativeKey("UP");
@@ -405,9 +451,13 @@ test("explicit info promotes an already visible passive footer before its observ
         assert.equal(f.api.state().interactive, true);
         f.calls.length = 0;
         f.nativeKey("RIGHT");
-        assert.deepEqual(f.calls, [["shiftArchive", 10]]);
+        assert.deepEqual(f.calls, [["changeVolume", 5]]);
         assert.equal(f.w.document.activeElement, f.progress);
-        f.nativeKey("DOWN");
+        ownControls(f);
+        f.calls.length = 0;
+        f.nativeKey("RIGHT");
+        assert.deepEqual(f.calls, [["shiftArchive", 10]]);
+        f.nativeKey("UP");
         assert.equal(f.api.state().group, "actions");
         await f.settle();
         assert.equal(f.api.state().interactive, true);
@@ -431,7 +481,8 @@ test("passive preserve and batched hide/show do not revive an old controls owner
             "a seek/metadata refresh stays passive"
         );
         f.w.showChannelInfo(1, true);
-        f.nativeKey("DOWN");
+        ownControls(f);
+        f.nativeKey("UP");
         assert.equal(f.api.state().group, "actions");
         f.w.showChannelInfo(1, null);
         await f.settle();
@@ -471,7 +522,12 @@ for (const gesture of ["video", "timeline", "focus", "enter"]) {
             assert.equal(f.api.state().interactive, true);
             f.calls.length = 0;
             f.nativeKey("RIGHT");
-            assert.deepEqual(f.calls, [["shiftArchive", 10]]);
+            assert.deepEqual(
+                f.calls,
+                gesture === "timeline"
+                    ? [["shiftArchive", 10]]
+                    : [["changeVolume", 5]]
+            );
         } finally {
             f.api.destroy();
             f.dom.window.close();
@@ -484,7 +540,8 @@ test("accepted navigation releases only Modern focus; rejected navigation keeps 
     try {
         f.w.showChannelInfo(5);
         await f.settle();
-        f.nativeKey("DOWN");
+        ownControls(f);
+        f.nativeKey("UP");
         const action = f.w.document.activeElement;
         assert.ok(action.matches("[data-modern-player-action]"));
         f.w.ifParentalAccessChId = () => true;
@@ -612,6 +669,63 @@ for (const target of ["timeline", "action"]) {
     });
 }
 
+test("repeated Tab and Shift+Tab traversal renews an already interactive HUD", async () => {
+    const f = automaticInfoFixture();
+    try {
+        const { w } = f;
+        w.showChannelInfo(5);
+        await f.settle();
+        const play = w.document.querySelector(
+            '[data-modern-player-action="play"]'
+        );
+        const mute = w.document.querySelector(
+            '[data-modern-player-action="mute"]'
+        );
+        let focusEvents = 0;
+        for (const element of [play, mute])
+            element.addEventListener("focusin", () => focusEvents++);
+        function tabTo(element, shiftKey) {
+            const event = new w.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Tab",
+                keyCode: 9,
+                shiftKey,
+            });
+            w.document.activeElement.dispatchEvent(event);
+            assert.equal(event.defaultPrevented, false);
+            // JSDOM has no native tab traversal; move to its next control.
+            element.focus();
+            assert.equal(w.document.activeElement, element);
+        }
+        f.advance(4500);
+        tabTo(mute, false);
+        f.advance(4500);
+        await f.settle();
+        assert.equal(f.api.state().open, true);
+        tabTo(play, true);
+        f.advance(500);
+        await f.settle();
+        assert.equal(
+            f.api.state().open,
+            true,
+            "the previous Tab deadline was renewed"
+        );
+        assert.equal(
+            w.document.activeElement,
+            play,
+            "renewal preserves deliberate focus"
+        );
+        assert.equal(focusEvents, 2, "neither renewal refocuses the control");
+        f.advance(4500);
+        await f.settle();
+        assert.equal(f.api.state().open, false, "idle controls still expire");
+    } finally {
+        f.api.destroy();
+        f.dom.window.close();
+    }
+});
+
 test("late resolved media preserves INFO opened during its asynchronous load", async () => {
     const f = automaticInfoFixture();
     try {
@@ -645,7 +759,8 @@ test("late resolved media preserves INFO opened during its asynchronous load", a
         f.w.showChannelInfo(5, false);
         await f.settle();
         f.w.showChannelInfo();
-        f.nativeKey("DOWN");
+        ownControls(f);
+        f.nativeKey("UP");
         const focused = f.w.document.activeElement;
         f.w._playMedia(item, true, true);
         await f.settle();
@@ -677,7 +792,7 @@ test("a queued real jQuery slide hide cannot erase newly explicit INFO intent", 
         assert.equal(f.api.state().interactive, true);
         f.calls.length = 0;
         f.nativeKey("RIGHT");
-        assert.deepEqual(f.calls, [["shiftArchive", 10]]);
+        assert.deepEqual(f.calls, [["changeVolume", 5]]);
     } finally {
         f.api.destroy();
         f.dom.window.close();
@@ -1118,12 +1233,14 @@ for (const platform of ["pc", "android"]) {
 
                 f.w.document.getElementById("info1").style.display = "block";
                 f.api.sync();
-                key("DOWN");
-                assert.equal(f.api.state().group, "actions");
+                ownControls(f);
                 key("UP");
+                assert.equal(f.api.state().group, "actions");
+                key("DOWN");
                 assert.equal(f.w.document.activeElement, f.progress);
                 key("RIGHT");
                 assert.deepEqual(f.calls.splice(0), [
+                    ["showChannelInfo", 1],
                     ["showChannelInfo", 1],
                     ["showChannelInfo", 1],
                     ["shiftArchive", 10],
@@ -1304,11 +1421,11 @@ test("play/pause preserves live and finite playback ownership", () => {
         f.w.playType = 1000;
         f.w.__ottClassicPlayback.snapshot = () => ({
             phase: "playing",
+            position: 90,
             target: {
                 archiveStart: 1000,
                 channelId: "7",
                 kind: "archive",
-                position: 90,
             },
         });
         f.api.sync();
@@ -1369,7 +1486,7 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
         assert.equal(f.progress, f.w.document.activeElement);
 
         f.calls.length = 0;
-        key("ArrowDown");
+        key("ArrowUp");
         assert.equal(
             f.w.document.activeElement.getAttribute(
                 "data-modern-player-action"
@@ -1402,7 +1519,7 @@ test("D-pad walks the scrubber and action rail without losing the shared keys", 
         ]);
 
         f.calls.length = 0;
-        key("ArrowUp");
+        key("ArrowDown");
         assert.equal(f.progress, f.w.document.activeElement);
         key("Escape");
         assert.deepEqual(f.calls, [["showChannelInfo", 1], ["infoBarHide"]]);
@@ -1474,11 +1591,11 @@ test("focused actions reveal only overflow and preserve visible positions", () =
                         key: name,
                     })
                 );
-            key("ArrowDown");
+            key("ArrowUp");
             assert.equal(rail.scrollLeft, item.expected, item.name);
             if (item.name !== "left takes precedence") {
-                key("ArrowUp");
                 key("ArrowDown");
+                key("ArrowUp");
                 assert.equal(
                     rail.scrollLeft,
                     item.expected,
@@ -1617,3 +1734,267 @@ test("leaving Modern restores the Classic footer and clears listeners", () => {
         f.dom.window.close();
     }
 });
+
+for (const platform of ["pc", "pc2"]) {
+    test(`${platform} real keyboard pipeline keeps INFO passive and modifier seeks single`, async () => {
+        const f = automaticInfoFixture();
+        try {
+            const { w } = f;
+            w.ott_device = platform;
+            w.__ottClassicScreenPort.reconcile = () => {};
+            w.tryKeyboardFavorites = () => false;
+            w.tryKeyboardRandom = () => false;
+            w.eval(
+                actualFunctions("src/key-handler/index.ts", [
+                    "keyboardElementIsEditable",
+                    "tryKeyboardSeek",
+                    "installKeyboardSeek",
+                ])
+            );
+            w.installKeyboardSeek();
+            const send = (key, extra = {}, target = w.document.activeElement) =>
+                target.dispatchEvent(
+                    new w.KeyboardEvent("keydown", {
+                        bubbles: true,
+                        cancelable: true,
+                        code: key,
+                        key,
+                        keyCode: {
+                            ArrowDown: 40,
+                            ArrowLeft: 37,
+                            ArrowRight: 39,
+                            ArrowUp: 38,
+                            Tab: 9,
+                        }[key],
+                        ...extra,
+                    })
+                );
+            w.showChannelInfo(5);
+            await f.settle();
+            assert.equal(w.document.activeElement, f.progress);
+            assert.equal(f.api.state().desktopControls, false);
+            f.calls.length = 0;
+            send("ArrowLeft");
+            send("ArrowRight");
+            send("ArrowUp");
+            send("ArrowDown");
+            assert.deepEqual(
+                f.calls.filter(([name]) => name === "changeVolume"),
+                [
+                    ["changeVolume", -5],
+                    ["changeVolume", 5],
+                ]
+            );
+            assert.equal(
+                f.calls.filter(([name]) => name === "playChannel").length,
+                2
+            );
+            w.showChannelInfo(5);
+            await f.settle();
+            ownControls(f);
+            send("ArrowUp");
+            const action = w.document.activeElement;
+            assert.equal(action.dataset.modernPlayerAction, "play");
+            f.calls.length = 0;
+            for (const modifier of ["altKey", "ctrlKey", "metaKey"])
+                send("ArrowRight", { [modifier]: true });
+            assert.deepEqual(
+                f.calls.filter(([name]) => name === "shiftArchive"),
+                [
+                    ["shiftArchive", 10],
+                    ["shiftArchive", 10],
+                    ["shiftArchive", 10],
+                ]
+            );
+            assert.equal(w.document.activeElement, action);
+            send("ArrowRight");
+            assert.equal(
+                w.document.activeElement.dataset.modernPlayerAction,
+                "rewind"
+            );
+            const input = w.document.createElement("input");
+            w.document.body.appendChild(input);
+            input.focus();
+            f.calls.length = 0;
+            send("ArrowRight", { altKey: true });
+            assert.deepEqual(f.calls, []);
+            input.remove();
+            const prior = w.__ottClassicPlayback.snapshot();
+            w.__ottClassicPlayback.snapshot = () => ({
+                ...prior,
+                generation: 100,
+                target: { ...prior.target, channelId: "new" },
+            });
+            f.api.sync();
+            assert.equal(f.api.state().desktopControls, false);
+            f.calls.length = 0;
+            send("ArrowRight");
+            assert.deepEqual(f.calls, [["changeVolume", 5]]);
+        } finally {
+            f.api.destroy();
+            f.dom.window.close();
+        }
+    });
+}
+
+test("native action/timeline/Info navigation uses the shared current-description helper", () => {
+    const f = fixture();
+    try {
+        f.w.showPlaybackInfo = () => f.calls.push(["showPlaybackInfo"]);
+        f.api.refresh();
+        f.w.document.getElementById("info1").style.display = "block";
+        f.api.sync();
+        const key = (key) => f.api.handleKey({ key });
+        key("ArrowUp");
+        assert.equal(f.api.state().group, "actions");
+        const first = f.w.document.activeElement;
+        key("ArrowLeft");
+        assert.equal(f.w.document.activeElement, first, "left edge clamps");
+        const rail = [
+            ...f.w.document.querySelectorAll(".modern-player-actions button"),
+        ].filter((button) => !button.hidden && !button.disabled);
+        for (let i = 0; i < rail.length + 2; i++) key("ArrowRight");
+        assert.equal(
+            f.w.document.activeElement,
+            rail.at(-1),
+            "right edge clamps"
+        );
+        key("ArrowDown");
+        assert.equal(f.api.state().group, "timeline");
+        key("ArrowDown");
+        assert.equal(f.api.state().group, "info");
+        assert.equal(
+            f.w.document.activeElement.closest(".modern-player-tabs") !== null,
+            true
+        );
+        key("ArrowDown");
+        assert.equal(
+            f.api.state().group,
+            "info",
+            "the lower tab edge retains focus"
+        );
+        assert.equal(
+            f.calls.some(([name]) => name === "infoBarHide"),
+            false
+        );
+        key("Enter");
+        assert.deepEqual(f.calls.at(-1), ["showPlaybackInfo"]);
+        key("ArrowUp");
+        assert.equal(f.api.state().group, "timeline");
+        key("ArrowUp");
+        assert.equal(f.api.state().group, "actions");
+        key("ArrowUp");
+        assert.deepEqual(f.calls.at(-1), ["infoBarHide"]);
+    } finally {
+        f.api.destroy();
+        f.dom.window.close();
+    }
+});
+
+test("library return restores the active global Favorites before provider browsing", () => {
+    const f = fixture();
+    try {
+        f.w.__ottGlobalFavorites = { navigation: { active: () => true } };
+        f.w.openGlobalFavorites = () => f.calls.push(["favorites"]);
+        f.w.__ottActiveProviderDriver = {
+            catalogBrowser: {
+                restore: () => {
+                    f.calls.push(["provider"]);
+                    return true;
+                },
+            },
+        };
+        f.api.refresh();
+        f.w.document.getElementById("info1").style.display = "block";
+        f.api.sync();
+        f.w.document
+            .querySelector('[data-modern-player-action="list"]')
+            .click();
+        assert.deepEqual(f.calls, [["infoBarHide"], ["favorites"]]);
+        f.w.__ottGlobalFavorites.navigation.active = () => false;
+        f.w.document
+            .querySelector('[data-modern-player-action="list"]')
+            .click();
+        assert.deepEqual(f.calls.slice(-2), [["infoBarHide"], ["provider"]]);
+    } finally {
+        f.api.destroy();
+        f.dom.window.close();
+    }
+});
+
+test("closing shared playback Info restores its deliberate desktop opener", async () => {
+    const f = automaticInfoFixture();
+    try {
+        const { w } = f;
+        w.__ottClassicScreenPort.setOwnedCallback = (_kind, callback) => {
+            w.dialogBoxKeyHandler = callback;
+            return callback;
+        };
+        // Optional modules use the assembler's private IIFE scope.
+        w.eval(
+            "(function () {" +
+                compile("src/ui/playback-info.ts") +
+                "}).call(this);"
+        );
+        w.showChannelInfo(5);
+        await f.settle();
+        ownControls(f);
+        f.nativeKey("DOWN");
+        const info = w.document.activeElement;
+        assert.equal(info.dataset.modernPlayerAction, "info");
+        f.nativeKey("ENTER");
+        f.api.sync();
+        assert.equal(f.api.state().open, false);
+        assert.equal(f.api.state().desktopControls, false);
+        w.dialogBoxKeyHandler(w.keys.RETURN);
+        await f.settle();
+        assert.equal(f.api.state().open, true);
+        assert.equal(w.document.activeElement, info);
+        assert.equal(f.api.state().desktopControls, true);
+        f.nativeKey("UP");
+        f.calls.length = 0;
+        f.nativeKey("RIGHT");
+        assert.deepEqual(f.calls, [["shiftArchive", 10]]);
+    } finally {
+        f.api.destroy();
+        f.dom.window.close();
+    }
+});
+
+for (const replacement of ["source", "mode", "dismiss", "load"]) {
+    test(`late Info return cannot restore controls after ${replacement} replacement`, () => {
+        const f = fixture();
+        try {
+            let returned;
+            f.w.ott_device = "pc";
+            f.w.showPlaybackInfo = (done) => {
+                returned = done;
+                return true;
+            };
+            f.api.refresh();
+            f.w.document.getElementById("info1").style.display = "block";
+            f.api.sync();
+            ownControls(f);
+            f.api.handleKey({ key: "ArrowDown" });
+            f.api.handleKey({ key: "Enter" });
+            if (replacement === "source") {
+                f.w.__ottClassicPlayback.snapshot = () => ({
+                    generation: "new",
+                    target: { channelId: "new", kind: "vod" },
+                });
+            } else if (replacement === "mode") {
+                f.w.settings.interfaceMode = 0;
+                f.api.refresh();
+                f.w.settings.interfaceMode = 1;
+                f.api.refresh();
+            } else if (replacement === "load") f.w.__ottCommandChannelLoad = {};
+            else f.api.setInteractive(false);
+            f.api.sync();
+            returned();
+            assert.equal(f.api.state().desktopControls, false);
+        } finally {
+            f.api.destroy();
+            f.dom.window.close();
+        }
+    });
+}

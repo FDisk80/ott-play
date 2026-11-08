@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Align Modern playback with the native LG bottom-sheet layout, current-item
+  information and explicit control focus. Preserve PC playback shortcuts,
+  shared Favorites and track selection across web, Tauri and Capacitor.
+
 - Add client-wide interface colors with nine roles, a 32-color palette, five
   schemes and exact HEX/RGB/HSV input. Preview changes in the editor, apply them
   to the settings draft and save them across restarts; retain inherited theme

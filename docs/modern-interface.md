@@ -63,11 +63,26 @@ card selection treatment and surface shapes.
   navigation shell. Search and text entry use a scrollable editor with visible
   confirmation and cancellation controls. Context menus, dialogs, track
   selection and the playback OSD use the same surfaces and focus treatment.
-- Playback uses a full-width bottom overlay instead of the Classic footer. It
-  presents the current programme, channel identity, description, next programme
-  and a large scrubber with elapsed and remaining time. Transport, mute, audio,
-  subtitle, aspect, details, channel list, menu and Back are grouped as
-  circular actions, with Play/Pause emphasized.
+- Playback uses an inset bottom sheet following the native LG presentation.
+  Context and a two-line title sit above one line of next-programme information
+  or, when that is absent, the synopsis. A horizontal transport row sits below
+  the metadata; the focused control expands to show its label. The timeline
+  and its clocks follow the controls. On narrow screens the controls scroll
+  horizontally so the last action remains reachable.
+- The lower **Info** control opens the current programme or video's full
+  description and available artwork. It reads playback metadata, independently
+  of the last selected catalogue row. Long descriptions scroll by touch, wheel
+  or Up/Down; Close and Back return to playback information.
+- Favorites uses the existing client-wide store and source identity. Its
+  indicator reports known membership and the toggle waits for the shared
+  operation to finish. Channel list returns to the active mixed Favorites or
+  provider view. Seek, audio and subtitle controls follow the current player's
+  actual capabilities; changing the visual mode does not add decoder support.
+- Previous and Next use the current shared media queue, channel list or mixed
+  Favorites navigation. They appear only when that source proves a neighboring
+  item; a media queue with repeat disabled stops at its bounds. Temporary
+  playback commands retain the configured provider. These controls do not
+  construct or persist a second playlist.
 - The overlay follows live, archive and VOD state from the existing session.
   It opens on the normal info gesture or a pointer tap, auto-hides with the
   configured info timeout, and dismisses on Back, a click outside the panel or
@@ -120,12 +135,17 @@ you open the controls while a new item is loading, its later arrival does not
 take away that focus. A newly accepted channel, Favorite or queue selection
 starts with passive information again.
 
-The presentation mode does not remap volume or Favorites. With the playback controls active,
-Left/Right seek ten seconds on the scrubber, Down enters the action row,
-Left/Right move between actions, Enter activates one and Up returns to the
-scrubber. Keys outside that set continue to reach the shared handler, and a
-dialog or number entry always keeps input priority. The same control ownership
-applies to browser keyboard events and native Android/remote button commands.
+On PC, showing playback information alone does not take over the arrow keys:
+Left/Right keep controlling volume and Up/Down keep selecting the next/previous
+item. Tab or directly selecting a control enters control navigation. The
+existing modified-arrow seek shortcuts still reach the shared playback handler.
+With deliberate control focus, Left/Right seek on the scrubber or move between
+buttons in the action row, and Enter activates the selected control.
+
+Remote navigation follows the vertical layout: Up from the timeline reaches
+the action row; Down reaches the lower Info control when available. Down from
+the actions and Up from Info return to the timeline. Up from the action row
+and Back dismiss the panel. A dialog or text entry keeps input priority.
 Kiosk restrictions remain
 in force and are not relaxed by switching the presentation.
 
@@ -152,6 +172,21 @@ styling remains separate. Focus decoration avoids layout-changing animation,
 and the small decoration transitions are disabled when the platform requests
 reduced motion. No backdrop blur, new web font or external artwork service is
 required.
+
+The shared web presentation does not synthesize chapter markers or a credits
+countdown when the current provider/player does not supply those capabilities.
+Native-only playback features remain platform-specific. The native LG package
+has its own build; this frontend change reaches the web, Tauri and Capacitor
+packages through their shared Modern asset.
+
+The playback reference is the installed native LG 0.3.0 build from FOSS
+`609f1b5dd3df3613164b65f91d98603a0638a299`, rather than an unverified current
+branch. Its inset sheet, metadata hierarchy, focused button captions and
+actions–timeline–Info navigation are adapted to the existing web theme and
+responsive layout. The web implementation retains its shared progress element,
+provider commands and decoder; the elapsed clock stays below the timeline's
+left edge. This is a common frontend implementation, not an embedded native
+LG executable.
 
 ## Availability and fallback
 
