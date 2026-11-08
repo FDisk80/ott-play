@@ -721,5 +721,278 @@ check(
     }
 );
 
+function shelvesFixture(options = {}) {
+    const f = categoryStartupFixture(new Map(), options);
+    includeFunctions(f.host, "src/ui/modern.ts", [
+        "createModernCatalogShelves",
+    ]);
+    const shelves = f.host.createModernCatalogShelves(f.host);
+    f.getShelves = () => shelves(f.host.getListItemFn);
+    f.host.showPage = () => f.host.__ottClassicScreenPort.commitList();
+    f.host.loadFavoritesLists();
+    f.host.__ottChannels.mount(f.host);
+    f.host.channelsList(f.host.__ottChannels.index("system:all"), 0);
+    return f;
+}
+check(
+    "catalog shelves reuse the host snapshot and focus an exact category occurrence without playback",
+    () => {
+        const { host, events, getShelves } = shelvesFixture();
+        const shelves = getShelves();
+        const snapshot = host.__ottChannels.remoteCatalog();
+        assert.equal(
+            host.getListItemFn.__ottCatalog.categoryIndex,
+            host.__ottChannels.index("system:all")
+        );
+        assert.equal(host.getListItemFn.__ottCatalog.channelSource, snapshot);
+        assert.equal(host.getListItemFn.__ottCatalog.shelves, undefined);
+        assert.equal(
+            getShelves(),
+            shelves,
+            "same owner reuses lazy capability"
+        );
+        assert.equal(shelves.source, snapshot);
+        assert.equal(shelves.groups, snapshot.groups);
+        assert.equal(shelves.selected, "system:all");
+        const playing = [host.catIndex, host.primaryIndex, host.curList];
+        assert.equal(shelves.focus("provider:news", 1), true);
+        assert.equal(host.listArray[host.selIndex], 22);
+        assert.equal(getShelves().selected, "provider:news");
+        assert.equal(getShelves().groups, snapshot.groups);
+        assert.deepEqual(
+            [host.catIndex, host.primaryIndex, host.curList],
+            playing
+        );
+        assert.deepEqual(events, []);
+        assert.equal(
+            shelves.focus("provider:films", 0),
+            false,
+            "retired formatter cannot move selection"
+        );
+    }
+);
+check(
+    "shelf category indices preserve the captured host order across Favorites modes",
+    () => {
+        for (const mode of [-1, 0, 1]) {
+            const { host, getShelves } = shelvesFixture({ mode });
+            const snapshot = host.__ottChannels.remoteCatalog();
+            snapshot.groups.forEach((group, index) => {
+                assert.equal(group.id, host.__ottChannels.group(index));
+                assert.deepEqual(
+                    Array.from(group.members),
+                    Array.from(host.cats[host.catsArray[index]])
+                );
+            });
+            assert.equal(getShelves().selected, "system:all");
+            assert.equal(getShelves().focus("provider:news", 1), true);
+            assert.equal(getShelves().selected, "provider:news");
+        }
+    }
+);
+check(
+    "shelves rebind the current shuffled snapshot without reviving the old capability",
+    () => {
+        const { host, getShelves } = shelvesFixture({ provider: "vportal" });
+        includeFunctions(host, "src/channels/index.ts", ["shuffleChannelList"]);
+        host.isCategorySelectionList = () => false;
+        host.sortChannels = () => {};
+        vm.runInContext("Math.random = function () { return 0; }", host);
+        const formatter = host.getListItemFn;
+        const before = getShelves();
+        host.shuffleChannelList();
+        assert.equal(host.getListItemFn, formatter);
+        assert.equal(before.source.active(), false);
+        const current = getShelves();
+        assert.equal(current.source, host.__ottChannels.remoteCatalog());
+        assert.deepEqual(
+            Array.from(
+                current.groups.find((group) => group.id === "system:all")
+                    .members
+            ),
+            Array.from(host.listArray)
+        );
+        assert.notDeepEqual(Array.from(host.listArray), [11, 22, 33]);
+        assert.equal(before.focus("provider:news", 0), false);
+        assert.equal(current.focus("provider:news", 0), true);
+    }
+);
+check(
+    "shelves rebind progressive append with the same formatter and ScreenPort owner",
+    () => {
+        const { host, getShelves } = shelvesFixture({ provider: "vportal" });
+        const formatter = host.getListItemFn;
+        const owner = host.__ottClassicScreenPort.listOwner();
+        const before = getShelves();
+        host.channels[44] = {
+            category: { name: "News" },
+            channel_name: "Fourth",
+            groupId: "provider:news",
+            itemId: "channel:fourth",
+        };
+        host.cList.push(44);
+        host.__ottChannels.append([44]);
+        assert.equal(host.getListItemFn, formatter);
+        assert.equal(host.__ottClassicScreenPort.listOwner(), owner);
+        assert.deepEqual(Array.from(host.listArray), [11, 22, 33, 44]);
+        const current = getShelves();
+        assert.equal(current.source, host.__ottChannels.remoteCatalog());
+        assert.equal(before.focus("provider:news", 1), false);
+        assert.equal(current.focus("provider:news", 2), true);
+        assert.equal(host.listArray[host.selIndex], 44);
+    }
+);
+check(
+    "shelves cannot rebind a remounted source with identical channel IDs",
+    () => {
+        const { host, getShelves } = shelvesFixture({ provider: "vportal" });
+        const formatter = host.getListItemFn;
+        const before = getShelves();
+        host.__ottChannels.mount(host);
+        host.listArray = host.listDataArray =
+            host.cats[host.catsArray[host.listCatIndex]];
+        host.showPage();
+        assert.equal(host.getListItemFn, formatter);
+        assert.deepEqual(Array.from(host.listArray), [11, 22, 33]);
+        assert.notEqual(
+            before.source.generation,
+            host.__ottChannels.remoteCatalog().generation
+        );
+        assert.equal(getShelves(), undefined);
+        assert.equal(before.focus("provider:news", 0), false);
+    }
+);
+for (const gate of [
+    "modal",
+    "enabled",
+    "locked",
+    "refresh",
+    "members",
+    "row",
+    "formatter",
+]) {
+    check("catalog shelf focus rejects stale or blocked " + gate, () => {
+        const { host, getShelves } = shelvesFixture();
+        const shelves = getShelves();
+        const group = shelves.groups.find((row) => row.id === "provider:news");
+        if (gate === "modal")
+            host.__ottClassicScreenPort.openOverlay("dialog", () => {});
+        if (gate === "enabled" || gate === "locked")
+            host.__ottKiosk = { [gate]: () => true };
+        if (gate === "refresh") host.__ottChannels.refresh();
+        if (gate === "members") group.members = group.members.slice();
+        if (gate === "row") group.members[1] = 33;
+        if (gate === "formatter") host.getListItemFn = () => "replacement";
+        const before = [host.listArray, host.selIndex];
+        assert.equal(shelves.focus("provider:news", 1), false);
+        assert.deepEqual([host.listArray, host.selIndex], before);
+    });
+}
+check(
+    "shelves reject invalid indices and provider views never inherit the global catalog",
+    () => {
+        const { host, getShelves } = shelvesFixture();
+        const shelves = getShelves();
+        for (const index of [-1, 0.5, 2, NaN, Infinity, "1"])
+            assert.equal(shelves.focus("provider:news", index), false);
+        assert.equal(shelves.focus("missing", 0), false);
+        assert.equal(shelves.focus("system:favorites", 0), false);
+        host._channelsList(0, 0, {
+            categoryName: "Provider view",
+            channel: () => ({}),
+            detail() {},
+            key() {},
+            picon: () => "",
+            playing: () => false,
+            rows: ["private-row"],
+        });
+        assert.equal(getShelves(), undefined);
+    }
+);
+check(
+    "Plex shelves preserve repeated occurrences and route Enter through the current owned handler",
+    () => {
+        const { host, getShelves } = shelvesFixture();
+        runSource(host, "src/plugins/plex-list.ts");
+        const selected = [],
+            highlighted = [];
+        let revision = 1,
+            active = true;
+        const frame = {
+            items: [0, 1, 2].map((index) => ({
+                payload: {
+                    __ottMediaCategories: [
+                        {
+                            id: index ? "films" : "animation",
+                            name: index ? "Films" : "Animation",
+                        },
+                    ],
+                    title: "Film " + index,
+                },
+                ref: {
+                    itemId: index ? "repeat" : "first",
+                    sourceId: "plex@test",
+                },
+            })),
+            route: { kind: "catalog" },
+            selected: 0,
+        };
+        host.__ottChannelListView = {
+            detail() {},
+            show: (view) => host._channelsList(0, view.selected, view),
+        };
+        host.__ottCategoryListView = {};
+        const ports = {
+            api: { select: (index) => selected.push(index) },
+            bindScreen() {},
+            current: () => active,
+            host,
+            journal: { peek: () => ({ document: { favorites: [] } }) },
+            library: {
+                highlight: (index) => highlighted.push(index),
+                revision: () => revision,
+            },
+            playable: () => true,
+            playback: () => null,
+            rendering() {},
+            source: "plex@test",
+            title: (item) => item.title,
+        };
+        assert.equal(
+            host.__ottPlexList.create(ports).render({ frame, revision: 1 }),
+            true
+        );
+        const before = getShelves();
+        assert.equal(before.source, frame);
+        before.groups.find(
+            (group) => group.id === "folder:films"
+        ).members.indexOf = () => {
+            throw Error("shelf focus must reuse its validated member index");
+        };
+        assert.equal(before.focus("folder:films", 1), true);
+        const current = getShelves();
+        assert.equal(current.source, frame);
+        assert.equal(current.groups, before.groups);
+        assert.equal(host.listArray[host.selIndex], "plex-row-2");
+        assert.equal(highlighted.at(-1), 2);
+        assert.deepEqual(selected, []);
+        assert.equal(before.focus("folder:animation", 0), false);
+        assert.equal(host.listKeyHandlerFn(host.keys.ENTER), true);
+        assert.deepEqual(selected, [2]);
+        revision++;
+        assert.equal(current.focus("system:all", 0), false);
+        revision--;
+        active = false;
+        assert.equal(current.focus("system:all", 0), false);
+        active = true;
+        const item = frame.items[2];
+        frame.items[2] = { ...item };
+        assert.equal(current.focus("folder:films", 1), false);
+        frame.items[2] = item;
+        host.__ottKiosk = { enabled: () => true };
+        assert.equal(current.focus("system:all", 0), false);
+    }
+);
+
 console.log(JSON.stringify({ results, root }, null, 2));
 if (results.some((result) => result.status === "FAIL")) process.exitCode = 1;

@@ -1023,6 +1023,14 @@ export function showPage(presentationOnly = false): void {
     var modernLayout = modern
         ? modern.prepare(dataArr, getListItemFn, listInElement)
         : null;
+    if (
+        modernLayout &&
+        modernLayout.shelves &&
+        modern.paintShelves(listInElement, screenOwner, restoreRowFocus)
+    ) {
+        if (!presentationOnly) scheduleListDetailUpdate();
+        return;
+    }
     var rowFormatter = getListItemFn as any;
     var pageSz = modernLayout
         ? modernLayout.pageSize

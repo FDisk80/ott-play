@@ -574,6 +574,220 @@ console.log(
     "OK: native list flick distance, row precision, timing, bounds and cancellation"
 );
 
+{
+    const f = nativeListFixture();
+    try {
+        let metrics = { height: f.w.__ottListRowH * 2, stride: 4 };
+        f.w.__ottModernUi = { touchMetrics: () => metrics };
+        f.begin();
+        f.send("touchmove", { dt: 40, rows: -4 });
+        f.send("touchend", { dt: 150, rows: -4 });
+        assert.equal(
+            f.w.selIndex,
+            108,
+            "ordinary grid keeps its linear stride"
+        );
+        assertListDidNotActivate(f, "ordinary grid swipe");
+        f.begin();
+        metrics = { ...metrics, stride: 3 };
+        f.send("touchmove", { rows: -4 });
+        f.send("touchend", { rows: -4 });
+        assert.equal(
+            f.w.selIndex,
+            108,
+            "changed grid metrics cancel the swipe"
+        );
+        assert.equal(f.clock.pending, 0);
+    } finally {
+        f.close();
+    }
+}
+
+function shelfTouchFixture() {
+    const fixture = nativeListFixture({ index: 0, length: 8 });
+    const { calls, w } = fixture;
+    const groups = [
+        w.listArray,
+        [{ id: "short" }],
+        Array.from({ length: 6 }, (_, id) => ({ id: "third-" + id })),
+    ];
+    const state = { category: 0, source: {}, steps: [] };
+    const modern = {
+        navigation(command, owner) {
+            assert.equal(owner, w.__ottClassicScreenPort.listOwner());
+            assert.equal(owner.foreground(), true);
+            const direction = /^(right|down)$/.test(command.id) ? 1 : -1;
+            if (/^(up|down)$/.test(command.id))
+                state.category = Math.max(
+                    0,
+                    Math.min(groups.length - 1, state.category + direction)
+                );
+            else w.selIndex += direction;
+            w.selIndex = Math.max(
+                0,
+                Math.min(groups[state.category].length - 1, w.selIndex)
+            );
+            w.listArray = w.listDataArray = groups[state.category];
+            w.__ottClassicScreenPort.commitList();
+            const list = w.document.getElementById("listIn");
+            list.innerHTML = "";
+            w.listArray.forEach((_, index) => {
+                const row = w.document.createElement("div");
+                row.id = "it" + index;
+                row.addEventListener("click", () => calls.push(["click"]));
+                list.appendChild(row);
+            });
+            state.steps.push([command.id, state.category, w.selIndex]);
+            return true;
+        },
+        touchMetrics(owner) {
+            return owner === w.__ottClassicScreenPort.listOwner() &&
+                w.listArray === groups[state.category]
+                ? {
+                      current: modern.touchCurrent,
+                      height: w.__ottListRowH,
+                      modern,
+                      move: modern.moveTouch,
+                      shelves: true,
+                      source: state.source,
+                      stride: 1,
+                  }
+                : null;
+        },
+    };
+    vm.runInContext(
+        functions("src/ui/modern.ts", ["createModernShelfTouch"]),
+        w
+    );
+    Object.assign(modern, w.createModernShelfTouch(w));
+    w.__ottModernUi = modern;
+    w.changeSelect = () => assert.fail("shelves cannot use linear selection");
+    return { ...fixture, modern, state };
+}
+
+{
+    const f = shelfTouchFixture();
+    try {
+        f.begin();
+        const firstOwner = f.w.nativeListTouch.owner;
+        f.send("touchmove", { dt: 40, rows: -20 });
+        assert.deepEqual(f.state.steps, [["down", 1, 0]]);
+        assert.notEqual(f.w.nativeListTouch.owner, firstOwner);
+        assert.equal(f.w.nativeListTouch.owner.foreground(), true);
+        assert.equal(f.w.nativeListTouch.target.isConnected, false);
+        f.send("touchmove", { dt: 40, rows: -21 });
+        f.send("touchend", { rows: -21 });
+        assert.deepEqual(f.state.steps, [
+            ["down", 1, 0],
+            ["down", 2, 0],
+        ]);
+        assert.equal(f.clock.pending, 0, "shelf gestures never start inertia");
+        assert.deepEqual(f.calls, [], "no tap, key fallback or linear move");
+        assert.equal(
+            f.send("touchmove", { rows: -30 }).defaultPrevented,
+            false,
+            "the completed gesture releases its detached target"
+        );
+    } finally {
+        f.close();
+    }
+}
+
+{
+    const f = shelfTouchFixture();
+    try {
+        f.begin();
+        f.send("touchmove", { dx: -80 });
+        f.send("touchmove", { dx: -160 });
+        f.send("touchmove", { dx: -80 });
+        f.send("touchend", { dx: -80 });
+        assert.deepEqual(f.state.steps, [
+            ["right", 0, 1],
+            ["right", 0, 2],
+            ["left", 0, 1],
+        ]);
+        assert.equal(f.clock.pending, 0);
+        assert.deepEqual(f.calls, [], "horizontal shelf drag cannot activate");
+        f.begin();
+        f.send("touchend");
+        assert.deepEqual(
+            f.calls,
+            [["click"]],
+            "next stationary tap works once"
+        );
+    } finally {
+        f.close();
+    }
+}
+
+for (const [name, invalidate] of [
+    ["source", (f) => (f.state.source = {})],
+    ["Modern instance", (f) => (f.w.__ottModernUi = { ...f.modern })],
+    ["Classic mode", (f) => (f.modern.touchMetrics = () => null)],
+    ["hidden list", (f) => (f.w.isListVisible = false)],
+    [
+        "replacement list",
+        (f) => {
+            f.w.listArray = f.w.listDataArray = [{ id: "other" }];
+            f.w.__ottClassicScreenPort.commitList();
+        },
+    ],
+    [
+        "modal",
+        (f) => f.w.__ottClassicScreenPort.setOwnedCallback("dialog", () => {}),
+    ],
+    ...["enabled", "locked", "strict"].map((gate) => [
+        "kiosk " + gate,
+        (f) => (f.w.__ottKiosk = { [gate]: () => true }),
+    ]),
+]) {
+    for (const duringNavigation of [false, true]) {
+        const f = shelfTouchFixture();
+        try {
+            f.begin();
+            if (duringNavigation) {
+                const navigate = f.modern.navigation;
+                f.modern.navigation = (command, owner) => {
+                    navigate(command, owner);
+                    invalidate(f);
+                    return true;
+                };
+            } else invalidate(f);
+            f.send("touchmove", { rows: -2 });
+            assert.equal(
+                f.w.nativeListTouch.cancelled,
+                true,
+                name + " must cancel before or after the navigation callback"
+            );
+            f.send("touchmove", { rows: -4 });
+            f.send("touchend", { rows: -4 });
+            assert.equal(f.state.steps.length, Number(duringNavigation));
+            assert.equal(f.clock.pending, 0);
+            assert.deepEqual(f.calls, []);
+        } finally {
+            f.close();
+        }
+    }
+}
+
+{
+    const f = shelfTouchFixture();
+    try {
+        f.begin();
+        f.modern.navigation = () => false;
+        f.send("touchend", { rows: -4 });
+        assert.deepEqual(
+            f.calls,
+            [],
+            "unhandled shelf move cannot fall through"
+        );
+        assert.equal(f.clock.pending, 0);
+    } finally {
+        f.close();
+    }
+}
+console.log("OK: owned category shelf touch navigation and cancellation");
+
 // Same target and coordinates must reach the same click path in every shell,
 // regardless of the previously highlighted menu/channel item.
 for (const platform of ["browser", "tauri", "capacitor"]) {

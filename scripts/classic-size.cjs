@@ -651,6 +651,26 @@ const MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE = Object.freeze({
     bytes: 14920,
     gzipBytes: 4325,
 });
+// Modern artwork transport, translucent playback and lazy input ownership.
+// Exact accepted-beta.6 deltas; no generic provider/other optional cap changes.
+// Evidence: docs/evidence/modern-vportal-artwork-size-20261108.json.
+const MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE = Object.freeze({
+    bytes: 16700,
+    gzipBytes: 5590,
+});
+// Bind the lazy Plex library callbacks to their host when opened by Modern.
+// Count this exact provider delta once in legacy and complete totals only.
+const PLEX_HOST_LIFECYCLE_ALLOWANCE = Object.freeze({
+    bytes: 545,
+    gzipBytes: 226,
+});
+// Essential catalog-generation hooks and full VPortal synopsis metadata.
+// Allocate the full measured entry delta once in entry/legacy/complete caps,
+// preserving baseline headroom rather than padding only the observed excess.
+const MODERN_CATALOG_ENTRY_ALLOWANCE = Object.freeze({
+    bytes: 617,
+    gzipBytes: 139,
+});
 // Native-style Home/Library shell, artwork and guarded selected-item actions,
 // including final focus ownership and finite playback-time presentation fixes.
 // Paired e7f18/current optional builds retain the existing raw/gzip headroom.
@@ -895,6 +915,7 @@ const SEEK_PREVIEW_ENTRY_ALLOWANCE = Object.freeze({
 });
 const BUDGET = Object.freeze({
     bytes:
+        MODERN_CATALOG_ENTRY_ALLOWANCE.bytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
@@ -936,6 +957,7 @@ const BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        MODERN_CATALOG_ENTRY_ALLOWANCE.gzipBytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
@@ -1157,6 +1179,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
     // Preserve the independent Plex (+8000/+3000) and Local (+12200/+3400)
     // allocations exactly once, plus independent folder scans (+2560/+768).
     bytes:
+        MODERN_CATALOG_ENTRY_ALLOWANCE.bytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.bytes +
@@ -1168,6 +1191,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
+        PLEX_HOST_LIFECYCLE_ALLOWANCE.bytes +
         PLEX_ARTWORK_ALLOWANCE.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.bytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.bytes +
@@ -1212,6 +1236,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         RELATIVE_SEEK_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes,
     gzipBytes:
+        MODERN_CATALOG_ENTRY_ALLOWANCE.gzipBytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         CLIENT_INTERFACE_COLORS_ALLOWANCE.entry.gzipBytes +
@@ -1224,6 +1249,7 @@ const LEGACY_TOTAL_BUDGET = Object.freeze({
         FAVORITES_CATEGORY_PERSISTENCE_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
+        PLEX_HOST_LIFECYCLE_ALLOWANCE.gzipBytes +
         PLEX_ARTWORK_ALLOWANCE.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.entry.gzipBytes +
         MODERN_INFO_INTERACTION_ALLOWANCE.edem.gzipBytes +
@@ -1347,6 +1373,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
     }),
     "modern-interface": Object.freeze({
         bytes:
+            MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE.bytes +
             MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.bytes +
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
             MODERN_INFO_INTERACTION_ALLOWANCE.renderer.bytes +
@@ -1354,6 +1381,7 @@ const OPTIONAL_BUDGETS = Object.freeze({
             MODERN_PLAYER_OPTIONAL_ALLOWANCE.bytes +
             MODERN_EXPERIENCE_ALLOWANCE.renderer.bytes,
         gzipBytes:
+            MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_REPAINT_OPTIONAL_ALLOWANCE.gzipBytes +
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
@@ -1442,7 +1470,9 @@ const OPTIONAL_BUDGETS = Object.freeze({
 // Count independent folder scans once; preserve legacy plus optional allocation.
 const BASE_TOTAL_BUDGET = Object.freeze({
     bytes:
+        MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE.bytes +
         MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.bytes +
+        MODERN_CATALOG_ENTRY_ALLOWANCE.bytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.bytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.bytes +
@@ -1465,6 +1495,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.bytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites.bytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.favorites.bytes +
+        PLEX_HOST_LIFECYCLE_ALLOWANCE.bytes +
         PLEX_ARTWORK_ALLOWANCE.bytes +
         MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.bytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
@@ -1542,7 +1573,9 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         PLAYER_PRESENCE_ENTRY_ALLOWANCE.bytes +
         PLAYER_PRESENCE_TRANSPORT_ALLOWANCE.bytes,
     gzipBytes:
+        MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE.gzipBytes +
         MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE.gzipBytes +
+        MODERN_CATALOG_ENTRY_ALLOWANCE.gzipBytes +
         SEEK_PREVIEW_ENTRY_ALLOWANCE.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.entry.gzipBytes +
         TIMEZONE_LOCAL_STARTUP_ALLOWANCE.appearance.gzipBytes +
@@ -1566,6 +1599,7 @@ const BASE_TOTAL_BUDGET = Object.freeze({
         LOCAL_FAVORITES_PATH_ALLOWANCE.entry.gzipBytes +
         LOCAL_FAVORITE_WRITE_RECOVERY_ALLOWANCE.favorites.gzipBytes +
         LOCAL_FAVORITES_PATH_ALLOWANCE.favorites.gzipBytes +
+        PLEX_HOST_LIFECYCLE_ALLOWANCE.gzipBytes +
         PLEX_ARTWORK_ALLOWANCE.gzipBytes +
         MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE.gzipBytes +
         Object.values(MODERN_INFO_INTERACTION_ALLOWANCE).reduce(
@@ -1857,6 +1891,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
             MIXED_GLOBAL_FAVORITES_OPTIONAL_ALLOWANCE,
         mixedGlobalFavoritesProviderAllowance:
             MIXED_GLOBAL_FAVORITES_PROVIDER_ALLOWANCE,
+        modernCatalogEntryAllowance: MODERN_CATALOG_ENTRY_ALLOWANCE,
         modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
         modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
         modernLgPlaybackOptionalAllowance:
@@ -1864,6 +1899,8 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         modernNativeShellOptionalAllowance:
             MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
         modernPlayerOptionalAllowance: MODERN_PLAYER_OPTIONAL_ALLOWANCE,
+        modernVportalArtworkOptionalAllowance:
+            MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE,
         modules,
         nativeWindowControlsEntryAllowance:
             NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
@@ -1873,6 +1910,7 @@ function saveBundleReport(root, optimizer, modules, measured, sets) {
         playerPresenceEntryAllowance: PLAYER_PRESENCE_ENTRY_ALLOWANCE,
         playerPresenceTransportAllowance: PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
         plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
+        plexHostLifecycleAllowance: PLEX_HOST_LIFECYCLE_ALLOWANCE,
         plexQueueStepTotalAllowance: PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
         privateModules: Object.fromEntries(
             Object.entries(CLASSIC_PRIVATE_MODULES).filter(([file]) =>
@@ -2217,12 +2255,15 @@ function writeBuildBundleReport(
             mixedGlobalFavoritesProviderAllowance:
                 MIXED_GLOBAL_FAVORITES_PROVIDER_ALLOWANCE,
             mode: label(context.mode || "standard"),
+            modernCatalogEntryAllowance: MODERN_CATALOG_ENTRY_ALLOWANCE,
             modernExperienceAllowance: MODERN_EXPERIENCE_ALLOWANCE,
             modernInfoInteractionAllowance: MODERN_INFO_INTERACTION_ALLOWANCE,
             modernLgPlaybackOptionalAllowance:
                 MODERN_LG_PLAYBACK_OPTIONAL_ALLOWANCE,
             modernNativeShellOptionalAllowance:
                 MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
+            modernVportalArtworkOptionalAllowance:
+                MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE,
             nativeWindowControlsEntryAllowance:
                 NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
             optimizerBinding: {
@@ -2234,6 +2275,7 @@ function writeBuildBundleReport(
             playerPresenceTransportAllowance:
                 PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
             plexArtworkAllowance: PLEX_ARTWORK_ALLOWANCE,
+            plexHostLifecycleAllowance: PLEX_HOST_LIFECYCLE_ALLOWANCE,
             plexQueueStepTotalAllowance: PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
             providerBudget: PROVIDER_BUDGET,
             providerBundles: sets,
@@ -2351,6 +2393,7 @@ module.exports = {
     MIXED_GLOBAL_FAVORITES_ENTRY_ALLOWANCE,
     MIXED_GLOBAL_FAVORITES_OPTIONAL_ALLOWANCE,
     MIXED_GLOBAL_FAVORITES_PROVIDER_ALLOWANCE,
+    MODERN_CATALOG_ENTRY_ALLOWANCE,
     MODERN_EXPERIENCE_ALLOWANCE,
     MODERN_INFO_INTERACTION_ALLOWANCE,
     MODERN_INTERFACE_ENTRY_ALLOWANCE,
@@ -2360,6 +2403,7 @@ module.exports = {
     MODERN_NATIVE_SHELL_OPTIONAL_ALLOWANCE,
     MODERN_PLAYER_OPTIONAL_ALLOWANCE,
     MODERN_REPAINT_OPTIONAL_ALLOWANCE,
+    MODERN_VPORTAL_ARTWORK_OPTIONAL_ALLOWANCE,
     measureBundle,
     NATIVE_WINDOW_CONTROLS_ENTRY_ALLOWANCE,
     OPTIONAL_BUDGET,
@@ -2368,6 +2412,7 @@ module.exports = {
     PLAYER_PRESENCE_ENTRY_ALLOWANCE,
     PLAYER_PRESENCE_TRANSPORT_ALLOWANCE,
     PLEX_ARTWORK_ALLOWANCE,
+    PLEX_HOST_LIFECYCLE_ALLOWANCE,
     PLEX_QUEUE_STEP_TOTAL_ALLOWANCE,
     PROVIDER_BUDGET,
     RELATIVE_SEEK_ENTRY_ALLOWANCE,

@@ -2,13 +2,17 @@
 //! answers; redirects and environment proxies cannot bypass that check.
 use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs};
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
 use reqwest::{header::HeaderMap, redirect, Client, Url};
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
+
+use super::background_work::WorkLease;
 
 const MAX_BYTES: usize = 16 * 1024 * 1024;
 const MAX_REQUESTS: usize = 8;
+const MAX_ARTWORK_REQUESTS: usize = 4;
 const MAX_REDIRECTS: usize = 5;
 const TIMEOUT: Duration = Duration::from_secs(15);
 // Playlist generation can exceed the short portal/API budget even for modest
@@ -16,6 +20,11 @@ const TIMEOUT: Duration = Duration::from_secs(15);
 const PLAYLIST_TIMEOUT: Duration = Duration::from_secs(60);
 static REQUESTS: Semaphore = Semaphore::const_new(MAX_REQUESTS);
 static DNS_REQUESTS: Semaphore = Semaphore::const_new(MAX_REQUESTS);
+// Artwork shares the total budget but cannot exhaust playlist admission. Its
+// permit also outlives cancelled async requests with blocking DNS still active.
+static ARTWORK_REQUESTS: LazyLock<Arc<Semaphore>> =
+    LazyLock::new(|| Arc::new(Semaphore::new(MAX_ARTWORK_REQUESTS)));
+type ArtworkPermit = Arc<OwnedSemaphorePermit>;
 
 #[derive(Clone, Default)]
 struct Policy {
@@ -141,29 +150,60 @@ impl Policy {
     }
 
     async fn resolve(&self, url: &Url) -> Result<Vec<SocketAddr>, String> {
+        self.resolve_tracked(url, None, None).await
+    }
+
+    async fn resolve_tracked(
+        &self,
+        url: &Url,
+        work: Option<WorkLease>,
+        artwork: Option<ArtworkPermit>,
+    ) -> Result<Vec<SocketAddr>, String> {
         let port = url.port_or_known_default().ok_or("Invalid proxy port")?;
         let addresses = if let Some(ip) = literal_ip(url) {
             vec![SocketAddr::new(ip, port)]
         } else {
             let host = url.host_str().ok_or("Invalid proxy host")?.to_string();
-            let permit = DNS_REQUESTS
-                .try_acquire()
-                .map_err(|_| "Proxy DNS is busy; retry later")?;
-            // A timed-out request cannot cancel libc DNS. Keep its separate slot
-            // inside the blocking job until lookup really finishes.
-            tokio::task::spawn_blocking(move || {
-                let _permit = permit;
+            dns_lookup_tracked(work, artwork, move || {
                 (host.as_str(), port)
                     .to_socket_addrs()
                     .map(|answers| answers.take(33).collect())
             })
-            .await
-            .map_err(|_| "Proxy DNS lookup failed")?
-            .map_err(|_| "Proxy DNS lookup failed")?
+            .await?
         };
         self.check_addresses(url, &addresses)?;
         Ok(addresses)
     }
+}
+
+async fn dns_lookup_tracked<F>(
+    work: Option<WorkLease>,
+    artwork: Option<ArtworkPermit>,
+    lookup: F,
+) -> Result<Vec<SocketAddr>, String>
+where
+    F: FnOnce() -> std::io::Result<Vec<SocketAddr>> + Send + 'static,
+{
+    if let Some(work) = &work {
+        work.check().map_err(str::to_string)?;
+    }
+    let permit = DNS_REQUESTS
+        .try_acquire()
+        .map_err(|_| "Proxy DNS is busy; retry later")?;
+    // Dropping the async request cannot stop libc DNS. Keep its DNS/artwork
+    // slots and instance lease until lookup exits. Drop the lease last so idle
+    // notification cannot precede release of the resource permits.
+    tokio::task::spawn_blocking(move || {
+        let _work = work;
+        let _artwork = artwork;
+        let _permit = permit;
+        if let Some(work) = &_work {
+            work.check().map_err(str::to_string)?;
+        }
+        lookup().map_err(|_| "Proxy DNS lookup failed".to_string())
+    })
+    .await
+    .map_err(|_| "Proxy DNS lookup failed")?
 }
 
 fn pinned_client(url: &Url, addresses: &[SocketAddr], title_case: bool) -> Result<Client, String> {
@@ -272,6 +312,25 @@ async fn limited<T>(
         .map_err(|_| "Proxy request timed out")?
 }
 
+async fn artwork_limited<T, F, Fut>(
+    artwork: &Arc<Semaphore>,
+    requests: &Semaphore,
+    timeout: Duration,
+    work: F,
+) -> Result<T, String>
+where
+    F: FnOnce(ArtworkPermit) -> Fut,
+    Fut: Future<Output = Result<T, String>>,
+{
+    let permit = Arc::new(
+        artwork
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| "Proxy is busy; retry later")?,
+    );
+    limited(requests, timeout, async { work(permit.clone()).await }).await
+}
+
 pub(crate) async fn fetch(raw: &str, ua: &str) -> Result<(HeaderMap, Vec<u8>), String> {
     limited(&REQUESTS, PLAYLIST_TIMEOUT, async {
         let url = http_url(raw)?;
@@ -288,6 +347,56 @@ pub(crate) async fn fetch(raw: &str, ua: &str) -> Result<(HeaderMap, Vec<u8>), S
         )
         .await
     })
+    .await
+}
+
+async fn artwork_checked<F, Fut>(url: Url, mut check: F) -> Result<Vec<u8>, String>
+where
+    F: FnMut(Url) -> Fut,
+    Fut: Future<Output = Result<Vec<SocketAddr>, String>>,
+{
+    let origin = url.origin();
+    let (_, bytes) = fetch_checked(
+        url,
+        "OTT-play-FOSS/1.0",
+        |url| {
+            let valid =
+                super::artwork::validate_url(url.as_str()).is_ok() && url.origin() == origin;
+            // Validate before invoking the resolver so rejected hops cannot cause DNS work.
+            let resolved = valid.then(|| check(url));
+            async move {
+                match resolved {
+                    Some(resolved) => resolved.await,
+                    None => Err(
+                        "Artwork redirect must remain on the same origin without credentials"
+                            .into(),
+                    ),
+                }
+            }
+        },
+        super::artwork::MAX_IMAGE_BYTES,
+    )
+    .await?;
+    Ok(bytes)
+}
+
+pub(crate) async fn fetch_artwork(url: Url, work: Option<WorkLease>) -> Result<Vec<u8>, String> {
+    artwork_limited(
+        &ARTWORK_REQUESTS,
+        &REQUESTS,
+        super::artwork::TIMEOUT,
+        |permit| async move {
+            let policy =
+                Policy::parse(&std::env::var("OTTPLAY_PROXY_LAN_ORIGINS").unwrap_or_default())?;
+            artwork_checked(url, |url| {
+                let policy = policy.clone();
+                let work = work.clone();
+                let permit = permit.clone();
+                async move { policy.resolve_tracked(&url, work, Some(permit)).await }
+            })
+            .await
+        },
+    )
     .await
 }
 
@@ -763,6 +872,290 @@ async fn companion_response_bytes(
 mod tests {
     use super::*;
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn overlapping_artwork_preserves_playlist_request_capacity() {
+        let artwork = Arc::new(Semaphore::new(MAX_ARTWORK_REQUESTS));
+        let requests = Arc::new(Semaphore::new(MAX_REQUESTS));
+        let mut held = Vec::new();
+        for _ in 0..MAX_ARTWORK_REQUESTS {
+            let artwork = artwork.clone();
+            let requests = requests.clone();
+            let (started, ready) = tokio::sync::oneshot::channel();
+            let (release, blocked) = tokio::sync::oneshot::channel();
+            let request = tokio::spawn(async move {
+                artwork_limited(&artwork, &requests, TIMEOUT, |_| async move {
+                    let _ = started.send(());
+                    blocked.await.map_err(|_| "fixture released".to_string())
+                })
+                .await
+            });
+            tokio::time::timeout(Duration::from_secs(2), ready)
+                .await
+                .unwrap()
+                .unwrap();
+            held.push((release, request));
+        }
+        assert_eq!(artwork.available_permits(), 0);
+        assert_eq!(
+            requests.available_permits(),
+            MAX_REQUESTS - MAX_ARTWORK_REQUESTS
+        );
+        let rejected: Result<(), String> =
+            artwork_limited(&artwork, &requests, TIMEOUT, |_| async {
+                panic!("Artwork overload must not start work")
+            })
+            .await;
+        assert_eq!(rejected.unwrap_err(), "Proxy is busy; retry later");
+        let (address, playlist) = fixture(
+            b"HTTP/1.1 200 OK\r\nContent-Type: application/x-mpegURL\r\nContent-Length: 56\r\nConnection: close\r\n\r\n#EXTM3U\n#EXTINF:-1,Fixture\nhttp://media.invalid/live.ts\n",
+        )
+        .await;
+        let url = http_url(&format!(
+            "http://playlist-fixture.invalid:{}/list.m3u",
+            address.port()
+        ))
+        .unwrap();
+        // Exercise the production playlist HTTP path while all artwork slots
+        // remain occupied. Only DNS is replaced with the existing fixture seam;
+        // real destination policy and LAN configuration are never relaxed.
+        let (_, bytes) = limited(
+            &requests,
+            PLAYLIST_TIMEOUT,
+            fetch_checked(
+                url,
+                "playlist-capacity-fixture",
+                |_| async { Ok(vec![address]) },
+                MAX_BYTES,
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            bytes,
+            b"#EXTM3U\n#EXTINF:-1,Fixture\nhttp://media.invalid/live.ts\n"
+        );
+        let wire = playlist.await.unwrap();
+        assert!(wire.starts_with("GET /list.m3u HTTP/1.1\r\n"));
+        assert!(wire
+            .to_ascii_lowercase()
+            .contains("user-agent: playlist-capacity-fixture"));
+        assert_eq!(artwork.available_permits(), 0);
+        // The artwork reservation never bypasses the existing total ceiling.
+        let rest = requests
+            .try_acquire_many((MAX_REQUESTS - MAX_ARTWORK_REQUESTS) as u32)
+            .unwrap();
+        assert_eq!(requests.available_permits(), 0);
+        drop(rest);
+        for (release, request) in held {
+            release.send(()).unwrap();
+            request.await.unwrap().unwrap();
+        }
+        assert_eq!(artwork.available_permits(), MAX_ARTWORK_REQUESTS);
+        assert_eq!(requests.available_permits(), MAX_REQUESTS);
+    }
+
+    #[tokio::test]
+    async fn cancelled_artwork_retains_admission_until_blocking_dns_exits() {
+        let artwork = Arc::new(Semaphore::new(1));
+        let requests = Arc::new(Semaphore::new(MAX_REQUESTS));
+        let (started, ready) = tokio::sync::oneshot::channel();
+        let (release, blocked) = std::sync::mpsc::channel();
+        let request = {
+            let artwork = artwork.clone();
+            let requests = requests.clone();
+            tokio::spawn(async move {
+                artwork_limited(&artwork, &requests, TIMEOUT, |permit| async move {
+                    // Mode A has no instance WorkLease; DNS must still retain the
+                    // artwork admission after an HTTP request is cancelled.
+                    dns_lookup_tracked(None, Some(permit), move || {
+                        let _ = started.send(());
+                        blocked
+                            .recv()
+                            .map_err(|_| std::io::Error::other("fixture released"))?;
+                        Ok(vec!["8.8.8.8:80".parse().unwrap()])
+                    })
+                    .await
+                })
+                .await
+            })
+        };
+        tokio::time::timeout(Duration::from_secs(2), ready)
+            .await
+            .unwrap()
+            .unwrap();
+        request.abort();
+        assert!(request.await.unwrap_err().is_cancelled());
+        assert_eq!(requests.available_permits(), MAX_REQUESTS);
+        assert_eq!(artwork.available_permits(), 0);
+        let rejected: Result<(), String> =
+            artwork_limited(&artwork, &requests, TIMEOUT, |_| async {
+                panic!("Replacement artwork must not overrun pending DNS")
+            })
+            .await;
+        assert_eq!(rejected.unwrap_err(), "Proxy is busy; retry later");
+        assert_eq!(
+            limited(&requests, PLAYLIST_TIMEOUT, async { Ok(7) }).await,
+            Ok(7)
+        );
+        release.send(()).unwrap();
+        let returned =
+            tokio::time::timeout(Duration::from_secs(2), artwork.clone().acquire_owned())
+                .await
+                .unwrap()
+                .unwrap();
+        drop(returned);
+        assert_eq!(artwork.available_permits(), 1);
+    }
+
+    #[tokio::test]
+    async fn artwork_deadline_and_failure_release_both_request_budgets() {
+        let artwork = Arc::new(Semaphore::new(1));
+        let requests = Semaphore::new(1);
+        let result =
+            artwork_limited::<(), _, _>(&artwork, &requests, Duration::from_millis(10), |_| {
+                std::future::pending()
+            })
+            .await;
+        assert_eq!(result.unwrap_err(), "Proxy request timed out");
+        assert_eq!(artwork.available_permits(), 1);
+        assert_eq!(requests.available_permits(), 1);
+        let occupied = requests.try_acquire().unwrap();
+        let result: Result<(), String> = artwork_limited(&artwork, &requests, TIMEOUT, |_| async {
+            panic!("Shared overload must not start artwork")
+        })
+        .await;
+        assert_eq!(result.unwrap_err(), "Proxy is busy; retry later");
+        assert_eq!(artwork.available_permits(), 1);
+        drop(occupied);
+    }
+
+    #[tokio::test]
+    async fn artwork_dns_keeps_instance_pending_after_standby_cancels_the_request() {
+        let background = super::super::background_work::BackgroundWork::default();
+        let lease = background.enter().unwrap();
+        let (started, ready) = tokio::sync::oneshot::channel();
+        let (release, blocked) = std::sync::mpsc::channel();
+        let request = tokio::spawn(async move {
+            lease
+                .run(dns_lookup_tracked(Some(lease.clone()), None, move || {
+                    let _ = started.send(());
+                    // Deterministic libc-DNS stand-in: cancellation cannot interrupt
+                    // this blocking operation. Dropping the sender also unblocks it
+                    // if an assertion fails, so the test runtime cannot hang.
+                    blocked
+                        .recv()
+                        .map_err(|_| std::io::Error::other("fixture released"))?;
+                    Ok(vec!["8.8.8.8:80".parse().unwrap()])
+                }))
+                .await
+        });
+        tokio::time::timeout(Duration::from_secs(2), ready)
+            .await
+            .unwrap()
+            .unwrap();
+        background.set_standby(true);
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(2), request)
+                .await
+                .unwrap()
+                .unwrap(),
+            Err("Player background work cancelled")
+        );
+        assert_eq!(background.status().pending, 1);
+        assert!(!background.status().quiescent);
+        release.send(()).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), background.wait_for_idle())
+            .await
+            .unwrap();
+        assert_eq!(background.status().pending, 0);
+        assert!(background.status().quiescent);
+    }
+
+    #[tokio::test]
+    async fn artwork_dns_never_starts_for_a_revoked_instance_lease() {
+        let background = super::super::background_work::BackgroundWork::default();
+        let lease = background.enter().unwrap();
+        background.set_standby(true);
+        assert_eq!(
+            dns_lookup_tracked(Some(lease), None, || panic!(
+                "Cancelled artwork started DNS"
+            ))
+            .await,
+            Err("Player background work cancelled".into())
+        );
+        assert!(background.status().quiescent);
+    }
+
+    #[tokio::test]
+    async fn artwork_redirects_recheck_pinned_dns_and_preserve_binary_bytes() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            for hop in 0..2 {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let request = read_request(&mut socket).await.to_lowercase();
+                assert!(!request.contains("authorization:"));
+                assert!(!request.contains("cookie:"));
+                let response: &[u8] = if hop == 0 {
+                    b"HTTP/1.1 302 Found\r\nLocation: /final.jpg\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                } else {
+                    // The declared content type cannot turn binary bytes into text.
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\nConnection: close\r\n\r\n\xff\xd8\xff\x00\xfe"
+                };
+                socket.write_all(response).await.unwrap();
+            }
+        });
+        let url = http_url(&format!(
+            "http://images.invalid:{}/first.jpg",
+            address.port()
+        ))
+        .unwrap();
+        let mut resolved = 0;
+        let bytes = artwork_checked(url, |_| {
+            resolved += 1;
+            async move { Ok(vec![address]) }
+        })
+        .await
+        .unwrap();
+        assert_eq!(resolved, 2);
+        assert_eq!(bytes, b"\xff\xd8\xff\x00\xfe");
+        assert_eq!(
+            super::super::artwork::raster_content_type(&bytes),
+            Some("image/jpeg")
+        );
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn artwork_rejects_redirect_scope_changes_before_dns_and_enforces_image_budget() {
+        for response in [
+            b"HTTP/1.1 302 Found\r\nLocation: http://other.invalid/final\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".as_slice(),
+            b"HTTP/1.1 302 Found\r\nLocation: http://user:secret@images.invalid/final\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            b"HTTP/1.1 302 Found\r\nLocation: /final#fragment\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+        ] {
+            let (address, server) = fixture(response).await;
+            let mut resolved = 0;
+            let result = artwork_checked(http_url("http://images.invalid/first").unwrap(), |_| {
+                resolved += 1;
+                async move { Ok(vec![address]) }
+            }).await;
+            assert_eq!(result.unwrap_err(), "Artwork redirect must remain on the same origin without credentials");
+            assert_eq!(resolved, 1);
+            server.await.unwrap();
+        }
+        let (address, server) =
+            fixture(b"HTTP/1.1 200 OK\r\nContent-Length: 4194305\r\nConnection: close\r\n\r\n")
+                .await;
+        let error = artwork_checked(
+            http_url("http://images.invalid/oversized").unwrap(),
+            |_| async move { Ok(vec![address]) },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error, "Proxy response exceeds byte limit");
+        server.await.unwrap();
+    }
 
     #[tokio::test]
     async fn stalker_headers_are_preserved_and_cross_origin_redirects_are_rejected() {

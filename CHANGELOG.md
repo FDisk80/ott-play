@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Browse Modern media catalogues in separate category rows with keyboard,
+  mouse-wheel and touch navigation. Preserve the selected occurrence and
+  existing playback actions while rendering only a bounded window of cards.
+- Render provider descriptions with the existing safe formatting rules instead
+  of displaying literal markup in the Modern hero.
+  Show the VPortal synopsis in the preview while preserving full details.
+- Load HTTP-only posters through bounded native or local transports and explicit
+  hosted image mappings without relaxing transport security.
+
+- Keep the Modern playback panel translucent with default and custom colours,
+  without dimming its text, icons or controls.
+
 - Align Modern playback with the native LG bottom-sheet layout, current-item
   information and explicit control focus. Preserve PC playback shortcuts,
   shared Favorites and track selection across web, Tauri and Capacitor.

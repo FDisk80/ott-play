@@ -102,7 +102,7 @@ fn normalize_tmdb_path(path: &str) -> Result<String, String> {
     Ok(p.to_string())
 }
 
-fn b64_encode(data: &[u8]) -> String {
+pub(super) fn b64_encode(data: &[u8]) -> String {
     const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity((data.len() + 2) / 3 * 4);
     let mut i = 0;

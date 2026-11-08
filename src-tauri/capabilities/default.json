@@ -49,6 +49,7 @@
     "allow-match-channels",
     "allow-match-logos",
     "allow-tmdb-proxy",
+    "allow-artwork-fetch",
     "allow-version",
     "allow-feedback",
     "allow-stalker-portal-fetch",

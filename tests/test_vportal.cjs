@@ -2417,6 +2417,14 @@ console.log(
                 })[c]
         );
         assert.equal(full, "<b>Film</b><br>" + escaped);
+        assert.equal(
+            result.items[0].__ottMediaSynopsisOffset,
+            "<b>Film</b><br>".length
+        );
+        assert.equal(
+            full.slice(result.items[0].__ottMediaSynopsisOffset),
+            escaped
+        );
         assert.equal(result.items[0].__ottMediaDescription, undefined);
         assert.equal(result.items[0].title, "Film");
         assert.deepEqual(
@@ -2650,6 +2658,7 @@ console.log(
     for (let i = 0; i < 3; i++) {
         const expected = { ...baseline.result.items[i] };
         delete expected.description;
+        delete expected.__ottMediaSynopsisOffset;
         delete expected.__ottMediaDescription;
         assert.equal(
             JSON.stringify(fallback.result.items[i]),
