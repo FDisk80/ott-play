@@ -98,12 +98,10 @@ export function interfaceColorPreview(values: any): InterfaceColorPalette {
     return result;
 }
 
+/** Convert a #RRGGBB value already validated by parseInterfaceColorConfig. */
 export function interfaceColorRgb(hex: string): string {
-    return [1, 3, 5]
-        .map(function (offset) {
-            return parseInt(hex.slice(offset, offset + 2), 16);
-        })
-        .join(",");
+    var rgb = parseInt(hex.slice(1), 16);
+    return (rgb >> 16) + "," + ((rgb >> 8) & 255) + "," + (rgb & 255);
 }
 
 /** A finite selector/declaration vocabulary; no user-provided CSS is accepted.

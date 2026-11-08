@@ -346,21 +346,20 @@ export function createVPortalClient(
     }
 
     function description(item: any, parent: any, record: any): string {
-        var parts = ["<b>" + metadataText(item.title || "") + "</b>"];
+        var html = "<b>" + metadataText(item.title || "") + "</b>";
         record.__ottMediaSynopsisOffset = -1;
         ["year", "duration", "agelimit", "description"].forEach(
             function (field) {
                 var value = item[field] || (parent && parent[field]);
-                if (value !== undefined && value !== null && value !== "") {
+                if (value != null && value !== "") {
                     var text = metadataText(value);
                     if (field === "description" && text)
-                        record.__ottMediaSynopsisOffset =
-                            parts.join("<br>").length + 4;
-                    parts.push(text);
+                        record.__ottMediaSynopsisOffset = html.length + 4;
+                    html += "<br>" + text;
                 }
             }
         );
-        return parts.join("<br>");
+        return html;
     }
 
     function artwork(item: any, parent: any): string {
@@ -1147,20 +1146,17 @@ export function createVPortalClient(
         }
         function utf8Size(value: any): number {
             var text = JSON.stringify(value);
-            var length = 0;
+            var length = text.length;
             for (var i = 0; i < text.length; i++) {
                 var code = text.charCodeAt(i);
-                if (code < 128) length++;
-                else if (code < 2048) length += 2;
-                else if (
-                    code >= 55296 &&
-                    code <= 56319 &&
-                    text.charCodeAt(i + 1) >= 56320 &&
-                    text.charCodeAt(i + 1) <= 57343
-                ) {
-                    length += 4;
-                    i++;
-                } else length += 3;
+                if (code >= 128) {
+                    length += code < 2048 ? 1 : 2;
+                    if (
+                        (code & 0xfc00) === 0xd800 &&
+                        (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00
+                    )
+                        i++;
+                }
             }
             return length;
         }

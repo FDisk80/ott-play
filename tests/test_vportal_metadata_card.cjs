@@ -170,6 +170,59 @@ const compile = (text) =>
             target: ts.ScriptTarget.ES5,
         },
     }).outputText;
+// Count serialized metadata bytes using the actual helper and retention path.
+const accounting = {
+    descriptionsOmitted: false,
+    known: {},
+    retainedBytes: 0,
+    sizes: {},
+    whole: true,
+};
+const accountingSource = fs.readFileSync(
+    path.join(root, "src/plugins/vportal.ts"),
+    "utf8"
+);
+vm.createContext(accounting);
+vm.runInContext(
+    compile(
+        declaration(accountingSource, "utf8Size") +
+            declaration(accountingSource, "retain") +
+            ";this.utf8Size=utf8Size;this.retain=retain;"
+    ),
+    accounting
+);
+let expectedRetainedBytes = 0;
+for (const [index, description] of [
+    "",
+    '"\\\n\r\t\u0000',
+    "A\u007fB\u0080C\u07ffD\u0800E",
+    "\ud7ff\ue000\uffff",
+    "\ud800\udc00",
+    "\udbff\udfff",
+    "\ud800",
+    "\udc00",
+    "\ud800A\udc00",
+    "😀 Кир <&>",
+].entries()) {
+    const key = "utf8-" + index;
+    const row = { description, request: { id: key } };
+    const bytes = Buffer.byteLength(JSON.stringify(row), "utf8");
+    assert.equal(accounting.utf8Size(row), bytes, key);
+    accounting.known[key] = row;
+    accounting.retain(key, row);
+    expectedRetainedBytes += bytes;
+    assert.equal(accounting.sizes[key], bytes, key);
+    assert.equal(accounting.retainedBytes, expectedRetainedBytes, key);
+}
+const replacedKey = "utf8-0";
+const replacement = { description: "再生 😀", request: { id: replacedKey } };
+expectedRetainedBytes -= accounting.sizes[replacedKey];
+expectedRetainedBytes += Buffer.byteLength(JSON.stringify(replacement), "utf8");
+accounting.known[replacedKey] = replacement;
+accounting.retain(replacedKey, replacement);
+assert.equal(accounting.retainedBytes, expectedRetainedBytes);
+assert.equal(accounting.descriptionsOmitted, false);
+
 // Actual retained-budget function drops the one optional description.
 const ctx = {
     descriptionsOmitted: false,

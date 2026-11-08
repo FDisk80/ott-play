@@ -269,6 +269,21 @@ jobs:
       - name: Build bundle
         run: npm run build
 
+      - name: Check representative release envelope size
+        timeout-minutes: 10
+        run: |
+          node --test tests/test_release_envelope_size.cjs
+          node scripts/check-release-envelope-size.cjs
+
+      - name: Upload failed release envelope size diagnostics
+        if: failure() && hashFiles('build/reports/release-envelope-size.json') != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-envelope-size-failure-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/reports/release-envelope-size.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload failed classic size diagnostics
         if: failure() && hashFiles('build/reports/classic-size-diagnostics.json') != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
