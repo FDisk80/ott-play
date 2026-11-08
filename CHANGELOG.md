@@ -160,6 +160,9 @@
   a confirmation popup while retaining parental checks and movie/file resume.
 - Show one compact seek notification per gesture, update it in place, and add
   a **Seek notifications** preference in Interface settings and remote settings.
+- Keep the first live-to-archive seek on that same notification without a
+  second message when the stream opens. Display whole-second offsets and renew
+  the existing banner's full lifetime after each repeated seek.
 - Return to live playback when the current channel is selected again from an
   archive, while preserving ordinary live-channel and finite-media behavior.
 - Retry an initial HLS manifest failure through the existing bounded source

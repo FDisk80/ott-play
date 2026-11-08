@@ -2304,9 +2304,10 @@ function scheduleListDetailUpdate(): void {
  * @returns string — HTML string, or `&nbsp;` if offset is 0.
  */
 export function formatSeekOffset(e: number): string {
-    var t = Math.floor(Math.abs(e) / 60);
-    var r = Math.abs(e) % 60;
-    return !e
+    var seconds = Math.round(Math.abs(e));
+    var t = Math.floor(seconds / 60);
+    var r = seconds % 60;
+    return !seconds
         ? "&nbsp;"
         : (e > 0 ? ">> " : "<< ") +
               (t ? t + _(" m ") : "") +

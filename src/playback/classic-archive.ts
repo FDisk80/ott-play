@@ -282,8 +282,8 @@ function classicArchiveRuntime(): any {
     pauseLive: function (): void {
         classicArchiveRuntime().pauseLive();
     },
-    rewind: function (offset: number): void {
-        classicArchiveRuntime().rewind(offset);
+    rewind: function (offset: number, announce = true): void {
+        classicArchiveRuntime().rewind(offset, announce);
     },
     seekRelative: function (
         offset: number,

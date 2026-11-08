@@ -288,7 +288,7 @@ function createArchiveController(core: any, ports: ArchivePorts) {
         });
         return ticket;
     }
-    function fromLive(offset: number | null): void {
+    function fromLive(offset: number | null, announce = true): void {
         begin(function (ticket, context) {
             if (!(context.retention > 0)) return;
             var replied = false;
@@ -322,7 +322,7 @@ function createArchiveController(core: any, ports: ArchivePorts) {
                             context,
                             offset ? Math.round(now) - offset : current!.start,
                             true,
-                            offset
+                            announce ? offset : undefined
                         );
                 }
             });
@@ -381,9 +381,9 @@ function createArchiveController(core: any, ports: ArchivePorts) {
         pauseLive: function (): void {
             fromLive(null);
         },
-        rewind: function (offset: number): void {
+        rewind: function (offset: number, announce = true): void {
             if (typeof offset === "number" && isFinite(offset) && offset >= 0)
-                fromLive(offset);
+                fromLive(offset, announce);
         },
         seekRelative: function (
             offset: number,

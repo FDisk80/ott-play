@@ -586,7 +586,8 @@ function classicPlaybackRuntime(): any {
                     typeof w.replayFromLiveOffset === "function"
                 )
                     w.replayFromLiveOffset(
-                        Math.max(0, Date.now() / 1000 - plan.archiveStart)
+                        Math.max(0, Date.now() / 1000 - plan.archiveStart),
+                        intent.intent !== "offset"
                     );
                 else {
                     if (intent.intent !== "offset")

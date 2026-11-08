@@ -534,6 +534,87 @@ test("seek banner stays compact and updates without replaying its entrance", asy
     await expect(seek.locator(".remote-notify-message")).toHaveText(
         "+20 seconds"
     );
+    await page.clock.runFor(1600);
+    const duringFade = await seek.evaluate((card) => {
+        const animations = card.getAnimations({ subtree: true });
+        for (const animation of animations) {
+            animation.pause();
+            animation.currentTime = 1800;
+        }
+        const before = {
+            left: card.offsetLeft,
+            opacity: Number(
+                getComputedStyle(card.querySelector(".remote-notify-content"))
+                    .opacity
+            ),
+            top: card.offsetTop,
+            width: card.offsetWidth,
+        };
+        window.showShift("+30 seconds", true);
+        return {
+            before,
+            left: card.offsetLeft,
+            opacity: Number(
+                getComputedStyle(card.querySelector(".remote-notify-content"))
+                    .opacity
+            ),
+            sameAnimations: animations.every((animation) =>
+                card.getAnimations({ subtree: true }).includes(animation)
+            ),
+            sameCard: document.querySelector(".remote-notify-seek") === card,
+            top: card.offsetTop,
+            width: card.offsetWidth,
+        };
+    });
+    expect(duringFade.before.opacity).toBeGreaterThan(0);
+    expect(duringFade.before.opacity).toBeLessThan(1);
+    expect(duringFade.opacity).toBeCloseTo(1, 3);
+    expect(duringFade.sameCard).toBe(true);
+    expect(duringFade.sameAnimations).toBe(true);
+    expect(duringFade.left).toBe(duringFade.before.left);
+    expect(duringFade.top).toBe(duringFade.before.top);
+    expect(duringFade.width).toBe(duringFade.before.width);
+    await page.clock.runFor(2680);
+    await expect(seek).toHaveClass(/remote-notify-out/);
+    const duringExit = await seek.evaluate((card) => {
+        const exit = card
+            .getAnimations()
+            .find((animation) =>
+                ["remoteNotifyOut", "remoteNotifySimpleOut"].includes(
+                    animation.animationName
+                )
+            );
+        if (!exit) throw new Error("Seek exit animation is missing");
+        exit.pause();
+        exit.currentTime = 160;
+        const before = {
+            left: card.offsetLeft,
+            top: card.offsetTop,
+            width: card.offsetWidth,
+        };
+        window.showShift("+40 seconds", true);
+        return {
+            before,
+            left: card.offsetLeft,
+            names: card
+                .getAnimations()
+                .map((animation) => animation.animationName),
+            sameCard:
+                document.querySelector(".remote-notify-seek") ===
+                window.__seekCard,
+            top: card.offsetTop,
+            width: card.offsetWidth,
+        };
+    });
+    expect(duringExit.sameCard).toBe(true);
+    expect(duringExit.names).toEqual([]);
+    expect(duringExit.left).toBe(duringExit.before.left);
+    expect(duringExit.top).toBe(duringExit.before.top);
+    expect(duringExit.width).toBe(duringExit.before.width);
+    await expect(seek).not.toHaveClass(/remote-notify-out/);
+    await expect(seek.locator(".remote-notify-message")).toHaveText(
+        "+40 seconds"
+    );
     await page.clock.runFor(2999);
     await expect(seek).toHaveCount(1);
     await page.clock.runFor(1);

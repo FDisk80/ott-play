@@ -2879,7 +2879,9 @@ export function showPlaybackSeekDialog(initialDelta: number): void {
  * Guide, access and retention checks may complete after this function returns.
  */
 export function replayFromLiveOffset(offset: number): void {
-    (window as any).__ottClassicArchive.rewind(offset);
+    // Keep timeShift's one-argument ABI after ES5 lowering. The internal caller
+    // may suppress already-previewed feedback; undefined retains normal feedback.
+    (window as any).__ottClassicArchive.rewind(offset, arguments[1]);
 }
 
 /**
