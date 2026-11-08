@@ -246,7 +246,7 @@ for (const method of ["button", "RETURN", "EXIT", "ENTER"]) {
             assert.equal(f.host.dialogBoxKeyHandler, null);
             assert.deepEqual(
                 f.calls,
-                Array.from({ length: cycle }, () => [1, true])
+                Array.from({ length: cycle }, () => [5, true])
             );
             assert.deepEqual(
                 f.bubbled,
@@ -368,7 +368,7 @@ for (const [kind, action] of [
                 "Restart cannot reach background click handlers"
             );
             assert.equal(f.dialog.style.display, "none");
-            assert.deepEqual(f.calls, [[1, true]]);
+            assert.deepEqual(f.calls, [[5, true]]);
             restart.click();
             assert.deepEqual(
                 playback.effects,
@@ -408,7 +408,7 @@ test("playback Info reports owned closure after revealing the HUD, only once", (
     f.open(() => {
         assert.equal(f.dialog.style.display, "none");
         assert.equal(f.host.dialogBoxKeyHandler, null);
-        assert.deepEqual(f.calls, [[1, true]]);
+        assert.deepEqual(f.calls, [[5, true]]);
         closed++;
     });
     const close = f.dialog.querySelector(".playback-info-close");
@@ -439,8 +439,34 @@ for (const stale of [false, true]) {
         assert.equal(handler(f.host.keys.ENTER), true);
         assert.deepEqual(playback.effects, stale ? [] : [-6e6]);
         assert.equal(f.dialog.style.display, stale ? "block" : "none");
-        assert.deepEqual(f.calls, stale ? [] : [[1, true]]);
+        assert.deepEqual(f.calls, stale ? [] : [[5, true]]);
         handler(f.host.keys.ENTER);
         assert.deepEqual(playback.effects, stale ? [] : [-6e6]);
+    });
+}
+
+for (const timeout of [3, 8, 20]) {
+    test(`playback Info restores the configured ${timeout}s HUD lifetime`, (t) => {
+        const f = fixture(t);
+        f.host.sInfoTimeout = timeout;
+        f.open();
+        f.dialog.querySelector(".playback-info-close").click();
+        assert.deepEqual(f.calls, [[timeout, true]]);
+    });
+}
+
+for (const replacement of ["source", "dialog", "kiosk"]) {
+    test(`playback Info restart rechecks its owner after a closure callback changes ${replacement}`, (t) => {
+        const f = fixture(t);
+        const playback = attachPlaybackPlan(f, "vod");
+        f.open(() => {
+            if (replacement === "source") playback.state.current = false;
+            else if (replacement === "kiosk")
+                f.host.__ottKiosk = { strict: () => true };
+            else f.port.setOwnedCallback("dialog", () => true);
+        });
+        f.dialog.querySelector(".playback-info-restart").click();
+        assert.deepEqual(playback.effects, []);
+        assert.deepEqual(f.calls, [[5, true]]);
     });
 }

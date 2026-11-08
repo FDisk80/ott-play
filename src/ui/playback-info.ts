@@ -159,9 +159,10 @@ function showModernPlaybackInfo(
             dialog!.textContent = "";
             host.dialogBoxKeyHandler = null;
             if (typeof host.showChannelInfo === "function")
-                host.showChannelInfo(1, true);
+                host.showChannelInfo(host.sInfoTimeout || 5, true);
             if (typeof onClose === "function") onClose();
-            if (begin) host.shiftArchive(-6e6);
+            if (begin && !host.dialogBoxKeyHandler && canBegin())
+                host.shiftArchive(-6e6);
             return true;
         }
     );

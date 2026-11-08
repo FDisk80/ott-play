@@ -1837,6 +1837,71 @@ for (const platform of ["pc", "pc2"]) {
     });
 }
 
+for (const id of ["mute", "favorite", "info"]) {
+    test(`PC Space activates focused ${id} once before shared key cancellation`, async () => {
+        const f = fixture();
+        try {
+            const { w } = f;
+            sharedInput(f, "pc");
+            w.showPlaybackInfo = () => f.calls.push(["info"]);
+            w.__ottGlobalFavorites = {
+                toggle: async () => f.calls.push(["favorite"]),
+            };
+            f.api.refresh();
+            w.document.getElementById("info1").style.display = "block";
+            f.api.sync();
+            const button = w.document.querySelector(
+                `[data-modern-player-action="${id}"]`
+            );
+            f.api.handleKey({ key: "Tab", target: w.document.body });
+            button.focus();
+            assert.equal(f.api.state().desktopControls, true);
+            f.calls.length = 0;
+            const event = new w.KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: " ",
+                keyCode: 32,
+            });
+            button.dispatchEvent(event);
+            button.dispatchEvent(
+                new w.KeyboardEvent("keydown", {
+                    bubbles: true,
+                    cancelable: true,
+                    key: " ",
+                    keyCode: 32,
+                    repeat: true,
+                })
+            );
+            button.dispatchEvent(
+                new w.KeyboardEvent("keyup", {
+                    bubbles: true,
+                    cancelable: true,
+                    key: " ",
+                    keyCode: 32,
+                })
+            );
+            await new Promise(setImmediate);
+            assert.equal(event.defaultPrevented, true);
+            const name = id === "mute" ? "stbToggleMute" : id;
+            assert.equal(
+                f.calls.filter(([called]) => called === name).length,
+                1
+            );
+            assert.equal(
+                f.calls.some(
+                    ([called]) =>
+                        called === "stbPause" || called === "playChannel"
+                ),
+                false
+            );
+        } finally {
+            f.api.destroy();
+            f.dom.window.close();
+        }
+    });
+}
+
 test("native action/timeline/Info navigation uses the shared current-description helper", () => {
     const f = fixture();
     try {

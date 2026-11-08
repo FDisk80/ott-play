@@ -2617,7 +2617,7 @@ body.interface-modern.modern-player-ready #permanentTime {
     max-height: 88vh;
     padding: clamp(16px, 1.25vw, 28px);
     margin-bottom: calc(5vh + env(safe-area-inset-bottom, 0px));
-    overflow: auto hidden;
+    overflow: hidden auto;
     pointer-events: auto;
     scrollbar-width: none;
     background: var(--modern-surface, rgba(12, 14, 19, 0.96));

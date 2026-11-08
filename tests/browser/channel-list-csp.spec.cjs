@@ -6582,6 +6582,46 @@ for (const scenario of [
     });
 }
 
+test("Modern bottom HUD permits scrolling to Info on a short landscape screen", async ({
+    browser,
+}) => {
+    const fixture = await modernHudFixture(browser, "server", {
+        height: 220,
+        width: 640,
+    });
+    const { page } = fixture;
+    try {
+        await page.evaluate(() => {
+            document.getElementById("programm_name").textContent =
+                "A long current programme title that occupies both available lines";
+            showChannelInfo(30);
+            $("#info1").finish();
+            __ottModernPlayer.sync();
+        });
+        const panel = page.locator(".modern-player-panel");
+        await expect(panel).toHaveCSS("overflow-y", "auto");
+        const dimensions = await panel.evaluate((element) => ({
+            content: element.scrollHeight,
+            visible: element.clientHeight,
+        }));
+        expect(dimensions.content).toBeGreaterThan(dimensions.visible);
+        const bounds = await panel.boundingBox();
+        await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 8);
+        await page.mouse.wheel(0, 600);
+        await expect
+            .poll(() => panel.evaluate((element) => element.scrollTop))
+            .toBeGreaterThan(0);
+        const info = page.locator('[data-modern-player-action="info"]');
+        await expect(info).toBeInViewport();
+        await info.click();
+        await expect(page.locator(".playback-info-card")).toBeVisible();
+        expect(fixture.errors).toEqual([]);
+        expect(fixture.unexpectedRequests).toEqual([]);
+    } finally {
+        await fixture.close();
+    }
+});
+
 test("Modern bottom HUD keeps desktop playback shortcuts until Tab owns the toolbar", async ({
     browser,
 }) => {

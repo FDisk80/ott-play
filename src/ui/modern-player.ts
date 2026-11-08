@@ -36,6 +36,7 @@ function createModernPlayer(w: any) {
     var playbackOwner = "";
     var playbackDriver: any = null;
     var playbackLoad: any = null;
+    var renderedPlayback: any = null;
     var infoReturn: any = null;
     var favorite: boolean | null = null;
     var favoriteBusy = false;
@@ -188,14 +189,19 @@ function createModernPlayer(w: any) {
         } catch (_) {}
         return result;
     }
-    function favoriteAllowed(): boolean {
+    function favoriteContextAllowed(): boolean {
         return !!(
-            w.sFavorites !== -1 &&
             !kioskBlocked() &&
             !w.__ottStandby?.blocked?.() &&
             !w.__ottParental?.needs?.("providers") &&
             !w.__ottParental?.needs?.("settings") &&
-            w.__ottClassicPlayback?.snapshot?.()?.target &&
+            w.__ottClassicPlayback?.snapshot?.()?.target
+        );
+    }
+    function favoriteAllowed(): boolean {
+        return !!(
+            favoriteContextAllowed() &&
+            w.sFavorites !== -1 &&
             (w.__ottGlobalFavorites?.toggle || w.__ottEnsureGlobalFavorites)
         );
     }
@@ -220,7 +226,7 @@ function createModernPlayer(w: any) {
                 revision === favoriteRevision &&
                 owner === identity() &&
                 host === w.__ottGlobalFavorites &&
-                favoriteAllowed()
+                favoriteContextAllowed()
             );
         }
         Promise.resolve()
@@ -272,29 +278,34 @@ function createModernPlayer(w: any) {
         var owner = playbackOwner;
         var driver = w.__ottActiveProviderDriver;
         var channelLoad = w.__ottCommandChannelLoad;
-        function current(): boolean {
+        function owned(): boolean {
             return (
                 active &&
                 revision === favoriteRevision &&
                 owner === identity() &&
                 driver === w.__ottActiveProviderDriver &&
-                channelLoad === w.__ottCommandChannelLoad &&
-                favoriteAllowed()
+                channelLoad === w.__ottCommandChannelLoad
             );
         }
+        function current(): boolean {
+            return owned() && favoriteAllowed();
+        }
         function finished(error?: any): void {
-            if (!current()) return;
+            if (!owned()) return;
             favoriteBusy = false;
             favoriteChecked = 0;
-            if (error && typeof w.showShift === "function")
+            if (current() && error && typeof w.showShift === "function")
                 w.showShift(
                     translate("Favorites") + ": " + translate("Unavailable")
                 );
-            refreshFavorite();
+            if (current()) refreshFavorite();
             updateActions();
         }
         function ready(error?: any): void {
-            if (!current()) return;
+            if (!current()) {
+                finished();
+                return;
+            }
             var host = w.__ottGlobalFavorites;
             if (error || !host?.toggle) {
                 finished(error || true);
@@ -1008,12 +1019,13 @@ function createModernPlayer(w: any) {
         )
             return;
         var stale =
-            playbackOwner !== identity() ||
-            playbackDriver !== w.__ottActiveProviderDriver ||
-            playbackLoad !== w.__ottCommandChannelLoad;
+            !renderedPlayback ||
+            renderedPlayback.owner !== identity() ||
+            renderedPlayback.driver !== w.__ottActiveProviderDriver ||
+            renderedPlayback.load !== w.__ottCommandChannelLoad;
         syncOwner();
-        if ((id === "previous" || id === "next") && stale) {
-            updateActions();
+        if (/^(previous|next|favorite)$/.test(id) && stale) {
+            render();
             return;
         }
         var action = actions.filter(function (candidate: any): boolean {
@@ -1137,13 +1149,21 @@ function createModernPlayer(w: any) {
                 event.stopImmediatePropagation();
             return true;
         }
+        var focused = w.document.activeElement;
+        var space =
+            event.key === " " ||
+            event.key === "Spacebar" ||
+            Number(event.keyCode || event.which) === 32;
+        var buttonSpace = !!(
+            space &&
+            root?.contains(focused) &&
+            focused?.matches?.("button.modern-player-action") &&
+            !focused.hidden &&
+            !focused.disabled
+        );
         var statusSpace =
-            group === "status" &&
-            statusElement === w.document.activeElement &&
-            (event.key === " " ||
-                event.key === "Spacebar" ||
-                Number(event.keyCode || event.which) === 32);
-        var id = statusSpace ? "accept" : keyId(event);
+            space && group === "status" && statusElement === focused;
+        var id = buttonSpace || statusSpace ? "accept" : keyId(event);
         if (!id) return false;
         // Synthetic native keys have no DOM target. Keep an unowned input
         // focused instead of falling through to background channel navigation.
@@ -1178,6 +1198,7 @@ function createModernPlayer(w: any) {
         if (event.preventDefault) event.preventDefault();
         if (event.stopPropagation) event.stopPropagation();
         if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        if ((buttonSpace || statusSpace) && event.repeat) return true;
         if (id === "back") close();
         else if (id === "up" || id === "down") {
             var next =
@@ -1214,7 +1235,8 @@ function createModernPlayer(w: any) {
                 keepAlive();
             }
         } else if (id === "accept") {
-            if (group === "timeline") togglePlayback();
+            if (buttonSpace) focused.click();
+            else if (group === "timeline") togglePlayback();
             else if (group === "status" && statusElement) statusElement.click();
             else if (group === "info" && infoButton) infoButton.click();
             else activateRail();
@@ -1353,6 +1375,11 @@ function createModernPlayer(w: any) {
         if (progress === w.document.activeElement && timelineElement?.hidden)
             setGroup("actions");
         updateStatus();
+        renderedPlayback = {
+            driver: playbackDriver,
+            load: playbackLoad,
+            owner: playbackOwner,
+        };
         refreshFavorite();
     }
     function progressPercent(kind: string): number {
@@ -1452,6 +1479,7 @@ function createModernPlayer(w: any) {
         }
     }
     function updateActions(): void {
+        var infoHadFocus = infoButton === w.document.activeElement;
         var specs = actionSpecs();
         var specById: { [id: string]: any } = {};
         specs.forEach(function (spec: any): void {
@@ -1491,7 +1519,12 @@ function createModernPlayer(w: any) {
                 !!spec.primary
             );
         });
-        if (group === "actions") {
+        if (group === "info" && infoButton?.hidden) {
+            group = timelineElement?.hidden ? "actions" : "timeline";
+            if (infoHadFocus) setGroup(group);
+            return;
+        }
+        if (group === "actions" && !editingTarget(w.document.activeElement)) {
             var visible = visibleActions();
             if (!visible.length) {
                 setGroup("timeline");
@@ -1625,6 +1658,7 @@ function createModernPlayer(w: any) {
         if (!active) return;
         active = false;
         opened = false;
+        renderedPlayback = null;
         infoReturn = null;
         desktopControls = tabIntent = false;
         favoriteRevision++;

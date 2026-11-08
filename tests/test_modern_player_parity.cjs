@@ -969,147 +969,335 @@ for (const channelMedia of [false, true]) {
     });
 }
 
-test("Modern Favorites navigation follows the real shared mixed-source order once per move", async (t) => {
-    const { api, calls, open, w } = fixture(t);
-    const { load } = require("./global-favorites-fixture.cjs");
-    const codec = load(
-        "src/settings/global-favorites-portable.ts"
-    ).createGlobalFavoritesPortableCodec();
-    const createNavigation = load(
-        "src/media/global-favorites-navigation.ts"
-    ).createGlobalFavoritesNavigation;
-    const rows = [
-        { locator: { channelId: "7", kind: "channel" }, provider: "m3u" },
-        {
-            locator: { kind: "plex-media", ratingKey: "42", serverId: "pms" },
-            provider: "plex",
-        },
-        {
-            locator: {
-                kind: "local-media",
-                relativePath: "movie.mp4",
-                rootAlias: "Files",
+for (const readOnly of [false, true]) {
+    test(`Modern Favorites navigation follows the real shared mixed-source order once per move (read-only ${readOnly})`, async (t) => {
+        const { api, calls, open, w } = fixture(t);
+        w.sFavorites = readOnly ? -1 : 0;
+        const { load } = require("./global-favorites-fixture.cjs");
+        const codec = load(
+            "src/settings/global-favorites-portable.ts"
+        ).createGlobalFavoritesPortableCodec();
+        const createNavigation = load(
+            "src/media/global-favorites-navigation.ts"
+        ).createGlobalFavoritesNavigation;
+        const rows = [
+            { locator: { channelId: "7", kind: "channel" }, provider: "m3u" },
+            {
+                locator: {
+                    kind: "plex-media",
+                    ratingKey: "42",
+                    serverId: "pms",
+                },
+                provider: "plex",
             },
-            provider: "local",
-        },
-    ].map(({ locator, provider }, index) => ({
-        id: "favorite-" + index,
-        locator,
-        origin: {
-            profile: provider,
-            provider,
-            sourceAlias: provider,
-            subprofile: null,
-        },
-        title: "Item " + index,
-    }));
-    let selected = rows[0];
-    let generation = 1;
-    let revision = 1;
-    let valid = true;
-    const value = (row) => ({
-        locator: row.locator,
-        origin: row.origin,
-        title: row.title,
-    });
-    const snapshot = async () => {
-        const captured = revision;
-        return { current: () => valid && captured === revision, entries: rows };
-    };
-    const capture = () => {
-        const row = selected;
-        const captured = generation;
-        return {
-            current: () => valid && captured === generation,
-            id: row.id,
-            value: value(row),
+            {
+                locator: {
+                    kind: "local-media",
+                    relativePath: "movie.mp4",
+                    rootAlias: "Files",
+                },
+                provider: "local",
+            },
+        ].map(({ locator, provider }, index) => ({
+            id: "favorite-" + index,
+            locator,
+            origin: {
+                profile: provider,
+                provider,
+                sourceAlias: provider,
+                subprofile: null,
+            },
+            title: "Item " + index,
+        }));
+        let selected = rows[0];
+        let generation = 1;
+        let revision = 1;
+        let valid = true;
+        const value = (row) => ({
+            locator: row.locator,
+            origin: row.origin,
+            title: row.title,
+        });
+        const snapshot = async () => {
+            const captured = revision;
+            return {
+                current: () => valid && captured === revision,
+                entries: rows,
+            };
         };
-    };
-    const navigation = createNavigation({
-        allowed: () => valid,
-        cancel: () => {},
-        capture,
-        current: () => valid,
-        failed: (reason) => calls.push(["failed", reason]),
-        identity: (row) => codec.identity(value(row)),
-        select: (id) => {
-            calls.push(["favorite-next", selected.origin.provider, id]);
-            selected = rows.find((row) => row.id === id);
-            generation++;
-            return { result: Promise.resolve({ status: "ok" }) };
-        },
-        snapshot,
-    });
-    navigation.routeState({ id: selected.id, phase: "playing" });
-    w.__ottClassicPlayback.snapshot = () => ({
-        generation,
-        phase: "playing",
-        target: {
-            channelId: selected.id,
-            kind: selected.origin.provider === "m3u" ? "live" : "vod",
-            sourceId: selected.origin.provider,
-        },
-    });
-    w.__ottSourceIdentity = { current: () => selected.origin.provider };
-    w.__ottMedia = {
-        current: () => null,
-        skip: () => calls.push(["media-skip"]),
-    };
-    w.plusProg = w.minusProg = () => calls.push(["channel-skip"]);
-    w.__ottGlobalFavorites = {
-        codec,
-        currentItem: async () => {
-            const captured = capture();
-            return { current: captured.current, entry: captured.value };
-        },
-        navigation,
-        store: { snapshot },
-        toggle: async () => {},
-    };
-    async function settle() {
-        for (let i = 0; i < 3; i++) await new Promise(setImmediate);
+        const capture = () => {
+            const row = selected;
+            const captured = generation;
+            return {
+                current: () => valid && captured === generation,
+                id: row.id,
+                value: value(row),
+            };
+        };
+        const navigation = createNavigation({
+            allowed: () => valid,
+            cancel: () => {},
+            capture,
+            current: () => valid,
+            failed: (reason) => calls.push(["failed", reason]),
+            identity: (row) => codec.identity(value(row)),
+            select: (id) => {
+                calls.push(["favorite-next", selected.origin.provider, id]);
+                selected = rows.find((row) => row.id === id);
+                generation++;
+                return { result: Promise.resolve({ status: "ok" }) };
+            },
+            snapshot,
+        });
+        navigation.routeState({ id: selected.id, phase: "playing" });
+        w.__ottClassicPlayback.snapshot = () => ({
+            generation,
+            phase: "playing",
+            target: {
+                channelId: selected.id,
+                kind: selected.origin.provider === "m3u" ? "live" : "vod",
+                sourceId: selected.origin.provider,
+            },
+        });
+        w.__ottSourceIdentity = { current: () => selected.origin.provider };
+        w.__ottMedia = {
+            current: () => null,
+            skip: () => calls.push(["media-skip"]),
+        };
+        w.plusProg = w.minusProg = () => calls.push(["channel-skip"]);
+        w.__ottGlobalFavorites = {
+            codec,
+            currentItem: async () => {
+                const captured = capture();
+                return { current: captured.current, entry: captured.value };
+            },
+            navigation,
+            store: { snapshot },
+            toggle: async () => {},
+        };
+        async function settle() {
+            for (let i = 0; i < 3; i++) await new Promise(setImmediate);
+            api.sync();
+            for (let i = 0; i < 3; i++) await new Promise(setImmediate);
+        }
+        open();
+        assert.equal(
+            action(w, "next").hidden,
+            true,
+            "waits for actual current membership"
+        );
+        await settle();
+        assert.equal(action(w, "next").hidden, false);
+        assert.equal(action(w, "favorite").hidden, readOnly);
+        action(w, "next").click();
+        action(w, "next").click();
+        await settle();
+        assert.equal(selected.origin.provider, "plex");
+        assert.equal(
+            calls.filter(([name]) => name === "favorite-next").length,
+            1,
+            "pending move does not dispatch twice"
+        );
+        action(w, "next").click();
+        await settle();
+        assert.equal(selected.origin.provider, "local");
+        action(w, "previous").click();
+        await settle();
+        assert.equal(selected.origin.provider, "plex");
+        assert.equal(
+            calls.filter(([name]) => name === "favorite-next").length,
+            3
+        );
+        revision++;
+        action(w, "next").click();
+        await settle();
+        assert.equal(
+            calls.filter(([name]) => name === "favorite-next").length,
+            3,
+            "invalidated Favorites snapshot cannot dispatch"
+        );
+        valid = false;
         api.sync();
-        for (let i = 0; i < 3; i++) await new Promise(setImmediate);
-    }
+        assert.equal(action(w, "next").hidden, true);
+        assert.equal(
+            calls.some(([name]) =>
+                /^(media-skip|channel-skip|failed)$/.test(name)
+            ),
+            false
+        );
+    });
+}
+
+for (const pending of ["initialization", "mutation"]) {
+    test(`Favorites releases its ${pending} busy state after parental authorization expires`, async (t) => {
+        const { api, open, w } = fixture(t);
+        let authorized = true;
+        let ready;
+        let complete;
+        let toggles = 0;
+        w.__ottParental = { needs: () => !authorized };
+        const host = {
+            toggle: (_payload, admitted) => {
+                toggles++;
+                return new Promise((resolve) => {
+                    complete = () => {
+                        assert.equal(admitted(), false);
+                        resolve();
+                    };
+                });
+            },
+        };
+        if (pending === "initialization")
+            w.__ottEnsureGlobalFavorites = (done) => {
+                ready = done;
+            };
+        else w.__ottGlobalFavorites = host;
+        open();
+        const button = action(w, "favorite");
+        button.click();
+        await new Promise(setImmediate);
+        assert.equal(button.getAttribute("aria-busy"), "true");
+        authorized = false;
+        if (pending === "initialization") {
+            w.__ottGlobalFavorites = host;
+            ready();
+        } else complete();
+        await new Promise(setImmediate);
+        assert.equal(button.getAttribute("aria-busy"), "false");
+        assert.equal(button.hidden, true);
+        assert.equal(toggles, pending === "mutation" ? 1 : 0);
+        authorized = true;
+        api.sync();
+        assert.equal(button.hidden, false);
+        assert.equal(button.disabled, false);
+        host.toggle = async () => {
+            toggles++;
+        };
+        button.click();
+        await new Promise(setImmediate);
+        assert.equal(toggles, pending === "mutation" ? 2 : 1);
+    });
+}
+
+test("a settled old Favorites operation cannot clear a newer operation's busy state", async (t) => {
+    const { api, open, w } = fixture(t);
+    let item = "A";
+    const completions = [];
+    w.__ottClassicPlayback.snapshot = () => ({
+        generation: item,
+        target: { channelId: item, kind: "vod", sourceId: "provider" },
+    });
+    w.__ottGlobalFavorites = {
+        toggle: () => new Promise((resolve) => completions.push(resolve)),
+    };
     open();
-    assert.equal(
-        action(w, "next").hidden,
-        true,
-        "waits for actual current membership"
-    );
-    await settle();
-    assert.equal(action(w, "next").hidden, false);
-    action(w, "next").click();
-    action(w, "next").click();
-    await settle();
-    assert.equal(selected.origin.provider, "plex");
-    assert.equal(
-        calls.filter(([name]) => name === "favorite-next").length,
-        1,
-        "pending move does not dispatch twice"
-    );
-    action(w, "next").click();
-    await settle();
-    assert.equal(selected.origin.provider, "local");
-    action(w, "previous").click();
-    await settle();
-    assert.equal(selected.origin.provider, "plex");
-    assert.equal(calls.filter(([name]) => name === "favorite-next").length, 3);
-    revision++;
-    action(w, "next").click();
-    await settle();
-    assert.equal(
-        calls.filter(([name]) => name === "favorite-next").length,
-        3,
-        "invalidated Favorites snapshot cannot dispatch"
-    );
-    valid = false;
+    const button = action(w, "favorite");
+    button.click();
+    await new Promise(setImmediate);
+    item = "B";
     api.sync();
-    assert.equal(action(w, "next").hidden, true);
-    assert.equal(
-        calls.some(([name]) => /^(media-skip|channel-skip|failed)$/.test(name)),
-        false
-    );
+    button.click();
+    await new Promise(setImmediate);
+    assert.equal(completions.length, 2);
+    completions[0]();
+    await new Promise(setImmediate);
+    assert.equal(button.getAttribute("aria-busy"), "true");
+    completions[1]();
+    await new Promise(setImmediate);
+    assert.equal(button.getAttribute("aria-busy"), "false");
+});
+
+for (const trigger of ["click", "pointer", "keyboard"]) {
+    test(`Favorites rejects a stale rendered owner through ${trigger} activation`, async (t) => {
+        const { api, open, w } = fixture(t);
+        let item = "A";
+        const toggled = [];
+        w.__ottClassicPlayback.snapshot = () => ({
+            generation: item,
+            target: { channelId: item, kind: "vod", sourceId: "provider" },
+        });
+        w.__ottGlobalFavorites = {
+            toggle: async (_payload, admitted) => {
+                if (admitted()) toggled.push(item);
+            },
+        };
+        const channel = w.document.getElementById("channel_name");
+        channel.textContent = "A";
+        open();
+        const button = action(w, "favorite");
+        button.focus();
+        item = "B";
+        channel.textContent = "B";
+        assert.equal(
+            w.document.querySelector(".modern-player-title").textContent,
+            "A"
+        );
+        if (trigger === "pointer")
+            button.dispatchEvent(
+                new w.MouseEvent("mousedown", { bubbles: true })
+            );
+        if (trigger === "keyboard") api.handleKey({ key: "Enter" });
+        else button.click();
+        await new Promise(setImmediate);
+        assert.deepEqual(toggled, []);
+        assert.equal(
+            w.document.querySelector(".modern-player-title").textContent,
+            "B"
+        );
+        button.click();
+        await new Promise(setImmediate);
+        assert.deepEqual(
+            toggled,
+            ["B"],
+            "the current rendered item can still be toggled"
+        );
+    });
+}
+
+for (const kind of ["live", "vod"]) {
+    test(`Modern restores visible ${kind} focus when programme Info disappears`, (t) => {
+        const { api, open, w } = fixture(t, kind);
+        w.showPlaybackInfo = () => true;
+        open();
+        const info = action(w, "info");
+        info.focus();
+        api.sync();
+        assert.equal(
+            w.document.activeElement,
+            info,
+            "ordinary refresh preserves visible Info focus"
+        );
+        w.document.getElementById("channel_name").textContent = " \n\t ";
+        api.sync();
+        assert.equal(info.hidden, true);
+        assert.notEqual(w.document.activeElement, info);
+        assert.equal(
+            api.state().group,
+            kind === "live" ? "actions" : "timeline"
+        );
+        if (kind === "live")
+            assert.equal(
+                w.document.activeElement.closest(".modern-player-actions") !==
+                    null,
+                true
+            );
+        else assert.equal(w.document.activeElement.id, "progress_div");
+    });
+}
+
+test("disappearing Info does not steal focus from an active editor", (t) => {
+    const { api, open, w } = fixture(t, "live");
+    w.showPlaybackInfo = () => true;
+    open();
+    action(w, "info").focus();
+    const editor = w.document.createElement("input");
+    w.document.body.appendChild(editor);
+    editor.focus();
+    w.document.getElementById("channel_name").textContent = " ";
+    api.sync();
+    assert.equal(action(w, "info").hidden, true);
+    assert.equal(api.state().group, "actions");
+    assert.equal(w.document.activeElement, editor);
 });
 
 test("Modern distinguishes technical playback information from programme Info", (t) => {
