@@ -1,4 +1,5 @@
 {
+  "stable_distribution": "rc-payloads-v1",
   "version_file": "package.json",
   "validation_workflows": [
     "ci.yml",
