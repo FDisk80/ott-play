@@ -272,7 +272,7 @@
   },
   "release_notes": "CHANGELOG.md",
   "fuzzing": {
-    "toolkit_ref": "f54201ae71e91d85514bb16ed1ffdf31b82b149f"
+    "toolkit_ref": "1039e1057311b2912d755d0c684e73e2eeedecdc"
   },
   "toolkit_revision": "16a1c30ab1b865d5f960cf15d65858987718c1a2"
 }
