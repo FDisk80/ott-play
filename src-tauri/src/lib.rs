@@ -35,9 +35,68 @@ mod window_preferences;
 use commands::media_session::MediaSessionState;
 use commands::tauri_commands::{PipState, TauriState};
 use std::collections::HashMap;
+#[cfg(any(target_os = "windows", test))]
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::RwLock;
+
+#[cfg(any(target_os = "windows", test))]
+struct StartupWindowReveal {
+    intended_url: Option<String>,
+    saved_geometry: bool,
+    external_navigation_started: AtomicBool,
+    revealed: AtomicBool,
+}
+
+#[cfg(any(target_os = "windows", test))]
+const STARTUP_REVEAL_FALLBACK: std::time::Duration = std::time::Duration::from_secs(8);
+
+#[cfg(any(target_os = "windows", test))]
+fn is_embedded_frontend_url(raw: &str) -> bool {
+    tauri::Url::parse(raw)
+        .is_ok_and(|url| url.scheme() == "tauri" || url.host_str() == Some("tauri.localhost"))
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn startup_page_is_intended(
+    intended_url: Option<&str>,
+    loaded_url: &str,
+    external_navigation_started: bool,
+) -> bool {
+    match intended_url {
+        None => true,
+        Some(expected) => {
+            expected == loaded_url
+                || (external_navigation_started && !is_embedded_frontend_url(loaded_url))
+        }
+    }
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn reveal_startup_window(window: &tauri::Window) {
+    let reveal = window.app_handle().state::<StartupWindowReveal>();
+    if reveal
+        .revealed
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return;
+    }
+
+    use tauri_plugin_window_state::{StateFlags, WindowExt};
+    if reveal.saved_geometry {
+        if let Err(error) = window.restore_state(StateFlags::SIZE | StateFlags::POSITION) {
+            tracing::warn!(%error, "Could not restore the initial window geometry");
+        }
+    }
+    if !window.is_visible().unwrap_or(false) {
+        if let Err(error) = window.show().and_then(|_| window.set_focus()) {
+            reveal.revealed.store(false, Ordering::Release);
+            tracing::warn!(%error, "Could not reveal the initial main window");
+        }
+    }
+}
 
 /// Default URL for the desktop shell webview.
 ///
@@ -75,19 +134,31 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_dialog::init())
         .plugin({
+            #[cfg(any(target_os = "windows", test))]
+            let state_flags = tauri_plugin_window_state::StateFlags::SIZE
+                | tauri_plugin_window_state::StateFlags::POSITION;
+            #[cfg(not(any(target_os = "windows", test)))]
+            let state_flags = tauri_plugin_window_state::StateFlags::SIZE
+                | tauri_plugin_window_state::StateFlags::POSITION
+                | tauri_plugin_window_state::StateFlags::VISIBLE;
             // Persist main window position/size across launches (Mode B frameless).
-            // SIZE|POSITION|VISIBLE only — never FULLSCREEN/MAXIMIZED/DECORATIONS so
-            // restore does not fight Key L native fullscreen toggle.
+            // Windows deliberately excludes visibility: its startup window stays
+            // hidden until the intended page is ready, so transient visibility
+            // must not be persisted. Other platforms keep their existing policy.
+            // Never restore FULLSCREEN/MAXIMIZED/DECORATIONS so restore does not
+            // fight Key L native fullscreen toggle.
             // Per-instance filename when OTTPLAY_INSTANCE / OTTPLAY_DATA_DIR is set.
             let mut ws = tauri_plugin_window_state::Builder::new()
-                .with_state_flags(
-                    tauri_plugin_window_state::StateFlags::SIZE
-                        | tauri_plugin_window_state::StateFlags::POSITION
-                        | tauri_plugin_window_state::StateFlags::VISIBLE,
-                )
+                .with_state_flags(state_flags)
                 .with_denylist(&["pip"]);
             if let Some(name) = instance::window_state_filename() {
                 ws = ws.with_filename(name);
+            }
+            // Defer geometry restoration until the intended frontend has loaded
+            // so Windows does not flash the centered default frame at startup.
+            #[cfg(any(target_os = "windows", test))]
+            {
+                ws = ws.skip_initial_state("main");
             }
             ws.build()
         })
@@ -182,6 +253,16 @@ pub fn run() {
             }
         })
         .on_page_load(|window, payload| {
+            #[cfg(any(target_os = "windows", test))]
+            if window.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started
+            {
+                let reveal = window.app_handle().state::<StartupWindowReveal>();
+                if reveal.intended_url.as_deref() == Some(payload.url().as_str()) {
+                    reveal
+                        .external_navigation_started
+                        .store(true, Ordering::Release);
+                }
+            }
             if window.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started
             {
                 let app = window.app_handle().clone();
@@ -198,6 +279,21 @@ pub fn run() {
                         .stop_all()
                         .await;
                 });
+            }
+            #[cfg(any(target_os = "windows", test))]
+            if window.label() == "main"
+                && payload.event() == tauri::webview::PageLoadEvent::Finished
+            {
+                let reveal = window.app_handle().state::<StartupWindowReveal>();
+                let loaded_url = payload.url().as_str();
+                if startup_page_is_intended(
+                    reveal.intended_url.as_deref(),
+                    loaded_url,
+                    reveal.external_navigation_started.load(Ordering::Acquire),
+                ) {
+                    let native_window = window.window();
+                    reveal_startup_window(&native_window);
+                }
             }
         })
         .setup(|app| {
@@ -230,13 +326,30 @@ pub fn run() {
                     ))
                 })?)
             };
+            #[cfg(any(target_os = "windows", test))]
+            app.manage(StartupWindowReveal {
+                intended_url: web_url.as_ref().map(|url| url.as_str().to_owned()),
+                saved_geometry: app
+                    .path()
+                    .app_config_dir()
+                    .ok()
+                    .and_then(|dir| {
+                        let filename = instance::window_state_filename().unwrap_or_else(|| {
+                            tauri_plugin_window_state::DEFAULT_FILENAME.to_owned()
+                        });
+                        instance::saved_window_geometry(&dir, &filename, "main")
+                    })
+                    .unwrap_or(false),
+                external_navigation_started: AtomicBool::new(false),
+                revealed: AtomicBool::new(false),
+            });
             #[cfg(dev)]
             let dev_url = app.config().build.dev_url.as_ref();
             #[cfg(not(dev))]
             let dev_url = None;
 
             let always_on_top = commands::window_controls::initial_always_on_top(app.handle());
-            let mut builder = tauri::WebviewWindowBuilder::new(
+            let builder = tauri::WebviewWindowBuilder::new(
                 app,
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
@@ -248,9 +361,14 @@ pub fn run() {
             .title("OttPlay FOSS")
             .inner_size(1280.0, 720.0)
             .center()
+            .background_color(tauri::window::Color(17, 17, 17, 255))
             .resizable(true)
             .always_on_top(always_on_top)
             .decorations(false);
+            #[cfg(any(target_os = "windows", test))]
+            let mut builder = builder.visible(false);
+            #[cfg(not(any(target_os = "windows", test)))]
+            let mut builder = builder;
             if let Some(data_dir) = instance::resolve_data_dir() {
                 builder = instance::apply_isolation(builder, &data_dir);
             }
@@ -276,6 +394,14 @@ pub fn run() {
                 } else {
                     tracing::info!("OTTPLAY_WEB_URL empty — using embedded frontendDist");
                 }
+                #[cfg(any(target_os = "windows", test))]
+                {
+                    let fallback_window = window.as_ref().window().clone();
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(STARTUP_REVEAL_FALLBACK).await;
+                        reveal_startup_window(&fallback_window);
+                    });
+                }
             }
 
             // Mode A companion warms XMLTV before serving; Mode B must too or the
@@ -294,4 +420,51 @@ pub fn run() {
                 commands::local_drop::opened(_app, &urls);
             }
         });
+}
+
+#[cfg(test)]
+mod startup_window_reveal_tests {
+    use super::{startup_page_is_intended, STARTUP_REVEAL_FALLBACK};
+    use std::time::Duration;
+
+    #[test]
+    fn embedded_frontend_reveals_on_its_first_completed_page() {
+        assert!(startup_page_is_intended(
+            None,
+            "http://tauri.localhost/index.html",
+            false
+        ));
+    }
+
+    #[test]
+    fn external_frontend_ignores_embedded_load_until_target_url_finishes() {
+        let intended = "http://127.0.0.1:8443/";
+        assert!(!startup_page_is_intended(
+            Some(intended),
+            "http://tauri.localhost/index.html",
+            false
+        ));
+        assert!(startup_page_is_intended(Some(intended), intended, true));
+        assert!(!startup_page_is_intended(
+            Some(intended),
+            "http://127.0.0.1:8443/other",
+            false
+        ));
+        assert!(startup_page_is_intended(
+            Some(intended),
+            "https://cdn.example.test/app/",
+            true
+        ));
+        assert!(!startup_page_is_intended(
+            Some(intended),
+            "http://tauri.localhost/index.html",
+            true
+        ));
+    }
+
+    #[test]
+    fn failed_or_never_finished_navigation_has_a_bounded_reveal_fallback() {
+        assert!(STARTUP_REVEAL_FALLBACK >= Duration::from_secs(1));
+        assert!(STARTUP_REVEAL_FALLBACK <= Duration::from_secs(10));
+    }
 }

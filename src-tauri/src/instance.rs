@@ -13,6 +13,8 @@
 //! Win/Linux; on macOS 14+ also a stable `data_store_identifier` UUID derived
 //! from the data dir (WKWebView has no path-based store API).
 
+#[cfg(any(target_os = "windows", test))]
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use tauri::{Manager, Runtime, WebviewWindowBuilder};
@@ -84,6 +86,32 @@ pub fn isolation_slug() -> Option<String> {
 /// Window-state plugin filename so instances do not clobber geometry.
 pub fn window_state_filename() -> Option<String> {
     isolation_slug().map(|s| format!(".window-state.{s}.json"))
+}
+
+/// Return whether the window-state plugin has a complete, nonzero geometry for
+/// this window. Missing state is normal on first launch; restoring the plugin's
+/// default zero-sized record onto the hidden startup window would make it unusable.
+#[cfg(any(target_os = "windows", test))]
+pub fn saved_window_geometry(config_dir: &Path, filename: &str, label: &str) -> Option<bool> {
+    #[derive(serde::Deserialize)]
+    #[allow(dead_code)]
+    struct SavedWindowState {
+        width: u32,
+        height: u32,
+        x: i32,
+        y: i32,
+        prev_x: i32,
+        prev_y: i32,
+        maximized: bool,
+        visible: bool,
+        decorated: bool,
+        fullscreen: bool,
+    }
+
+    let states: std::collections::HashMap<String, SavedWindowState> =
+        serde_json::from_slice(&fs::read(config_dir.join(filename)).ok()?).ok()?;
+    let state = states.get(label)?;
+    Some(state.width > 0 && state.height > 0)
 }
 
 /// Webview profile directory under the instance data root.
@@ -169,4 +197,85 @@ pub fn app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {e}"))
+}
+
+#[cfg(test)]
+mod window_geometry_tests {
+    use super::saved_window_geometry;
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+    };
+
+    static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
+
+    struct TempDir(PathBuf);
+
+    impl TempDir {
+        fn new() -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "ott-window-geometry-{}-{}",
+                std::process::id(),
+                NEXT_TEMP.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+
+    #[test]
+    fn saved_geometry_requires_a_complete_nonzero_record_for_the_window() {
+        let dir = TempDir::new();
+        fs::write(
+            dir.0.join("state.json"),
+            br#"{"main":{"width":1280,"height":720,"x":14,"y":22,"prev_x":14,"prev_y":22,"maximized":false,"visible":false,"decorated":false,"fullscreen":false},"pip":{"width":640,"height":360,"x":4,"y":8,"prev_x":4,"prev_y":8,"maximized":false,"visible":true,"decorated":true,"fullscreen":false}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            saved_window_geometry(&dir.0, "state.json", "main"),
+            Some(true)
+        );
+        assert_eq!(
+            saved_window_geometry(&dir.0, "state.json", "pip"),
+            Some(true)
+        );
+        assert_eq!(saved_window_geometry(&dir.0, "state.json", "missing"), None);
+
+        fs::write(
+            dir.0.join("zero.json"),
+            br#"{"main":{"width":0,"height":720,"x":0,"y":0,"prev_x":0,"prev_y":0,"maximized":false,"visible":false,"decorated":false,"fullscreen":false}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            saved_window_geometry(&dir.0, "zero.json", "main"),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn missing_or_incomplete_geometry_is_unavailable() {
+        let dir = TempDir::new();
+        assert_eq!(saved_window_geometry(&dir.0, "missing.json", "main"), None);
+        fs::write(dir.0.join("malformed.json"), b"not json").unwrap();
+        assert_eq!(
+            saved_window_geometry(&dir.0, "malformed.json", "main"),
+            None
+        );
+        fs::write(
+            dir.0.join("incomplete.json"),
+            br#"{"main":{"width":1280,"height":720}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            saved_window_geometry(&dir.0, "incomplete.json", "main"),
+            None
+        );
+    }
 }
