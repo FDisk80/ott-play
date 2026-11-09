@@ -9909,7 +9909,11 @@ mod tests {
                 .start_link_paths(vec![first.clone(), removed], true)
                 .await
                 .unwrap();
-            wait_for_drain(&library.background).await;
+            // This restart/rebuild fixture shares a filesystem-heavy test
+            // process; retain a hang watchdog without treating transient
+            // Windows worker scheduling as a functional failure.
+            wait_for_drain_with_timeout(&library.background, std::time::Duration::from_secs(30))
+                .await;
             let original = library.catalog().await.unwrap();
             let original_id = original
                 .items
@@ -9938,7 +9942,8 @@ mod tests {
                 .start_link_folder_path_tracked(second, library.background.enter().unwrap())
                 .await
                 .unwrap();
-            wait_for_drain(&library.background).await;
+            wait_for_drain_with_timeout(&library.background, std::time::Duration::from_secs(30))
+                .await;
             let complete = library.catalog().await.unwrap();
             assert!(!complete.scanning);
             assert!(complete.scan_error.is_none());
@@ -10915,12 +10920,16 @@ mod tests {
     }
 
     async fn wait_for_drain(background: &crate::background_work::BackgroundWork) {
-        tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            background.wait_for_idle(),
-        )
-        .await
-        .unwrap();
+        wait_for_drain_with_timeout(background, std::time::Duration::from_secs(2)).await;
+    }
+
+    async fn wait_for_drain_with_timeout(
+        background: &crate::background_work::BackgroundWork,
+        timeout: std::time::Duration,
+    ) {
+        tokio::time::timeout(timeout, background.wait_for_idle())
+            .await
+            .expect("filesystem worker did not reach the expected checkpoint");
     }
 
     #[tokio::test]
