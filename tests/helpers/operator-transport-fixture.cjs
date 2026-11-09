@@ -11,6 +11,8 @@ exports.run = function (profile, input) {
         events = [];
     Object.assign(ctx, {
         alert: (m) => events.push(["alert", m]),
+        // This fixture isolates transport retries, not the credentials editor.
+        edkey: "12345678",
         host: "https://relay.test",
         launch_id: "#launch",
     });

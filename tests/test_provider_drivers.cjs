@@ -386,6 +386,22 @@ test("all managed provider kinds settle loader only on a terminal catalog result
             assert.equal(f.completed, 0, "failed library must not open TV");
             assert.equal(settingsOpened, 1, "failed library opens settings");
             assert.equal(f.errors.length, 1, "failed library reports error");
+        } else if (kind === "edem") {
+            assert.equal(
+                f.completed,
+                0,
+                "missing Edem key must keep settings open"
+            );
+            assert.equal(
+                settingsOpened,
+                1,
+                "missing Edem key opens access settings"
+            );
+            assert.equal(
+                f.errors.length,
+                1,
+                "failed Edem load retains error feedback"
+            );
         } else {
             assert.equal(f.completed, 1, kind);
         }
