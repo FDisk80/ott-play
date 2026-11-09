@@ -53,3 +53,28 @@ A future CLI update requires checking that contract before changing the guard.
 The remembered-directory behavior is defined by the pinned
 [NSIS template](https://github.com/tauri-apps/tauri/blob/993038c49185307dfc895ab7657d77ca0d5ed7c7/crates/tauri-bundler/src/bundle/windows/nsis/installer.nsi)
 and [MSI template](https://github.com/tauri-apps/tauri/blob/59b63ab500da9859f12d8888c3298bc29bba0b92/crates/tauri-bundler/src/bundle/windows/msi/main.wxs).
+
+## Desktop startup appearance
+
+Windows desktop builds use an opaque dark native background while the webview
+loads, and restore saved window geometry before revealing the main window. This
+startup behavior does not change the macOS or Linux visibility policy.
+
+The installer lifecycle job validates packaging and installation, not the timing
+of visible frames. Qualify startup on a disposable Windows desktop as follows:
+
+1. Launch with a fresh application profile. Confirm the player appears at the
+   default geometry without a bright white intermediate window.
+2. Resize and move the player to non-default bounds, quit normally, and relaunch.
+   Confirm those bounds are restored before the window appears.
+3. Repeat with a separate managed instance and confirm its bounds stay isolated.
+4. Repeat with `OTTPLAY_WEB_URL` pointing at a deliberately slow local page, and
+   then an unreachable local address. Confirm startup remains recoverable and
+   the main window does not remain permanently hidden.
+5. Close the process during startup, then relaunch. Confirm a temporary hidden
+   startup state cannot prevent future launches from opening the player.
+
+Record the Windows build, display scaling, application commit, and a screen
+recording covering launch. Geometry and visibility checks alone cannot prove
+that no intermediate white frame was painted. These visual checks require a
+Windows desktop; the macOS Rust tests are not evidence of WebView2 painting.

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Avoid the bright white startup surface on Windows desktop players and restore
+  saved window geometry before revealing the main window.
+
 - Browse Modern media catalogues in separate category rows with keyboard,
   mouse-wheel and touch navigation. Preserve the selected occurrence and
   existing playback actions while rendering only a bounded window of cards.
