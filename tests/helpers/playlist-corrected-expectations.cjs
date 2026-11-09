@@ -143,4 +143,17 @@ function equivalentInput(input) {
     return null;
 }
 
-module.exports = { equivalentInput, generic, main, media };
+function operator(row, profile) {
+    const expected = clone(row.operators[profile]);
+    if (profile === "edem") {
+        // The isolated historical parser omitted edkey, so every Edem case
+        // captured a ReferenceError as a load alert. The fixture now supplies
+        // valid credentials like the other operators; retain all catalog and
+        // completion assertions, removing only that fixture-induced alert.
+        assert.deepEqual(expected.errors, ["Failed to load channel list!"]);
+        expected.errors = [];
+    }
+    return expected;
+}
+
+module.exports = { equivalentInput, generic, main, media, operator };

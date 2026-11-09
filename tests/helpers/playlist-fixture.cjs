@@ -137,6 +137,7 @@ function operator(profile, input) {
         __id: "fixture",
         __pin: "fixture",
         callback: () => ctx.callbacks++,
+        edkey: "12345678",
         getEpgList: (value) => {
             ctx.epgBody = value;
         },
