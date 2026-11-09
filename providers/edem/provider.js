@@ -2,8 +2,8 @@ version += " edem-0222";
 var edkey,
     edlist,
     vpurl,
-    edcdn,
     provName = "Edem.tv / iLook.tv";
+var edemStreamHost = "sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw";
 p_pref = "ed";
 parental = /XXX|Взрослые|Для взрослых|Эротика|18\+|Adults|взрослые/i;
 
@@ -51,23 +51,23 @@ function _getParams() {
     edkey = providerGetItem("key") || "";
     edlist = parseInt(providerGetItem("list"), 10) || 0;
     vpurl = providerGetItem("vpurl") || "";
-    edcdn = providerGetItem("edcdn") || "";
 }
 
 function getChannelPicon(ch_id) {
     return chanels[ch_id] ? chanels[ch_id].logo || "" : "";
 }
 
-function _edcdnHost() {
-    return OttPlayCore.operatorEdemHost(edcdn || "");
-}
-
 function getChannelUrl(ch_id) {
     _getParams();
-    return OttPlayCore.operatorLiveUrl("edem", String(ch_id), chanels[ch_id], {
-        host: edcdn || "",
-        key: edkey || "",
-    });
+    return OttPlayCore.operatorLiveUrl(
+        "edem",
+        String(ch_id),
+        { url: "" },
+        {
+            host: edemStreamHost,
+            key: edkey || "",
+        }
+    );
 }
 
 function getArchiveUrl(ch_id, time, time_to) {
@@ -127,14 +127,9 @@ function getChanelsArray(callback) {
                         "<br><br>" +
                         btnDiv(keys.ENTER, strENTER, "Close")
                 );
-            } else if (!_edcdnHost()) {
-                doEditData();
-                infoBox(
-                    "<br>" +
-                        _("Channel link is required!") +
-                        "<br><br>" +
-                        btnDiv(keys.ENTER, strENTER, "Close")
-                );
+                // The general load callback replaces the settings screen with
+                // the channel list. Keep Access key available for editing.
+                return;
             }
         } catch (e) {
             console.log(
@@ -553,14 +548,8 @@ function doEditData() {
     selIndex = 0;
     _getParams();
     var r = _(" (after changing, load playlist)"),
-        cdnLabel = _edcdnHost() || "—",
         aDetail = [
             _("Enter access key for") + " " + provName,
-            _(
-                "Enter the full CDN host from the cabinet stream URL (e.g. subdomain.cdn-domain.tld), not a bare subdomain"
-            ) +
-                ":<br><br>" +
-                r,
             _("Select playlist template source for EPG and logos") +
                 ":<br>" +
                 edTlist.join(", ") +
@@ -572,7 +561,6 @@ function doEditData() {
         ];
     listArray = [
         _("Access key"),
-        _("Channel link") + ": " + cdnLabel,
         _("List type") + ": " + edTlist[edlist],
         _("VPortal link"),
         "",
@@ -587,7 +575,7 @@ function doEditData() {
         listDetail.innerHTML = aDetail[selIndex] || "";
         listPodval.innerHTML =
             btnDiv(keys.RETURN, strRETURN, "Close") +
-            (selIndex != 2
+            (selIndex != 1
                 ? ""
                 : btnDiv(
                       keys.ENTER,
@@ -596,33 +584,43 @@ function doEditData() {
                       strLEFT,
                       strRIGHT
                   )) +
-            ([0, 1, 3].indexOf(selIndex) == -1
+            ([0, 2].indexOf(selIndex) == -1
                 ? ""
                 : btnDiv(keys.ENTER, strENTER, "Change value"));
     };
     listKeyHandler = function (code) {
         var a = 1;
+        if (code == keys.UP || code == keys.DOWN) {
+            if (typeof changeSelect === "function")
+                changeSelect(code == keys.UP ? -1 : 1);
+            else {
+                var length = listArray.length;
+                if (length)
+                    selIndex =
+                        (selIndex + (code == keys.UP ? -1 : 1) + length) %
+                        length;
+                showPage();
+            }
+            return true;
+        }
         switch (code) {
             case keys.LEFT:
                 a = -1;
             case keys.RIGHT:
-                // LEFT/RIGHT rotate list type (row 2); on other rows fall through to ENTER where applicable.
-                if (code != keys.ENTER && selIndex != 2) return false;
+                // LEFT/RIGHT rotate list type (row 1); on other rows fall through to ENTER where applicable.
+                if (code != keys.ENTER && selIndex != 1) return false;
             case keys.ENTER:
                 switch (selIndex) {
                     case 0:
                         edemKey();
                         return true;
                     case 1:
-                        edemCdn();
-                        return true;
-                    case 2:
                         doEditList(a);
                         return true;
-                    case 3:
+                    case 2:
                         vportal();
                         return true;
-                    case 5:
+                    case 4:
                         loadChannels();
                         return true;
                 }
@@ -662,38 +660,9 @@ function doEditList(a) {
     if (edlist == edTlist.length) edlist = 0;
     if (edlist < 0) edlist = edTlist.length - 1;
     providerSetItem("list", edlist);
-    listArray[2] = _("List type") + ": " + edTlist[edlist];
+    listArray[1] = _("List type") + ": " + edTlist[edlist];
     listDataArray = listArray;
     showPage();
-}
-
-function edemCdn() {
-    editCaption = _("Edit channel link");
-    editvar = edcdn || "";
-    setEdit = function () {
-        var v = (editvar || "").trim();
-        if (v) {
-            v = v.replace(/^https?:\/\//i, "").split("/")[0];
-            if (!/^[A-Za-z0-9][A-Za-z0-9.-]{4,}$/.test(v)) {
-                alert(
-                    _(
-                        "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)"
-                    )
-                );
-                showEditKey();
-                return;
-            }
-        }
-        if (edcdn == v) return;
-        edcdn = v;
-        providerSetItem("edcdn", edcdn);
-        listArray[1] = _("Channel link") + ": " + (_edcdnHost() || "—");
-        listDataArray = listArray;
-        if (typeof playChannel === "function")
-            playChannel(catIndex, primaryIndex);
-        showPage();
-    };
-    showEditKey();
 }
 
 function vportal() {

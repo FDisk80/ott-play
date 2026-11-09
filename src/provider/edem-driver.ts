@@ -19,11 +19,13 @@ interface EdemDriverHelpers {
     };
 }
 interface EdemSettings {
-    cdn: string;
     key: string;
     list: number;
     portal: string;
 }
+
+// The Edem stream endpoint is provider implementation data, not a setting.
+var EDEM_STREAM_HOST = "sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw";
 interface EdemMediaView {
     error?: string;
     name?: string;
@@ -168,7 +170,6 @@ function createEdemProviderDriver(
     var transport = helpers.transport(ports, owner, active);
     function settings(): EdemSettings {
         return {
-            cdn: ports.storage.get("edcdn") || "",
             key: ports.storage.get("key") || "",
             list: parseInt(ports.storage.get("list") || "", 10) || 0,
             portal: ports.storage.get("vpurl") || "",
@@ -281,7 +282,7 @@ function createEdemProviderDriver(
                 mode: value.list,
                 password: "",
                 playlist: value.portal,
-                server: value.cdn,
+                server: EDEM_STREAM_HOST,
                 username: value.key,
             };
         },
@@ -664,7 +665,6 @@ function createEdemProviderDriver(
         mediaSource: mediaSource,
         saveCredentials: function (value) {
             driver.saveSettings({
-                cdn: value.server,
                 key: value.username,
                 list: value.mode || 0,
                 portal: value.playlist || "",
@@ -677,7 +677,6 @@ function createEdemProviderDriver(
             var unchanged =
                 previous.key === value.key &&
                 previous.list === value.list &&
-                previous.cdn === value.cdn &&
                 previous.portal === value.portal;
             function current() {
                 return (
@@ -687,7 +686,6 @@ function createEdemProviderDriver(
                 );
             }
             var writes = {
-                edcdn: value.cdn,
                 key: value.key,
                 list: String(value.list),
                 vpurl: value.portal,
@@ -716,8 +714,8 @@ function createEdemProviderDriver(
                 ? ports.core.operatorLiveUrl(
                       "edem",
                       String(id),
-                      catalog.channels[id],
-                      { host: value.cdn, key: value.key }
+                      { url: "" },
+                      { host: EDEM_STREAM_HOST, key: value.key }
                   )
                 : "";
         },
@@ -730,10 +728,10 @@ function reportEdemProviderLoad(
     host: any,
     driver: EdemProviderDriver,
     error?: string
-): void {
+): boolean {
     if (error) {
         host.alert(host._("Failed to load channel list!"));
-        return;
+        return true;
     }
     var value = driver.settings();
     var message = !host.OttPlayCore.operatorCredentialsValid(
@@ -742,10 +740,8 @@ function reportEdemProviderLoad(
         ""
     )
         ? "Access key is required!"
-        : !host.OttPlayCore.operatorEdemHost(value.cdn)
-          ? "Channel link is required!"
-          : "";
-    if (!message) return;
+        : "";
+    if (!message) return true;
     host.duneAddSettings.edemSettings();
     host.infoBox(
         "<br>" +
@@ -753,6 +749,9 @@ function reportEdemProviderLoad(
             "<br><br>" +
             host.renderButtonHint(host.keys.ENTER, host.strENTER, "Close")
     );
+    // Keep the provider settings/editor visible. The generic channel-load
+    // completion callback replaces the current screen with the channel list.
+    return false;
 }
 
 /** Explicit compatibility codec: menus and media rows are detached from protocol state. */
@@ -1107,9 +1106,6 @@ function mountEdemProvider(
         var value = driver.settings();
         host.listArray = [
             host._("Access key"),
-            host._("Channel link") +
-                ": " +
-                (host.OttPlayCore.operatorEdemHost(value.cdn) || "—"),
             host._("List type") + ": " + lists[value.list],
             host._("VPortal link"),
             "",
@@ -1118,36 +1114,18 @@ function mountEdemProvider(
         ];
         host.listDataArray = host.listArray;
     }
-    function edit(field: "key" | "cdn" | "portal") {
+    function edit(field: "key" | "portal") {
         if (!active()) return;
         var version = ++editor;
         host.editCaption = host._(
-            field === "key"
-                ? "Edit access key"
-                : field === "cdn"
-                  ? "Edit channel link"
-                  : "Edit VPortal link"
+            field === "key" ? "Edit access key" : "Edit VPortal link"
         );
         host.editvar = driver.settings()[field];
         host.setEdit = function () {
             if (!active() || version !== editor) return;
             var next = driver.settings(),
                 value = String(host.editvar || "");
-            if (field === "cdn") {
-                value = value
-                    .trim()
-                    .replace(/^https?:\/\//i, "")
-                    .split("/")[0];
-                if (value && !/^[A-Za-z0-9][A-Za-z0-9.-]{4,}$/.test(value)) {
-                    host.alert(
-                        host._(
-                            "Invalid channel link! Enter the full host as in the cabinet stream URL (e.g. subdomain.cdn-domain.tld)"
-                        )
-                    );
-                    if (active() && version === editor) host.showEditKey();
-                    return;
-                }
-            } else if (field === "portal") {
+            if (field === "portal") {
                 var header =
                     /^portal::(?:\[|%5b)key:([\s\S]*?)(?:\]|%5d)/i.exec(value);
                 if (header)
@@ -1198,11 +1176,6 @@ function mountEdemProvider(
                 [
                     host._("Enter access key for") + " " + title,
                     host._(
-                        "Enter the full CDN host from the cabinet stream URL (e.g. subdomain.cdn-domain.tld), not a bare subdomain"
-                    ) +
-                        ":<br><br>" +
-                        after,
-                    host._(
                         "Select playlist template source for EPG and logos"
                     ) +
                         ":<br>" +
@@ -1219,7 +1192,7 @@ function mountEdemProvider(
                     host.strRETURN,
                     "Close"
                 ) +
-                (host.selIndex === 2
+                (host.selIndex === 1
                     ? host.renderButtonHint(
                           host.keys.ENTER,
                           host.strENTER,
@@ -1227,7 +1200,7 @@ function mountEdemProvider(
                           host.strLEFT,
                           host.strRIGHT
                       )
-                    : [0, 1, 3].indexOf(host.selIndex) !== -1
+                    : [0, 2].indexOf(host.selIndex) !== -1
                       ? host.renderButtonHint(
                             host.keys.ENTER,
                             host.strENTER,
@@ -1245,6 +1218,21 @@ function mountEdemProvider(
                 );
                 return true;
             }
+            if (key === host.keys.UP || key === host.keys.DOWN) {
+                if (typeof host.changeSelect === "function")
+                    host.changeSelect(key === host.keys.UP ? -1 : 1);
+                else {
+                    var length = host.listArray.length;
+                    if (length)
+                        host.selIndex =
+                            (host.selIndex +
+                                (key === host.keys.UP ? -1 : 1) +
+                                length) %
+                            length;
+                    host.showPage();
+                }
+                return true;
+            }
             if (key === host.keys.N8) {
                 host.loadChannels();
                 return true;
@@ -1255,10 +1243,9 @@ function mountEdemProvider(
                 key !== host.keys.RIGHT
             )
                 return false;
-            if (key !== host.keys.ENTER && host.selIndex !== 2) return false;
+            if (key !== host.keys.ENTER && host.selIndex !== 1) return false;
             if (host.selIndex === 0) edit("key");
-            else if (host.selIndex === 1) edit("cdn");
-            else if (host.selIndex === 2) {
+            else if (host.selIndex === 1) {
                 var next = driver.settings(),
                     version = editor;
                 next.list =
@@ -1276,8 +1263,8 @@ function mountEdemProvider(
                     refresh();
                     host.showPage();
                 }
-            } else if (host.selIndex === 3) edit("portal");
-            else if (host.selIndex === 5) host.loadChannels();
+            } else if (host.selIndex === 2) edit("portal");
+            else if (host.selIndex === 4) host.loadChannels();
             return true;
         };
         host.listDetail.innerHTML = "";

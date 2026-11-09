@@ -88,7 +88,7 @@ export function globalFavoriteBuiltinConfiguration(
     else if (row.kind === "playlist") {
         prefix = row.id === "kb-team" ? "kbc" + slot : row.prefix;
         keys = ["key", "mpeg"];
-    } else if (row.kind === "edem") keys = ["edcdn", "key", "vpurl"];
+    } else if (row.kind === "edem") keys = ["key", "vpurl"];
     else if (row.kind === "demo")
         return { name: row.title, slot: null, values: [] };
     else return null;

@@ -184,14 +184,8 @@ function createRemoteProviderFields(w: any, driver: any): any {
         });
     } else if (kind === "edem") {
         method = "saveSettings";
-        keys = [
-            physical("key"),
-            physical("edcdn"),
-            physical("vpurl"),
-            physical("list"),
-        ];
+        keys = [physical("key"), physical("vpurl"), physical("list")];
         entry("edemKey", "key", { secret: true });
-        entry("edemCdn", "cdn", { secret: true });
         entry("edemPortal", "portal", { secret: true });
         entry("edemList", "list", { values: [0, 1, 2, 3] });
     } else if (
@@ -396,14 +390,6 @@ function createRemoteProviderFields(w: any, driver: any): any {
             !/^(?:[a-f0-9]{2}:){5}[a-f0-9]{2}$/i.test(value)
         )
             throw new Error("invalid_value");
-        if (definition.id === "edemCdn") {
-            value = value
-                .trim()
-                .replace(/^https?:\/\//i, "")
-                .split("/")[0];
-            if (value && !/^[A-Za-z0-9][A-Za-z0-9.-]{4,}$/.test(value))
-                throw new Error("invalid_value");
-        }
         if (definition.id === "edemPortal") {
             var header = /^portal::(?:\[|%5b)key:([\s\S]*?)(?:\]|%5d)/i.exec(
                 value
