@@ -35,9 +35,17 @@ mod window_preferences;
 use commands::media_session::MediaSessionState;
 use commands::tauri_commands::{PipState, TauriState};
 use std::collections::HashMap;
+#[cfg(any(target_os = "windows", test))]
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::RwLock;
+
+#[cfg(any(target_os = "windows", test))]
+struct StartupWindowReveal {
+    saved_visibility: Option<bool>,
+    revealed: AtomicBool,
+}
 
 /// Default URL for the desktop shell webview.
 ///
@@ -88,6 +96,12 @@ pub fn run() {
                 .with_denylist(&["pip"]);
             if let Some(name) = instance::window_state_filename() {
                 ws = ws.with_filename(name);
+            }
+            // Defer geometry restoration until the frontend has loaded so
+            // Windows does not flash the centered default frame at startup.
+            #[cfg(any(target_os = "windows", test))]
+            {
+                ws = ws.skip_initial_state("main");
             }
             ws.build()
         })
@@ -199,6 +213,36 @@ pub fn run() {
                         .await;
                 });
             }
+            #[cfg(any(target_os = "windows", test))]
+            if window.label() == "main"
+                && payload.event() == tauri::webview::PageLoadEvent::Finished
+            {
+                let reveal = window.app_handle().state::<StartupWindowReveal>();
+                if !reveal.revealed.swap(true, Ordering::AcqRel) {
+                    use tauri_plugin_window_state::{StateFlags, WindowExt};
+                    let native_window = window.window();
+
+                    // A missing record has no geometry to restore. The plugin
+                    // seeds its cache with a zeroed default for new windows,
+                    // so leave the builder's centered 1280x720 geometry intact.
+                    if reveal.saved_visibility.is_some() {
+                        if let Err(error) = native_window.restore_state(
+                            StateFlags::SIZE | StateFlags::POSITION | StateFlags::VISIBLE,
+                        ) {
+                            tracing::warn!(%error, "Could not restore the initial window state");
+                        }
+                    }
+                    if reveal.saved_visibility.unwrap_or(true)
+                        && !native_window.is_visible().unwrap_or(false)
+                    {
+                        if let Err(error) =
+                            native_window.show().and_then(|_| native_window.set_focus())
+                        {
+                            tracing::warn!(%error, "Could not reveal the initial main window");
+                        }
+                    }
+                }
+            }
         })
         .setup(|app| {
             commands::background::restore(app.handle());
@@ -220,6 +264,21 @@ pub fn run() {
                 );
             }
 
+            #[cfg(any(target_os = "windows", test))]
+            {
+                let filename = instance::window_state_filename()
+                    .unwrap_or_else(|| tauri_plugin_window_state::DEFAULT_FILENAME.to_owned());
+                let saved_visibility = app
+                    .path()
+                    .app_config_dir()
+                    .ok()
+                    .and_then(|dir| instance::saved_window_visibility(&dir, &filename, "main"));
+                app.manage(StartupWindowReveal {
+                    saved_visibility,
+                    revealed: AtomicBool::new(false),
+                });
+            }
+
             let raw = std::env::var("OTTPLAY_WEB_URL").unwrap_or_else(|_| DEFAULT_WEB_URL.into());
             let web_url = if raw.trim().is_empty() {
                 None
@@ -236,7 +295,7 @@ pub fn run() {
             let dev_url = None;
 
             let always_on_top = commands::window_controls::initial_always_on_top(app.handle());
-            let mut builder = tauri::WebviewWindowBuilder::new(
+            let builder = tauri::WebviewWindowBuilder::new(
                 app,
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
@@ -248,9 +307,14 @@ pub fn run() {
             .title("OttPlay FOSS")
             .inner_size(1280.0, 720.0)
             .center()
+            .background_color(tauri::window::Color(17, 17, 17, 255))
             .resizable(true)
             .always_on_top(always_on_top)
             .decorations(false);
+            #[cfg(any(target_os = "windows", test))]
+            let mut builder = builder.visible(false);
+            #[cfg(not(any(target_os = "windows", test)))]
+            let mut builder = builder;
             if let Some(data_dir) = instance::resolve_data_dir() {
                 builder = instance::apply_isolation(builder, &data_dir);
             }

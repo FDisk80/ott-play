@@ -13,6 +13,8 @@
 //! Win/Linux; on macOS 14+ also a stable `data_store_identifier` UUID derived
 //! from the data dir (WKWebView has no path-based store API).
 
+#[cfg(any(target_os = "windows", test))]
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use tauri::{Manager, Runtime, WebviewWindowBuilder};
@@ -86,6 +88,16 @@ pub fn window_state_filename() -> Option<String> {
     isolation_slug().map(|s| format!(".window-state.{s}.json"))
 }
 
+/// Read the last persisted visibility bit for a window without depending on
+/// the window-state plugin's private cache representation. A missing or
+/// malformed record means the caller should use its normal startup default.
+#[cfg(any(target_os = "windows", test))]
+pub fn saved_window_visibility(config_dir: &Path, filename: &str, label: &str) -> Option<bool> {
+    let bytes = fs::read(config_dir.join(filename)).ok()?;
+    let state: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    state.get(label)?.get("visible")?.as_bool()
+}
+
 /// Webview profile directory under the instance data root.
 pub fn webview_data_dir(data_dir: &Path) -> PathBuf {
     data_dir.join("webview")
@@ -157,6 +169,74 @@ fn platform_data_dir() -> Option<PathBuf> {
             return Some(PathBuf::from(xdg));
         }
         return std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share"));
+    }
+}
+
+#[cfg(test)]
+mod window_visibility_tests {
+    use super::saved_window_visibility;
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+    };
+
+    static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
+
+    struct TempDir(PathBuf);
+
+    impl TempDir {
+        fn new() -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "ott-window-visibility-{}-{}",
+                std::process::id(),
+                NEXT_TEMP.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+
+    #[test]
+    fn saved_visibility_reads_only_the_requested_window_record() {
+        let dir = TempDir::new();
+        fs::write(
+            dir.0.join("state.json"),
+            br#"{"main":{"visible":true},"pip":{"visible":false}}"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            saved_window_visibility(&dir.0, "state.json", "main"),
+            Some(true)
+        );
+        assert_eq!(
+            saved_window_visibility(&dir.0, "state.json", "pip"),
+            Some(false)
+        );
+        assert_eq!(
+            saved_window_visibility(&dir.0, "state.json", "missing"),
+            None
+        );
+    }
+
+    #[test]
+    fn missing_or_invalid_window_state_is_unavailable() {
+        let dir = TempDir::new();
+        assert_eq!(
+            saved_window_visibility(&dir.0, "missing.json", "main"),
+            None
+        );
+        fs::write(dir.0.join("state.json"), b"not json").unwrap();
+        assert_eq!(saved_window_visibility(&dir.0, "state.json", "main"), None);
+        fs::write(dir.0.join("state.json"), br#"{"main":{"visible":"yes"}}"#).unwrap();
+        assert_eq!(saved_window_visibility(&dir.0, "state.json", "main"), None);
     }
 }
 
