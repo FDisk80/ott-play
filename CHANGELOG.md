@@ -2,13 +2,6 @@
 
 ## Unreleased
 
-- Simplify Edem/iLook access settings by using the built-in stream endpoint.
-  Keep the access-key editor open when credentials are missing and allow
-  keyboard navigation to playlist options and Load playlist.
-
-- Avoid the bright white startup surface on Windows desktop players and restore
-  saved window geometry before revealing the main window.
-
 - Browse Modern media catalogues in separate category rows with keyboard,
   mouse-wheel and touch navigation. Preserve the selected occurrence and
   existing playback actions while rendering only a bounded window of cards.
@@ -173,6 +166,35 @@
 - Include tracks from selected Plex music libraries in the standard playlist.
 - Keep Local videos Up/Down mapped to previous/next file after finite-media detection, while respecting custom key mappings and open menus.
 - Resume the exact selected Local videos file at its saved playback position after Q, page closure, or native app exit. Capture the decoder clock before exit/stop; keep completed files and explicit channel changes starting at zero.
+
+## [1.1.69] - 2026-11-09
+
+### Changes
+
+- Avoid the bright white startup surface on Windows. Restore saved window
+  geometry before revealing the player, follow external-page redirects and
+  recover from interrupted or failed navigation with a bounded fallback.
+- Simplify Edem/iLook access settings with the provider-owned stream endpoint.
+  Keep access-key settings reachable when credentials are missing or playlist
+  loading fails; retain error feedback and skip blank menu rows with arrow keys.
+- Preserve merge identity and respect withdrawn automatic-merge requests.
+  Refresh the pinned shared CI/release workflows and keep the fuzz workflow,
+  runtime and release policy on the same revision.
+
+### Upgrade
+
+Install the new native package or deploy the web build, then restart or refresh
+that player. Existing profiles, Favorites, Local sources and playback settings
+are preserved. Edem/iLook no longer requires a Channel link: saved legacy host
+values are ignored in favor of the built-in endpoint. Remote integrations should
+stop writing `edemCdn`; `edemKey`, `edemList` and `edemPortal` remain supported.
+
+### Security
+
+No new remote-control permissions or authentication bypasses are introduced.
+Existing credential storage, input validation and owner checks remain in place;
+keep access keys and private profile exports confidential. No security
+vulnerability fix is claimed for this release.
 
 ## [1.1.68] - Development line
 
