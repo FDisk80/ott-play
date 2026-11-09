@@ -1,4 +1,5 @@
 const vm = require("node:vm");
+const fs = require("node:fs");
 const cp = require("node:child_process");
 const ts = require("typescript");
 const { context, declarations } = require("./playlist-fixture.cjs");
@@ -69,6 +70,30 @@ exports.run = function (profile, input, baseline) {
         functions = declarations("providers/" + profile + "/provider.js").map(
             (row) => row.text
         );
+    if (profile === "edem") {
+        const text = fs.readFileSync("providers/edem/provider.js", "utf8");
+        const tree = ts.createSourceFile(
+            "provider",
+            text,
+            ts.ScriptTarget.Latest,
+            true
+        );
+        for (const statement of tree.statements) {
+            if (!ts.isVariableStatement(statement)) continue;
+            for (const declaration of statement.declarationList.declarations) {
+                if (declaration.name.getText(tree) !== "edemStreamHost")
+                    continue;
+                if (
+                    !declaration.initializer ||
+                    !ts.isStringLiteral(declaration.initializer)
+                )
+                    throw new Error(
+                        "Edem endpoint must remain a provider-owned string literal"
+                    );
+                ctx.edemStreamHost = declaration.initializer.text;
+            }
+        }
+    }
     vm.runInContext(functions.join("\n"), ctx);
     ctx.chanels[channelId] = ctx.chanels.c;
     ctx._getParams = function () {};
