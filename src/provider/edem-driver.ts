@@ -729,23 +729,19 @@ function reportEdemProviderLoad(
     driver: EdemProviderDriver,
     error?: string
 ): boolean {
+    var missingKey = !host.OttPlayCore.operatorCredentialsValid(
+        "edem",
+        driver.settings().key,
+        ""
+    );
     if (error) {
         host.alert(host._("Failed to load channel list!"));
-        return true;
     }
-    var value = driver.settings();
-    var message = !host.OttPlayCore.operatorCredentialsValid(
-        "edem",
-        value.key,
-        ""
-    )
-        ? "Access key is required!"
-        : "";
-    if (!message) return true;
+    if (!missingKey) return true;
     host.duneAddSettings.edemSettings();
     host.infoBox(
         "<br>" +
-            host._(message) +
+            host._("Access key is required!") +
             "<br><br>" +
             host.renderButtonHint(host.keys.ENTER, host.strENTER, "Close")
     );
@@ -770,6 +766,26 @@ function mountEdemProvider(
     driver.settingsChanged = function () {
         editor++;
     };
+    function moveSelection(direction: number): void {
+        var selectable = [0, 1, 2, 4],
+            length = host.listArray.length,
+            current = Number(host.selIndex) || 0,
+            target = current,
+            step = direction < 0 ? -1 : 1;
+        if (!length) return;
+        if (current < 0 || current >= length) current = 0;
+        target = current;
+        for (var i = 0; i < length; i++) {
+            target = (target + step + length) % length;
+            if (selectable.indexOf(target) !== -1) break;
+        }
+        if (typeof host.changeSelect === "function")
+            host.changeSelect(target - current);
+        else {
+            host.selIndex = target;
+            host.showPage();
+        }
+    }
     var title = "Edem.tv / iLook.tv";
     var remotePortal: any = null;
     var remotePortalLink = "";
@@ -1219,18 +1235,7 @@ function mountEdemProvider(
                 return true;
             }
             if (key === host.keys.UP || key === host.keys.DOWN) {
-                if (typeof host.changeSelect === "function")
-                    host.changeSelect(key === host.keys.UP ? -1 : 1);
-                else {
-                    var length = host.listArray.length;
-                    if (length)
-                        host.selIndex =
-                            (host.selIndex +
-                                (key === host.keys.UP ? -1 : 1) +
-                                length) %
-                            length;
-                    host.showPage();
-                }
+                moveSelection(key === host.keys.UP ? -1 : 1);
                 return true;
             }
             if (key === host.keys.N8) {

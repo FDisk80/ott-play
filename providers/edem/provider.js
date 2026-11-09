@@ -93,7 +93,24 @@ function getChanelsArray(callback) {
     _getParams();
 
     function loadPlaylist(url, success, cb) {
-        operatorLoadPlaylist(url, success, cb, "quiet");
+        operatorLoadPlaylist(url, success, cb, "quiet", function () {
+            alert(_("Failed to load channel list!"));
+            if (!OttPlayCore.operatorCredentialsValid("edem", edkey, "")) {
+                showMissingEdemKey();
+                return;
+            }
+            cb();
+        });
+    }
+
+    function showMissingEdemKey() {
+        doEditData();
+        infoBox(
+            "<br>" +
+                _("Access key is required!") +
+                "<br><br>" +
+                btnDiv(keys.ENTER, strENTER, "Close")
+        );
     }
 
     function aSuccess(data) {
@@ -119,18 +136,6 @@ function getChanelsArray(callback) {
                     entry.channel.channel_name = _("??? No channel name");
             });
             if (catalog.malformed) throw new Error("Malformed playlist entry");
-            if (!OttPlayCore.operatorCredentialsValid("edem", edkey, "")) {
-                doEditData();
-                infoBox(
-                    "<br>" +
-                        _("Access key is required!") +
-                        "<br><br>" +
-                        btnDiv(keys.ENTER, strENTER, "Close")
-                );
-                // The general load callback replaces the settings screen with
-                // the channel list. Keep Access key available for editing.
-                return;
-            }
         } catch (e) {
             console.log(
                 "Exception: name " +
@@ -141,6 +146,12 @@ function getChanelsArray(callback) {
                     typeof e
             );
             alert(_("Failed to load channel list!"));
+        }
+        if (!OttPlayCore.operatorCredentialsValid("edem", edkey, "")) {
+            // The general load callback replaces the settings screen with
+            // the channel list. Keep Access key available for editing.
+            showMissingEdemKey();
+            return;
         }
         callback();
     }
@@ -591,14 +602,22 @@ function doEditData() {
     listKeyHandler = function (code) {
         var a = 1;
         if (code == keys.UP || code == keys.DOWN) {
+            var selectable = [0, 1, 2, 4],
+                length = listArray.length,
+                current = Number(selIndex) || 0,
+                target = current,
+                step = code == keys.UP ? -1 : 1;
+            if (!length) return true;
+            if (current < 0 || current >= length) current = 0;
+            target = current;
+            for (var i = 0; i < length; i++) {
+                target = (target + step + length) % length;
+                if (selectable.indexOf(target) != -1) break;
+            }
             if (typeof changeSelect === "function")
-                changeSelect(code == keys.UP ? -1 : 1);
+                changeSelect(target - current);
             else {
-                var length = listArray.length;
-                if (length)
-                    selIndex =
-                        (selIndex + (code == keys.UP ? -1 : 1) + length) %
-                        length;
+                selIndex = target;
                 showPage();
             }
             return true;

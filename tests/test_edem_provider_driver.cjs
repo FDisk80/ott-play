@@ -1,6 +1,11 @@
 "use strict";
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const ts = require("typescript");
 const { edemFixture } = require("./helpers/edem-driver-fixture.cjs");
+const { integrationFixture } = require("./helpers/provider-driver-fixture.cjs");
 const clone = (value) => JSON.parse(JSON.stringify(value));
 function withoutSource(value) {
     return JSON.parse(
@@ -755,6 +760,39 @@ test("settings retain key/list/portal behavior, fixed endpoint, navigation and s
     );
 });
 
+test("Edem settings arrows skip the spacer in both directions and wrap", () => {
+    const f = setup();
+    f.host.duneAddSettings(0);
+    f.host.popupActions[0]();
+    const host = f.host,
+        handler = host.listKeyHandler;
+    host.changeSelect = (delta) => {
+        host.selIndex = Math.max(
+            0,
+            Math.min(host.listArray.length - 1, host.selIndex + delta)
+        );
+    };
+
+    for (const [start, key, expected] of [
+        [2, host.keys.DOWN, 4],
+        [4, host.keys.UP, 2],
+        [4, host.keys.DOWN, 0],
+        [0, host.keys.UP, 4],
+        [3, host.keys.UP, 2],
+        [3, host.keys.DOWN, 4],
+    ]) {
+        host.selIndex = start;
+        assert.equal(handler(key), true);
+        assert.equal(host.selIndex, expected);
+        assert.notEqual(host.selIndex, 3, "spacer row is never a destination");
+    }
+
+    delete host.changeSelect;
+    host.selIndex = 2;
+    handler(host.keys.DOWN);
+    assert.equal(host.selIndex, 4, "local fallback also skips the spacer");
+});
+
 test("missing access key keeps the Edem editor in front of generic catalog completion", () => {
     const f = setup({ edkey: "" });
     f.host.strENTER = "Enter";
@@ -771,6 +809,152 @@ test("missing access key keeps the Edem editor in front of generic catalog compl
     f.host.listKeyHandler(f.host.keys.ENTER);
     assert.equal(f.edits.length, 1);
     assert.equal(f.host.editCaption, "Edit access key");
+});
+
+test("missing-key startup settles the overlay before opening settings, on success and load error", () => {
+    function start(fail) {
+        const f = integrationFixture("edem", { edkey: "" }),
+            events = [];
+        f.host.strENTER = "Enter";
+        f.host.renderButtonHint = () => "";
+        f.host.clearBootHide = () => events.push("settled");
+        f.host.infoBox = () => events.push("key-prompt");
+        f.host.alert = () => events.push("load-error");
+        f.host.loadProv();
+        if (fail) {
+            f.requests[0].reject();
+            f.requests.at(-1).reject();
+        } else f.requests[0].resolve(playlist);
+
+        assert.equal(f.panels["#launch"].visible, false);
+        assert.equal(f.completed, 0, "do not run generic catalog completion");
+        assert.equal(f.host.commandChannelsReady, false);
+        assert.equal(f.host.listArray[0], "Access key");
+        return events;
+    }
+
+    assert.deepEqual(start(false), ["settled", "key-prompt"]);
+    assert.deepEqual(start(true), ["settled", "load-error", "key-prompt"]);
+});
+
+test("legacy Edem network failure with a missing key keeps the key editor open", () => {
+    const source = fs.readFileSync(
+            path.join(__dirname, "../providers/edem/provider.js"),
+            "utf8"
+        ),
+        ast = ts.createSourceFile(
+            "edem-provider.js",
+            source,
+            ts.ScriptTarget.Latest,
+            true
+        ),
+        declaration = ast.statements.find(
+            (node) =>
+                ts.isFunctionDeclaration(node) &&
+                node.name?.text === "getChanelsArray"
+        ),
+        events = [],
+        context = {
+            _: (value) => value,
+            _getParams() {
+                context.edkey = "";
+                context.edlist = 0;
+            },
+            _scheme: () => "https://",
+            alert: () => events.push("load-error"),
+            btnDiv: () => "Close",
+            doEditData: () => events.push("settings"),
+            edkey: "",
+            edlist: 0,
+            infoBox: () => events.push("key-prompt"),
+            keys: { ENTER: 13 },
+            OttPlayCore: {
+                operatorCredentialsValid: (_profile, key) => !!key,
+                operatorProfileUrl: () => "https://playlist.test/edem.m3u8",
+            },
+            operatorLoadPlaylist(url, success, complete, profile, failed) {
+                assert.equal(profile, "quiet");
+                failed({}, "error", "unavailable");
+            },
+            provName: "Edem.tv / iLook.tv",
+            strENTER: "Enter",
+        };
+    assert(declaration, "the shipped legacy Edem loader must exist");
+    vm.createContext(context);
+    vm.runInContext(declaration.getText(ast), context);
+    context.getChanelsArray(() => events.push("complete"));
+    assert.deepEqual(events, ["load-error", "settings", "key-prompt"]);
+});
+
+test("legacy Edem settings arrows skip the spacer row", () => {
+    const source = fs.readFileSync(
+            path.join(__dirname, "../providers/edem/provider.js"),
+            "utf8"
+        ),
+        ast = ts.createSourceFile(
+            "edem-provider.js",
+            source,
+            ts.ScriptTarget.Latest,
+            true
+        ),
+        declaration = ast.statements.find(
+            (node) =>
+                ts.isFunctionDeclaration(node) &&
+                node.name?.text === "doEditData"
+        ),
+        context = {
+            _: (value) => value,
+            _getParams() {},
+            $: () => ({ hide() {} }),
+            btnDiv: () => "",
+            edemKey() {},
+            edkey: "key",
+            edlist: 0,
+            edTlist: ["Standard", "Soveni", "Thematic", "Ordered"],
+            keys: {
+                DOWN: 40,
+                ENTER: 13,
+                LEFT: 37,
+                N8: 56,
+                RETURN: 27,
+                RIGHT: 39,
+                UP: 38,
+            },
+            listCaption: {},
+            listDetail: {},
+            listPodval: {},
+            noProvParam() {},
+            popupActions: [],
+            popupList() {},
+            provName: "Edem.tv / iLook.tv",
+            showPage() {},
+            sNoNumbersKeys: true,
+            strENTER: "Enter",
+            strLEFT: "Left",
+            strRETURN: "Return",
+            strRIGHT: "Right",
+            vpAlert: "VPortal link",
+        };
+    assert(declaration, "the legacy Edem settings screen must exist");
+    vm.createContext(context);
+    vm.runInContext(declaration.getText(ast), context);
+    context.doEditData();
+    context.changeSelect = (delta) => {
+        context.selIndex = Math.max(
+            0,
+            Math.min(context.listArray.length - 1, context.selIndex + delta)
+        );
+    };
+    for (const [start, key, expected] of [
+        [2, context.keys.DOWN, 4],
+        [4, context.keys.UP, 2],
+        [3, context.keys.UP, 2],
+        [3, context.keys.DOWN, 4],
+    ]) {
+        context.selIndex = start;
+        context.listKeyHandler(key);
+        assert.equal(context.selIndex, expected);
+    }
 });
 
 test("portal header normalization preserves complete opaque endpoints in root, navigation, page and playback requests", () => {
