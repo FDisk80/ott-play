@@ -45,6 +45,7 @@ use tokio::sync::RwLock;
 struct StartupWindowReveal {
     intended_url: Option<String>,
     saved_geometry: bool,
+    external_navigation_started: AtomicBool,
     revealed: AtomicBool,
 }
 
@@ -52,8 +53,24 @@ struct StartupWindowReveal {
 const STARTUP_REVEAL_FALLBACK: std::time::Duration = std::time::Duration::from_secs(8);
 
 #[cfg(any(target_os = "windows", test))]
-fn startup_page_is_intended(intended_url: Option<&str>, loaded_url: &str) -> bool {
-    intended_url.is_none_or(|expected| expected == loaded_url)
+fn is_embedded_frontend_url(raw: &str) -> bool {
+    tauri::Url::parse(raw)
+        .is_ok_and(|url| url.scheme() == "tauri" || url.host_str() == Some("tauri.localhost"))
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn startup_page_is_intended(
+    intended_url: Option<&str>,
+    loaded_url: &str,
+    external_navigation_started: bool,
+) -> bool {
+    match intended_url {
+        None => true,
+        Some(expected) => {
+            expected == loaded_url
+                || (external_navigation_started && !is_embedded_frontend_url(loaded_url))
+        }
+    }
 }
 
 #[cfg(any(target_os = "windows", test))]
@@ -236,6 +253,16 @@ pub fn run() {
             }
         })
         .on_page_load(|window, payload| {
+            #[cfg(any(target_os = "windows", test))]
+            if window.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started
+            {
+                let reveal = window.app_handle().state::<StartupWindowReveal>();
+                if reveal.intended_url.as_deref() == Some(payload.url().as_str()) {
+                    reveal
+                        .external_navigation_started
+                        .store(true, Ordering::Release);
+                }
+            }
             if window.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started
             {
                 let app = window.app_handle().clone();
@@ -259,7 +286,11 @@ pub fn run() {
             {
                 let reveal = window.app_handle().state::<StartupWindowReveal>();
                 let loaded_url = payload.url().as_str();
-                if startup_page_is_intended(reveal.intended_url.as_deref(), loaded_url) {
+                if startup_page_is_intended(
+                    reveal.intended_url.as_deref(),
+                    loaded_url,
+                    reveal.external_navigation_started.load(Ordering::Acquire),
+                ) {
                     let native_window = window.window();
                     reveal_startup_window(&native_window);
                 }
@@ -309,6 +340,7 @@ pub fn run() {
                         instance::saved_window_geometry(&dir, &filename, "main")
                     })
                     .unwrap_or(false),
+                external_navigation_started: AtomicBool::new(false),
                 revealed: AtomicBool::new(false),
             });
             #[cfg(dev)]
@@ -399,7 +431,8 @@ mod startup_window_reveal_tests {
     fn embedded_frontend_reveals_on_its_first_completed_page() {
         assert!(startup_page_is_intended(
             None,
-            "http://tauri.localhost/index.html"
+            "http://tauri.localhost/index.html",
+            false
         ));
     }
 
@@ -408,12 +441,24 @@ mod startup_window_reveal_tests {
         let intended = "http://127.0.0.1:8443/";
         assert!(!startup_page_is_intended(
             Some(intended),
-            "http://tauri.localhost/index.html"
+            "http://tauri.localhost/index.html",
+            false
         ));
-        assert!(startup_page_is_intended(Some(intended), intended));
+        assert!(startup_page_is_intended(Some(intended), intended, true));
         assert!(!startup_page_is_intended(
             Some(intended),
-            "http://127.0.0.1:8443/other"
+            "http://127.0.0.1:8443/other",
+            false
+        ));
+        assert!(startup_page_is_intended(
+            Some(intended),
+            "https://cdn.example.test/app/",
+            true
+        ));
+        assert!(!startup_page_is_intended(
+            Some(intended),
+            "http://tauri.localhost/index.html",
+            true
         ));
     }
 
