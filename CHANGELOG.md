@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Simplify Edem/iLook access settings by using the built-in stream endpoint.
+  Keep the access-key editor open when credentials are missing and allow
+  keyboard navigation to playlist options and Load playlist.
+
 - Avoid the bright white startup surface on Windows desktop players and restore
   saved window geometry before revealing the main window.
 

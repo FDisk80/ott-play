@@ -137,6 +137,11 @@ test("real Edem transaction changes one key and confirms actual storage", () => 
     assert.equal(f.set("edemList", 3).capture.value, 3);
     assert.equal(f.saved.get("edlist"), "3");
     assert.equal(f.saved.get("edkey"), "private");
+    assert.equal(
+        f.api.schema.some((row) => row.id === "edemCdn"),
+        false,
+        "the stream endpoint is owned by player code, not remote settings"
+    );
     assert.equal(f.requests.length, 0);
     assert.equal(f.set("edemList", 3).capture.value, 3);
 });

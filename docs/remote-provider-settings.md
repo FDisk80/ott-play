@@ -26,7 +26,7 @@ Addresses, credentials and private playlist links are redacted in reads and ackn
 | Plex | `providerServer`, `providerPassword`, `plexPlayback` | Server URL, Plex token, `auto` / `original` / `compatible` |
 | Stalker | `providerName`, `providerServer`, `stalkerMac` | Current slot name, portal URL, colon-separated MAC |
 | VPortal | `providerName`, `vportalLink` | Current slot name and link |
-| Edem / iLook | `edemKey`, `edemCdn`, `edemPortal`, `edemList` | Access key, full CDN host, VPortal link, list template 0–3 |
+| Edem / iLook | `edemKey`, `edemPortal`, `edemList` | Access key, VPortal link, list template 0–3; live-stream endpoint is fixed by the player |
 | Xtream | `providerServer`, `providerUsername`, `providerPassword` | Connection credentials |
 | Generic operator providers | `providerServer`, `providerUsername`, `providerPassword`, `providerPlaylist` | API credentials and fallback playlist |
 | 1OTT / shara-tv | `providerUsername`, `providerPassword` | ID/PIN or username/password |

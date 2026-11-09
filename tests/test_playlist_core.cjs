@@ -40,7 +40,7 @@ for (const row of operators.cases) {
     for (const profile of operators.operators)
         assert.deepEqual(
             runner.operator(profile, row.input),
-            row.operators[profile],
+            corrected.operator(row, profile),
             profile + ": " + row.input
         );
     for (const profile of operators.media)

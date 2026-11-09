@@ -1,6 +1,11 @@
 "use strict";
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const ts = require("typescript");
 const { edemFixture } = require("./helpers/edem-driver-fixture.cjs");
+const { integrationFixture } = require("./helpers/provider-driver-fixture.cjs");
 const clone = (value) => JSON.parse(JSON.stringify(value));
 function withoutSource(value) {
     return JSON.parse(
@@ -128,7 +133,10 @@ test("12 captured template/interception/relay contracts plus all four list setti
                 f.requests[i].reject({}, "fixture", "failed");
             else f.requests[i].resolve("#EXTM3U\n");
         }
-        assert.equal(callbacks, row.expected.callbacks);
+        assert.equal(
+            callbacks,
+            row.input.settings?.key === "" ? 0 : row.expected.callbacks
+        );
         assert.deepEqual(
             clone(f.requests.map(requestView)),
             row.expected.calls
@@ -168,7 +176,7 @@ test("12 captured template/interception/relay contracts plus all four list setti
     }
 });
 
-test("10 captured live URLs, 8 archive URLs, full EPG namespaces, fail-closed getters", () => {
+test("Edem uses the player-owned stream endpoint and preserves archive URLs", () => {
     for (const row of require("./fixtures/operator/media-before-core.json").cases.filter(
         (row) => row.profile === "edem"
     )) {
@@ -183,7 +191,10 @@ test("10 captured live URLs, 8 archive URLs, full EPG namespaces, fail-closed ge
             url: "https://localhost/00000000000000/index.m3u8?foo=1",
             ...row.input.channel,
         });
-        assert.equal(f.driver.stream("c"), row.expected.value);
+        assert.equal(
+            f.driver.stream("c"),
+            "http://sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw/iptv/ed-key/c/index.m3u8"
+        );
     }
     for (const row of require("./fixtures/archive/providers.json").fixtures.filter(
         (row) => row.provider === "edem"
@@ -193,7 +204,13 @@ test("10 captured live URLs, 8 archive URLs, full EPG namespaces, fail-closed ge
         f.host.Date = { now: () => row.now * 1000 };
         f.driver = f.mount("edem");
         coreChannel(f, row.channel);
-        assert.equal(f.driver.archive("c", row.start, row.end), row.expected);
+        assert.equal(
+            f.driver.archive("c", row.start, row.end),
+            "http://sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw/iptv/12345678/c/index.m3u8?utc=" +
+                Math.floor(row.start) +
+                "&lutc=" +
+                Math.floor(row.now)
+        );
     }
     for (const list of [0, 1, 2, 3]) {
         const f = setup({ edlist: String(list) });
@@ -692,14 +709,14 @@ test("variant remote/mouse/foreign-dialog and stale handler ownership", () => {
     assert.equal(f.events.length, n);
 });
 
-test("settings retain key/list/CDN/portal behavior, prefix and remote navigation", () => {
+test("settings retain key/list/portal behavior, fixed endpoint, navigation and selection", () => {
     const f = setup();
     settle(f);
     const id = f.host.cList[0];
     f.host.duneAddSettings(0);
     assert.equal(f.host.popupArray[0], "Access settings Edem.tv / iLook.tv");
     f.host.popupActions[0]();
-    assert.equal(f.host.listArray.length, 6);
+    assert.equal(f.host.listArray.length, 5);
     f.host.selIndex = 0;
     f.host.listKeyHandler(f.host.keys.ENTER);
     f.host.editvar = "new-key";
@@ -707,26 +724,22 @@ test("settings retain key/list/CDN/portal behavior, prefix and remote navigation
     assert.equal(f.saved.get("edkey"), "new-key");
     assert.equal(f.events.filter((event) => event[0] === "live").length, 1);
     assert(f.driver.stream(id).includes("new-key"));
-    f.host.selIndex = 1;
-    assert.equal(f.host.listKeyHandler(f.host.keys.LEFT), false);
-    f.host.listKeyHandler(f.host.keys.ENTER);
-    f.host.editvar = "x";
-    f.host.setEdit();
-    assert.equal(f.errors.length, 1);
-    f.host.editvar = " https://edge.cdn.test/folder/stream ";
-    f.host.setEdit();
-    assert.equal(f.saved.get("ededcdn"), "edge.cdn.test");
-    assert(f.host.listArray[1].includes("edge.cdn.test"));
-    f.host.selIndex = 2;
+    f.host.selIndex = 0;
+    f.host.listKeyHandler(f.host.keys.DOWN);
+    assert.equal(f.host.selIndex, 1);
     f.host.listKeyHandler(f.host.keys.LEFT);
     assert.equal(f.saved.get("edlist"), "3");
     f.host.listKeyHandler(f.host.keys.RIGHT);
     assert.equal(f.saved.get("edlist"), "0");
-    f.host.selIndex = 3;
+    assert.equal(
+        f.driver.stream(id),
+        `http://sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw/iptv/new-key/${id}/index.m3u8`
+    );
+    f.host.selIndex = 2;
     f.host.listKeyHandler(f.host.keys.ENTER);
     f.host.editvar = "wrong";
     f.host.setEdit();
-    assert.equal(f.errors.length, 2);
+    assert.equal(f.errors.length, 1);
     f.host.editvar = "portal::%5Bkey:other%5Dhttps://new.test/api";
     f.host.setEdit();
     assert.equal(
@@ -745,6 +758,203 @@ test("settings retain key/list/CDN/portal behavior, prefix and remote navigation
     assert(
         f.calls.some((value) => Array.isArray(value) && value[0] === "popup")
     );
+});
+
+test("Edem settings arrows skip the spacer in both directions and wrap", () => {
+    const f = setup();
+    f.host.duneAddSettings(0);
+    f.host.popupActions[0]();
+    const host = f.host,
+        handler = host.listKeyHandler;
+    host.changeSelect = (delta) => {
+        host.selIndex = Math.max(
+            0,
+            Math.min(host.listArray.length - 1, host.selIndex + delta)
+        );
+    };
+
+    for (const [start, key, expected] of [
+        [2, host.keys.DOWN, 4],
+        [4, host.keys.UP, 2],
+        [4, host.keys.DOWN, 0],
+        [0, host.keys.UP, 4],
+        [3, host.keys.UP, 2],
+        [3, host.keys.DOWN, 4],
+    ]) {
+        host.selIndex = start;
+        assert.equal(handler(key), true);
+        assert.equal(host.selIndex, expected);
+        assert.notEqual(host.selIndex, 3, "spacer row is never a destination");
+    }
+
+    delete host.changeSelect;
+    host.selIndex = 2;
+    handler(host.keys.DOWN);
+    assert.equal(host.selIndex, 4, "local fallback also skips the spacer");
+});
+
+test("missing access key keeps the Edem editor in front of generic catalog completion", () => {
+    const f = setup({ edkey: "" });
+    f.host.strENTER = "Enter";
+    f.host.renderButtonHint = () => "";
+    let callbacks = 0;
+    f.host.getChannelsArray(() => callbacks++);
+    f.requests.at(-1).resolve(playlist);
+
+    assert.equal(callbacks, 0);
+    assert.equal(f.host.listArray.length, 5);
+    assert.equal(f.host.selIndex, 0);
+    assert(f.events.some((event) => event[0] === "info"));
+
+    f.host.listKeyHandler(f.host.keys.ENTER);
+    assert.equal(f.edits.length, 1);
+    assert.equal(f.host.editCaption, "Edit access key");
+});
+
+test("missing-key startup settles the overlay before opening settings, on success and load error", () => {
+    function start(fail) {
+        const f = integrationFixture("edem", { edkey: "" }),
+            events = [];
+        f.host.strENTER = "Enter";
+        f.host.renderButtonHint = () => "";
+        f.host.clearBootHide = () => events.push("settled");
+        f.host.infoBox = () => events.push("key-prompt");
+        f.host.alert = () => events.push("load-error");
+        f.host.loadProv();
+        if (fail) {
+            f.requests[0].reject();
+            f.requests.at(-1).reject();
+        } else f.requests[0].resolve(playlist);
+
+        assert.equal(f.panels["#launch"].visible, false);
+        assert.equal(f.completed, 0, "do not run generic catalog completion");
+        assert.equal(f.host.commandChannelsReady, false);
+        assert.equal(f.host.listArray[0], "Access key");
+        return events;
+    }
+
+    assert.deepEqual(start(false), ["settled", "key-prompt"]);
+    assert.deepEqual(start(true), ["settled", "load-error", "key-prompt"]);
+});
+
+test("legacy Edem network failure with a missing key keeps the key editor open", () => {
+    const source = fs.readFileSync(
+            path.join(__dirname, "../providers/edem/provider.js"),
+            "utf8"
+        ),
+        ast = ts.createSourceFile(
+            "edem-provider.js",
+            source,
+            ts.ScriptTarget.Latest,
+            true
+        ),
+        declaration = ast.statements.find(
+            (node) =>
+                ts.isFunctionDeclaration(node) &&
+                node.name?.text === "getChanelsArray"
+        ),
+        events = [],
+        context = {
+            _: (value) => value,
+            _getParams() {
+                context.edkey = "";
+                context.edlist = 0;
+            },
+            _scheme: () => "https://",
+            alert: () => events.push("load-error"),
+            btnDiv: () => "Close",
+            doEditData: () => events.push("settings"),
+            edkey: "",
+            edlist: 0,
+            infoBox: () => events.push("key-prompt"),
+            keys: { ENTER: 13 },
+            OttPlayCore: {
+                operatorCredentialsValid: (_profile, key) => !!key,
+                operatorProfileUrl: () => "https://playlist.test/edem.m3u8",
+            },
+            operatorLoadPlaylist(url, success, complete, profile, failed) {
+                assert.equal(profile, "quiet");
+                failed({}, "error", "unavailable");
+            },
+            provName: "Edem.tv / iLook.tv",
+            strENTER: "Enter",
+        };
+    assert(declaration, "the shipped legacy Edem loader must exist");
+    vm.createContext(context);
+    vm.runInContext(declaration.getText(ast), context);
+    context.getChanelsArray(() => events.push("complete"));
+    assert.deepEqual(events, ["load-error", "settings", "key-prompt"]);
+});
+
+test("legacy Edem settings arrows skip the spacer row", () => {
+    const source = fs.readFileSync(
+            path.join(__dirname, "../providers/edem/provider.js"),
+            "utf8"
+        ),
+        ast = ts.createSourceFile(
+            "edem-provider.js",
+            source,
+            ts.ScriptTarget.Latest,
+            true
+        ),
+        declaration = ast.statements.find(
+            (node) =>
+                ts.isFunctionDeclaration(node) &&
+                node.name?.text === "doEditData"
+        ),
+        context = {
+            _: (value) => value,
+            _getParams() {},
+            $: () => ({ hide() {} }),
+            btnDiv: () => "",
+            edemKey() {},
+            edkey: "key",
+            edlist: 0,
+            edTlist: ["Standard", "Soveni", "Thematic", "Ordered"],
+            keys: {
+                DOWN: 40,
+                ENTER: 13,
+                LEFT: 37,
+                N8: 56,
+                RETURN: 27,
+                RIGHT: 39,
+                UP: 38,
+            },
+            listCaption: {},
+            listDetail: {},
+            listPodval: {},
+            noProvParam() {},
+            popupActions: [],
+            popupList() {},
+            provName: "Edem.tv / iLook.tv",
+            showPage() {},
+            sNoNumbersKeys: true,
+            strENTER: "Enter",
+            strLEFT: "Left",
+            strRETURN: "Return",
+            strRIGHT: "Right",
+            vpAlert: "VPortal link",
+        };
+    assert(declaration, "the legacy Edem settings screen must exist");
+    vm.createContext(context);
+    vm.runInContext(declaration.getText(ast), context);
+    context.doEditData();
+    context.changeSelect = (delta) => {
+        context.selIndex = Math.max(
+            0,
+            Math.min(context.listArray.length - 1, context.selIndex + delta)
+        );
+    };
+    for (const [start, key, expected] of [
+        [2, context.keys.DOWN, 4],
+        [4, context.keys.UP, 2],
+        [3, context.keys.UP, 2],
+        [3, context.keys.DOWN, 4],
+    ]) {
+        context.selIndex = start;
+        context.listKeyHandler(key);
+        assert.equal(context.selIndex, expected);
+    }
 });
 
 test("portal header normalization preserves complete opaque endpoints in root, navigation, page and playback requests", () => {
@@ -769,7 +979,7 @@ test("portal header normalization preserves complete opaque endpoints in root, n
         const f = setup();
         f.host.duneAddSettings(0);
         f.host.popupActions[0]();
-        f.host.selIndex = 3;
+        f.host.selIndex = 2;
         f.host.listKeyHandler(f.host.keys.ENTER);
         f.host.editvar = header + endpoint;
         f.host.setEdit();
@@ -796,7 +1006,7 @@ test("portal header normalization preserves complete opaque endpoints in root, n
 });
 
 test("settings/account teardown reentry cannot overwrite storage or replay a replacement owner", () => {
-    for (const row of [0, 1, 3]) {
+    for (const row of [0, 2]) {
         const f = setup();
         f.host.duneAddSettings(0);
         f.host.popupActions[0]();
@@ -811,11 +1021,7 @@ test("settings/account teardown reentry cannot overwrite storage or replay a rep
         f.host.listKeyHandler(f.host.keys.ENTER);
         const callback = f.host.setEdit;
         f.host.editvar =
-            row === 0
-                ? "other"
-                : row === 1
-                  ? "next.cdn.test"
-                  : "portal::[key:other]https://next.test";
+            row === 0 ? "other" : "portal::[key:other]https://next.test";
         const before = Array.from(f.saved),
             count = f.events.filter((event) => event[0] === "render").length;
         callback();
@@ -843,9 +1049,9 @@ test("settings/account teardown reentry cannot overwrite storage or replay a rep
     f.host.selIndex = 0;
     f.host.listKeyHandler(f.host.keys.ENTER);
     const old = f.host.setEdit;
-    f.host.selIndex = 1;
+    f.host.selIndex = 2;
     f.host.listKeyHandler(f.host.keys.ENTER);
-    f.host.editvar = "latest.cdn.test";
+    f.host.editvar = "portal::[key:latest]https://latest.test";
     old();
     assert.equal(f.saved.get("edkey"), "12345678");
 });
@@ -983,7 +1189,7 @@ test("credentials teardown respects a newer direct media load; list changes dism
     const request = f.requests.at(-1);
     f.host.duneAddSettings(0);
     f.host.popupActions[0]();
-    f.host.selIndex = 2;
+    f.host.selIndex = 1;
     f.host.listKeyHandler(f.host.keys.RIGHT);
     assert.equal(request.aborts, 1);
     assert.equal(f.panels["#dialogbox"].visible, false);
