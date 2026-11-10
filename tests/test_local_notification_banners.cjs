@@ -364,19 +364,30 @@ test("seek cards shrink to content even alongside a full-width remote notice", (
             delayRule.style["animation-delay"],
             "0ms, var(--ott-notify-fade-delay, 980ms)"
         );
-        const surfaceShorthand = rules.find(
-            (rule) =>
-                rule.style?.animation &&
-                rule.selectorText
-                    ?.split(",")
-                    .map((selector) => selector.trim())
-                    .includes(".notify.remote-notify::before")
+        const surfaceAnimations = rules.find((rule) =>
+            rule.selectorText
+                ?.split(",")
+                .map((selector) => selector.trim())
+                .includes(".notify.remote-notify::before")
         );
-        assert(
-            surfaceShorthand,
-            "shared shorthand resets delay after the seek rule"
+        assert(surfaceAnimations, "shared surface animation rule is present");
+        // An inherited duration cannot serialize together with concrete values
+        // as one shorthand. Inspect the expanded declarations instead.
+        assert.equal(
+            surfaceAnimations.style.getPropertyValue("animation-name"),
+            "remoteNotifySurfaceIn, remoteNotifyFade"
         );
-        assert(rules.indexOf(surfaceShorthand) > rules.indexOf(delayRule));
+        assert.equal(
+            surfaceAnimations.style.getPropertyValue("animation-duration"),
+            "inherit"
+        );
+        assert.equal(
+            surfaceAnimations.style.getPropertyValue("animation-delay-start") ||
+                surfaceAnimations.style.getPropertyValue("animation-delay"),
+            "0s, 980ms",
+            "shared animations retain their ordinary delays"
+        );
+        assert(rules.indexOf(surfaceAnimations) > rules.indexOf(delayRule));
         assert(
             surfaceSelector.split(".").length >
                 ".notify.remote-notify::before".split(".").length,

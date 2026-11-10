@@ -51,7 +51,7 @@ writing systems, additional characters and case-mapping behavior.
 ## Native runtime: Tauri and Capacitor
 
 Native builds use the exact npm-locked releases **jQuery 4.0.0**, **hls.js 1.7.4**
-and **Shaka Player 5.3.3**. This applies to Tauri, iOS, Android Full and Android
+and **Shaka Player 5.3.4**. This applies to Tauri, iOS, Android Full and Android
 Play. Their package license files are copied into `licenses/native/` in the native
 frontend by the asset preparer; `native-runtime.json` records the versions and
 file hashes. Verify those outputs against the release artifact, not the older web
@@ -59,8 +59,8 @@ vendor filenames.
 
 - **jQuery 4.0.0:** MIT; [official release license](https://github.com/jquery/jquery/blob/4.0.0/LICENSE.txt).
 - **hls.js 1.7.4:** Apache 2.0; [official release license](https://github.com/video-dev/hls.js/blob/v1.7.4/LICENSE).
-- **Shaka Player 5.3.3:** Apache 2.0 with the additional notices retained in its
-  [official release license](https://github.com/shaka-project/shaka-player/blob/v5.3.3/LICENSE).
+- **Shaka Player 5.3.4:** Apache 2.0 with the additional notices retained in its
+  [official release license](https://github.com/shaka-project/shaka-player/blob/v5.3.4/LICENSE).
   Its additional MIT notices and `third_party/SUMMARY.txt` are retained in
   `licenses/native/shaka-player-LICENSE.txt` and
   `licenses/native/shaka-third-party/SUMMARY.txt`; other upstream license/notice

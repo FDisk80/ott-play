@@ -428,9 +428,12 @@ test("Classic and non-catalogue screens remove Modern layout without changing se
         assert.equal(f.api.render(f.ids[0], 0), null);
         assert.equal(f.container.classList.contains("modern-catalog"), false);
         assert.equal(f.container.classList.contains("modern-options"), true);
+        const reference = f.w.document.createElement("div");
+        reference.style.gridTemplateColumns = "repeat(1, minmax(0, 1fr))";
+        assert.notEqual(reference.style.gridTemplateColumns, "");
         assert.equal(
             f.container.style.gridTemplateColumns,
-            "repeat(1, minmax(0, 1fr))"
+            reference.style.gridTemplateColumns
         );
         assert.equal(f.api.prepare(f.ids, f.formatter, null), null);
         f.w.settings.interfaceMode = 0;

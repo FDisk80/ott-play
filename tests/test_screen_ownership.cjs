@@ -9,6 +9,19 @@ const { JSDOM } = require("jsdom");
 const { keyboardCode } = require("./helpers/localized-keyboard.cjs");
 const { localizationRuntime } = require("./helpers/localization-runtime.cjs");
 const root = path.resolve(__dirname, "..");
+function assertPercentageWidth(
+    element,
+    expected,
+    message = "percentage width matches expected CSSOM value"
+) {
+    assert(Number.isFinite(expected), "expected percentage is finite");
+    // Compare CSSOM values at the engine's serialization precision, retaining
+    // the percentage unit instead of accepting a numeric tolerance or pixels.
+    const reference = element.ownerDocument.createElement("div");
+    reference.style.width = expected + "%";
+    assert.notEqual(reference.style.width, "", "CSSOM accepts expected width");
+    assert.equal(element.style.width, reference.style.width, message);
+}
 function functions(file, names) {
     const source = ts.createSourceFile(
         file,
@@ -646,10 +659,9 @@ for (const pageSize of [25, 10, 30]) {
                         .textContent,
                     "Programme " + page.ids[first]
                 );
-                assert.equal(
-                    w.document.getElementById("pr" + page.ids[first]).style
-                        .width,
-                    ((w.Date.now() / 1000 - 900) / 600) * 100 + "%"
+                assertPercentageWidth(
+                    w.document.getElementById("pr" + page.ids[first]),
+                    ((w.Date.now() / 1000 - 900) / 600) * 100
                 );
                 assert.ok(page.listIn.querySelector(".list-scroll"));
                 page.advance(200);
@@ -774,9 +786,9 @@ for (const expired of [false, true])
                 w.document.getElementById("pn" + id).textContent,
                 "Programme " + id
             );
-            assert.equal(
-                w.document.getElementById("pr" + id).style.width,
-                ((w.Date.now() / 1000 - w.channels[id].time) / 600) * 100 + "%"
+            assertPercentageWidth(
+                w.document.getElementById("pr" + id),
+                ((w.Date.now() / 1000 - w.channels[id].time) / 600) * 100
             );
             assert.deepEqual(page.counts, {
                 details: 1,
@@ -2172,8 +2184,8 @@ test("settings grid measures each visible label once with a disposable local pro
         w.document.getElementById("testFont").textContent,
         "Unrelated measurement"
     );
-    assert.equal(
-        parseFloat(w.document.getElementById("ik0").style.width),
+    assertPercentageWidth(
+        w.document.getElementById("ik0"),
         98 / 3,
         "the widest label determines three columns"
     );
@@ -2201,10 +2213,7 @@ for (const width of [0, undefined]) {
                 return originalWidth.apply(this, arguments);
             };
             w.selectValue({ name: "Fixture", val: 0, values: ["A", "B"] });
-            assert.equal(
-                parseFloat(w.document.getElementById("ik0").style.width),
-                98 / 6
-            );
+            assertPercentageWidth(w.document.getElementById("ik0"), 98 / 6);
         }
     );
 }
